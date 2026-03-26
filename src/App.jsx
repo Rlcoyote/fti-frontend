@@ -21,7 +21,101 @@ const STATUS_CONFIG = {
 const STATUS_ORDER = ["Scheduled", "Rigged Up", "Active", "Rigged Down", "Invoiced"];
 
 const USERS_DEFAULT = [];
-let CURRENT_USER = "Reggie Lawrence";  // TODO: replace with login
+let CURRENT_USER = "";  // Set dynamically after login
+
+// ─── LOGIN SCREEN ────────────────────────────────────────────────────────────
+function LoginScreen({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) { setError("Email and password required"); return; }
+    setLoading(true); setError("");
+    try {
+      const r = await fetch(`${API_URL}/auth/login`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
+      const data = await r.json();
+      if (r.ok) {
+        onLogin(data);
+      } else {
+        setError(data.error || "Login failed");
+      }
+    } catch (err) {
+      setError("Connection error — check internet");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ background: C.cardBg, borderRadius: 8, padding: 40, width: 380, maxWidth: "90vw", borderTop: `4px solid ${C.red}` }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{
+            width: 56, height: 56, border: `3px solid ${C.red}`, borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: C.blue, fontSize: 18, fontWeight: 900, color: C.white,
+            margin: "0 auto 12px", boxShadow: `0 0 20px ${C.red}44`,
+          }}>FTI</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "0.1em" }}>FLO-TEST INC.</div>
+          <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>OPERATIONS DASHBOARD</div>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>EMAIL</label>
+          <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)}
+            placeholder="you@flo-test.com" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={labelStyle}>PASSWORD</label>
+          <input style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)}
+            placeholder="••••••" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+        </div>
+        {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+        <button onClick={handleLogin} disabled={loading} style={{
+          width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
+          borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+          letterSpacing: "0.06em", opacity: loading ? 0.6 : 1,
+        }}>{loading ? "SIGNING IN..." : "SIGN IN"}</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP WRAPPER (handles auth state) ────────────────────────────────────────
+function AppWrapper() {
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Check for saved session
+  useEffect(() => {
+    const saved = sessionStorage.getItem("fti_user");
+    if (saved) {
+      try {
+        const user = JSON.parse(saved);
+        CURRENT_USER = user.name;
+        setCurrentUser(user);
+      } catch (e) { sessionStorage.removeItem("fti_user"); }
+    }
+  }, []);
+
+  const handleLogin = (user) => {
+    CURRENT_USER = user.name;
+    setCurrentUser(user);
+    sessionStorage.setItem("fti_user", JSON.stringify(user));
+  };
+
+  const handleLogout = () => {
+    CURRENT_USER = "";
+    setCurrentUser(null);
+    sessionStorage.removeItem("fti_user");
+  };
+
+  if (!currentUser) return <LoginScreen onLogin={handleLogin} />;
+  return <FTIDashboard currentUser={currentUser} onLogout={handleLogout} />;
+}
+
+export { AppWrapper as default };
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 const INITIAL_JOBS = [
@@ -713,7 +807,7 @@ function PipelineSummary({ jobs }) {
 }
 
 // ─── JOB CARD ─────────────────────────────────────────────────────────────────
-function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, jsas, setJsas, userNames, qbItems, userIdByName }) {
+function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, jsas, setJsas, userNames, qbItems, userIdByName, currentUser }) {
   const cfg = STATUS_CONFIG[job.status];
   const costPerWell = job.wells.length > 1 ? (job.estimatedCost / job.wells.length).toFixed(0) : null;
   const [activeTab, setActiveTab] = useState("details");
@@ -735,10 +829,12 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
     return "draft";
   };
 
+  const isFlagged = job.status === "flaggedCancel";
+
   return (
     <div style={{
-      background: C.cardBg, border: `1px solid ${C.border}`,
-      borderLeft: `3px solid ${cfg.color}`, borderRadius: 6, marginBottom: 8,
+      background: isFlagged ? "#fdf0e6" : C.cardBg, border: `1px solid ${isFlagged ? "#b85c00" : C.border}`,
+      borderLeft: `3px solid ${isFlagged ? "#b85c00" : cfg.color}`, borderRadius: 6, marginBottom: 8,
       boxShadow: isExpanded ? `0 4px 24px ${cfg.color}22` : "none",
       overflow: "hidden",
     }}>
@@ -835,22 +931,34 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
-                {[
-                  { label: "View Field Tickets", action: () => setActiveTab("tickets") },
-                  { label: jsas.find(j => j.jobId === job.id) ? "Open JSA ✓" : "Open JSA", action: () => setShowJSA(true) },
-                  { label: "Flowback Data", action: () => setShowFlowback(true) },
-                  { label: "Edit Job", action: () => setShowEditJob(true) },
-                  { label: "Export to QB", action: null },
-                ].map((btn, i) => (
+                {(() => {
+                  const role = currentUser?.role || "field";
+                  const canDelete = ["owner", "admin", "ops_mgr"].includes(role);
+                  const actions = [
+                    { label: "View Field Tickets", action: () => setActiveTab("tickets") },
+                    { label: jsas.find(j => j.jobId === job.id) ? "Open JSA ✓" : "Open JSA", action: () => setShowJSA(true) },
+                    { label: "Flowback Data", action: () => setShowFlowback(true) },
+                    { label: "Edit Job", action: () => setShowEditJob(true) },
+                    { label: "Export to QB", action: null },
+                  ];
+                  if (canDelete) {
+                    actions.push({ label: "DELETE JOB", action: () => onDeleteJob(job.id), danger: true });
+                  } else if (job.status !== "flaggedCancel") {
+                    actions.push({ label: "Flag: To Be Cancelled", action: () => onFlagCancel(job.id), warn: true });
+                  }
+                  return actions;
+                })().map((btn, i) => (
                   <button key={i} onClick={(e) => { e.stopPropagation(); if (btn.action) btn.action(); }} style={{
-                    display: "block", width: "100%", background: "transparent",
-                    border: `1px solid ${C.border}`, color: btn.action ? C.text : C.muted,
+                    display: "block", width: "100%", background: btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : "transparent",
+                    border: `1px solid ${btn.danger ? C.red : btn.warn ? "#8a6500" : C.border}`,
+                    color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.action ? C.text : C.muted,
                     padding: "7px 12px", borderRadius: 4, fontSize: 12,
                     cursor: btn.action ? "pointer" : "default", textAlign: "left", marginBottom: 6,
                     fontFamily: "'Arial', sans-serif", opacity: btn.action ? 1 : 0.5,
+                    fontWeight: btn.danger || btn.warn ? 800 : 400,
                   }}
-                    onMouseEnter={e => { if (btn.action) { e.target.style.borderColor = C.red; e.target.style.background = "#fbeaec"; }}}
-                    onMouseLeave={e => { e.target.style.borderColor = C.border; e.target.style.background = "transparent"; }}
+                    onMouseEnter={e => { if (btn.action) { e.target.style.borderColor = C.red; e.target.style.background = btn.danger ? "#f5c6cb" : "#fbeaec"; }}}
+                    onMouseLeave={e => { e.target.style.borderColor = btn.danger ? C.red : btn.warn ? "#8a6500" : C.border; e.target.style.background = btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : "transparent"; }}
                   >{btn.label}{!btn.action ? " (coming soon)" : ""}</button>
                 ))}
               </div>
@@ -2689,7 +2797,12 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
 }
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
-export default function FTIDashboard() {
+function FTIDashboard({ currentUser, onLogout }) {
+  CURRENT_USER = currentUser.name;
+  const userRole = currentUser.role; // owner | admin | ops_mgr | supervisor | partner | field
+  const isAdmin = ["owner", "admin"].includes(userRole);
+  const isManager = ["owner", "admin", "ops_mgr", "supervisor"].includes(userRole);
+  
   const [page, setPage] = useState("dashboard");
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
@@ -2866,6 +2979,28 @@ export default function FTIDashboard() {
     } catch (err) { console.error("Create job failed:", err); }
   };
 
+  const handleDeleteJob = async (jobId) => {
+    if (!["owner", "admin", "ops_mgr"].includes(currentUser.role)) return;
+    try {
+      await fetch(`${API_URL}/jobs/${jobId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Deleted" }),
+      });
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+      setExpandedId(null);
+    } catch (err) { console.error("Delete job failed:", err); }
+  };
+
+  const handleFlagCancel = async (jobId) => {
+    try {
+      await fetch(`${API_URL}/jobs/${jobId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "flaggedCancel" }),
+      });
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "flaggedCancel" } : j));
+    } catch (err) { console.error("Flag cancel failed:", err); }
+  };
+
   const filteredJobs = filterStatus === "All" ? jobs : jobs.filter(j => j.status === filterStatus);
   const sortedJobs = [...filteredJobs].sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
 
@@ -2923,11 +3058,13 @@ export default function FTIDashboard() {
               </span>
             );
           })}
-          <div style={{
-            width: 30, height: 30, borderRadius: "50%", background: C.red,
-            border: `2px solid #ffffff55`, display: "flex", alignItems: "center",
-            justifyContent: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", color: C.white,
-          }}>E</div>
+          <div style={{ position: "relative" }}>
+            <div onClick={onLogout} title={`${currentUser.name} — Click to sign out`} style={{
+              width: 30, height: 30, borderRadius: "50%", background: C.red,
+              border: `2px solid #ffffff55`, display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", color: C.white,
+            }}>{currentUser.name.charAt(0).toUpperCase()}</div>
+          </div>
         </div>
       </div>
 
@@ -2998,6 +3135,9 @@ export default function FTIDashboard() {
               userNames={userNames}
               qbItems={qbItems}
               userIdByName={userIdByName}
+              currentUser={currentUser}
+              onDeleteJob={handleDeleteJob}
+              onFlagCancel={handleFlagCancel}
             />
           ))}
         </div>
