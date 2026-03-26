@@ -2825,12 +2825,144 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
   );
 }
 
+// ─── USERS MANAGEMENT PAGE ───────────────────────────────────────────────────
+const ROLE_OPTIONS = [
+  { value: "owner", label: "Owner" },
+  { value: "admin", label: "Admin" },
+  { value: "ops_mgr", label: "Ops Manager" },
+  { value: "supervisor", label: "Supervisor" },
+  { value: "field", label: "Field" },
+];
+
+const PROTECTED_EMAILS = ["reggie@flotest.com", "accounts@flotest.com"];
+
+function UsersPage({ users, setUsers, currentUser, isAdmin }) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newRole, setNewRole] = useState("field");
+  const [newPassword, setNewPassword] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const handleAddUser = async () => {
+    if (!newName.trim() || !newEmail.trim() || !newPassword) { setMsg("All fields required"); return; }
+    if (newPassword.length < 6) { setMsg("Password must be at least 6 characters"); return; }
+    try {
+      const r = await fetch(`${API_URL}/users`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), email: newEmail.trim().toLowerCase(), role: newRole }),
+      });
+      if (!r.ok) { setMsg("Failed to create user"); return; }
+      const created = await r.json();
+      // Set password
+      await fetch(`${API_URL}/auth/set-password`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: created.id, password: newPassword }),
+      });
+      setUsers(prev => [...prev, { ...created, is_active: true }]);
+      setNewName(""); setNewEmail(""); setNewRole("field"); setNewPassword(""); setShowAdd(false); setMsg("");
+    } catch (err) { setMsg("Error creating user"); }
+  };
+
+  const handleDeactivate = async (userId) => {
+    const user = users.find(u => u.id === userId);
+    if (PROTECTED_EMAILS.includes(user?.email)) return;
+    try {
+      await fetch(`${API_URL}/users/${userId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: false }),
+      });
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (err) { console.error("Deactivate failed:", err); }
+  };
+
+  const handleResetPassword = async (userId) => {
+    const pw = "fti2026";
+    try {
+      await fetch(`${API_URL}/auth/set-password`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, password: pw }),
+      });
+      setMsg(`Password reset to default for user`);
+      setTimeout(() => setMsg(""), 3000);
+    } catch (err) { setMsg("Reset failed"); }
+  };
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>User Management</h1>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{users.length} active user{users.length !== 1 ? "s" : ""}</div>
+        </div>
+        <Btn onClick={() => setShowAdd(s => !s)}>{showAdd ? "CANCEL" : "+ ADD USER"}</Btn>
+      </div>
+
+      {msg && <div style={{ padding: "8px 14px", background: msg.includes("failed") || msg.includes("Error") || msg.includes("required") ? "#fdecea" : "#e6f5ec", borderRadius: 4, fontSize: 12, fontWeight: 700, color: msg.includes("failed") || msg.includes("Error") || msg.includes("required") ? C.red : C.green, marginBottom: 16 }}>{msg}</div>}
+
+      {showAdd && (
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <div>
+              <label style={labelStyle}>NAME *</label>
+              <input style={inputStyle} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Full name" />
+            </div>
+            <div>
+              <label style={labelStyle}>EMAIL *</label>
+              <input style={inputStyle} value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@flotest.com" />
+            </div>
+            <div>
+              <label style={labelStyle}>ROLE</label>
+              <select style={inputStyle} value={newRole} onChange={e => setNewRole(e.target.value)}>
+                {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>PASSWORD *</label>
+              <input style={inputStyle} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 6 chars" />
+            </div>
+          </div>
+          <Btn onClick={handleAddUser}>CREATE USER</Btn>
+        </div>
+      )}
+
+      <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", background: C.darkBlue, padding: "10px 16px" }}>
+          {["NAME", "EMAIL", "ROLE", "ACTIONS"].map(h => (
+            <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{h}</div>
+          ))}
+        </div>
+        {users.map((u, i) => {
+          const isProtected = PROTECTED_EMAILS.includes(u.email);
+          return (
+            <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", padding: "10px 16px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{u.name}</div>
+              <div style={{ fontSize: 12, color: C.muted }}>{u.email}</div>
+              <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: u.role === "owner" ? "#fdecea" : u.role === "admin" ? "#e8f0fb" : u.role === "ops_mgr" ? "#e6f5ec" : u.role === "supervisor" ? "#fdf5d8" : "#f0f3f8", color: u.role === "owner" ? C.red : u.role === "admin" ? C.blue : u.role === "ops_mgr" ? C.green : u.role === "supervisor" ? "#8a6500" : C.muted, letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {!isProtected && (
+                  <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>REMOVE</button>
+                )}
+                {!isProtected && (
+                  <button onClick={() => handleResetPassword(u.id)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>RESET PW</button>
+                )}
+                {isProtected && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function FTIDashboard({ currentUser, onLogout }) {
   CURRENT_USER = currentUser.name;
-  const userRole = currentUser.role; // owner | admin | ops_mgr | supervisor | partner | field
+  const userRole = currentUser.role; // owner | admin | ops_mgr | supervisor | field
   const isAdmin = ["owner", "admin"].includes(userRole);
   const isManager = ["owner", "admin", "ops_mgr", "supervisor"].includes(userRole);
+  const isField = userRole === "field";
   
   const [page, setPage] = useState("dashboard");
   const [expandedId, setExpandedId] = useState(null);
@@ -3071,7 +3203,12 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const NAV_ITEMS = ["Dashboard", "Jobs", "To-Dos", "Inventory", "Crew", "Reports", "Deleted"];
+  const ALL_NAV_ITEMS = ["Dashboard", "Jobs", "To-Dos", "Inventory", "Crew", "Reports", "Deleted", "Users"];
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
+    if (i === "Inventory" && isField) return false;
+    if (i === "Users" && !isManager) return false;
+    return true;
+  });
 
   if (loading) {
     return (
@@ -3106,7 +3243,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
-            const pageMap = { Dashboard: "dashboard", "To-Dos": "todos", Inventory: "inventory", Deleted: "deleted" };
+            const pageMap = { Dashboard: "dashboard", "To-Dos": "todos", Inventory: "inventory", Deleted: "deleted", Users: "users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
@@ -3139,7 +3276,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         <TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />
       )}
 
-      {page === "inventory" && (
+      {page === "inventory" && !isField && (
         <InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />
       )}
 
@@ -3169,6 +3306,10 @@ function FTIDashboard({ currentUser, onLogout }) {
             </div>
           ))}
         </div>
+      )}
+
+      {page === "users" && isManager && (
+        <UsersPage users={users} setUsers={setUsers} currentUser={currentUser} isAdmin={isAdmin} />
       )}
 
       {page === "dashboard" && (
