@@ -65,7 +65,7 @@ function LoginScreen({ onLogin }) {
         <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>EMAIL</label>
           <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="you@flo-test.com" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+            placeholder="you@flotest.com" onKeyDown={e => e.key === "Enter" && handleLogin()} />
         </div>
         <div style={{ marginBottom: 20 }}>
           <label style={labelStyle}>PASSWORD</label>
