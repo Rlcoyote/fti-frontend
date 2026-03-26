@@ -2979,24 +2979,38 @@ function FTIDashboard({ currentUser, onLogout }) {
     } catch (err) { console.error("Create job failed:", err); }
   };
 
+  // Helper to log audit events
+  const logAudit = async (action, entityType, entityId, oldValue, newValue, notes) => {
+    try {
+      await fetch(`${API_URL}/audit`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name, action, entity_type: entityType, entity_id: String(entityId), old_value: oldValue, new_value: newValue, notes }),
+      });
+    } catch (err) { console.error("Audit log failed:", err); }
+  };
+
   const handleDeleteJob = async (jobId) => {
     if (!["owner", "admin", "ops_mgr"].includes(currentUser.role)) return;
+    const job = jobs.find(j => j.id === jobId);
     try {
       await fetch(`${API_URL}/jobs/${jobId}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Deleted" }),
       });
+      await logAudit("job_delete", "job", jobId, { status: job?.status, customer: job?.customer }, { status: "Deleted" }, `Job #${jobId} deleted by ${currentUser.name}`);
       setJobs(prev => prev.filter(j => j.id !== jobId));
       setExpandedId(null);
     } catch (err) { console.error("Delete job failed:", err); }
   };
 
   const handleFlagCancel = async (jobId) => {
+    const job = jobs.find(j => j.id === jobId);
     try {
       await fetch(`${API_URL}/jobs/${jobId}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "flaggedCancel" }),
       });
+      await logAudit("job_flag_cancel", "job", jobId, { status: job?.status }, { status: "flaggedCancel" }, `Job #${jobId} flagged for cancellation by ${currentUser.name}`);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "flaggedCancel" } : j));
     } catch (err) { console.error("Flag cancel failed:", err); }
   };
@@ -3119,6 +3133,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               tickets={tickets} setTickets={setTickets}
               jobs={jobs} onNavigateJob={navigateToJob}
               onUpdateJob={async (id, updates) => {
+                const oldJob = jobs.find(j => j.id === id);
                 try {
                   const payload = { location: updates.location, status: updates.status };
                   if (updates.wells) payload.wells = updates.wells.map((w, i) => ({ well_name: w, afe_number: updates.afe?.[i] || null }));
@@ -3128,6 +3143,7 @@ function FTIDashboard({ currentUser, onLogout }) {
                     if (cust) payload.customer_id = cust.id;
                   }
                   await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                  await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status, location: oldJob?.location }, updates, `Job #${id} edited by ${currentUser.name}`);
                 } catch (err) { console.error("Job update failed:", err); }
                 setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j));
               }}
