@@ -3203,10 +3203,11 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["Dashboard", "Jobs", "To-Dos", "Inventory", "Crew", "Reports", "Deleted", "Users"];
+  const ALL_NAV_ITEMS = ["Dashboard", "Job History", "To-Dos", "Inventory", "Crew", "Reports", "Deleted", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && isField) return false;
     if (i === "Users" && !isManager) return false;
+    if (i === "Job History" && isField) return false;
     return true;
   });
 
