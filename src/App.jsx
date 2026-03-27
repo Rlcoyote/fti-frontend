@@ -3244,6 +3244,155 @@ function ReportsPage({ jobs, tickets, inventory }) {
   );
 }
 
+// ─── REPORTS PAGE ────────────────────────────────────────────────────────────
+function ReportsPage({ jobs, tickets, inventory }) {
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const activeJobs = jobs.filter(j => j.status !== "Deleted");
+
+  // Filter tickets by date range if set
+  const filteredTickets = tickets.filter(t => {
+    if (dateFrom && t.date && t.date < dateFrom) return false;
+    if (dateTo && t.date && t.date > dateTo) return false;
+    return true;
+  });
+
+  // 1. Revenue by customer
+  const revByCustomer = {};
+  filteredTickets.forEach(t => {
+    const job = activeJobs.find(j => j.id === t.jobId);
+    const cust = job?.customer || "Unknown";
+    const total = (t.lineItems || []).reduce((s, li) => s + (li.rate * li.qty * (li.days || 1)), 0);
+    revByCustomer[cust] = (revByCustomer[cust] || 0) + total;
+  });
+  const revCustomerSorted = Object.entries(revByCustomer).sort((a, b) => b[1] - a[1]);
+  const totalRevenue = revCustomerSorted.reduce((s, [, v]) => s + v, 0);
+
+  // 2. Job count by status
+  const jobsByStatus = {};
+  STATUS_ORDER.forEach(s => { jobsByStatus[s] = activeJobs.filter(j => j.status === s).length; });
+  const flagged = activeJobs.filter(j => j.status === "flaggedCancel").length;
+
+  // 3. Ticket count by type and status
+  const ticketsByType = {};
+  filteredTickets.forEach(t => {
+    if (!ticketsByType[t.type]) ticketsByType[t.type] = {};
+    ticketsByType[t.type][t.status] = (ticketsByType[t.type][t.status] || 0) + 1;
+  });
+
+  // 4. Inventory out
+  const invOut = inventory.filter(i => i.inYard < i.qtyOwned);
+  const totalPiecesOut = invOut.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
+
+  const cardStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6, padding: "20px 24px", marginBottom: 16 };
+  const headStyle = { fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: "0.06em", marginBottom: 12 };
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Reports</h1>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeJobs.length} jobs · {filteredTickets.length} tickets · ${totalRevenue.toLocaleString()} total revenue</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <div>
+            <label style={labelStyle}>FROM</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>TO</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, padding: "8px 12px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>CLEAR</button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {/* Revenue by Customer */}
+        <div style={cardStyle}>
+          <div style={headStyle}>REVENUE BY CUSTOMER</div>
+          {revCustomerSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No ticket data</div>}
+          {revCustomerSorted.map(([cust, rev]) => (
+            <div key={cust} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+              <span style={{ fontSize: 13, color: C.text }}>{cust}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.green }}>${rev.toLocaleString()}</span>
+            </div>
+          ))}
+          {revCustomerSorted.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", marginTop: 4, borderTop: `2px solid ${C.border}` }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>TOTAL</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: C.green }}>${totalRevenue.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Job Count by Status */}
+        <div style={cardStyle}>
+          <div style={headStyle}>JOBS BY STATUS</div>
+          {STATUS_ORDER.map(s => {
+            const cfg = STATUS_CONFIG[s];
+            const count = jobsByStatus[s] || 0;
+            return (
+              <div key={s} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+                <span style={{ fontSize: 13, color: C.text }}>{cfg.label}</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: cfg.color }}>{count}</span>
+              </div>
+            );
+          })}
+          {flagged > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+              <span style={{ fontSize: 13, color: "#b85c00" }}>FLAGGED FOR CANCEL</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: "#b85c00" }}>{flagged}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Tickets by Type & Status */}
+        <div style={cardStyle}>
+          <div style={headStyle}>TICKETS BY TYPE</div>
+          {Object.keys(ticketsByType).length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No tickets</div>}
+          {Object.entries(ticketsByType).map(([type, statuses]) => {
+            const total = Object.values(statuses).reduce((s, v) => s + v, 0);
+            return (
+              <div key={type} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{type}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>{total}</span>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {Object.entries(statuses).map(([status, count]) => (
+                    <span key={status} style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: C.steel, color: C.muted }}>{status}: {count}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Inventory Out */}
+        <div style={cardStyle}>
+          <div style={headStyle}>INVENTORY IN FIELD</div>
+          <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{totalPiecesOut} pieces out across {invOut.length} items</div>
+          {invOut.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>All inventory in yard</div>}
+          {invOut.slice(0, 15).map(i => (
+            <div key={i.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${C.border}22` }}>
+              <span style={{ fontSize: 12, color: C.text }}>{i.size} {i.item}</span>
+              <div style={{ display: "flex", gap: 12 }}>
+                <span style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>{i.qtyOwned - i.inYard} out</span>
+                {i.customer && <span style={{ fontSize: 11, color: C.muted }}>{i.customer}</span>}
+              </div>
+            </div>
+          ))}
+          {invOut.length > 15 && <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>+ {invOut.length - 15} more items...</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── CREW PAGE ───────────────────────────────────────────────────────────────
 function CrewPage({ users, jobs }) {
   const [search, setSearch] = useState("");
