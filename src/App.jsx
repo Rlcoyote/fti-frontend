@@ -181,10 +181,6 @@ function LoginScreen({ onLogin }) {
     </div>
   );
 }
-      </div>
-    </div>
-  );
-}
 
 // ─── APP WRAPPER (handles auth state) ────────────────────────────────────────
 function AppWrapper() {
