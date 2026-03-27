@@ -2929,7 +2929,7 @@ function CrewPage({ users, jobs }) {
   const [search, setSearch] = useState("");
 
   // Determine each user's current job assignment
-  const crewData = users.map(u => {
+  const crewData = users.filter(u => !["owner", "admin"].includes(u.role)).map(u => {
     const activeJobs = jobs.filter(j =>
       ["Scheduled", "Rigged Up", "Active"].includes(j.status) &&
       (j.crew || []).some(c => c.name === u.name)
