@@ -2924,6 +2924,326 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
   );
 }
 
+// ─── REPORTS PAGE ────────────────────────────────────────────────────────────
+function ReportsPage({ jobs, tickets, inventory }) {
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const activeJobs = jobs.filter(j => j.status !== "Deleted");
+
+  // Filter tickets by date range
+  const filteredTickets = tickets.filter(t => {
+    if (dateFrom && t.date && t.date < dateFrom) return false;
+    if (dateTo && t.date && t.date > dateTo) return false;
+    return true;
+  });
+
+  // Revenue by customer
+  const revByCustomer = {};
+  filteredTickets.forEach(t => {
+    const job = activeJobs.find(j => j.id === t.jobId);
+    const cust = job?.customer || "Unknown";
+    const total = (t.lineItems || []).reduce((s, li) => s + (li.rate * li.qty * (li.days || 1)), 0);
+    revByCustomer[cust] = (revByCustomer[cust] || 0) + total;
+  });
+  const revCustomerSorted = Object.entries(revByCustomer).sort((a, b) => b[1] - a[1]);
+  const totalRevenue = revCustomerSorted.reduce((s, [, v]) => s + v, 0);
+
+  // Job count by status
+  const jobsByStatus = {};
+  STATUS_ORDER.forEach(s => { jobsByStatus[s] = activeJobs.filter(j => j.status === s).length; });
+  const flagged = activeJobs.filter(j => j.status === "flaggedCancel").length;
+
+  // Ticket count by type and status
+  const ticketsByType = {};
+  filteredTickets.forEach(t => {
+    if (!ticketsByType[t.type]) ticketsByType[t.type] = {};
+    ticketsByType[t.type][t.status] = (ticketsByType[t.type][t.status] || 0) + 1;
+  });
+
+  // Inventory out
+  const invOut = inventory.filter(i => i.inYard < i.qtyOwned).sort((a, b) => (b.qtyOwned - b.inYard) - (a.qtyOwned - a.inYard));
+  const totalOut = invOut.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
+
+  const cardStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6, padding: "20px 24px", marginBottom: 16 };
+  const headerStyle = { fontSize: 14, fontWeight: 800, color: C.text, letterSpacing: "0.06em", marginBottom: 12, borderBottom: `2px solid ${C.red}`, paddingBottom: 8 };
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Reports</h1>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeJobs.length} jobs · {tickets.length} tickets · ${totalRevenue.toLocaleString()} total billed</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <div>
+            <label style={labelStyle}>FROM</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>TO</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(""); setDateTo(""); }}
+              style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, padding: "8px 12px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>CLEAR</button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {/* Revenue by Customer */}
+        <div style={cardStyle}>
+          <div style={headerStyle}>REVENUE BY CUSTOMER</div>
+          {revCustomerSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No ticket data</div>}
+          {revCustomerSorted.map(([cust, rev]) => (
+            <div key={cust} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+              <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{cust}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>${rev.toLocaleString()}</span>
+            </div>
+          ))}
+          {revCustomerSorted.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", marginTop: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>TOTAL</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: C.green }}>${totalRevenue.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Job Count by Status */}
+        <div style={cardStyle}>
+          <div style={headerStyle}>JOBS BY STATUS</div>
+          {STATUS_ORDER.map(s => {
+            const cfg = STATUS_CONFIG[s];
+            const count = jobsByStatus[s] || 0;
+            return (
+              <div key={s} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+                <span style={{ fontSize: 13, color: C.text }}>{cfg.label}</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: cfg.color }}>{count}</span>
+              </div>
+            );
+          })}
+          {flagged > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0" }}>
+              <span style={{ fontSize: 13, color: "#b85c00" }}>FLAGGED FOR CANCEL</span>
+              <span style={{ fontSize: 16, fontWeight: 800, color: "#b85c00" }}>{flagged}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Ticket Count by Type & Status */}
+        <div style={cardStyle}>
+          <div style={headerStyle}>TICKETS BY TYPE &amp; STATUS</div>
+          {Object.keys(ticketsByType).length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No tickets</div>}
+          {Object.entries(ticketsByType).map(([type, statuses]) => {
+            const cfg = TICKET_TYPES[type] || { color: C.muted, label: type };
+            const total = Object.values(statuses).reduce((s, v) => s + v, 0);
+            return (
+              <div key={type} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label || type}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{total}</span>
+                </div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {Object.entries(statuses).map(([status, count]) => {
+                    const scfg = TICKET_STATUSES[status] || { color: C.muted, bg: C.steel, label: status };
+                    return (
+                      <span key={status} style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: scfg.bg, color: scfg.color }}>{scfg.label} ({count})</span>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Inventory Out */}
+        <div style={cardStyle}>
+          <div style={headerStyle}>INVENTORY IN FIELD ({totalOut} items out)</div>
+          {invOut.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>All inventory in yard</div>}
+          {invOut.slice(0, 15).map(i => {
+            const out = i.qtyOwned - i.inYard;
+            return (
+              <div key={i.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", borderBottom: `1px solid ${C.border}22` }}>
+                <span style={{ fontSize: 12, color: C.text }}>{i.size} {i.item}</span>
+                <div style={{ display: "flex", gap: 12 }}>
+                  <span style={{ fontSize: 11, color: C.muted }}>{i.customer || "—"}</span>
+                  <span style={{ fontSize: 12, fontWeight: 800, color: C.red }}>{out} out</span>
+                </div>
+              </div>
+            );
+          })}
+          {invOut.length > 15 && <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>+ {invOut.length - 15} more items</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── REPORTS PAGE ────────────────────────────────────────────────────────────
+function ReportsPage({ jobs, tickets, inventory }) {
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const activeJobs = jobs.filter(j => j.status !== "Deleted");
+
+  // Filter tickets by date range
+  const filteredTickets = tickets.filter(t => {
+    if (dateFrom && t.date && t.date < dateFrom) return false;
+    if (dateTo && t.date && t.date > dateTo) return false;
+    return true;
+  });
+
+  // Revenue by customer
+  const revByCustomer = {};
+  filteredTickets.forEach(t => {
+    const job = activeJobs.find(j => j.id === t.jobId);
+    const cust = job?.customer || "Unknown";
+    const total = (t.lineItems || []).reduce((s, li) => s + (li.rate * li.qty * (li.days || 1)), 0);
+    revByCustomer[cust] = (revByCustomer[cust] || 0) + total;
+  });
+  const revCustomerSorted = Object.entries(revByCustomer).sort((a, b) => b[1] - a[1]);
+  const totalRevenue = revCustomerSorted.reduce((s, [, v]) => s + v, 0);
+
+  // Job count by status
+  const jobsByStatus = {};
+  STATUS_ORDER.forEach(s => { jobsByStatus[s] = activeJobs.filter(j => j.status === s).length; });
+  const flaggedCount = activeJobs.filter(j => j.status === "flaggedCancel").length;
+
+  // Ticket count by type and status
+  const ticketsByType = {};
+  const ticketsByStatus = {};
+  filteredTickets.forEach(t => {
+    ticketsByType[t.type] = (ticketsByType[t.type] || 0) + 1;
+    ticketsByStatus[t.status] = (ticketsByStatus[t.status] || 0) + 1;
+  });
+
+  // Inventory out
+  const invOut = inventory.filter(i => i.inYard < i.qtyOwned).sort((a, b) => (b.qtyOwned - b.inYard) - (a.qtyOwned - a.inYard));
+  const totalItemsOut = invOut.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
+
+  const cardStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6, padding: "20px 24px", marginBottom: 16 };
+  const headStyle = { fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: "0.06em", marginBottom: 12, borderBottom: `2px solid ${C.red}`, paddingBottom: 8 };
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Reports</h1>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeJobs.length} jobs · {filteredTickets.length} tickets · ${totalRevenue.toLocaleString()} total billed</div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <div>
+            <label style={labelStyle}>FROM</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>TO</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
+          {(dateFrom || dateTo) && (
+            <button onClick={() => { setDateFrom(""); setDateTo(""); }} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, padding: "8px 12px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>CLEAR</button>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {/* Revenue by Customer */}
+        <div style={cardStyle}>
+          <div style={headStyle}>REVENUE BY CUSTOMER</div>
+          {revCustomerSorted.length === 0 && <div style={{ color: C.muted, fontSize: 12 }}>No ticket data</div>}
+          {revCustomerSorted.map(([cust, rev]) => (
+            <div key={cust} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+              <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{cust}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>${rev.toLocaleString()}</span>
+            </div>
+          ))}
+          {revCustomerSorted.length > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>TOTAL</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: C.green }}>${totalRevenue.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Job Count by Status */}
+        <div style={cardStyle}>
+          <div style={headStyle}>JOBS BY STATUS</div>
+          {STATUS_ORDER.map(s => (
+            <div key={s} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+              <span style={{ fontSize: 13, color: C.text }}>{STATUS_CONFIG[s].label}</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: STATUS_CONFIG[s].color }}>{jobsByStatus[s]}</span>
+            </div>
+          ))}
+          {flaggedCount > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+              <span style={{ fontSize: 13, color: "#b85c00" }}>FLAGGED FOR CANCEL</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: "#b85c00" }}>{flaggedCount}</span>
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>TOTAL</span>
+            <span style={{ fontSize: 15, fontWeight: 800 }}>{activeJobs.length}</span>
+          </div>
+        </div>
+
+        {/* Tickets by Type */}
+        <div style={cardStyle}>
+          <div style={headStyle}>TICKETS BY TYPE</div>
+          {Object.entries(ticketsByType).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
+            const cfg = TICKET_TYPES[type] || { color: C.muted, label: type };
+            return (
+              <div key={type} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+                <span style={{ fontSize: 13, color: cfg.color, fontWeight: 600 }}>{cfg.label || type}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{count}</span>
+              </div>
+            );
+          })}
+          {Object.keys(ticketsByType).length === 0 && <div style={{ color: C.muted, fontSize: 12 }}>No tickets</div>}
+        </div>
+
+        {/* Tickets by Status */}
+        <div style={cardStyle}>
+          <div style={headStyle}>TICKETS BY STATUS</div>
+          {Object.entries(ticketsByStatus).sort((a, b) => b[1] - a[1]).map(([status, count]) => {
+            const cfg = TICKET_STATUSES[status] || { color: C.muted, label: status };
+            return (
+              <div key={status} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+                <span style={{ fontSize: 13, color: cfg.color, fontWeight: 600 }}>{cfg.label || status}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{count}</span>
+              </div>
+            );
+          })}
+          {Object.keys(ticketsByStatus).length === 0 && <div style={{ color: C.muted, fontSize: 12 }}>No tickets</div>}
+        </div>
+
+        {/* Inventory Out */}
+        <div style={{ ...cardStyle, gridColumn: "1 / -1" }}>
+          <div style={headStyle}>INVENTORY IN THE FIELD ({totalItemsOut} items out)</div>
+          {invOut.length === 0 && <div style={{ color: C.muted, fontSize: 12 }}>All inventory is in the yard</div>}
+          {invOut.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "60px 1fr 80px 80px 80px 1fr 1fr", gap: 4, fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", padding: "0 0 8px", borderBottom: `1px solid ${C.border}` }}>
+              <div>SIZE</div><div>ITEM</div><div>OWNED</div><div>IN YARD</div><div>OUT</div><div>CUSTOMER</div><div>TICKET</div>
+            </div>
+          )}
+          {invOut.slice(0, 20).map(item => (
+            <div key={item.id} style={{ display: "grid", gridTemplateColumns: "60px 1fr 80px 80px 80px 1fr 1fr", gap: 4, fontSize: 12, padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
+              <div style={{ fontWeight: 700, color: C.text }}>{item.size}</div>
+              <div style={{ color: C.text }}>{item.item}</div>
+              <div style={{ color: C.muted }}>{item.qtyOwned}</div>
+              <div style={{ color: C.green, fontWeight: 700 }}>{item.inYard}</div>
+              <div style={{ color: C.red, fontWeight: 700 }}>{item.qtyOwned - item.inYard}</div>
+              <div style={{ color: C.muted }}>{item.customer || "—"}</div>
+              <div style={{ color: C.muted }}>{item.fieldTicket || "—"}</div>
+            </div>
+          ))}
+          {invOut.length > 20 && <div style={{ fontSize: 11, color: C.muted, padding: "8px 0" }}>+ {invOut.length - 20} more items...</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── CREW PAGE ───────────────────────────────────────────────────────────────
 function CrewPage({ users, jobs }) {
   const [search, setSearch] = useState("");
@@ -3524,7 +3844,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
-            const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "To-Dos": "todos", Inventory: "inventory", Crew: "crew", Deleted: "deleted", Users: "users" };
+            const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "To-Dos": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
@@ -3563,6 +3883,10 @@ function FTIDashboard({ currentUser, onLogout }) {
 
       {page === "crew" && (
         <CrewPage users={users} jobs={jobs} />
+      )}
+
+      {page === "reports" && (
+        <ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />
       )}
 
       {page === "inventory" && !isField && (
