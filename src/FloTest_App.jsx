@@ -1791,10 +1791,6 @@ function SignatureDisplay({ signedBy, signedAt, signatureImage }) {
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
 function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser }) {
-  const isFullyLocked = status === "qbVerified";
-  const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
-  const canSendToQB = status === "approved";
-
   const [lineItems, setLineItems] = useState([...ticket.lineItems]);
   const [notes, setNotes] = useState(ticket.notes || "");
   const [status, setStatus] = useState(ticket.status);
@@ -1811,7 +1807,10 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
   const [localSignedAt, setLocalSignedAt] = useState(ticket.signedAt || null);
   const [localSignatureImage, setLocalSignatureImage] = useState(ticket.signatureImage || null);
 
+  const isFullyLocked = status === "qbVerified";
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
+  const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
+  const canSendToQB = status === "approved";
 
   const job = jobs.find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type];
