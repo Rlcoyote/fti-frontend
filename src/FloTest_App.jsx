@@ -2280,6 +2280,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems }) {
   };
 
   const handleUpdate = async (id, updates) => {
+    console.log("handleUpdate called, signatureImage length:", updates.signatureImage ? updates.signatureImage.length : "MISSING");
     const payload = {};
     if (updates.status) payload.status = updates.status;
     if (updates.signedBy) payload.signed_by = updates.signedBy;
@@ -3879,4 +3880,3 @@ function FTIDashboard({ currentUser, onLogout }) {
     </div>
   );
 }
-// v17
