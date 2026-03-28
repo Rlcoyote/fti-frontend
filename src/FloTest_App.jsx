@@ -1729,8 +1729,11 @@ function SignaturePad({ onSign, onCancel }) {
 
   const handleSign = () => {
     if (!hasDrawn || !signerName.trim()) return;
+    // Capture image FIRST before any state changes that could unmount the canvas
     const sigData = canvasRef.current ? canvasRef.current.toDataURL("image/png") : null;
-    onSign({ name: signerName.trim(), date: new Date().toISOString(), signatureImage: sigData });
+    const name = signerName.trim();
+    const date = new Date().toISOString();
+    onSign({ name, date, signatureImage: sigData });
   };
 
   return (
@@ -1753,7 +1756,7 @@ function SignaturePad({ onSign, onCancel }) {
           width={460} height={120}
           onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
           onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
-          style={{ display: "block", width: 460, height: 120 }}
+          style={{ display: "block", maxWidth: "100%" }}
         />
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
@@ -2055,7 +2058,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
           )}
 
           {/* Signature pad */}
-          {!isLocked && status !== "emailed" && showSigPad && (
+          {showSigPad && (
             <SignaturePad onSign={handleSign} onCancel={() => setShowSigPad(false)} />
           )}
         </div>
