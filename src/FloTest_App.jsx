@@ -540,7 +540,7 @@ function Btn({ onClick, children, variant = "primary", small }) {
     blue:    { background: C.blue, color: C.white, border: "none" },
   };
   return (
-    <button onClick={onClick} style={{
+    <button type="button" onClick={onClick} style={{
       ...styles[variant],
       padding: small ? "5px 12px" : "9px 18px",
       borderRadius: 4, fontSize: small ? 12 : 13,
@@ -1820,6 +1820,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
 
   const handleSave = () => {
+    console.log("SAVE called - sigWiped=", sigWiped, "status=", status, "isEditing=", isEditing);
     const sigFields = sigWiped
       ? { signedBy: null, signedAt: null, signatureImage: null, status: "inField" }
       : { signedBy: localSignedBy, signedAt: localSignedAt, signatureImage: localSignatureImage };
@@ -1874,6 +1875,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
   };
 
   const handleUnlock = () => {
+    console.log("EDIT TICKET clicked - setIsEditing(true), sigWiped=", sigWiped, "status=", status);
     setIsEditing(true);
   };
 
