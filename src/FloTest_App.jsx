@@ -1826,7 +1826,6 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
       ? { signedBy: null, signedAt: null, signatureImage: null, status: "inField" }
       : {};
     onUpdate(ticket.id, { lineItems, notes, status, missingPieces, sigNotReqReason, sigNotReqNote, emailTo, emailCc, ...sigFields });
-    onClose();
   };
 
   const handleSign = ({ name, date, signatureImage }) => {
@@ -1835,7 +1834,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
       signedBy: name, signedAt: date, signatureImage,
       sigNotReqReason: null, sigNotReqNote: "",
     });
-    onClose();
+    setShowSigPad(false);
   };
 
   const handleSigNotRequired = () => {
@@ -1845,7 +1844,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
       sigNotReqReason, sigNotReqNote,
       signedBy: null, signedAt: null, signatureImage: null,
     });
-    onClose();
+    setShowSigOptions(false);
   };
 
   const handleEmailTicket = () => {
@@ -1854,18 +1853,14 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
       lineItems, notes, status: "emailed", missingPieces,
       emailTo, emailCc, emailedAt: new Date().toISOString(),
     });
-    onClose();
   };
 
   const handleSendToQB = () => {
-    // Placeholder — just changes status
     onUpdate(ticket.id, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
-    onClose();
   };
 
   const handleApprove = () => {
     onUpdate(ticket.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
-    onClose();
   };
 
   const handleUnlock = () => {
@@ -1906,6 +1901,12 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
+          {/* Editing warning */}
+          {isEditing && !sigWiped && (
+            <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+              ⚠ Editing a signed ticket — changing line items, rates, or quantities will require a new signature.
+            </div>
+          )}
           {/* Status control — only for draft/inField */}
           {!isLocked && status !== "emailed" && (
             <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
@@ -2340,7 +2341,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems }) {
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
-          onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(null); }}
+          onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
         />
       )}
