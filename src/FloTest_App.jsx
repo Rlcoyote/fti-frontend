@@ -1069,7 +1069,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
-              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} />
+              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} />
             </div>
           )}
 
@@ -2253,7 +2253,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
 }
 
 // ─── TICKETS TAB (inside JobCard expanded) ────────────────────────────────────
-function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems }) {
+function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser }) {
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
 
@@ -2280,7 +2280,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems }) {
   };
 
   const handleUpdate = async (id, updates) => {
-    console.log("handleUpdate called, signatureImage length:", updates.signatureImage ? updates.signatureImage.length : "MISSING");
     const payload = {};
     if (updates.status) payload.status = updates.status;
     if (updates.signedBy) payload.signed_by = updates.signedBy;
