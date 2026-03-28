@@ -1798,9 +1798,9 @@ function SignatureDisplay({ signedBy, signedAt, signatureImage }) {
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
 function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser }) {
-  const isFullyLocked = ticket.status === "qbVerified";
+  const isFullyLocked = status === "qbVerified";
   const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
-  const canSendToQB = ticket.status === "approved";
+  const canSendToQB = status === "approved";
 
   const [lineItems, setLineItems] = useState([...ticket.lineItems]);
   const [notes, setNotes] = useState(ticket.notes || "");
@@ -1814,8 +1814,11 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
   const [emailCc, setEmailCc] = useState(ticket.emailCc || "");
   const [isEditing, setIsEditing] = useState(false);
   const [sigWiped, setSigWiped] = useState(false);
+  const [localSignedBy, setLocalSignedBy] = useState(ticket.signedBy || null);
+  const [localSignedAt, setLocalSignedAt] = useState(ticket.signedAt || null);
+  const [localSignatureImage, setLocalSignatureImage] = useState(ticket.signatureImage || null);
 
-  const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(ticket.status);
+  const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
 
   const job = jobs.find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type];
@@ -1824,21 +1827,31 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
   const handleSave = () => {
     const sigFields = sigWiped
       ? { signedBy: null, signedAt: null, signatureImage: null, status: "inField" }
-      : {};
-    onUpdate(ticket.id, { lineItems, notes, status, missingPieces, sigNotReqReason, sigNotReqNote, emailTo, emailCc, ...sigFields });
+      : { signedBy: localSignedBy, signedAt: localSignedAt, signatureImage: localSignatureImage };
+    const newStatus = sigWiped ? "inField" : status;
+    onUpdate(ticket.id, { lineItems, notes, status: newStatus, missingPieces, sigNotReqReason, sigNotReqNote, emailTo, emailCc, ...sigFields });
+    if (sigWiped) { setStatus("inField"); setLocalSignedBy(null); setLocalSignedAt(null); setLocalSignatureImage(null); }
+    setIsEditing(false);
+    setSigWiped(false);
   };
 
   const handleSign = ({ name, date, signatureImage }) => {
+    setLocalSignedBy(name);
+    setLocalSignedAt(date);
+    setLocalSignatureImage(signatureImage);
+    setStatus("signed");
     onUpdate(ticket.id, {
       lineItems, notes, status: "signed", missingPieces,
       signedBy: name, signedAt: date, signatureImage,
       sigNotReqReason: null, sigNotReqNote: "",
     });
     setShowSigPad(false);
+    setIsEditing(false);
   };
 
   const handleSigNotRequired = () => {
     if (!sigNotReqReason) return;
+    setStatus("sigNotReq");
     onUpdate(ticket.id, {
       lineItems, notes, status: "sigNotReq", missingPieces,
       sigNotReqReason, sigNotReqNote,
@@ -1856,10 +1869,12 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
   };
 
   const handleSendToQB = () => {
+    setStatus("sentToQB");
     onUpdate(ticket.id, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
   };
 
   const handleApprove = () => {
+    setStatus("approved");
     onUpdate(ticket.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
   };
 
@@ -1973,12 +1988,12 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
           </div>
 
           {/* Signature display (when signed) */}
-          {ticket.status === "signed" && ticket.signedBy && (
-            <SignatureDisplay signedBy={ticket.signedBy} signedAt={ticket.signedAt} signatureImage={ticket.signatureImage} />
+          {status === "signed" && localSignedBy && (
+            <SignatureDisplay signedBy={localSignedBy} signedAt={localSignedAt} signatureImage={localSignatureImage} />
           )}
 
           {/* Sig Not Required display */}
-          {ticket.status === "sigNotReq" && (
+          {status === "sigNotReq" && (
             <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: C.blue }}>SIGNATURE NOT REQUIRED</div>
               <div style={{ fontSize: 11, color: C.text, marginTop: 4 }}>{ticket.sigNotReqReason}</div>
@@ -2072,7 +2087,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
             </>
           )}
           {/* Signed or SigNotReq — supervisor can approve, anyone can edit */}
-          {(ticket.status === "signed" || ticket.status === "sigNotReq") && !isEditing && (
+          {(status === "signed" || status === "sigNotReq") && !isEditing && (
             <>
               {canApprove
                 ? <Btn onClick={handleApprove} variant="blue">APPROVE TICKET</Btn>
@@ -2083,7 +2098,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
             </>
           )}
           {/* Approved — ready to send to QB */}
-          {ticket.status === "approved" && !isEditing && (
+          {status === "approved" && !isEditing && (
             <>
               <Btn onClick={handleSendToQB} variant="blue">SEND TO QB</Btn>
               <Btn onClick={handleUnlock} variant="ghost">EDIT TICKET</Btn>
@@ -2091,7 +2106,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
             </>
           )}
           {/* Sent to QB */}
-          {ticket.status === "sentToQB" && (
+          {status === "sentToQB" && (
             <>
               <button style={{
                 background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
