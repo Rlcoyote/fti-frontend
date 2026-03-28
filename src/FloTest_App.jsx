@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -1664,7 +1664,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
 
 // ─── SIGNATURE PAD ────────────────────────────────────────────────────────────
 function SignaturePad({ onSign, onCancel }) {
-  const canvasRef = useState(null);
+  const canvasRef = useRef(null);
   const [drawing, setDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [signerName, setSignerName] = useState("");
@@ -1721,23 +1721,15 @@ function SignaturePad({ onSign, onCancel }) {
     setPaths([]);
     setCurrentPath([]);
     setHasDrawn(false);
-    // Clear canvas
-    const canvases = document.querySelectorAll("canvas");
-    canvases.forEach(c => {
-      if (c.width === 460) {
-        const ctx = c.getContext("2d");
-        ctx.clearRect(0, 0, c.width, c.height);
-      }
-    });
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    }
   };
 
   const handleSign = () => {
     if (!hasDrawn || !signerName.trim()) return;
-    const canvases = document.querySelectorAll("canvas");
-    let sigData = null;
-    canvases.forEach(c => {
-      if (c.width === 460) sigData = c.toDataURL("image/png");
-    });
+    const sigData = canvasRef.current ? canvasRef.current.toDataURL("image/png") : null;
     onSign({ name: signerName.trim(), date: new Date().toISOString(), signatureImage: sigData });
   };
 
@@ -1757,6 +1749,7 @@ function SignaturePad({ onSign, onCancel }) {
         borderRadius: 4, cursor: "crosshair", touchAction: "none",
       }}>
         <canvas
+          ref={canvasRef}
           width={460} height={120}
           onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
           onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
