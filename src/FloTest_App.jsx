@@ -457,7 +457,8 @@ const TICKET_STATUSES = {
   emailed:    { color: "#7a3ca0", bg: "#f3eafa", label: "AWAITING SIG" },
   signed:     { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
   sigNotReq:  { color: "#1a5fa8", bg: "#e8f0fb", label: "SIG NOT REQ" },
-  sentToQB:   { color: "#b85c00", bg: "#fdf0e6", label: "SENT TO QB" },
+  approved:   { color: "#b85c00", bg: "#fdf0e6", label: "APPROVED" },
+  sentToQB:   { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO QB" },
   qbVerified: { color: "#1a7a3c", bg: "#d4edda", label: "QB VERIFIED" },
 };
 
@@ -513,6 +514,7 @@ const INITIAL_TICKETS = [
 ];
 
 const today = () => new Date().toISOString().slice(0, 10);
+const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
 const isOverdue = (t) => !t.completed && t.dueDate && t.dueDate < today();
 const todoVisible = (t) => t.createdBy === CURRENT_USER || t.assignedTo === CURRENT_USER;
 const calcLineTotal = (li) => li.rate * li.qty * (li.days || 1);
@@ -959,7 +961,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>DATE STARTED</div>
-          <div style={{ fontSize: 13, color: C.text }}>{job.dateStarted}</div>
+          <div style={{ fontSize: 13, color: C.text }}>{formatDate(job.dateStarted)}</div>
           <div style={{ fontSize: 11, color: C.muted }}>{job.hoursLogged}h logged</div>
         </div>
         <div>
@@ -1524,7 +1526,7 @@ function TicketStatusBadge({ status }) {
 }
 
 // ─── TICKET LINE ITEM EDITOR ──────────────────────────────────────────────────
-function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [] }) {
+function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onSigWipe }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const isRental = ticketType === "Rental";
@@ -1538,18 +1540,22 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [] }) {
     setLineItems(prev => [...prev, { qbCode: qb.code, desc: qb.desc, rate: qb.price, qty: 1, um: qb.um, ...(isRental ? { days: 1 } : {}) }]);
     setSearchTerm("");
     setShowSearch(false);
+    onSigWipe?.();
   };
 
   const addBlank = () => {
     setLineItems(prev => [...prev, { qbCode: "", desc: "", rate: 0, qty: 1, um: "DAY", ...(isRental ? { days: 1 } : {}) }]);
+    onSigWipe?.();
   };
 
   const updateItem = (idx, field, value) => {
     setLineItems(prev => prev.map((li, i) => i === idx ? { ...li, [field]: value } : li));
+    if (["qbCode", "rate", "qty", "days"].includes(field)) onSigWipe?.();
   };
 
   const removeItem = (idx) => {
     setLineItems(prev => prev.filter((_, i) => i !== idx));
+    onSigWipe?.();
   };
 
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
@@ -1791,10 +1797,10 @@ function SignatureDisplay({ signedBy, signedAt, signatureImage }) {
 }
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
-function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems }) {
-  const isLocked = ticket.status === "signed" || ticket.status === "sigNotReq" || ticket.status === "sentToQB" || ticket.status === "qbVerified";
+function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser }) {
   const isFullyLocked = ticket.status === "qbVerified";
-  const canSendToQB = ticket.status === "signed" || ticket.status === "sigNotReq";
+  const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
+  const canSendToQB = ticket.status === "approved";
 
   const [lineItems, setLineItems] = useState([...ticket.lineItems]);
   const [notes, setNotes] = useState(ticket.notes || "");
@@ -1806,13 +1812,20 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems }) {
   const [sigNotReqNote, setSigNotReqNote] = useState(ticket.sigNotReqNote || "");
   const [emailTo, setEmailTo] = useState(ticket.emailTo || "");
   const [emailCc, setEmailCc] = useState(ticket.emailCc || "");
+  const [isEditing, setIsEditing] = useState(false);
+  const [sigWiped, setSigWiped] = useState(false);
+
+  const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(ticket.status);
 
   const job = jobs.find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type];
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
 
   const handleSave = () => {
-    onUpdate(ticket.id, { lineItems, notes, status, missingPieces, sigNotReqReason, sigNotReqNote, emailTo, emailCc });
+    const sigFields = sigWiped
+      ? { signedBy: null, signedAt: null, signatureImage: null, status: "inField" }
+      : {};
+    onUpdate(ticket.id, { lineItems, notes, status, missingPieces, sigNotReqReason, sigNotReqNote, emailTo, emailCc, ...sigFields });
     onClose();
   };
 
@@ -1850,9 +1863,13 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems }) {
     onClose();
   };
 
-  const handleUnlock = () => {
-    onUpdate(ticket.id, { ...ticket, status: "inField", signedBy: null, signedAt: null, signatureImage: null, sigNotReqReason: null, sigNotReqNote: "" });
+  const handleApprove = () => {
+    onUpdate(ticket.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
     onClose();
+  };
+
+  const handleUnlock = () => {
+    setIsEditing(true);
   };
 
   const statusLabel = TICKET_STATUSES[isLocked ? ticket.status : status]?.label || status;
@@ -1878,7 +1895,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems }) {
                 {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
               </div>
               <div style={{ fontSize: 12, color: C.muted }}>
-                {job?.customer || "Unknown"} · {ticket.date}
+                {job?.customer || "Unknown"} · {formatDate(ticket.date)}
               </div>
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>
@@ -1933,8 +1950,13 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems }) {
 
           {/* Line Items */}
           <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
+          {sigWiped && (
+            <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 4, padding: "8px 12px", marginBottom: 8, fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+              ⚠ Line items changed — signature will be cleared on save. Customer must re-sign.
+            </div>
+          )}
           {!isLocked && status !== "emailed" ? (
-            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} />
+            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={() => setSigWiped(true)} />
           ) : (
             <ReadOnlyLineItems lineItems={lineItems} ticketType={ticket.type} total={total} />
           )}
@@ -2048,13 +2070,22 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems }) {
               <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
             </>
           )}
-          {/* Signed or SigNotReq — can send to QB or edit */}
-          {(ticket.status === "signed" || ticket.status === "sigNotReq") && (
+          {/* Signed or SigNotReq — supervisor can approve, anyone can edit */}
+          {(ticket.status === "signed" || ticket.status === "sigNotReq") && !isEditing && (
             <>
-              <Btn onClick={handleSendToQB} variant="ghost" style={{ opacity: 0.4, cursor: "not-allowed" }}>
-                SEND TO QB (coming soon)
-              </Btn>
-              {!isFullyLocked && <Btn onClick={handleUnlock} variant="ghost">EDIT TICKET (requires re-signature)</Btn>}
+              {canApprove
+                ? <Btn onClick={handleApprove} variant="blue">APPROVE TICKET</Btn>
+                : <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, padding: "6px 14px" }}>Awaiting supervisor approval</span>
+              }
+              <Btn onClick={handleUnlock} variant="ghost">EDIT TICKET</Btn>
+              <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
+            </>
+          )}
+          {/* Approved — ready to send to QB */}
+          {ticket.status === "approved" && !isEditing && (
+            <>
+              <Btn onClick={handleSendToQB} variant="blue">SEND TO QB</Btn>
+              <Btn onClick={handleUnlock} variant="ghost">EDIT TICKET</Btn>
               <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
             </>
           )}
@@ -2244,9 +2275,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems }) {
     if (updates.status) payload.status = updates.status;
     if (updates.signedBy) payload.signed_by = updates.signedBy;
     if (updates.signedAt) payload.signed_at = updates.signedAt;
-    if (updates.signatureImg) payload.signature_img = updates.signatureImg;
+    if (updates.signatureImage) payload.signature_img = updates.signatureImage;
     if (updates.sigNotReqReason) payload.sig_not_req_reason = updates.sigNotReqReason;
     if (updates.sigNotReqNote) payload.sig_not_req_note = updates.sigNotReqNote;
+    if (updates.approvedBy) payload.approved_by = updates.approvedBy;
+    if (updates.approvedAt) payload.approved_at = updates.approvedAt;
     if (updates.notes !== undefined) payload.notes = updates.notes;
     if (updates.lineItems) {
       payload.lineItems = updates.lineItems.map(li => ({
@@ -2293,7 +2326,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems }) {
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <TicketTypeBadge type={t.type} />
               <TicketStatusBadge status={t.status} />
-              <span style={{ fontSize: 12, color: C.muted }}>#{t.jobId} · {t.date}</span>
+              <span style={{ fontSize: 12, color: C.muted }}>#{t.jobId} · {formatDate(t.date)}</span>
               <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
             </div>
             <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
@@ -2306,7 +2339,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems }) {
       {showAdd && <AddTicketModal jobId={jobId} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} />}
       {viewTicket && (
         <TicketDetail
-          ticket={viewTicket} jobs={jobs} qbItems={qbItems}
+          ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(null); }}
           onClose={() => setViewTicket(null)}
         />
@@ -3251,7 +3284,7 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
               <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{j.id}</div>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{j.customer}</div>
               <div style={{ fontSize: 12, color: C.muted }}>{j.location}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>{j.dateStarted || "—"}</div>
+              <div style={{ fontSize: 12, color: C.muted }}>{formatDate(j.dateStarted) || "—"}</div>
               <div style={{ fontSize: 12, color: C.muted }}>{j.wells?.length || 0} well{(j.wells?.length || 0) !== 1 ? "s" : ""}</div>
               <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: cfg.bg, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</span></div>
             </div>
@@ -3456,7 +3489,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           date: t.date,
           signedBy: t.signed_by,
           signedAt: t.signed_at,
-          signatureImg: t.signature_img,
+          signatureImage: t.signature_img,
           sigNotReqReason: t.sig_not_req_reason,
           sigNotReqNote: t.sig_not_req_note,
           notes: t.notes,
