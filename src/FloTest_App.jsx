@@ -2863,9 +2863,9 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
   const [custSearch, setCustSearch] = useState("");
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
-  const [location, setLocation] = useState("");
   const [jobState, setJobState] = useState("");
   const [county, setCounty] = useState("");
+  const [showCountyDrop, setShowCountyDrop] = useState(false);
   const [wellList, setWellList] = useState([""]);
   const [afe, setAfe] = useState("");
   const [schedDate, setSchedDate] = useState("");
@@ -2881,6 +2881,30 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
   const [companyCode, setCompanyCode] = useState("");
   const [costCenter, setCostCenter] = useState("");
   const [po, setPo] = useState("");
+  const [errors, setErrors] = useState({});
+  const [showUnsaved, setShowUnsaved] = useState(false);
+
+  const isDirty = custSearch || contactFirst || contactLast || phone || email ||
+    approver || approverLast || approverPhone || approverEmail ||
+    companyCode || costCenter || po || jobState || county ||
+    wellList.some(w => w.trim()) || afe || schedDate || assignedTo;
+
+  // Phone formatter: formats as 999-999-9999
+  const formatPhone = (val) => {
+    const digits = val.replace(/\D/g, "").slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0,3)}-${digits.slice(3)}`;
+    return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
+  };
+
+  // State: force 2 uppercase letters
+  const formatState = (val) => val.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase();
+
+  // TX and NM counties
+  const TX_COUNTIES = ["Andrews","Archer","Armstrong","Bailey","Baylor","Borden","Brewster","Briscoe","Brooks","Brown","Callahan","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","Dickens","Dimmit","Donley","Eastland","Ector","Edwards","El Paso","Fisher","Floyd","Foard","Gaines","Garza","Glasscock","Gray","Hale","Hall","Hansford","Hardeman","Hartley","Haskell","Hemphill","Howard","Hudspeth","Hutchinson","Irion","Jeff Davis","Jones","Kent","Kimble","King","Kinney","Knox","Lamb","Lampasas","Lipscomb","Llano","Loving","Lubbock","Lynn","Martin","Mason","Maverick","McCulloch","McMullen","Menard","Midland","Mills","Mitchell","Montague","Moore","Motley","Nolan","Ochiltree","Oldham","Palo Pinto","Parmer","Pecos","Potter","Presidio","Randall","Reagan","Real","Reeves","Roberts","Runnels","San Saba","Schleicher","Scurry","Shackelford","Sherman","Stephens","Sterling","Stonewall","Sutton","Swisher","Taylor","Terrell","Terry","Throckmorton","Tom Green","Upton","Uvalde","Val Verde","Ward","Wheeler","Winkler","Yoakum","Young","Zavala"];
+  const NM_COUNTIES = ["Chaves","Cibola","Curry","De Baca","Dona Ana","Eddy","Grant","Guadalupe","Harding","Hidalgo","Lea","Lincoln","Los Alamos","Luna","McKinley","Mora","Otero","Quay","Rio Arriba","Roosevelt","San Juan","San Miguel","Sandoval","Santa Fe","Sierra","Socorro","Taos","Torrance","Union","Valencia"];
+  const ALL_COUNTIES = [...TX_COUNTIES, ...NM_COUNTIES].sort();
+  const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter(c => c.toLowerCase().startsWith(county.toLowerCase())) : [];
 
   const filteredCust = custSearch.length > 0
     ? customers.filter(c => c.name.toLowerCase().includes(custSearch.toLowerCase()))
@@ -2895,13 +2919,43 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
   const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
   const updateWell = (idx, val) => setWellList(prev => prev.map((w, i) => i === idx ? val : w));
   const removeWell = (idx) => setWellList(prev => prev.filter((_, i) => i !== idx));
-  const allSelected = wellList.every(w => w.trim());
+
+  const handleClose = () => {
+    if (isDirty) { setShowUnsaved(true); } else { onClose(); }
+  };
+
+  const validateAndCreate = () => {
+    const errs = {};
+    if (!custSearch.trim()) errs.customer = "Customer is required";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
+    if (approverEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(approverEmail)) errs.approverEmail = "Invalid email format";
+    if (jobState && jobState.length !== 2) errs.jobState = "Must be 2 letters";
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    setErrors({});
+    const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
+    onCreateJob({
+      id: nextJobId,
+      customer: custSearch.trim(),
+      location: [county, jobState].filter(Boolean).join(", ") || "TBD",
+      jobState, county,
+      wells: cleanWells.length > 0 ? cleanWells : ["TBD"],
+      afe: afe || null,
+      dateStarted: schedDate || today(),
+      status: "Scheduled",
+      crew: assignedTo ? [{ name: assignedTo, role: "Supervisor" }] : [],
+      equipment: [],
+      hoursLogged: 0, estimatedCost: 0, jsaComplete: false,
+      contactFirst, contactLast, email, phone,
+      approver, approverLast, approverPhone, approverEmail,
+      companyCode, costCenter, po,
+    });
+  };
 
   return (
     <div style={{
       position: "fixed", inset: 0, background: "#00000088",
       display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-    }} onClick={onClose}>
+    }} onClick={handleClose}>
       <div style={{
         background: C.cardBg, border: `1px solid ${C.border}`,
         borderTop: `3px solid ${C.red}`, borderRadius: 8,
@@ -2959,7 +3013,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             </div>
             <div>
               <label style={labelStyle}>PHONE</label>
-              <input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} placeholder="555-555-5555" />
+              <input style={inputStyle} value={phone} onChange={e => setPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
@@ -2980,7 +3034,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             </div>
             <div>
               <label style={labelStyle}>PHONE</label>
-              <input style={inputStyle} value={approverPhone} onChange={e => setApproverPhone(e.target.value)} placeholder="555-555-5555" />
+              <input style={inputStyle} value={approverPhone} onChange={e => setApproverPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
@@ -3014,11 +3068,35 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div>
               <label style={labelStyle}>STATE</label>
-              <input style={inputStyle} value={jobState} onChange={e => setJobState(e.target.value)} placeholder="TX" />
+              <input style={{ ...inputStyle, borderColor: errors.jobState ? C.red : C.border }} value={jobState} onChange={e => setJobState(formatState(e.target.value))} placeholder="TX" maxLength={2} />
+              {errors.jobState && <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{errors.jobState}</div>}
             </div>
-            <div>
+            <div style={{ position: "relative" }}>
               <label style={labelStyle}>COUNTY</label>
-              <input style={inputStyle} value={county} onChange={e => setCounty(e.target.value)} placeholder="County name" />
+              <input
+                style={inputStyle}
+                value={county}
+                onChange={e => { setCounty(e.target.value); setShowCountyDrop(true); }}
+                onFocus={() => setShowCountyDrop(true)}
+                onBlur={() => setTimeout(() => setShowCountyDrop(false), 150)}
+                placeholder="Start typing..."
+              />
+              {showCountyDrop && filteredCounties.length > 0 && (
+                <div style={{
+                  position: "absolute", top: "100%", left: 0, right: 0, zIndex: 20,
+                  background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 4,
+                  boxShadow: "0 4px 16px #00000022", maxHeight: 180, overflowY: "auto", marginTop: 2,
+                }}>
+                  {filteredCounties.map(c => (
+                    <div key={c} onMouseDown={() => { setCounty(c); setShowCountyDrop(false); }} style={{
+                      padding: "6px 12px", cursor: "pointer", fontSize: 12,
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    >{c}</div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -3071,31 +3149,26 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
           </div>
         </div>
 
+        {errors.customer && <div style={{ fontSize: 12, color: C.red, fontWeight: 700, marginBottom: 8 }}>⚠ {errors.customer}</div>}
+
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={() => {
-            if (!custSearch.trim()) return;
-            const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
-            onCreateJob({
-              id: nextJobId,
-              customer: custSearch.trim(),
-              location: [county, jobState].filter(Boolean).join(", ") || "TBD",
-              jobState, county,
-              wells: cleanWells.length > 0 ? cleanWells : ["TBD"],
-              afe: afe || null,
-              dateStarted: schedDate || today(),
-              status: "Scheduled",
-              crew: assignedTo ? [{ name: assignedTo, role: "Supervisor" }] : [],
-              equipment: [],
-              hoursLogged: 0,
-              estimatedCost: 0,
-              jsaComplete: false,
-              contactFirst, contactLast, email, phone,
-              approver, approverLast, approverPhone, approverEmail,
-              companyCode, costCenter, po,
-            });
-          }}>CREATE JOB</Btn>
-          <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
+          <Btn onClick={validateAndCreate}>CREATE JOB</Btn>
+          <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
         </div>
+
+        {/* Unsaved changes confirmation */}
+        {showUnsaved && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
+            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 24, width: 380, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>You have unsaved information. Are you sure you want to close without creating this job?</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={onClose}>YES, DISCARD</Btn>
+                <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>KEEP EDITING</Btn>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
