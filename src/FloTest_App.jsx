@@ -2967,12 +2967,13 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
         <div style={{ marginBottom: 14, position: "relative" }}>
           <label style={labelStyle}>CUSTOMER *</label>
           <input
-            style={{ ...inputStyle, borderColor: selectedCust ? C.green : C.border }}
+            style={{ ...inputStyle, borderColor: errors.customer ? C.red : selectedCust ? C.green : C.border }}
             value={custSearch}
-            onChange={e => { setCustSearch(e.target.value); setShowCustDrop(true); setSelectedCust(null); }}
+            onChange={e => { setCustSearch(e.target.value); setShowCustDrop(true); setSelectedCust(null); setErrors(prev => ({...prev, customer: null})); }}
             onFocus={() => setShowCustDrop(true)}
             placeholder="Type to search or browse..."
           />
+          {errors.customer && <div style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.customer}</div>}
           {showCustDrop && (
             <div style={{
               position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10,
@@ -3017,7 +3018,8 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="sitemanager@company.com" />
+              <input style={{ ...inputStyle, borderColor: errors.email ? C.red : C.border }} value={email} onChange={e => { setEmail(e.target.value); setErrors(prev => ({...prev, email: null})); }} placeholder="sitemanager@company.com" />
+              {errors.email && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors.email}</div>}
             </div>
           </div>
 
@@ -3038,7 +3040,8 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} value={approverEmail} onChange={e => setApproverEmail(e.target.value)} placeholder="approver@company.com" />
+              <input style={{ ...inputStyle, borderColor: errors.approverEmail ? C.red : C.border }} value={approverEmail} onChange={e => { setApproverEmail(e.target.value); setErrors(prev => ({...prev, approverEmail: null})); }} placeholder="approver@company.com" />
+              {errors.approverEmail && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors.approverEmail}</div>}
             </div>
           </div>
         </div>
@@ -3148,8 +3151,6 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             </select>
           </div>
         </div>
-
-        {errors.customer && <div style={{ fontSize: 12, color: C.red, fontWeight: 700, marginBottom: 8 }}>⚠ {errors.customer}</div>}
 
         <div style={{ display: "flex", gap: 10 }}>
           <Btn onClick={validateAndCreate}>CREATE JOB</Btn>
