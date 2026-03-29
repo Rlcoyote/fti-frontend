@@ -908,7 +908,7 @@ function PipelineSummary({ jobs }) {
 }
 
 // ─── JOB CARD ─────────────────────────────────────────────────────────────────
-function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, jsas, setJsas, userNames, qbItems, userIdByName, currentUser }) {
+function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, jsas, setJsas, userNames, qbItems, userIdByName, currentUser, customers }) {
   const cfg = STATUS_CONFIG[job.status];
   const costPerWell = job.wells.length > 1 ? (job.estimatedCost / job.wells.length).toFixed(0) : null;
   const [activeTab, setActiveTab] = useState("details");
@@ -3874,6 +3874,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               qbItems={qbItems}
               userIdByName={userIdByName}
               currentUser={currentUser}
+              customers={customers}
               onDeleteJob={handleDeleteJob}
               onFlagCancel={handleFlagCancel}
             />
