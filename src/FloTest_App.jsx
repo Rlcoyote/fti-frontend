@@ -2234,6 +2234,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     if (updates.sigNotReqNote) payload.sig_not_req_note = updates.sigNotReqNote;
     if (updates.approvedBy) payload.approved_by = updates.approvedBy;
     if (updates.approvedAt) payload.approved_at = updates.approvedAt;
+    if (updates.emailedAt) payload.emailed_at = updates.emailedAt;
+    if (updates.emailTo) payload.email_to = updates.emailTo;
     if (updates.notes !== undefined) payload.notes = updates.notes;
     if (updates.lineItems) {
       payload.lineItems = updates.lineItems.map(li => ({
@@ -2271,7 +2273,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         const custEmail = customers?.find(c => c.name === job?.customer)?.email || null;
         const isSigned = ["signed", "sigNotReq", "emailed", "approved", "sentToQB", "qbVerified"].includes(t.status);
         const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";
-        const isEmailed = t.emailedAt || t.status === "emailed";
+        const isEmailed = !!t.emailedAt;
         const canSendToQB = isSigned && isApproved;
 
         // Button styles
@@ -2319,17 +2321,20 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               )}
 
               {/* Col 3: Email */}
-              {!isEmailed && !custEmail && (
+              {!custEmail && (
                 <span style={btnDisabled}>EMAIL NEEDED</span>
               )}
-              {!isEmailed && custEmail && (
-                <button type="button" style={btnBlue} onClick={async () => {
-                  await handleUpdate(t.id, { emailTo: custEmail, status: "emailed", emailedAt: new Date().toISOString() });
-                  setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, emailTo: custEmail, status: "emailed", emailedAt: new Date().toISOString() } : tk));
-                }}>EMAIL TO CUSTOMER</button>
+              {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
+                <button type="button"
+                  style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
+                  onClick={async () => {
+                    await handleUpdate(t.id, { emailTo: custEmail, emailedAt: new Date().toISOString() });
+                  }}>
+                  {isEmailed ? "✓ RESEND EMAIL" : "EMAIL TO CUSTOMER"}
+                </button>
               )}
-              {isEmailed && (
-                <span style={btnDone}>✓ CUSTOMER EMAILED</span>
+              {custEmail && (t.status === "sentToQB" || t.status === "qbVerified") && (
+                <span style={isEmailed ? btnDone : btnDisabled}>{isEmailed ? "✓ CUSTOMER EMAILED" : "EMAIL NEEDED"}</span>
               )}
 
               {/* Col 4: Approval */}
@@ -2859,13 +2864,20 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
   const [location, setLocation] = useState("");
-  const [wells, setWells] = useState("");
+  const [jobState, setJobState] = useState("");
+  const [county, setCounty] = useState("");
+  const [wellList, setWellList] = useState([""]);
   const [afe, setAfe] = useState("");
   const [schedDate, setSchedDate] = useState("");
   const [assignedTo, setAssignedTo] = useState("");
-  const [contact, setContact] = useState("");
+  const [contactFirst, setContactFirst] = useState("");
+  const [contactLast, setContactLast] = useState("");
+  const [approver, setApprover] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [companyCode, setCompanyCode] = useState("");
+  const [costCenter, setCostCenter] = useState("");
+  const [po, setPo] = useState("");
 
   const filteredCust = custSearch.length > 0
     ? customers.filter(c => c.name.toLowerCase().includes(custSearch.toLowerCase()))
@@ -2875,12 +2887,14 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
     setSelectedCust(cust);
     setCustSearch(cust.name);
     setShowCustDrop(false);
-    setContact(cust.contact || "");
     setEmail(cust.email || "");
     setPhone(cust.phone || "");
-    const loc = [cust.city, cust.state].filter(Boolean).join(", ");
-    if (loc) setLocation(loc);
   };
+
+  const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
+  const updateWell = (idx, val) => setWellList(prev => prev.map((w, i) => i === idx ? val : w));
+  const removeWell = (idx) => setWellList(prev => prev.filter((_, i) => i !== idx));
+  const allSelected = wellList.every(w => w.trim());
 
   return (
     <div style={{
@@ -2890,11 +2904,11 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
       <div style={{
         background: C.cardBg, border: `1px solid ${C.border}`,
         borderTop: `3px solid ${C.red}`, borderRadius: 8,
-        padding: 28, width: 540, maxWidth: "92vw", maxHeight: "90vh", overflowY: "auto",
+        padding: 28, width: 640, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
       }} onClick={e => e.stopPropagation()}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW JOB — #{nextJobId}</div>
 
-        {/* Customer search */}
+        {/* Customer */}
         <div style={{ marginBottom: 14, position: "relative" }}>
           <label style={labelStyle}>CUSTOMER *</label>
           <input
@@ -2919,84 +2933,150 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
                   onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
                   <span style={{ fontWeight: 700, color: C.text }}>{c.name}</span>
-                  <span style={{ color: C.muted, fontSize: 11 }}>
-                    {[c.city, c.state].filter(Boolean).join(", ") || ""}
-                  </span>
+                  <span style={{ color: C.muted, fontSize: 11 }}>{[c.city, c.state].filter(Boolean).join(", ")}</span>
                 </div>
               ))}
-              {filteredCust.length === 0 && (
-                <div style={{ padding: 10, color: C.muted, fontSize: 12, textAlign: "center" }}>No matches</div>
-              )}
+              {filteredCust.length === 0 && <div style={{ padding: 10, color: C.muted, fontSize: 12, textAlign: "center" }}>No matches</div>}
             </div>
           )}
         </div>
 
-        {/* Auto-populated contact row */}
-        {selectedCust && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+        {/* Contact info */}
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>CONTACT INFORMATION</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div>
-              <label style={labelStyle}>CONTACT</label>
-              <input style={inputStyle} value={contact} onChange={e => setContact(e.target.value)} />
+              <label style={labelStyle}>CONTACT FIRST NAME</label>
+              <input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} placeholder="First name" />
+            </div>
+            <div>
+              <label style={labelStyle}>CONTACT LAST NAME</label>
+              <input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} placeholder="Last name" />
+            </div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={labelStyle}>APPROVER NAME</label>
+              <input style={inputStyle} value={approver} onChange={e => setApprover(e.target.value)} placeholder="Approver" />
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} />
+              <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="email@company.com" />
             </div>
             <div>
               <label style={labelStyle}>PHONE</label>
-              <input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} />
+              <input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} placeholder="555-555-5555" />
             </div>
           </div>
-        )}
+        </div>
 
-        <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>LOCATION</label>
-          <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State or Basin — Area" />
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>WELL NAME(S)</label>
-          <input style={inputStyle} value={wells} onChange={e => setWells(e.target.value)} placeholder="Well #1H, Well #2H..." />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <div>
-            <label style={labelStyle}>AFE #</label>
-            <input style={inputStyle} value={afe} onChange={e => setAfe(e.target.value)} placeholder="If available" />
+        {/* Billing codes */}
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>BILLING INFORMATION</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div>
+              <label style={labelStyle}>COMPANY CODE</label>
+              <input style={inputStyle} value={companyCode} onChange={e => setCompanyCode(e.target.value)} placeholder="e.g. 0064" />
+            </div>
+            <div>
+              <label style={labelStyle}>COST CENTER</label>
+              <input style={inputStyle} value={costCenter} onChange={e => setCostCenter(e.target.value)} placeholder="Cost center" />
+            </div>
+            <div>
+              <label style={labelStyle}>PO NUMBER</label>
+              <input style={inputStyle} value={po} onChange={e => setPo(e.target.value)} placeholder="Optional" />
+            </div>
           </div>
+        </div>
+
+        {/* Location */}
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>LOCATION</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div>
+              <label style={labelStyle}>LOCATION / AREA</label>
+              <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="Basin, area, lease name..." />
+            </div>
+            <div>
+              <label style={labelStyle}>STATE</label>
+              <input style={inputStyle} value={jobState} onChange={e => setJobState(e.target.value)} placeholder="TX" />
+            </div>
+            <div>
+              <label style={labelStyle}>COUNTY</label>
+              <input style={inputStyle} value={county} onChange={e => setCounty(e.target.value)} placeholder="County name" />
+            </div>
+          </div>
+        </div>
+
+        {/* Wells */}
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELL NAME / LOCATION</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              {wellList.length > 1 && (
+                <span style={{ fontSize: 11, color: C.muted }}>{wellList.filter(w => w.trim()).length} of {wellList.length} named</span>
+              )}
+              {wellList.length < 10 && (
+                <button type="button" onClick={addWell} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 8px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer" }}>+ ADD WELL</button>
+              )}
+            </div>
+          </div>
+          {wellList.map((w, idx) => (
+            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, minWidth: 20, textAlign: "right" }}>{idx + 1}.</div>
+              <input
+                style={{ ...inputStyle, flex: 1 }}
+                value={w}
+                onChange={e => updateWell(idx, e.target.value)}
+                placeholder={`Well name or CTB name...`}
+              />
+              {wellList.length > 1 && (
+                <button type="button" onClick={() => removeWell(idx)} style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700, padding: "0 4px" }}>×</button>
+              )}
+            </div>
+          ))}
+          <div style={{ marginTop: 10 }}>
+            <label style={labelStyle}>AFE # (optional)</label>
+            <input style={{ ...inputStyle, maxWidth: 240 }} value={afe} onChange={e => setAfe(e.target.value)} placeholder="AFE number if applicable" />
+          </div>
+        </div>
+
+        {/* Scheduling */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
           <div>
             <label style={labelStyle}>SCHEDULED DATE</label>
             <input type="date" style={inputStyle} value={schedDate} onChange={e => setSchedDate(e.target.value)} />
           </div>
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>ASSIGNED TO</label>
-          <select style={inputStyle} value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
-            <option value="">— Select —</option>
-            {userNames.map(u => <option key={u}>{u}</option>)}
-          </select>
+          <div>
+            <label style={labelStyle}>ASSIGNED TO</label>
+            <select style={inputStyle} value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
+              <option value="">— Select —</option>
+              {userNames.map(u => <option key={u}>{u}</option>)}
+            </select>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+        <div style={{ display: "flex", gap: 10 }}>
           <Btn onClick={() => {
             if (!custSearch.trim()) return;
-            const wellList = wells.split(",").map(w => w.trim()).filter(Boolean);
-            const afeList = afe ? afe.split(",").map(a => a.trim()) : wellList.map(() => null);
+            const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
             onCreateJob({
               id: nextJobId,
               customer: custSearch.trim(),
               location: location || "TBD",
-              wells: wellList.length > 0 ? wellList : ["TBD"],
-              afe: afeList,
+              jobState, county,
+              wells: cleanWells.length > 0 ? cleanWells : ["TBD"],
+              afe: afe || null,
               dateStarted: schedDate || today(),
               status: "Scheduled",
               crew: assignedTo ? [{ name: assignedTo, role: "Supervisor" }] : [],
               equipment: [],
               hoursLogged: 0,
               estimatedCost: 0,
-              ticketStatus: { ru: null, tester: null, rd: null },
               jsaComplete: false,
-              contact: contact || null,
-              email: email || null,
-              phone: phone || null,
+              contactFirst, contactLast,
+              approver, email, phone,
+              companyCode, costCenter, po,
             });
           }}>CREATE JOB</Btn>
           <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
@@ -3542,6 +3622,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           sigNotReqReason: t.sig_not_req_reason,
           sigNotReqNote: t.sig_not_req_note,
           notes: t.notes,
+          emailedAt: t.emailed_at || null,
           missingPieces: t.missing_pieces,
           locked: t.locked,
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
@@ -3634,15 +3715,25 @@ function FTIDashboard({ currentUser, onLogout }) {
   }, [jobs]);
 
   const handleCreateJob = async (newJob) => {
-    // Find customer ID
     const cust = customers.find(c => c.name === newJob.customer);
     const payload = {
       id: newJob.id,
       customer_id: cust?.id || null,
       location: newJob.location,
+      job_state: newJob.jobState || null,
+      county: newJob.county || null,
       date_started: newJob.dateStarted,
       status: newJob.status,
-      wells: newJob.wells.map((w, i) => ({ well_name: w, afe_number: newJob.afe[i] || null })),
+      afe: newJob.afe || null,
+      contact_first: newJob.contactFirst || null,
+      contact_last: newJob.contactLast || null,
+      approver: newJob.approver || null,
+      email: newJob.email || null,
+      phone: newJob.phone || null,
+      company_code: newJob.companyCode || null,
+      cost_center: newJob.costCenter || null,
+      po_number: newJob.po || null,
+      wells: newJob.wells.map(w => ({ well_name: w, afe_number: null })),
       crew: newJob.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null })),
       equipment: newJob.equipment || [],
     };
@@ -3744,7 +3835,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v24</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -3760,7 +3851,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v24</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
