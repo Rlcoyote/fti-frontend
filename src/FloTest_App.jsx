@@ -2873,6 +2873,9 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
   const [contactFirst, setContactFirst] = useState("");
   const [contactLast, setContactLast] = useState("");
   const [approver, setApprover] = useState("");
+  const [approverLast, setApproverLast] = useState("");
+  const [approverPhone, setApproverPhone] = useState("");
+  const [approverEmail, setApproverEmail] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [companyCode, setCompanyCode] = useState("");
@@ -2887,8 +2890,6 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
     setSelectedCust(cust);
     setCustSearch(cust.name);
     setShowCustDrop(false);
-    setEmail(cust.email || "");
-    setPhone(cust.phone || "");
   };
 
   const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
@@ -2944,28 +2945,46 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
         {/* Contact info */}
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>CONTACT INFORMATION</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+
+          {/* WSM */}
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>WELL SITE MANAGER (WSM)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
             <div>
-              <label style={labelStyle}>COMPANY MAN FIRST NAME</label>
-              <input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} placeholder="First name" />
+              <label style={labelStyle}>FIRST NAME</label>
+              <input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} placeholder="First" />
             </div>
             <div>
-              <label style={labelStyle}>COMPANY MAN LAST NAME</label>
-              <input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} placeholder="Last name" />
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-            <div>
-              <label style={labelStyle}>APPROVER NAME</label>
-              <input style={inputStyle} value={approver} onChange={e => setApprover(e.target.value)} placeholder="Approver" />
-            </div>
-            <div>
-              <label style={labelStyle}>COMPANY MAN EMAIL</label>
-              <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="email@company.com" />
+              <label style={labelStyle}>LAST NAME</label>
+              <input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} placeholder="Last" />
             </div>
             <div>
               <label style={labelStyle}>PHONE</label>
               <input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} placeholder="555-555-5555" />
+            </div>
+            <div>
+              <label style={labelStyle}>EMAIL</label>
+              <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="wsm@company.com" />
+            </div>
+          </div>
+
+          {/* Approver */}
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>APPROVER</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+            <div>
+              <label style={labelStyle}>FIRST NAME</label>
+              <input style={inputStyle} value={approver} onChange={e => setApprover(e.target.value)} placeholder="First" />
+            </div>
+            <div>
+              <label style={labelStyle}>LAST NAME</label>
+              <input style={inputStyle} value={approverLast} onChange={e => setApproverLast(e.target.value)} placeholder="Last" />
+            </div>
+            <div>
+              <label style={labelStyle}>PHONE</label>
+              <input style={inputStyle} value={approverPhone} onChange={e => setApproverPhone(e.target.value)} placeholder="555-555-5555" />
+            </div>
+            <div>
+              <label style={labelStyle}>EMAIL</label>
+              <input style={inputStyle} value={approverEmail} onChange={e => setApproverEmail(e.target.value)} placeholder="approver@company.com" />
             </div>
           </div>
         </div>
@@ -3070,8 +3089,8 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
               hoursLogged: 0,
               estimatedCost: 0,
               jsaComplete: false,
-              contactFirst, contactLast,
-              approver, email, phone,
+              contactFirst, contactLast, email, phone,
+              approver, approverLast, approverPhone, approverEmail,
               companyCode, costCenter, po,
             });
           }}>CREATE JOB</Btn>
@@ -3723,9 +3742,12 @@ function FTIDashboard({ currentUser, onLogout }) {
       afe: newJob.afe || null,
       contact_first: newJob.contactFirst || null,
       contact_last: newJob.contactLast || null,
-      approver: newJob.approver || null,
       email: newJob.email || null,
       phone: newJob.phone || null,
+      approver: newJob.approver || null,
+      approver_last: newJob.approverLast || null,
+      approver_phone: newJob.approverPhone || null,
+      approver_email: newJob.approverEmail || null,
       company_code: newJob.companyCode || null,
       cost_center: newJob.costCenter || null,
       po_number: newJob.po || null,
