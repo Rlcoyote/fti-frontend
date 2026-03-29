@@ -1768,14 +1768,15 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const [signatureImage, setSignatureImage] = useState(() => ticket.signatureImage || null);
   const [sigWiped, setSigWiped] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [showSigPad, setShowSigPad] = useState(() => openToSign);
+  const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
   const [showSigOptions, setShowSigOptions] = useState(false);
+  const [showQBConfirm, setShowQBConfirm] = useState(false);
 
   const job = jobs.find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type];
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
-  const isFullyLocked = status === "qbVerified";
+  const isFullyLocked = status === "qbVerified" || status === "sentToQB";
   const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
 
   const save = (overrides = {}) => {
@@ -1825,6 +1826,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
 
   const handleSigNotRequired = () => {
     if (!sigNotReqReason) return;
+    if (signedBy) return; // Don't allow if already signed
     setStatus("sigNotReq");
     setShowSigOptions(false);
     save({ status: "sigNotReq", sigNotReqReason, sigNotReqNote, signedBy: null, signedAt: null, signatureImage: null });
@@ -1932,7 +1934,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
           </div>
 
           {/* Signature display */}
-          {status === "signed" && signedBy && (
+          {["signed", "approved", "sentToQB", "qbVerified"].includes(status) && signedBy && (
             <div style={{ background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: C.green, marginBottom: 6 }}>✓ SIGNED &nbsp; {signedBy} &nbsp; <span style={{ fontWeight: 400, color: C.muted }}>{signedAt ? formatDate(signedAt) : ""}</span></div>
               {signatureImage && <img src={signatureImage} alt="Signature" style={{ maxWidth: 300, height: 80, display: "block", border: `1px solid ${C.border}`, borderRadius: 4, background: C.white }} />}
@@ -1996,18 +1998,17 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
 
           {/* QB Verified — fully locked */}
-          {isFullyLocked && (
+          {status === "qbVerified" && (
             <span style={{ fontSize: 12, fontWeight: 800, color: C.green, background: "#d4edda", padding: "6px 14px", borderRadius: 4 }}>✓ QB VERIFIED</span>
           )}
 
-          {/* Sent to QB */}
-          {!isFullyLocked && status === "sentToQB" && (
+          {status === "sentToQB" && (
             <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.steel, border: `1px solid ${C.border}`, padding: "6px 14px", borderRadius: 4 }}>AWAITING QB VERIFICATION</span>
           )}
 
           {/* Approved — send to QB */}
           {status === "approved" && !isEditing && (
-            <Btn variant="blue" onClick={handleSendToQB}>SEND TO QB</Btn>
+            <Btn variant="blue" onClick={() => setShowQBConfirm(true)}>SEND TO QB</Btn>
           )}
 
           {/* Signed/SigNotReq — approve */}
@@ -2022,7 +2023,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
             <>
               <Btn onClick={handleSave}>SAVE TICKET</Btn>
               {!sigWiped && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
-              {!sigWiped && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
+              {!sigWiped && !signedBy && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
               {status === "emailed" && <Btn variant="ghost" onClick={handleEmailTicket}>SEND EMAIL</Btn>}
             </>
           )}
@@ -2037,6 +2038,23 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
           {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
 
         </div>
+
+        {/* Send to QB confirmation */}
+        {showQBConfirm && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowQBConfirm(false)}>
+            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to QuickBooks?</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
+                Once submitted, this ticket will be permanently locked. No further edits, signatures, or deletions will be permitted.
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn variant="blue" onClick={() => { setShowQBConfirm(false); handleSendToQB(); }}>CONFIRM — SEND TO QB</Btn>
+                <Btn variant="ghost" onClick={() => setShowQBConfirm(false)}>CANCEL</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
@@ -2177,6 +2195,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
+  const [qbConfirmId, setQbConfirmId] = useState(null);
 
   const openTicket = (t, mode = "edit") => {
     setViewTicketMode(mode);
@@ -2333,10 +2352,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               {t.status !== "sentToQB" && t.status !== "qbVerified" && (
                 <button type="button" style={canSendToQB ? { ...btnBase, background: C.blue, color: C.white, border: "none" } : btnDisabled}
                   disabled={!canSendToQB}
-                  onClick={async () => {
-                    if (!canSendToQB) return;
-                    await handleUpdate(t.id, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
-                  }}>SEND TO QB</button>
+                  onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO QB</button>
               )}
               {(t.status === "sentToQB" || t.status === "qbVerified") && (
                 <span style={{ ...btnDone, background: C.green, color: C.white, border: "none" }}>✓ SENT TO QB</span>
@@ -2359,6 +2375,23 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
         />
+      )}
+      {qbConfirmId && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setQbConfirmId(null)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to QuickBooks?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
+              Once submitted, this ticket will be permanently locked. No further edits, signatures, or deletions will be permitted.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn variant="blue" onClick={async () => {
+                await handleUpdate(qbConfirmId, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
+                setQbConfirmId(null);
+              }}>CONFIRM — SEND TO QB</Btn>
+              <Btn variant="ghost" onClick={() => setQbConfirmId(null)}>CANCEL</Btn>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
