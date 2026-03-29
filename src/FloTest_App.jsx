@@ -1665,128 +1665,88 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
 // ─── SIGNATURE PAD ────────────────────────────────────────────────────────────
 function SignaturePad({ onSign, onCancel }) {
   const canvasRef = useRef(null);
-  const [drawing, setDrawing] = useState(false);
-  const [hasDrawn, setHasDrawn] = useState(false);
   const [signerName, setSignerName] = useState("");
-  const [paths, setPaths] = useState([]);
-  const [currentPath, setCurrentPath] = useState([]);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const isDrawing = useRef(false);
 
-  const getPos = (e, canvas) => {
+  const getXY = (e) => {
+    const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const src = e.touches ? e.touches[0] : e;
+    return {
+      x: (src.clientX - rect.left) * scaleX,
+      y: (src.clientY - rect.top) * scaleY,
+    };
   };
 
-  const startDraw = (e) => {
+  const onDown = (e) => {
     e.preventDefault();
-    const canvas = e.currentTarget;
-    setDrawing(true);
+    isDrawing.current = true;
     setHasDrawn(true);
-    const pos = getPos(e, canvas);
-    setCurrentPath([pos]);
+    const { x, y } = getXY(e);
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.beginPath();
+    ctx.moveTo(x, y);
   };
 
-  const draw = (e) => {
-    if (!drawing) return;
+  const onMove = (e) => {
     e.preventDefault();
-    const canvas = e.currentTarget;
-    const pos = getPos(e, canvas);
-    setCurrentPath(prev => [...prev, pos]);
-    // Draw on canvas
-    const ctx = canvas.getContext("2d");
-    ctx.strokeStyle = C.darkBlue;
+    if (!isDrawing.current) return;
+    const { x, y } = getXY(e);
+    const ctx = canvasRef.current.getContext("2d");
     ctx.lineWidth = 2;
     ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    if (currentPath.length > 0) {
-      const last = currentPath[currentPath.length - 1];
-      ctx.beginPath();
-      ctx.moveTo(last.x, last.y);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-    }
+    ctx.strokeStyle = C.darkBlue;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
   };
 
-  const endDraw = (e) => {
+  const onUp = (e) => {
     e.preventDefault();
-    if (currentPath.length > 0) {
-      setPaths(prev => [...prev, currentPath]);
-    }
-    setCurrentPath([]);
-    setDrawing(false);
+    isDrawing.current = false;
   };
 
-  const clearSig = () => {
-    setPaths([]);
-    setCurrentPath([]);
+  const clear = () => {
     setHasDrawn(false);
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext("2d");
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-    }
+    const canvas = canvasRef.current;
+    canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
   };
 
-  const handleSign = () => {
+  const submit = () => {
     if (!hasDrawn || !signerName.trim()) return;
-    // Capture image FIRST before any state changes that could unmount the canvas
-    const sigData = canvasRef.current ? canvasRef.current.toDataURL("image/png") : null;
-    const name = signerName.trim();
-    const date = new Date().toISOString();
-    onSign({ name, date, signatureImage: sigData });
+    // Capture image BEFORE any state/prop changes
+    const imageData = canvasRef.current.toDataURL("image/png");
+    onSign({ name: signerName.trim(), date: new Date().toISOString(), imageData });
   };
 
   return (
-    <div style={{
-      background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6,
-      padding: 16, marginTop: 16,
-    }}>
+    <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginTop: 16 }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>CUSTOMER SIGNATURE</div>
       <div style={{ marginBottom: 10 }}>
         <label style={labelStyle}>PRINTED NAME *</label>
         <input style={{ ...inputStyle, width: 280 }} value={signerName} onChange={e => setSignerName(e.target.value)} placeholder="Customer name..." />
       </div>
       <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Sign below:</div>
-      <div style={{
-        background: C.white, border: `2px solid ${hasDrawn ? C.green : C.border}`,
-        borderRadius: 4, cursor: "crosshair", touchAction: "none",
-      }}>
+      <div style={{ background: C.white, border: `2px solid ${hasDrawn ? C.green : C.border}`, borderRadius: 4, touchAction: "none", lineHeight: 0 }}>
         <canvas
           ref={canvasRef}
-          width={460} height={120}
-          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
-          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
-          style={{ display: "block", maxWidth: "100%" }}
+          width={600} height={150}
+          style={{ display: "block", width: "100%", height: "auto" }}
+          onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
+          onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
         />
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <Btn onClick={handleSign} variant="blue">SUBMIT SIGNATURE</Btn>
-        <Btn onClick={clearSig} variant="ghost" small>CLEAR</Btn>
-        <Btn onClick={onCancel} variant="ghost" small>CANCEL</Btn>
+        <Btn variant="blue" onClick={submit}>SUBMIT SIGNATURE</Btn>
+        <Btn variant="ghost" small onClick={clear}>CLEAR</Btn>
+        <Btn variant="ghost" small onClick={onCancel}>CANCEL</Btn>
       </div>
-    </div>
-  );
-}
-
-// ─── SIGNATURE DISPLAY ────────────────────────────────────────────────────────
-function SignatureDisplay({ signedBy, signedAt, signatureImage }) {
-  return (
-    <div style={{
-      background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6,
-      padding: 14, marginTop: 16,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: C.green }}>✓ SIGNED</span>
-        <span style={{ fontSize: 12, color: C.text, fontWeight: 700 }}>{signedBy}</span>
-        <span style={{ fontSize: 11, color: C.muted }}>{signedAt?.slice(0, 10)} {signedAt?.slice(11, 16)}</span>
-      </div>
-      {signatureImage && (
-        <div style={{
-          background: C.white, border: `1px solid ${C.border}`, borderRadius: 4,
-          padding: 4, display: "inline-block",
-        }}>
-          <img src={signatureImage} alt="Signature" style={{ height: 60, display: "block" }} />
-        </div>
+      {(!hasDrawn || !signerName.trim()) && (
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>* Name and signature required</div>
       )}
     </div>
   );
@@ -1794,132 +1754,151 @@ function SignatureDisplay({ signedBy, signedAt, signatureImage }) {
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
 function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser }) {
-  const [lineItems, setLineItems] = useState([...ticket.lineItems]);
-  const [notes, setNotes] = useState(ticket.notes || "");
-  const [status, setStatus] = useState(ticket.status);
-  const [missingPieces, setMissingPieces] = useState(ticket.missingPieces ?? null);
+  // All state initialized from ticket prop on mount only
+  const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
+  const [notes, setNotes] = useState(() => ticket.notes || "");
+  const [status, setStatus] = useState(() => ticket.status);
+  const [missingPieces, setMissingPieces] = useState(() => ticket.missingPieces ?? null);
+  const [sigNotReqReason, setSigNotReqReason] = useState(() => ticket.sigNotReqReason || null);
+  const [sigNotReqNote, setSigNotReqNote] = useState(() => ticket.sigNotReqNote || "");
+  const [emailTo, setEmailTo] = useState(() => ticket.emailTo || "");
+  const [emailCc, setEmailCc] = useState(() => ticket.emailCc || "");
+  const [signedBy, setSignedBy] = useState(() => ticket.signedBy || null);
+  const [signedAt, setSignedAt] = useState(() => ticket.signedAt || null);
+  const [signatureImage, setSignatureImage] = useState(() => ticket.signatureImage || null);
+  const [sigWiped, setSigWiped] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [showSigPad, setShowSigPad] = useState(false);
   const [showSigOptions, setShowSigOptions] = useState(false);
-  const [sigNotReqReason, setSigNotReqReason] = useState(ticket.sigNotReqReason || null);
-  const [sigNotReqNote, setSigNotReqNote] = useState(ticket.sigNotReqNote || "");
-  const [emailTo, setEmailTo] = useState(ticket.emailTo || "");
-  const [emailCc, setEmailCc] = useState(ticket.emailCc || "");
-  const [isEditing, setIsEditing] = useState(false);
-  const [sigWiped, setSigWiped] = useState(false);
-  const [localSignedBy, setLocalSignedBy] = useState(ticket.signedBy || null);
-  const [localSignedAt, setLocalSignedAt] = useState(ticket.signedAt || null);
-  const [localSignatureImage, setLocalSignatureImage] = useState(ticket.signatureImage || null);
-
-  const isFullyLocked = status === "qbVerified";
-  const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
-  const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
-  const canSendToQB = status === "approved";
 
   const job = jobs.find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type];
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
+  const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
+  const isFullyLocked = status === "qbVerified";
+  const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
 
-  const handleSave = () => {
-    console.log("SAVE called - sigWiped=", sigWiped, "status=", status, "isEditing=", isEditing);
-    const sigFields = sigWiped
-      ? { signedBy: null, signedAt: null, signatureImage: null, status: "inField" }
-      : { signedBy: localSignedBy, signedAt: localSignedAt, signatureImage: localSignatureImage };
-    const newStatus = sigWiped ? "inField" : status;
-    onUpdate(ticket.id, { lineItems, notes, status: newStatus, missingPieces, sigNotReqReason, sigNotReqNote, emailTo, emailCc, ...sigFields });
-    if (sigWiped) { setStatus("inField"); setLocalSignedBy(null); setLocalSignedAt(null); setLocalSignatureImage(null); }
-    setIsEditing(false);
-    setSigWiped(false);
+  const save = (overrides = {}) => {
+    const updates = {
+      lineItems, notes, status, missingPieces,
+      sigNotReqReason, sigNotReqNote, emailTo, emailCc,
+      signedBy, signedAt, signatureImage,
+      ...overrides,
+    };
+    onUpdate(ticket.id, updates);
   };
 
-  const handleSign = ({ name, date, signatureImage }) => {
-    setLocalSignedBy(name);
-    setLocalSignedAt(date);
-    setLocalSignatureImage(signatureImage);
+  const handleSigWipe = () => {
+    setSigWiped(true);
+    setSignedBy(null);
+    setSignedAt(null);
+    setSignatureImage(null);
+  };
+
+  const handleSign = ({ name, date, imageData }) => {
+    // Update local state
+    setSignedBy(name);
+    setSignedAt(date);
+    setSignatureImage(imageData);
     setStatus("signed");
-    onUpdate(ticket.id, {
-      lineItems, notes, status: "signed", missingPieces,
-      signedBy: name, signedAt: date, signatureImage,
-      sigNotReqReason: null, sigNotReqNote: "",
-    });
+    setSigWiped(false);
     setShowSigPad(false);
     setIsEditing(false);
+    // Save to DB
+    save({ signedBy: name, signedAt: date, signatureImage: imageData, status: "signed", sigNotReqReason: null, sigNotReqNote: "" });
+  };
+
+  const handleSave = () => {
+    if (sigWiped) {
+      save({ signedBy: null, signedAt: null, signatureImage: null, status: "inField" });
+      setStatus("inField");
+    } else {
+      save();
+    }
+    setIsEditing(false);
+    setSigWiped(false);
   };
 
   const handleSigNotRequired = () => {
     if (!sigNotReqReason) return;
     setStatus("sigNotReq");
-    onUpdate(ticket.id, {
-      lineItems, notes, status: "sigNotReq", missingPieces,
-      sigNotReqReason, sigNotReqNote,
-      signedBy: null, signedAt: null, signatureImage: null,
-    });
     setShowSigOptions(false);
-  };
-
-  const handleEmailTicket = () => {
-    if (!emailTo) return;
-    onUpdate(ticket.id, {
-      lineItems, notes, status: "emailed", missingPieces,
-      emailTo, emailCc, emailedAt: new Date().toISOString(),
-    });
-  };
-
-  const handleSendToQB = () => {
-    setStatus("sentToQB");
-    onUpdate(ticket.id, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
+    save({ status: "sigNotReq", sigNotReqReason, sigNotReqNote, signedBy: null, signedAt: null, signatureImage: null });
   };
 
   const handleApprove = () => {
     setStatus("approved");
-    onUpdate(ticket.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
+    save({ status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
   };
 
-  const handleUnlock = () => {
-    console.log("EDIT TICKET clicked - setIsEditing(true), sigWiped=", sigWiped, "status=", status);
-    setIsEditing(true);
+  const handleSendToQB = () => {
+    setStatus("sentToQB");
+    save({ status: "sentToQB", sentToQBAt: new Date().toISOString() });
   };
 
-  const statusLabel = TICKET_STATUSES[isLocked ? ticket.status : status]?.label || status;
+  const handleEmailTicket = () => {
+    if (!emailTo) return;
+    setStatus("emailed");
+    save({ status: "emailed", emailTo, emailCc, emailedAt: new Date().toISOString() });
+  };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "#00000088",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-    }} onClick={onClose}>
-      <div style={{
-        background: C.cardBg, border: `1px solid ${C.border}`,
-        borderTop: `4px solid ${tcfg.color}`, borderRadius: 8,
-        padding: 0, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
-      }} onClick={e => e.stopPropagation()}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${tcfg.color}`, borderRadius: 8, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
+        onClick={e => e.stopPropagation()}
+      >
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                 <TicketTypeBadge type={ticket.type} />
-                <TicketStatusBadge status={isLocked ? ticket.status : status} />
+                <TicketStatusBadge status={status} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId} — {ticket.type}</span>
                 {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
               </div>
-              <div style={{ fontSize: 12, color: C.muted }}>
-                {job?.customer || "Unknown"} · {formatDate(ticket.date)}
-              </div>
+              <div style={{ fontSize: 12, color: C.muted }}>{job?.customer || "Unknown"} · {formatDate(ticket.date)}</div>
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>
-              ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
         </div>
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
-          {/* Editing warning */}
-          {isEditing && !sigWiped && (
+
+          {/* Edit warning */}
+          {isEditing && !sigWiped && signedBy && (
             <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
-              ⚠ Editing a signed ticket — changing line items, rates, or quantities will require a new signature.
+              ⚠ Editing signed ticket — changing line items, rate, or qty will require a new signature.
             </div>
           )}
-          {/* Status control — only for draft/inField */}
+          {sigWiped && (
+            <div style={{ background: "#fdecea", border: `1px solid ${C.red}44`, borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.red }}>
+              ⚠ Line items changed — signature cleared. Customer must re-sign before saving.
+            </div>
+          )}
+
+          {/* Missing pieces (RD only) */}
+          {ticket.type === "Rig Down" && (
+            <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 6, padding: 12, marginBottom: 16 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.yellow }}>Check quantities against R/U — any pieces missing? </span>
+              {!isLocked ? (
+                <>
+                  <span onClick={() => setMissingPieces(false)} style={{ cursor: "pointer", fontWeight: 700, color: missingPieces === false ? C.green : C.muted, marginLeft: 8 }}>NO</span>
+                  <span style={{ color: C.muted, margin: "0 6px" }}>|</span>
+                  <span onClick={() => setMissingPieces(true)} style={{ cursor: "pointer", fontWeight: 700, color: missingPieces === true ? C.red : C.muted }}>YES</span>
+                </>
+              ) : (
+                <span style={{ fontWeight: 700, color: missingPieces ? C.red : C.green, marginLeft: 8 }}>{missingPieces ? "YES" : "NO"}</span>
+              )}
+            </div>
+          )}
+
+          {/* Status selector (unlocked only) */}
           {!isLocked && status !== "emailed" && (
             <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4 }}>STATUS:</span>
@@ -1929,197 +1908,130 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
             </div>
           )}
 
-          {/* Emailed status display */}
-          {ticket.status === "emailed" && !isLocked && (
-            <div style={{ background: "#f3eafa", border: "1px solid #7a3ca044", borderRadius: 6, padding: "10px 14px", marginBottom: 16 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#7a3ca0" }}>TICKET EMAILED — AWAITING SIGNATURE</span>
-              {ticket.emailTo && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Sent to: {ticket.emailTo}{ticket.emailCc ? ` · CC: ${ticket.emailCc}` : ""}</div>}
-              {ticket.emailedAt && <div style={{ fontSize: 11, color: C.muted }}>Sent: {ticket.emailedAt.slice(0, 10)}</div>}
-            </div>
-          )}
-
-          {/* RD-specific: missing pieces check */}
-          {ticket.type === "Rig Down" && (
-            <div style={{
-              background: "#fdf8e8", border: `1px solid ${C.yellow}44`, borderRadius: 6,
-              padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12,
-              opacity: isLocked ? 0.7 : 1,
-            }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                Check quantities against R/U — any pieces missing?
-              </span>
-              {!isLocked ? (
-                <>
-                  <FilterBtn active={missingPieces === false} onClick={() => setMissingPieces(false)}>NO</FilterBtn>
-                  <FilterBtn active={missingPieces === true} onClick={() => setMissingPieces(true)}>YES</FilterBtn>
-                </>
-              ) : (
-                <span style={{ fontSize: 12, fontWeight: 800, color: missingPieces ? C.red : C.green }}>
-                  {missingPieces === true ? "YES" : missingPieces === false ? "NO" : "—"}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Line Items */}
+          {/* Line items */}
           <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
-          {sigWiped && (
-            <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 4, padding: "8px 12px", marginBottom: 8, fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
-              ⚠ Line items changed — signature will be cleared on save. Customer must re-sign.
-            </div>
-          )}
-          {!isLocked && status !== "emailed" ? (
-            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={() => setSigWiped(true)} />
+          {!isLocked ? (
+            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={handleSigWipe} />
           ) : (
             <ReadOnlyLineItems lineItems={lineItems} ticketType={ticket.type} total={total} />
           )}
 
           {/* Notes */}
           <div style={{ marginTop: 16 }}>
-            <label style={labelStyle}>NOTES</label>
-            {!isLocked && status !== "emailed" ? (
-              <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={e => setNotes(e.target.value)} />
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
+            {!isFullyLocked ? (
+              <textarea style={{ ...inputStyle, width: "100%", minHeight: 60, resize: "vertical", boxSizing: "border-box" }}
+                value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..." />
             ) : (
               <div style={{ fontSize: 12, color: C.text, padding: "8px 0" }}>{notes || "—"}</div>
             )}
           </div>
 
-          {/* Signature display (when signed) */}
-          {status === "signed" && localSignedBy && (
-            <SignatureDisplay signedBy={localSignedBy} signedAt={localSignedAt} signatureImage={localSignatureImage} />
+          {/* Signature display */}
+          {status === "signed" && signedBy && (
+            <div style={{ background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.green, marginBottom: 6 }}>✓ SIGNED &nbsp; {signedBy} &nbsp; <span style={{ fontWeight: 400, color: C.muted }}>{signedAt ? formatDate(signedAt) : ""}</span></div>
+              {signatureImage && <img src={signatureImage} alt="Signature" style={{ maxWidth: 300, height: 80, display: "block", border: `1px solid ${C.border}`, borderRadius: 4, background: C.white }} />}
+            </div>
           )}
 
-          {/* Sig Not Required display */}
+          {/* Sig not required display */}
           {status === "sigNotReq" && (
             <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: C.blue }}>SIGNATURE NOT REQUIRED</div>
-              <div style={{ fontSize: 11, color: C.text, marginTop: 4 }}>{ticket.sigNotReqReason}</div>
-              {ticket.sigNotReqNote && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{ticket.sigNotReqNote}</div>}
+              <div style={{ fontSize: 11, color: C.text, marginTop: 4 }}>{sigNotReqReason}</div>
+              {sigNotReqNote && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sigNotReqNote}</div>}
             </div>
           )}
 
-          {/* Signature options panel */}
-          {!isLocked && status !== "emailed" && showSigOptions && !showSigPad && (
-            <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 12 }}>SIGNATURE OPTIONS</div>
-
-              {/* Option 1: Customer not available — email */}
-              <div style={{ marginBottom: 12, padding: 12, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div onClick={() => setSigNotReqReason(sigNotReqReason === "not_available" ? null : "not_available")} style={{
-                    width: 16, height: 16, borderRadius: 3, border: `2px solid ${sigNotReqReason === "not_available" ? C.blue : C.muted}`,
-                    background: sigNotReqReason === "not_available" ? C.blue : "transparent", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>{sigNotReqReason === "not_available" && <span style={{ color: C.white, fontSize: 10, fontWeight: 900 }}>✓</span>}</div>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>Customer requires signature but is not available</span>
+          {/* Sig not required options */}
+          {showSigOptions && (
+            <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginTop: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 10 }}>REASON SIGNATURE NOT REQUIRED</div>
+              {[["not_available", "Customer requires signature but is not available"], ["not_required", "Customer does not require field signature"], ["other", "Other"]].map(([val, lbl]) => (
+                <div key={val} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer" }} onClick={() => setSigNotReqReason(sigNotReqReason === val ? null : val)}>
+                  <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${sigNotReqReason === val ? C.blue : C.border}`, background: sigNotReqReason === val ? C.blue : "transparent" }} />
+                  <span style={{ fontSize: 12, fontWeight: 700 }}>{lbl}</span>
                 </div>
-                {sigNotReqReason === "not_available" && (
-                  <div style={{ marginLeft: 24 }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                      <div><label style={labelStyle}>COMPANY MAN EMAIL *</label><input style={inputStyle} value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="compman@operator.com" /></div>
-                      <div><label style={labelStyle}>CC (OFFICE)</label><input style={inputStyle} value={emailCc} onChange={e => setEmailCc(e.target.value)} placeholder="accounts@flo-test.com" /></div>
-                    </div>
-                    <Btn small variant="blue" onClick={handleEmailTicket}>EMAIL TICKET (placeholder)</Btn>
-                  </div>
-                )}
-              </div>
-
-              {/* Option 2: Customer doesn't require */}
-              <div style={{ marginBottom: 12, padding: 12, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div onClick={() => setSigNotReqReason(sigNotReqReason === "not_required" ? null : "not_required")} style={{
-                    width: 16, height: 16, borderRadius: 3, border: `2px solid ${sigNotReqReason === "not_required" ? C.blue : C.muted}`,
-                    background: sigNotReqReason === "not_required" ? C.blue : "transparent", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>{sigNotReqReason === "not_required" && <span style={{ color: C.white, fontSize: 10, fontWeight: 900 }}>✓</span>}</div>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>Customer does not require field signature</span>
-                </div>
-              </div>
-
-              {/* Option 3: Other */}
-              <div style={{ marginBottom: 12, padding: 12, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <div onClick={() => setSigNotReqReason(sigNotReqReason === "other" ? null : "other")} style={{
-                    width: 16, height: 16, borderRadius: 3, border: `2px solid ${sigNotReqReason === "other" ? C.blue : C.muted}`,
-                    background: sigNotReqReason === "other" ? C.blue : "transparent", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>{sigNotReqReason === "other" && <span style={{ color: C.white, fontSize: 10, fontWeight: 900 }}>✓</span>}</div>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>Other (specify)</span>
-                </div>
-                {sigNotReqReason === "other" && (
-                  <div style={{ marginLeft: 24 }}>
-                    <input style={inputStyle} value={sigNotReqNote} onChange={e => setSigNotReqNote(e.target.value)} placeholder="Reason..." />
-                  </div>
-                )}
-              </div>
-
-              {(sigNotReqReason === "not_required" || sigNotReqReason === "other") && (
-                <Btn small onClick={handleSigNotRequired}>CONFIRM — SIGNATURE NOT REQUIRED</Btn>
+              ))}
+              {sigNotReqReason === "other" && (
+                <input style={inputStyle} value={sigNotReqNote} onChange={e => setSigNotReqNote(e.target.value)} placeholder="Reason..." />
               )}
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                <Btn onClick={handleSigNotRequired}>CONFIRM</Btn>
+                <Btn variant="ghost" onClick={() => setShowSigOptions(false)}>CANCEL</Btn>
+              </div>
             </div>
           )}
 
-          {/* Signature pad */}
+          {/* Email options */}
+          {status === "emailed" && (
+            <div style={{ background: "#f3eafa", border: `1px solid #7a3ca044`, borderRadius: 6, padding: 14, marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#7a3ca0", marginBottom: 8 }}>AWAITING SIGNATURE VIA EMAIL</div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>TO</label>
+                  <input style={inputStyle} value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="customer@email.com" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>CC</label>
+                  <input style={inputStyle} value={emailCc} onChange={e => setEmailCc(e.target.value)} placeholder="Optional CC..." />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sig pad — always rendered when showSigPad is true */}
           {showSigPad && (
             <SignaturePad onSign={handleSign} onCancel={() => setShowSigPad(false)} />
           )}
+
         </div>
 
         {/* Footer */}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          {/* Editable states: draft, inField */}
-          {!isLocked && status !== "emailed" && (
-            <>
-              <Btn onClick={handleSave}>SAVE TICKET</Btn>
-              {!showSigPad && !showSigOptions && <Btn onClick={() => setShowSigPad(true)} variant="blue">COLLECT SIGNATURE</Btn>}
-              {!showSigPad && !showSigOptions && <Btn onClick={() => setShowSigOptions(true)} variant="ghost">SIGNATURE NOT REQUIRED</Btn>}
-              <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
-            </>
-          )}
-          {/* Emailed — waiting */}
-          {status === "emailed" && !isLocked && (
-            <>
-              <Btn onClick={() => setShowSigPad(true)} variant="blue">COLLECT SIGNATURE NOW</Btn>
-              <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
-            </>
-          )}
-          {/* Signed or SigNotReq — supervisor can approve, anyone can edit */}
-          {(status === "signed" || status === "sigNotReq") && !isEditing && (
-            <>
-              {canApprove
-                ? <Btn onClick={handleApprove} variant="blue">APPROVE TICKET</Btn>
-                : <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, padding: "6px 14px" }}>Awaiting supervisor approval</span>
-              }
-              <Btn onClick={handleUnlock} variant="ghost">EDIT TICKET</Btn>
-              <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
-            </>
-          )}
-          {/* Approved — ready to send to QB */}
-          {status === "approved" && !isEditing && (
-            <>
-              <Btn onClick={handleSendToQB} variant="blue">SEND TO QB</Btn>
-              <Btn onClick={handleUnlock} variant="ghost">EDIT TICKET</Btn>
-              <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
-            </>
-          )}
-          {/* Sent to QB */}
-          {status === "sentToQB" && (
-            <>
-              <button style={{
-                background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
-                padding: "9px 18px", fontSize: 13, fontWeight: 700, color: C.muted,
-                cursor: "not-allowed", opacity: 0.5,
-              }}>AWAITING QB VERIFICATION</button>
-              <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
-            </>
-          )}
+
           {/* QB Verified — fully locked */}
           {isFullyLocked && (
+            <span style={{ fontSize: 12, fontWeight: 800, color: C.green, background: "#d4edda", padding: "6px 14px", borderRadius: 4 }}>✓ QB VERIFIED</span>
+          )}
+
+          {/* Sent to QB */}
+          {!isFullyLocked && status === "sentToQB" && (
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.steel, border: `1px solid ${C.border}`, padding: "6px 14px", borderRadius: 4 }}>AWAITING QB VERIFICATION</span>
+          )}
+
+          {/* Approved — send to QB */}
+          {status === "approved" && !isEditing && (
+            <Btn variant="blue" onClick={handleSendToQB}>SEND TO QB</Btn>
+          )}
+
+          {/* Signed/SigNotReq — approve */}
+          {(status === "signed" || status === "sigNotReq") && !isEditing && (
+            canApprove
+              ? <Btn variant="blue" onClick={handleApprove}>APPROVE TICKET</Btn>
+              : <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, padding: "6px 0" }}>Awaiting supervisor approval</span>
+          )}
+
+          {/* Editable — save/sign buttons */}
+          {!isLocked && !showSigPad && !showSigOptions && (
             <>
-              <span style={{ fontSize: 12, fontWeight: 800, color: C.green, background: "#d4edda", padding: "6px 14px", borderRadius: 4 }}>✓ QB VERIFIED</span>
-              <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
+              <Btn onClick={handleSave}>SAVE TICKET</Btn>
+              {!sigWiped && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
+              {!sigWiped && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
+              {status === "emailed" && <Btn variant="ghost" onClick={handleEmailTicket}>SEND EMAIL</Btn>}
             </>
           )}
+
+          {/* Edit button for locked tickets */}
+          {isLocked && !isFullyLocked && status !== "sentToQB" && !isEditing && (
+            <Btn variant="ghost" onClick={() => setIsEditing(true)}>EDIT TICKET</Btn>
+          )}
+
+          {/* Always show close */}
+          {!isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
+          {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
+
         </div>
       </div>
     </div>
