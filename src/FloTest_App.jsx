@@ -2360,7 +2360,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
           onClose={() => setViewTicket(null)}
         />
       )}
-      )}
     </div>
   );
 }
