@@ -2914,6 +2914,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
     setSelectedCust(cust);
     setCustSearch(cust.name);
     setShowCustDrop(false);
+    setErrors(prev => ({ ...prev, customer: null }));
   };
 
   const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
@@ -2969,7 +2970,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
           <input
             style={{ ...inputStyle, borderColor: errors.customer ? C.red : selectedCust ? C.green : C.border }}
             value={custSearch}
-            onChange={e => { setCustSearch(e.target.value); setShowCustDrop(true); setSelectedCust(null); setErrors(prev => ({...prev, customer: null})); }}
+            onChange={e => { setCustSearch(e.target.value); setShowCustDrop(true); setSelectedCust(null); setErrors(prev => ({ ...prev, customer: null })); }}
             onFocus={() => setShowCustDrop(true)}
             placeholder="Type to search or browse..."
           />
