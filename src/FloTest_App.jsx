@@ -1069,7 +1069,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
-              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} />
+              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} />
             </div>
           )}
 
@@ -1753,7 +1753,7 @@ function SignaturePad({ onSign, onCancel }) {
 }
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
-function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser }) {
+function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, openToSign = false }) {
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
   const [notes, setNotes] = useState(() => ticket.notes || "");
@@ -1768,7 +1768,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
   const [signatureImage, setSignatureImage] = useState(() => ticket.signatureImage || null);
   const [sigWiped, setSigWiped] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [showSigPad, setShowSigPad] = useState(false);
+  const [showSigPad, setShowSigPad] = useState(() => openToSign);
   const [showSigOptions, setShowSigOptions] = useState(false);
 
   const job = jobs.find(j => j.id === ticket.jobId);
@@ -1793,6 +1793,10 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
     setSignedBy(null);
     setSignedAt(null);
     setSignatureImage(null);
+    // If ticket was approved, revert approval
+    if (["approved", "sentToQB"].includes(status)) {
+      setStatus("inField");
+    }
   };
 
   const handleSign = ({ name, date, imageData }) => {
@@ -2169,9 +2173,15 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
 }
 
 // ─── TICKETS TAB (inside JobCard expanded) ────────────────────────────────────
-function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser }) {
+function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser, customers }) {
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
+  const [viewTicketMode, setViewTicketMode] = useState("edit");
+
+  const openTicket = (t, mode = "edit") => {
+    setViewTicketMode(mode);
+    setViewTicket(t);
+  };
 
   const jobTickets = tickets.filter(t => t.jobId === jobId);
   const byType = {};
@@ -2238,33 +2248,104 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser 
       {jobTickets.map(t => {
         const tcfg = TICKET_TYPES[t.type];
         const total = calcTicketTotal(t);
+        const job = jobs.find(j => j.id === jobId);
+        const custEmail = customers?.find(c => c.name === job?.customer)?.email || null;
+        const isSigned = t.status === "signed" || t.status === "sigNotReq";
+        const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";
+        const isEmailed = t.emailedAt || t.status === "emailed";
+        const canSendToQB = isSigned && isApproved;
+
+        // Button styles
+        const btnBase = { borderRadius: 4, padding: "4px 10px", fontSize: 10, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em", border: "none", whiteSpace: "nowrap" };
+        const btnAction = { ...btnBase, background: "#fdf5d8", color: "#8a6500", border: "1px solid #e6c20044" };
+        const btnDone = { ...btnBase, background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, cursor: "default" };
+        const btnDisabled = { ...btnBase, background: C.steel, color: C.muted, border: `1px solid ${C.border}`, cursor: "not-allowed", opacity: 0.6 };
+        const btnBlue = { ...btnBase, background: "#e8f0fb", color: C.blue, border: `1px solid ${C.blue}44` };
+
         return (
           <div key={t.id} style={{
             background: C.cardBg, border: `1px solid ${C.border}`,
             borderLeft: `3px solid ${tcfg.color}`, borderRadius: 5, marginBottom: 6,
             padding: "10px 14px",
-            display: "flex", justifyContent: "space-between", alignItems: "center",
+            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <TicketTypeBadge type={t.type} />
-              <TicketStatusBadge status={t.status} />
-              <span style={{ fontSize: 12, color: C.muted }}>#{t.jobId} · {formatDate(t.date)}</span>
+            {/* Left: type badge (clickable = open ticket) + info */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div
+                onClick={() => openTicket(t, "edit")}
+                style={{ cursor: "pointer" }}
+                title="Open ticket"
+              >
+                <TicketTypeBadge type={t.type} />
+              </div>
+              <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>#{t.jobId} · {formatDate(t.date)}</span>
               <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+
+            {/* Right: action buttons + total */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+
+              {/* Col 2: Signature */}
+              {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
+                <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIGNATURE REQUEST</button>
+              )}
+              {t.status === "signed" && (
+                <span style={btnDone}>✓ SIGNED</span>
+              )}
+              {t.status === "sigNotReq" && (
+                <span style={{ ...btnDone, background: "#e8f0fb", color: C.blue, border: `1px solid ${C.blue}44` }}>SIG NOT REQ</span>
+              )}
+              {(t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified") && (
+                <span style={btnDone}>✓ SIGNED</span>
+              )}
+
+              {/* Col 3: Email */}
+              {!isEmailed && !custEmail && (
+                <span style={btnDisabled}>EMAIL NEEDED</span>
+              )}
+              {!isEmailed && custEmail && (
+                <button type="button" style={btnBlue} onClick={async () => {
+                  await handleUpdate(t.id, { emailTo: custEmail, status: "emailed", emailedAt: new Date().toISOString() });
+                  setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, emailTo: custEmail, status: "emailed", emailedAt: new Date().toISOString() } : tk));
+                }}>EMAIL TO CUSTOMER</button>
+              )}
+              {isEmailed && (
+                <span style={btnDone}>✓ CUSTOMER EMAILED</span>
+              )}
+
+              {/* Col 4: Approval */}
+              {!isSigned && !isApproved && (
+                <span style={btnDisabled}>APPROVAL NEEDED</span>
+              )}
+              {isSigned && !isApproved && (
+                <button type="button" style={btnAction} onClick={async () => {
+                  await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
+                }}>APPROVAL NEEDED</button>
+              )}
+              {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && (
+                <span style={btnDone}>✓ APPROVED</span>
+              )}
+              {(t.status === "sentToQB" || t.status === "qbVerified") && (
+                <span style={btnDone}>✓ APPROVED</span>
+              )}
+
+              {/* Col 5: Send to QB */}
+              {t.status !== "sentToQB" && t.status !== "qbVerified" && (
+                <button type="button" style={canSendToQB ? { ...btnBase, background: C.blue, color: C.white, border: "none" } : btnDisabled}
+                  disabled={!canSendToQB}
+                  onClick={async () => {
+                    if (!canSendToQB) return;
+                    await handleUpdate(t.id, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
+                  }}>SEND TO QB</button>
+              )}
+              {(t.status === "sentToQB" || t.status === "qbVerified") && (
+                <span style={{ ...btnDone, background: C.green, color: C.white, border: "none" }}>✓ SENT TO QB</span>
+              )}
+
+              {/* Total */}
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.text, marginLeft: 6 }}>
                 ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
-              <button
-                type="button"
-                onClick={() => setViewTicket(t)}
-                style={{
-                  background: "transparent", border: `1px solid ${C.border}`,
-                  color: C.text, borderRadius: 4, padding: "5px 14px",
-                  fontSize: 12, fontWeight: 700, cursor: "pointer",
-                  letterSpacing: "0.04em",
-                }}
-              >OPEN</button>
             </div>
           </div>
         );
@@ -2274,9 +2355,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser 
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
+          openToSign={viewTicketMode === "sign"}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
         />
+      )}
       )}
     </div>
   );
@@ -3629,7 +3712,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v23</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v24</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -3645,7 +3728,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v23</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v24</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
