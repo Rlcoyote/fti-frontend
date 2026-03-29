@@ -2946,11 +2946,11 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>CONTACT INFORMATION</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div>
-              <label style={labelStyle}>CONTACT FIRST NAME</label>
+              <label style={labelStyle}>COMPANY MAN FIRST NAME</label>
               <input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} placeholder="First name" />
             </div>
             <div>
-              <label style={labelStyle}>CONTACT LAST NAME</label>
+              <label style={labelStyle}>COMPANY MAN LAST NAME</label>
               <input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} placeholder="Last name" />
             </div>
           </div>
@@ -2960,7 +2960,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
               <input style={inputStyle} value={approver} onChange={e => setApprover(e.target.value)} placeholder="Approver" />
             </div>
             <div>
-              <label style={labelStyle}>EMAIL</label>
+              <label style={labelStyle}>COMPANY MAN EMAIL</label>
               <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="email@company.com" />
             </div>
             <div>
@@ -2992,11 +2992,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
         {/* Location */}
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>LOCATION</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={labelStyle}>LOCATION / AREA</label>
-              <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="Basin, area, lease name..." />
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div>
               <label style={labelStyle}>STATE</label>
               <input style={inputStyle} value={jobState} onChange={e => setJobState(e.target.value)} placeholder="TX" />
@@ -3028,7 +3024,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
                 style={{ ...inputStyle, flex: 1 }}
                 value={w}
                 onChange={e => updateWell(idx, e.target.value)}
-                placeholder={`Well name or CTB name...`}
+                placeholder="Well name or CTB name..."
               />
               {wellList.length > 1 && (
                 <button type="button" onClick={() => removeWell(idx)} style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700, padding: "0 4px" }}>×</button>
@@ -3036,7 +3032,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             </div>
           ))}
           <div style={{ marginTop: 10 }}>
-            <label style={labelStyle}>AFE # (optional)</label>
+            <label style={labelStyle}>AFE</label>
             <input style={{ ...inputStyle, maxWidth: 240 }} value={afe} onChange={e => setAfe(e.target.value)} placeholder="AFE number if applicable" />
           </div>
         </div>
@@ -3063,7 +3059,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             onCreateJob({
               id: nextJobId,
               customer: custSearch.trim(),
-              location: location || "TBD",
+              location: [county, jobState].filter(Boolean).join(", ") || "TBD",
               jobState, county,
               wells: cleanWells.length > 0 ? cleanWells : ["TBD"],
               afe: afe || null,
