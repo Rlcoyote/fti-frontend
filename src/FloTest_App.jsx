@@ -2946,8 +2946,8 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>CONTACT INFORMATION</div>
 
-          {/* WSM */}
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>WELL SITE MANAGER (WSM)</div>
+          {/* Site Manager */}
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>SITE MANAGER</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
             <div>
               <label style={labelStyle}>FIRST NAME</label>
@@ -2963,7 +2963,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="wsm@company.com" />
+              <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="sitemanager@company.com" />
             </div>
           </div>
 
