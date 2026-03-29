@@ -2269,7 +2269,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         const total = calcTicketTotal(t);
         const job = jobs.find(j => j.id === jobId);
         const custEmail = customers?.find(c => c.name === job?.customer)?.email || null;
-        const isSigned = ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(t.status);
+        const isSigned = ["signed", "sigNotReq", "emailed", "approved", "sentToQB", "qbVerified"].includes(t.status);
         const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";
         const isEmailed = t.emailedAt || t.status === "emailed";
         const canSendToQB = isSigned && isApproved;
