@@ -454,7 +454,7 @@ const TICKET_TYPES = {
 const TICKET_STATUSES = {
   draft:      { color: "#6b7a99", bg: "#f0f3f8", label: "DRAFT" },
   inField:    { color: "#8a6500", bg: "#fdf5d8", label: "IN FIELD" },
-  emailed:    { color: "#7a3ca0", bg: "#f3eafa", label: "AWAITING SIG" },
+  emailed:    { color: "#7a3ca0", bg: "#f3eafa", label: "EMAIL FOR SIGNATURE" },
   signed:     { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
   sigNotReq:  { color: "#1a5fa8", bg: "#e8f0fb", label: "SIG NOT REQ" },
   approved:   { color: "#b85c00", bg: "#fdf0e6", label: "APPROVED" },
@@ -1967,7 +1967,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser })
           {/* Email options */}
           {status === "emailed" && (
             <div style={{ background: "#f3eafa", border: `1px solid #7a3ca044`, borderRadius: 6, padding: 14, marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#7a3ca0", marginBottom: 8 }}>AWAITING SIGNATURE VIA EMAIL</div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: "#7a3ca0", marginBottom: 8 }}>EMAIL FOR SIGNATURE</div>
               <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
                 <div style={{ flex: 1 }}>
                   <label style={labelStyle}>TO</label>
@@ -3634,7 +3634,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v22</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
