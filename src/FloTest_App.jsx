@@ -2239,23 +2239,32 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser 
         const tcfg = TICKET_TYPES[t.type];
         const total = calcTicketTotal(t);
         return (
-          <div key={t.id} onClick={() => setViewTicket(t)} style={{
+          <div key={t.id} style={{
             background: C.cardBg, border: `1px solid ${C.border}`,
             borderLeft: `3px solid ${tcfg.color}`, borderRadius: 5, marginBottom: 6,
-            padding: "10px 14px", cursor: "pointer",
+            padding: "10px 14px",
             display: "flex", justifyContent: "space-between", alignItems: "center",
-          }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow = `0 2px 12px ${tcfg.color}22`}
-            onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
-          >
+          }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <TicketTypeBadge type={t.type} />
               <TicketStatusBadge status={t.status} />
               <span style={{ fontSize: 12, color: C.muted }}>#{t.jobId} · {formatDate(t.date)}</span>
               <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-              ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewTicket(t)}
+                style={{
+                  background: "transparent", border: `1px solid ${C.border}`,
+                  color: C.text, borderRadius: 4, padding: "5px 14px",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  letterSpacing: "0.04em",
+                }}
+              >OPEN</button>
             </div>
           </div>
         );
@@ -3620,7 +3629,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v22</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v23</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -3636,7 +3645,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v22</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v23</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
