@@ -1136,64 +1136,150 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 
 // ─── EDIT JOB MODAL ───────────────────────────────────────────────────────────
 function EditJobModal({ job, onSave, onClose }) {
-  const [customer, setCustomer] = useState(job.customer);
-  const [location, setLocation] = useState(job.location);
-  const [wells, setWells] = useState(job.wells.join(", "));
-  const [afe, setAfe] = useState((job.afe || []).filter(Boolean).join(", "));
-  const [status, setStatus] = useState(job.status);
-  const [crewList, setCrewList] = useState([...job.crew]);
+  const [customer, setCustomer] = useState(job.customer || "");
+  const [jobState, setJobState] = useState(job.jobState || "");
+  const [county, setCounty] = useState(job.county || "");
+  const [showCountyDrop, setShowCountyDrop] = useState(false);
+  const [wellList, setWellList] = useState(() => {
+    if (!job.wells || job.wells.length === 0) return [""];
+    return job.wells.map(w => w.well_name || w);
+  });
+  const [afe, setAfe] = useState(job.afe || "");
+  const [contactFirst, setContactFirst] = useState(job.contactFirst || job.contact_first || "");
+  const [contactLast, setContactLast] = useState(job.contactLast || job.contact_last || "");
+  const [wsmPhone, setWsmPhone] = useState(job.wsmPhone || job.wsm_phone || "");
+  const [wsmEmail, setWsmEmail] = useState(job.wsmEmail || job.wsm_email || "");
+  const [approver, setApprover] = useState(job.approver || job.approver_first || "");
+  const [approverLast, setApproverLast] = useState(job.approverLast || job.approver_last || "");
+  const [approverPhone, setApproverPhone] = useState(job.approverPhone || job.approver_phone || "");
+  const [approverEmail, setApproverEmail] = useState(job.approverEmail || job.approver_email || "");
+  const [companyCode, setCompanyCode] = useState(job.companyCode || job.company_code || "");
+  const [costCenter, setCostCenter] = useState(job.costCenter || job.cost_center || "");
+  const [po, setPo] = useState(job.po || job.po_number || "");
+  const [status, setStatus] = useState(job.status || "Scheduled");
 
-  const addCrew = () => setCrewList(prev => [...prev, { name: "", role: "" }]);
-  const updateCrew = (idx, field, val) => setCrewList(prev => prev.map((c, i) => i === idx ? { ...c, [field]: val } : c));
-  const removeCrew = (idx) => setCrewList(prev => prev.filter((_, i) => i !== idx));
+  const VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
+  const TX_COUNTIES = ["Andrews","Archer","Armstrong","Bailey","Baylor","Borden","Brewster","Briscoe","Brooks","Brown","Callahan","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","Dickens","Dimmit","Donley","Eastland","Ector","Edwards","El Paso","Fisher","Floyd","Foard","Gaines","Garza","Glasscock","Gray","Hale","Hall","Hansford","Hardeman","Hartley","Haskell","Hemphill","Howard","Hudspeth","Hutchinson","Irion","Jeff Davis","Jones","Kent","Kimble","King","Kinney","Knox","Lamb","Lampasas","Lipscomb","Llano","Loving","Lubbock","Lynn","Martin","Mason","Maverick","McCulloch","McMullen","Menard","Midland","Mills","Mitchell","Montague","Moore","Motley","Nolan","Ochiltree","Oldham","Palo Pinto","Parmer","Pecos","Potter","Presidio","Randall","Reagan","Real","Reeves","Roberts","Runnels","San Saba","Schleicher","Scurry","Shackelford","Sherman","Stephens","Sterling","Stonewall","Sutton","Swisher","Taylor","Terrell","Terry","Throckmorton","Tom Green","Upton","Uvalde","Val Verde","Ward","Wheeler","Winkler","Yoakum","Young","Zavala"];
+  const NM_COUNTIES = ["Chaves","Cibola","Curry","De Baca","Dona Ana","Eddy","Grant","Guadalupe","Harding","Hidalgo","Lea","Lincoln","Los Alamos","Luna","McKinley","Mora","Otero","Quay","Rio Arriba","Roosevelt","San Juan","San Miguel","Sandoval","Santa Fe","Sierra","Socorro","Taos","Torrance","Union","Valencia"];
+  const ALL_COUNTIES = [...TX_COUNTIES, ...NM_COUNTIES].sort();
+  const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter(c => c.toLowerCase().startsWith(county.toLowerCase())) : [];
+
+  const formatPhone = (val) => { const d = val.replace(/\D/g,"").slice(0,10); if(d.length<=3) return d; if(d.length<=6) return `${d.slice(0,3)}-${d.slice(3)}`; return `${d.slice(0,3)}-${d.slice(3,6)}-${d.slice(6)}`; };
+  const formatState = (val) => val.replace(/[^a-zA-Z]/g,"").slice(0,2).toUpperCase();
+
+  const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
+  const updateWell = (idx, val) => setWellList(prev => prev.map((w, i) => i === idx ? val : w));
+  const removeWell = (idx) => setWellList(prev => prev.filter((_, i) => i !== idx));
+
+  const sectionHead = (label) => (
+    <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8, marginTop: 4 }}>{label}</div>
+  );
 
   return (
-    <ModalWrap title={`Edit Job #${job.id}`} onClose={onClose} width={560}>
-      <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>CUSTOMER</label>
-        <input style={inputStyle} value={customer} onChange={e => setCustomer(e.target.value)} />
+    <ModalWrap title={`Edit Job #${job.id}`} onClose={onClose} width={600}>
+
+      {/* Customer + Status */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div>
+          <label style={labelStyle}>CUSTOMER</label>
+          <input style={inputStyle} value={customer} onChange={e => setCustomer(e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle}>STATUS</label>
+          <select style={inputStyle} value={status} onChange={e => setStatus(e.target.value)}>
+            {STATUS_ORDER.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
+          </select>
+        </div>
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>LOCATION</label>
-        <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} />
-      </div>
+
+      {/* Location */}
+      {sectionHead("LOCATION")}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
-          <label style={labelStyle}>WELLS (comma-separated)</label>
-          <input style={inputStyle} value={wells} onChange={e => setWells(e.target.value)} />
+          <label style={labelStyle}>STATE</label>
+          <input style={inputStyle} value={jobState} onChange={e => setJobState(formatState(e.target.value))} placeholder="TX" maxLength={2} />
         </div>
-        <div>
-          <label style={labelStyle}>AFE # (comma-separated)</label>
-          <input style={inputStyle} value={afe} onChange={e => setAfe(e.target.value)} />
+        <div style={{ position: "relative" }}>
+          <label style={labelStyle}>COUNTY</label>
+          <input style={inputStyle} value={county}
+            onChange={e => { setCounty(e.target.value); setShowCountyDrop(true); }}
+            onFocus={() => setShowCountyDrop(true)}
+            onBlur={() => setTimeout(() => setShowCountyDrop(false), 150)}
+            placeholder="Start typing..." />
+          {showCountyDrop && filteredCounties.length > 0 && (
+            <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 20, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 4, maxHeight: 160, overflowY: "auto", marginTop: 2 }}>
+              {filteredCounties.map(c => (
+                <div key={c} onMouseDown={() => { setCounty(c); setShowCountyDrop(false); }} style={{ padding: "6px 12px", cursor: "pointer", fontSize: 12 }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                >{c}</div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Wells */}
+      {sectionHead("WELL NAME / LOCATION")}
+      {wellList.map((w, idx) => (
+        <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, minWidth: 18 }}>{idx + 1}.</div>
+          <input style={{ ...inputStyle, flex: 1 }} value={w} onChange={e => updateWell(idx, e.target.value)} placeholder="Well or CTB name..." />
+          {wellList.length > 1 && (
+            <button type="button" onClick={() => removeWell(idx)} style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
+          )}
+        </div>
+      ))}
+      {wellList.length < 10 && (
+        <button type="button" onClick={addWell} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer", marginBottom: 12 }}>+ ADD WELL</button>
+      )}
       <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>STATUS</label>
-        <div style={{ display: "flex", gap: 6 }}>
-          {STATUS_ORDER.map(s => (
-            <FilterBtn key={s} active={status === s} onClick={() => setStatus(s)}>{STATUS_CONFIG[s].label}</FilterBtn>
-          ))}
-        </div>
+        <label style={labelStyle}>AFE</label>
+        <input style={{ ...inputStyle, maxWidth: 220 }} value={afe} onChange={e => setAfe(e.target.value)} placeholder="AFE number if applicable" />
       </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>CREW</label>
-        {crewList.map((c, i) => (
-          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-            <input style={{ ...inputStyle, flex: 1 }} value={c.name} placeholder="Name" onChange={e => updateCrew(i, "name", e.target.value)} />
-            <select style={{ ...inputStyle, width: 130 }} value={c.role} onChange={e => updateCrew(i, "role", e.target.value)}>
-              <option value="">Role...</option>
-              {["Supervisor", "Rig Up", "Helper", "Tester", "Pumper"].map(r => <option key={r}>{r}</option>)}
-            </select>
-            <button onClick={() => removeCrew(i)} style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>×</button>
-          </div>
-        ))}
-        <Btn small variant="ghost" onClick={addCrew}>+ ADD CREW</Btn>
+
+      {/* Site Manager */}
+      {sectionHead("SITE MANAGER")}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div><label style={labelStyle}>FIRST</label><input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} /></div>
+        <div><label style={labelStyle}>LAST</label><input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} /></div>
+        <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={wsmPhone} onChange={e => setWsmPhone(formatPhone(e.target.value))} placeholder="555-555-5555" /></div>
+        <div><label style={labelStyle}>EMAIL</label><input style={inputStyle} value={wsmEmail} onChange={e => setWsmEmail(e.target.value)} placeholder="email@co.com" /></div>
       </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+
+      {/* Approver */}
+      {sectionHead("APPROVER")}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+        <div><label style={labelStyle}>FIRST</label><input style={inputStyle} value={approver} onChange={e => setApprover(e.target.value)} /></div>
+        <div><label style={labelStyle}>LAST</label><input style={inputStyle} value={approverLast} onChange={e => setApproverLast(e.target.value)} /></div>
+        <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={approverPhone} onChange={e => setApproverPhone(formatPhone(e.target.value))} placeholder="555-555-5555" /></div>
+        <div><label style={labelStyle}>EMAIL</label><input style={inputStyle} value={approverEmail} onChange={e => setApproverEmail(e.target.value)} placeholder="email@co.com" /></div>
+      </div>
+
+      {/* Billing */}
+      {sectionHead("BILLING")}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
+        <div><label style={labelStyle}>COMPANY CODE</label><input style={inputStyle} value={companyCode} onChange={e => setCompanyCode(e.target.value)} /></div>
+        <div><label style={labelStyle}>COST CENTER</label><input style={inputStyle} value={costCenter} onChange={e => setCostCenter(e.target.value)} /></div>
+        <div><label style={labelStyle}>PO NUMBER</label><input style={inputStyle} value={po} onChange={e => setPo(e.target.value)} /></div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
         <Btn onClick={() => {
-          const wellList = wells.split(",").map(w => w.trim()).filter(Boolean);
-          const afeList = afe ? afe.split(",").map(a => a.trim()) : wellList.map(() => null);
-          onSave({ customer, location, wells: wellList.length > 0 ? wellList : ["TBD"], afe: afeList, status, crew: crewList.filter(c => c.name) });
+          if (jobState && !VALID_STATES.includes(jobState)) return;
+          const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
+          onSave({
+            customer, status,
+            job_state: jobState, county,
+            location: [county, jobState].filter(Boolean).join(", ") || job.location,
+            wells: cleanWells.length > 0 ? cleanWells.map(w => ({ well_name: w })) : [{ well_name: "TBD" }],
+            afe: afe || null,
+            contact_first: contactFirst, contact_last: contactLast,
+            wsm_phone: wsmPhone, wsm_email: wsmEmail,
+            approver: approver, approver_last: approverLast,
+            approver_phone: approverPhone, approver_email: approverEmail,
+            company_code: companyCode, cost_center: costCenter, po_number: po,
+          });
         }}>SAVE</Btn>
         <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
       </div>
