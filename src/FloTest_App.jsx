@@ -3821,8 +3821,10 @@ function FTIDashboard({ currentUser, onLogout }) {
           customer: j.customer_name,
           customerId: j.customer_id,
           location: j.location || "",
-          wells: (j.wells || []).map(w => w.well_name),
-          afe: (j.wells || []).map(w => w.afe_number),
+          wells: (j.wells || []).map(w => ({ well_name: w.well_name || w })),
+          afe: j.afe || null,
+          jobState: j.job_state || "",
+          county: j.county || "",
           dateStarted: j.date_started,
           status: j.status,
           crew: (j.crew || []).map(c => ({ name: c.name, role: c.role })),
@@ -3831,6 +3833,17 @@ function FTIDashboard({ currentUser, onLogout }) {
           estimatedCost: Number(j.estimated_cost) || 0,
           jsaComplete: j.jsa_complete,
           notes: j.notes,
+          contactFirst: j.contact_first || "",
+          contactLast: j.contact_last || "",
+          wsmPhone: j.wsm_phone || "",
+          wsmEmail: j.wsm_email || "",
+          approver: j.approver_first || "",
+          approverLast: j.approver_last || "",
+          approverPhone: j.approver_phone || "",
+          approverEmail: j.approver_email || "",
+          companyCode: j.company_code || "",
+          costCenter: j.cost_center || "",
+          po: j.po_number || "",
         }));
         // Transform tickets
         const ticketsMapped = (ticketsR || []).map(t => ({
@@ -4061,7 +4074,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.1</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.2</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -4077,7 +4090,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.1</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.2</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
