@@ -2925,12 +2925,14 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
     if (isDirty) { setShowUnsaved(true); } else { onClose(); }
   };
 
+  const VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
+
   const validateAndCreate = () => {
     const errs = {};
     if (!custSearch.trim()) errs.customer = "Customer is required";
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
     if (approverEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(approverEmail)) errs.approverEmail = "Invalid email format";
-    if (jobState && jobState.length !== 2) errs.jobState = "Must be 2 letters";
+    if (jobState && !VALID_STATES.includes(jobState.toUpperCase())) errs.jobState = "Invalid state code";
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setErrors({});
     const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
@@ -3881,7 +3883,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   const handlePermanentDelete = async (jobId) => {
     if (!["owner", "admin"].includes(currentUser.role)) return;
     try {
-      // For now, just remove from local state. True DB delete can come later.
+      await fetch(`${API_URL}/jobs/${jobId}`, { method: "DELETE" });
       await logAudit("job_permanent_delete", "job", jobId, { status: "Deleted" }, null, `Job #${jobId} permanently deleted by ${currentUser.name}`);
       setJobs(prev => prev.filter(j => j.id !== jobId));
     } catch (err) { console.error("Permanent delete failed:", err); }
