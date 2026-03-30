@@ -1012,7 +1012,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
-            {[["details", "DETAILS"], ["tickets", `TICKETS${jobTickets.length ? ` ({'$'}{jobTickets.length})` : ""}`], ["todos", `TO-DOS${pendingTodos ? ` ({'$'}{pendingTodos})` : ""}`]].map(([tab, label]) => (
+            {[["details", "DETAILS"], ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["todos", `TO-DOS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 background: "transparent", border: "none",
                 borderBottom: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
