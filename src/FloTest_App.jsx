@@ -913,9 +913,9 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   const [showJSA, setShowJSA] = useState(false);
   const [showFlowback, setShowFlowback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
   useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= 768);
+    const handler = () => setIsMobile(window.innerWidth <= 900);
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
@@ -3934,7 +3934,7 @@ function FTIDashboard({ currentUser, onLogout }) {
     const s = document.createElement("style");
     s.id = id;
     s.textContent = `
-      @media (max-width: 768px) {
+      @media (max-width: 900px) {
         .fti-desktop-nav { display: none !important; }
         .fti-hamburger { display: flex !important; }
         .fti-dashboard-pad { padding: 16px 12px !important; }
@@ -3946,7 +3946,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         .fti-job-card-header > div:nth-child(5),
         .fti-job-card-header > div:nth-child(6) { display: none !important; }
       }
-      @media (min-width: 769px) {
+      @media (min-width: 901px) {
         .fti-hamburger { display: none !important; }
       }
     `;
@@ -4243,7 +4243,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.17</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.18</div>
 
       {/* MOBILE HAMBURGER */}
       <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
@@ -4327,7 +4327,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.17</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.18</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
