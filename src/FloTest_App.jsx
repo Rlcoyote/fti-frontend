@@ -1905,6 +1905,20 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
     save({ signedBy: name, signedAt: date, signatureImage: imageData, status: "signed", sigNotReqReason: null, sigNotReqNote: "" });
   };
 
+  const handleCancel = () => {
+    setLineItems([...(ticket.lineItems || [])]);
+    setNotes(ticket.notes || "");
+    setStatus(ticket.status);
+    setSignedBy(ticket.signedBy || null);
+    setSignedAt(ticket.signedAt || null);
+    setSignatureImage(ticket.signatureImage || null);
+    setSigWiped(false);
+    setIsEditing(false);
+    setShowSigPad(false);
+    setShowSigOptions(false);
+    onClose();
+  };
+
   const handleSave = () => {
     if (sigWiped) {
       save({ signedBy: null, signedAt: null, signatureImage: null, status: "inField" });
@@ -2143,8 +2157,8 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
             <Btn variant="ghost" onClick={() => setIsEditing(true)}>EDIT TICKET</Btn>
           )}
 
-          {/* Always show close */}
-          {!isFullyLocked && <Btn variant="ghost" onClick={handleClose}>CLOSE</Btn>}
+          {/* Always show close/cancel */}
+          {!isFullyLocked && <Btn variant="ghost" onClick={handleCancel}>CANCEL</Btn>}
           {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
 
         </div>
@@ -4093,7 +4107,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.3</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.4</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -4109,7 +4123,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.3</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.4</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
