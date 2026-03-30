@@ -913,6 +913,12 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   const [showJSA, setShowJSA] = useState(false);
   const [showFlowback, setShowFlowback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
   const jobTickets = tickets.filter(t => t.jobId === job.id);
   const ticketTotal = jobTickets.reduce((s, t) => s + calcTicketTotal(t), 0);
 
@@ -937,11 +943,31 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
       boxShadow: isExpanded ? `0 4px 24px ${cfg.color}22` : "none",
       overflow: "hidden",
     }}>
-      <div onClick={onToggle} className="fti-job-card-header" style={{
-        display: "grid", gridTemplateColumns: "80px 1fr 1fr 140px 160px 120px 90px",
-        alignItems: "center", padding: "14px 18px",
-        cursor: "pointer", gap: 12, userSelect: "none", overflow: "hidden",
-      }}>
+      {isMobile ? (
+        // Mobile: compact single row
+        <div onClick={onToggle} style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "12px 14px", cursor: "pointer", userSelect: "none",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>JOB #{job.id}</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{job.customer}</div>
+              <div style={{ fontSize: 11, color: C.muted }}>{job.location}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+            <div style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}44`, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em" }}>{cfg.label}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>{job.wells.length} {job.wells.length === 1 ? "well" : "wells"}</div>
+          </div>
+        </div>
+      ) : (
+        // Desktop: full grid
+        <div onClick={onToggle} className="fti-job-card-header" style={{
+          display: "grid", gridTemplateColumns: "80px 1fr 1fr 140px 160px 120px 90px",
+          alignItems: "center", padding: "14px 18px",
+          cursor: "pointer", gap: 12, userSelect: "none", overflow: "hidden",
+        }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>JOB #</div>
           <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{job.id}</div>
@@ -981,6 +1007,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           <span style={{ color: C.muted, fontSize: 12, display: "inline-block", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</span>
         </div>
       </div>
+      )}{/* end desktop header */}
 
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
@@ -3913,8 +3940,11 @@ function FTIDashboard({ currentUser, onLogout }) {
         .fti-dashboard-pad { padding: 16px 12px !important; }
         .fti-dashboard-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
         .fti-filter-row { overflow-x: auto !important; flex-wrap: nowrap !important; padding-bottom: 4px !important; -webkit-overflow-scrolling: touch; }
-        .fti-job-card-header { grid-template-columns: 70px 1fr 1fr !important; }
-        .fti-job-card-header > div:nth-child(n+4) { display: none !important; }
+        .fti-job-card-header { grid-template-columns: 80px 1fr auto !important; padding: 10px 12px !important; gap: 8px !important; }
+        .fti-job-card-header > div:nth-child(3),
+        .fti-job-card-header > div:nth-child(4),
+        .fti-job-card-header > div:nth-child(5),
+        .fti-job-card-header > div:nth-child(6) { display: none !important; }
       }
       @media (min-width: 769px) {
         .fti-hamburger { display: none !important; }
@@ -4213,7 +4243,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.15</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.17</div>
 
       {/* MOBILE HAMBURGER */}
       <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
@@ -4297,7 +4327,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.15</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.17</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
