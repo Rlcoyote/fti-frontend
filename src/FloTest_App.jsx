@@ -2651,7 +2651,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
 
               {/* Col 3: Email */}
               {!custEmail && (
-                <span style={btnDisabled}>EMAIL NEEDED</span>
+                <span style={btnDisabled}>NO EMAIL ON FILE</span>
               )}
               {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                 <button type="button"
@@ -2659,11 +2659,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   onClick={async () => {
                     await handleUpdate(t.id, { emailTo: custEmail, emailedAt: new Date().toISOString() });
                   }}>
-                  {isEmailed ? "✓ RESEND EMAIL" : "EMAIL TO CUSTOMER"}
+                  {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
                 </button>
               )}
               {custEmail && (t.status === "sentToQB" || t.status === "qbVerified") && (
-                <span style={isEmailed ? btnDone : btnDisabled}>{isEmailed ? "✓ CUSTOMER EMAILED" : "EMAIL NEEDED"}</span>
+                <span style={isEmailed ? btnDone : btnDisabled}>{isEmailed ? "✓ CUSTOMER EMAILED" : "NO EMAIL ON FILE"}</span>
               )}
 
               {/* Col 4: Approval */}
@@ -4442,7 +4442,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.18</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.19</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
