@@ -1771,6 +1771,12 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
   const [showSigOptions, setShowSigOptions] = useState(false);
   const [showQBConfirm, setShowQBConfirm] = useState(false);
+  const [showUnsavedClose, setShowUnsavedClose] = useState(false);
+
+  const handleClose = () => {
+    if (isFullyLocked) { onClose(); return; }
+    setShowUnsavedClose(true);
+  };
 
   const job = jobs.find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type];
@@ -1851,7 +1857,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${tcfg.color}`, borderRadius: 8, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
@@ -1872,6 +1878,24 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
             <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
         </div>
+
+        {/* Job / Customer Info — read only */}
+        {job && (
+          <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "12px 24px" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>JOB INFO — <span style={{ color: C.muted, fontWeight: 400 }}>To update, edit the job on the main dashboard</span></div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 24px", fontSize: 12 }}>
+              <span><span style={{ color: C.muted }}>Customer: </span><strong>{job.customer}</strong></span>
+              {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
+              {job.county && <span><span style={{ color: C.muted }}>County: </span><strong>{job.county}</strong></span>}
+              {job.wells?.length > 0 && <span><span style={{ color: C.muted }}>Wells: </span><strong>{Array.isArray(job.wells) ? job.wells.map(w => w.well_name || w).join(", ") : job.wells}</strong></span>}
+              {job.afe && <span><span style={{ color: C.muted }}>AFE: </span><strong>{job.afe}</strong></span>}
+              {job.companyCode && <span><span style={{ color: C.muted }}>Co. Code: </span><strong>{job.companyCode}</strong></span>}
+              {job.costCenter && <span><span style={{ color: C.muted }}>Cost Center: </span><strong>{job.costCenter}</strong></span>}
+              {job.po && <span><span style={{ color: C.muted }}>PO: </span><strong>{job.po}</strong></span>}
+              {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Site Mgr: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
+            </div>
+          </div>
+        )}
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
@@ -2034,10 +2058,24 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
           )}
 
           {/* Always show close */}
-          {!isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
+          {!isFullyLocked && <Btn variant="ghost" onClick={handleClose}>CLOSE</Btn>}
           {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
 
         </div>
+
+        {/* Unsaved changes confirmation */}
+        {showUnsavedClose && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsavedClose(false)}>
+            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>You have unsaved changes on this ticket. Are you sure you want to close without saving?</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={onClose}>YES, DISCARD</Btn>
+                <Btn variant="ghost" onClick={() => setShowUnsavedClose(false)}>KEEP EDITING</Btn>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Send to QB confirmation */}
         {showQBConfirm && (
@@ -2933,7 +2971,14 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
     if (approverEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(approverEmail)) errs.approverEmail = "Invalid email format";
     if (jobState && !VALID_STATES.includes(jobState.toUpperCase())) errs.jobState = "Invalid state code";
-    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      // Scroll to first error
+      const firstKey = Object.keys(errs)[0];
+      const el = document.querySelector(`[data-error="${firstKey}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setErrors({});
     const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
     onCreateJob({
@@ -2976,7 +3021,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             onFocus={() => setShowCustDrop(true)}
             placeholder="Type to search or browse..."
           />
-          {errors.customer && <div style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.customer}</div>}
+          {errors.customer && <div data-error="customer" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.customer}</div>}
           {showCustDrop && (
             <div style={{
               position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10,
@@ -3022,7 +3067,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             <div>
               <label style={labelStyle}>EMAIL</label>
               <input style={{ ...inputStyle, borderColor: errors.email ? C.red : C.border }} value={email} onChange={e => { setEmail(e.target.value); setErrors(prev => ({...prev, email: null})); }} placeholder="sitemanager@company.com" />
-              {errors.email && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors.email}</div>}
+              {errors.email && <div data-error="email" style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors.email}</div>}
             </div>
           </div>
 
@@ -3044,7 +3089,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             <div>
               <label style={labelStyle}>EMAIL</label>
               <input style={{ ...inputStyle, borderColor: errors.approverEmail ? C.red : C.border }} value={approverEmail} onChange={e => { setApproverEmail(e.target.value); setErrors(prev => ({...prev, approverEmail: null})); }} placeholder="approver@company.com" />
-              {errors.approverEmail && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors.approverEmail}</div>}
+              {errors.approverEmail && <div data-error="approverEmail" style={{ fontSize: 11, color: C.red, marginTop: 3 }}>{errors.approverEmail}</div>}
             </div>
           </div>
         </div>
@@ -3075,7 +3120,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
             <div>
               <label style={labelStyle}>STATE</label>
               <input style={{ ...inputStyle, borderColor: errors.jobState ? C.red : C.border }} value={jobState} onChange={e => setJobState(formatState(e.target.value))} placeholder="TX" maxLength={2} />
-              {errors.jobState && <div style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{errors.jobState}</div>}
+              {errors.jobState && <div data-error="jobState" style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{errors.jobState}</div>}
             </div>
             <div style={{ position: "relative" }}>
               <label style={labelStyle}>COUNTY</label>
