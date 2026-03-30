@@ -1871,7 +1871,11 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const [missingPieces, setMissingPieces] = useState(() => ticket.missingPieces ?? null);
   const [sigNotReqReason, setSigNotReqReason] = useState(() => ticket.sigNotReqReason || null);
   const [sigNotReqNote, setSigNotReqNote] = useState(() => ticket.sigNotReqNote || "");
-  const [emailTo, setEmailTo] = useState(() => ticket.emailTo || "");
+  const [emailTo, setEmailTo] = useState(() => {
+    if (ticket.emailTo) return ticket.emailTo;
+    const job = jobs?.find(j => j.id === ticket.jobId);
+    return job?.wsmEmail || job?.wsm_email || "";
+  });
   const [emailCc, setEmailCc] = useState(() => ticket.emailCc || "");
   const [signedBy, setSignedBy] = useState(() => ticket.signedBy || null);
   const [signedAt, setSignedAt] = useState(() => ticket.signedAt || null);
@@ -2542,7 +2546,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         const tcfg = TICKET_TYPES[t.type];
         const total = calcTicketTotal(t);
         const job = jobs.find(j => j.id === jobId);
-        const custEmail = customers?.find(c => c.name === job?.customer)?.email || null;
+        const custEmail = job?.wsmEmail || job?.wsm_email || null;
         const isSigned = ["signed", "sigNotReq", "emailed", "approved", "sentToQB", "qbVerified"].includes(t.status);
         const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";
         const isEmailed = !!t.emailedAt;
@@ -4423,7 +4427,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.16</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.17</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
