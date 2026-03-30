@@ -889,13 +889,13 @@ function StatusBadge({ status }) {
 // ─── PIPELINE SUMMARY ─────────────────────────────────────────────────────────
 function PipelineSummary({ jobs }) {
   return (
-    <div className="fti-pipeline-row" style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+    <div className="fti-pipeline-row" style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, marginBottom: 24 }}>
       {STATUS_ORDER.map(status => {
         const count = jobs.filter(j => j.status === status).length;
         const cfg = STATUS_CONFIG[status];
         return (
-          <div key={status} className="fti-pipeline-card" style={{
-            flex: 1, minWidth: "calc(50% - 8px)", background: C.cardBg, border: `1px solid ${C.border}`,
+          <div key={status} style={{
+            background: C.cardBg, border: `1px solid ${C.border}`,
             borderTop: `2px solid ${cfg.color}`, borderRadius: 6, padding: "12px 14px",
           }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: cfg.color }}>{count}</div>
@@ -3915,14 +3915,13 @@ function FTIDashboard({ currentUser, onLogout }) {
         .fti-hamburger { display: flex !important; }
         .fti-dashboard-pad { padding: 16px 12px !important; }
         .fti-dashboard-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-        .fti-filter-row { overflow-x: auto !important; flex-wrap: nowrap !important; padding-bottom: 4px !important; }
-        .fti-pipeline-card { min-width: calc(50% - 8px) !important; flex: 1 1 calc(50% - 8px) !important; }
-        .fti-job-card-header { flex-wrap: wrap !important; gap: 8px !important; }
-        .fti-job-card-col { min-width: 45% !important; }
+        .fti-filter-row { overflow-x: auto !important; flex-wrap: nowrap !important; padding-bottom: 4px !important; -webkit-overflow-scrolling: touch; }
+        .fti-pipeline-row { grid-template-columns: repeat(2, 1fr) !important; }
+        .fti-job-card-header { flex-wrap: wrap !important; }
+        .fti-job-card-header > div { min-width: 40% !important; }
       }
       @media (min-width: 769px) {
         .fti-hamburger { display: none !important; }
-        .fti-pipeline-card { min-width: unset !important; }
       }
     `;
     document.head.appendChild(s);
@@ -4218,7 +4217,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.13</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.14</div>
 
       {/* MOBILE HAMBURGER */}
       <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
@@ -4302,7 +4301,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.13</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.14</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
