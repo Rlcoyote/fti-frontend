@@ -1012,7 +1012,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
-            {[["details", "DETAILS"], ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["todos", `TO-DOS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
+            {[["details", "DETAILS"], ["tickets", `TICKETS${jobTickets.length ? ` ({'$'}{jobTickets.length})` : ""}`], ["todos", `TO-DOS${pendingTodos ? ` ({'$'}{pendingTodos})` : ""}`]].map(([tab, label]) => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 background: "transparent", border: "none",
                 borderBottom: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
@@ -1034,7 +1034,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   <div key={i} style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{well.well_name || well}</div>
                     {i === 0 && job.afe && <div style={{ fontSize: 11, color: "#1a5fa8" }}>AFE: {job.afe}</div>}
-                    {costPerWell && <div style={{ fontSize: 11, color: C.green }}>${Number(costPerWell).toLocaleString()} / well</div>}
+                    {costPerWell && <div style={{ fontSize: 11, color: C.green }}>{'$'}{Number(costPerWell).toLocaleString()} / well</div>}
                   </div>
                 ))}
               </div>
@@ -1712,7 +1712,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
               value={li.days || 1} onChange={e => updateItem(idx, "days", Number(e.target.value))} />
           )}
           <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: C.text }}>
-            ${calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {'$'}{calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <button onClick={() => removeItem(idx)} style={{
             background: "transparent", border: "none", color: C.red, cursor: "pointer",
@@ -1728,7 +1728,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
         {headers.slice(0, -2).map((_, i) => <div key={i} />)}
         <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, textAlign: "right", letterSpacing: "0.1em" }}>TOTAL</div>
         <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: "right" }}>
-          ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         <div />
       </div>
@@ -1758,7 +1758,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
                   <span style={{ fontWeight: 700, color: C.blue, marginRight: 8 }}>{q.code}</span>
                   <span style={{ color: C.text }}>{q.desc}</span>
                 </div>
-                <span style={{ color: C.muted, fontSize: 11 }}>${q.price}/{q.um}</span>
+                <span style={{ color: C.muted, fontSize: 11 }}>{'$'}{q.price}/{q.um}</span>
               </div>
             ))}
             {searchTerm && filteredQB.length === 0 && (
@@ -2000,7 +2000,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
               </div>
               <div style={{ fontSize: 12, color: C.muted }}>{job?.customer || "Unknown"} · {formatDate(ticket.date)}</div>
             </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
         </div>
 
@@ -2261,19 +2261,19 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
           <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>{idx + 1}</div>
           <div style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>{li.qbCode}</div>
           <div style={{ fontSize: 11, color: C.text }}>{li.desc}</div>
-          <div style={{ fontSize: 11, textAlign: "right" }}>${li.rate}</div>
+          <div style={{ fontSize: 11, textAlign: "right" }}>{'$'}{li.rate}</div>
           <div style={{ fontSize: 11, textAlign: "right" }}>{li.qty}</div>
           <div style={{ fontSize: 10, color: C.muted }}>{li.um}</div>
           {isRental && <div style={{ fontSize: 11, textAlign: "right" }}>{li.days || 1}</div>}
           <div style={{ fontSize: 11, fontWeight: 700, textAlign: "right" }}>
-            ${calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {'$'}{calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       ))}
       <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4, padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
         {headers.slice(0, -1).map((_, i) => <div key={i} />)}
         <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: "right" }}>
-          ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       </div>
     </div>
@@ -2574,7 +2574,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   </div>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-                  ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, padding: "0 12px 10px", flexWrap: "wrap" }}>
@@ -2675,7 +2675,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
 
               {/* Total */}
               <span style={{ fontSize: 13, fontWeight: 800, color: C.text, marginLeft: 6 }}>
-                ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -3546,7 +3546,7 @@ function ReportsPage({ jobs, tickets, inventory }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Reports</h1>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeJobs.length} jobs · {tickets.length} tickets · ${totalRevenue.toLocaleString()} total billed</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeJobs.length} jobs · {tickets.length} tickets · {'$'}{totalRevenue.toLocaleString()} total billed</div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
           <div>
@@ -3572,13 +3572,13 @@ function ReportsPage({ jobs, tickets, inventory }) {
           {revCustomerSorted.map(([cust, rev]) => (
             <div key={cust} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22` }}>
               <span style={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{cust}</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>${rev.toLocaleString()}</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.green }}>{'$'}{rev.toLocaleString()}</span>
             </div>
           ))}
           {revCustomerSorted.length > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0 0", marginTop: 4 }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>TOTAL</span>
-              <span style={{ fontSize: 15, fontWeight: 800, color: C.green }}>${totalRevenue.toLocaleString()}</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: C.green }}>{'$'}{totalRevenue.toLocaleString()}</span>
             </div>
           )}
         </div>
@@ -4288,9 +4288,6 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   return (
     <div style={{ minHeight: "100vh", background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
-      {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.20</div>
-
       {/* MOBILE HAMBURGER */}
       <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
         position: "fixed", bottom: 24, right: 20, zIndex: 1000,
@@ -4373,7 +4370,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.20</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.12</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
