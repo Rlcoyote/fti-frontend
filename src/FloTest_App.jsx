@@ -2259,7 +2259,8 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
 // ─── ADD TICKET MODAL ─────────────────────────────────────────────────────────
 function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
   const [type, setType] = useState(null);
-  const [assignedWells, setAssignedWells] = useState(null); // null = not yet selected
+  const [assignedWells, setAssignedWells] = useState([]);
+  const [wellsConfirmed, setWellsConfirmed] = useState(false);
   const [lineItems, setLineItems] = useState([]);
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(today());
@@ -2274,11 +2275,10 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
   // When type is selected, initialize well assignment
   const handleSelectType = (t) => {
     setType(t);
-    if (jobWells.length <= 1) {
-      // Auto-assign single well or no wells
-      setAssignedWells(jobWells);
-    }
-    // Multiple wells: will show selection screen (assignedWells stays null)
+    setAssignedWells([...jobWells]);
+    // Auto-confirm if 0 or 1 well
+    if (jobWells.length <= 1) setWellsConfirmed(true);
+    else setWellsConfirmed(false);
   };
 
   const toggleWell = (well) => {
@@ -2289,7 +2289,6 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
   };
 
   const selectAllWells = () => setAssignedWells([...jobWells]);
-  const wellsConfirmed = assignedWells !== null;
 
   const handleSave = () => {
     if (!type) return;
@@ -2357,7 +2356,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
               <TicketTypeBadge type={type} />
               <span style={{ fontSize: 16, fontWeight: 700 }}>Assign Wells — New {type} Ticket</span>
-              <button onClick={() => setType(null)} style={{
+              <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
                 background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
                 padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
               }}>← CHANGE TYPE</button>
@@ -2372,7 +2371,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
                 }}>SELECT ALL</button>
               </div>
               {jobWells.map((well, idx) => {
-                const checked = assignedWells ? assignedWells.includes(well) : true;
+                const checked = assignedWells.includes(well);
                 return (
                   <div key={idx} onClick={() => toggleWell(well)} style={{
                     display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
@@ -2393,15 +2392,10 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={() => {
-                const selected = assignedWells ?? [...jobWells];
-                if (selected.length === 0) return;
-                setAssignedWells(selected);
+                if (assignedWells.length === 0) return;
+                setWellsConfirmed(true);
               }}>
-                {(() => {
-                  const sel = assignedWells ?? jobWells;
-                  if (sel.length === 0) return "SELECT AT LEAST ONE WELL";
-                  return `CONFIRM — ${sel.length} WELL${sel.length !== 1 ? "S" : ""}`;
-                })()}
+                {assignedWells.length === 0 ? "SELECT AT LEAST ONE WELL" : `CONFIRM — ${assignedWells.length} WELL${assignedWells.length !== 1 ? "S" : ""}`}
               </Btn>
               <Btn variant="ghost" onClick={handleClose}>CANCEL</Btn>
             </div>
@@ -2411,7 +2405,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
               <TicketTypeBadge type={type} />
               <span style={{ fontSize: 16, fontWeight: 700 }}>New {type} Ticket</span>
-              <button onClick={() => setType(null)} style={{
+              <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
                 background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
                 padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
               }}>← CHANGE TYPE</button>
@@ -4199,7 +4193,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.10</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.11</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -4215,7 +4209,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.10</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.11</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
