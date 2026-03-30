@@ -957,7 +957,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>WELLS</div>
           <div style={{ fontSize: 13, color: C.text }}>{job.wells.length} {job.wells.length === 1 ? "well" : "wells"}</div>
-          <div style={{ fontSize: 11, color: C.muted }}>{job.wells[0]}{job.wells.length > 1 ? ` +${job.wells.length - 1}` : ""}</div>
+          <div style={{ fontSize: 11, color: C.muted }}>{job.wells[0]?.well_name || job.wells[0]}{job.wells.length > 1 ? ` +${job.wells.length - 1}` : ""}</div>
         </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>DATE STARTED</div>
@@ -1008,8 +1008,8 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WELLS / AFE</div>
                 {job.wells.map((well, i) => (
                   <div key={i} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{well}</div>
-                    <div style={{ fontSize: 11, color: job.afe[i] ? "#1a5fa8" : C.muted }}>{job.afe[i] || "AFE pending"}</div>
+                    <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{well.well_name || well}</div>
+                    {i === 0 && job.afe && <div style={{ fontSize: 11, color: "#1a5fa8" }}>AFE: {job.afe}</div>}
                     {costPerWell && <div style={{ fontSize: 11, color: C.green }}>${Number(costPerWell).toLocaleString()} / well</div>}
                   </div>
                 ))}
@@ -4154,7 +4154,7 @@ function FTIDashboard({ currentUser, onLogout }) {
                 <div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Job #{job.id}</div>
                   <div style={{ fontSize: 13, color: C.muted }}>{job.customer} — {job.location}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{job.wells?.join(", ")}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{job.wells?.map(w => w.well_name || w).join(", ")}</div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <Btn small onClick={() => handleRestoreJob(job.id)} variant="blue">RESTORE</Btn>
@@ -4236,15 +4236,37 @@ function FTIDashboard({ currentUser, onLogout }) {
               onUpdateJob={async (id, updates) => {
                 const oldJob = jobs.find(j => j.id === id);
                 try {
-                  const payload = { location: updates.location, status: updates.status };
-                  if (updates.wells) payload.wells = updates.wells.map((w, i) => ({ well_name: w, afe_number: updates.afe?.[i] || null }));
-                  if (updates.crew) payload.crew = updates.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
+                  const payload = {
+                    location: updates.location,
+                    status: updates.status,
+                    job_state: updates.job_state,
+                    county: updates.county,
+                    afe: updates.afe,
+                    contact_first: updates.contact_first,
+                    contact_last: updates.contact_last,
+                    wsm_phone: updates.wsm_phone,
+                    wsm_email: updates.wsm_email,
+                    approver: updates.approver,
+                    approver_last: updates.approver_last,
+                    approver_phone: updates.approver_phone,
+                    approver_email: updates.approver_email,
+                    company_code: updates.company_code,
+                    cost_center: updates.cost_center,
+                    po_number: updates.po_number,
+                  };
                   if (updates.customer) {
+                    payload.customer = updates.customer;
                     const cust = customers.find(c => c.name === updates.customer);
                     if (cust) payload.customer_id = cust.id;
                   }
+                  if (updates.wells) {
+                    payload.wells = updates.wells.map(w =>
+                      typeof w === "string" ? { well_name: w } : w
+                    );
+                  }
+                  if (updates.crew) payload.crew = updates.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
                   await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                  await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status, location: oldJob?.location }, updates, `Job #${id} edited by ${currentUser.name}`);
+                  await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Job #${id} edited by ${currentUser.name}`);
                 } catch (err) { console.error("Job update failed:", err); }
                 setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j));
               }}
