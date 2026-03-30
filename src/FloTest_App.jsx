@@ -1988,7 +1988,19 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
               <span><span style={{ color: C.muted }}>Customer: </span><strong>{job.customer}</strong></span>
               {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
               {job.county && <span><span style={{ color: C.muted }}>County: </span><strong>{job.county}</strong></span>}
-              {job.wells?.length > 0 && <span><span style={{ color: C.muted }}>Wells: </span><strong>{Array.isArray(job.wells) ? job.wells.map(w => w.well_name || w).join(", ") : job.wells}</strong></span>}
+              {job.wells?.length > 0 && (
+                <span>
+                  <span style={{ color: C.muted }}>Wells: </span>
+                  <strong>
+                    {ticket.assignedWells?.length > 0
+                      ? ticket.assignedWells.join(", ")
+                      : job.wells.map(w => w.well_name || w).join(", ")}
+                  </strong>
+                  {ticket.assignedWells?.length > 0 && ticket.assignedWells.length < job.wells.length && (
+                    <span style={{ color: C.muted, fontSize: 10 }}> ({ticket.assignedWells.length} of {job.wells.length})</span>
+                  )}
+                </span>
+              )}
               {job.afe && <span><span style={{ color: C.muted }}>AFE: </span><strong>{job.afe}</strong></span>}
               {job.companyCode && <span><span style={{ color: C.muted }}>Co. Code: </span><strong>{job.companyCode}</strong></span>}
               {job.costCenter && <span><span style={{ color: C.muted }}>Cost Center: </span><strong>{job.costCenter}</strong></span>}
@@ -2245,8 +2257,9 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
 }
 
 // ─── ADD TICKET MODAL ─────────────────────────────────────────────────────────
-function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
+function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
   const [type, setType] = useState(null);
+  const [assignedWells, setAssignedWells] = useState(null); // null = not yet selected
   const [lineItems, setLineItems] = useState([]);
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(today());
@@ -2258,12 +2271,33 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
     if (isDirty) { setShowUnsaved(true); } else { onClose(); }
   };
 
+  // When type is selected, initialize well assignment
+  const handleSelectType = (t) => {
+    setType(t);
+    if (jobWells.length <= 1) {
+      // Auto-assign single well or no wells
+      setAssignedWells(jobWells);
+    }
+    // Multiple wells: will show selection screen (assignedWells stays null)
+  };
+
+  const toggleWell = (well) => {
+    setAssignedWells(prev => {
+      if (!prev) return [well];
+      return prev.includes(well) ? prev.filter(w => w !== well) : [...prev, well];
+    });
+  };
+
+  const selectAllWells = () => setAssignedWells([...jobWells]);
+  const wellsConfirmed = assignedWells !== null;
+
   const handleSave = () => {
     if (!type) return;
     onSave({
       jobId, type, status: "draft", date,
       signedBy: null, signedAt: null,
       lineItems, notes,
+      assignedWells: assignedWells ?? jobWells,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
     });
   };
@@ -2295,7 +2329,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Add Ticket — Select Type</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {Object.entries(TICKET_TYPES).map(([key, cfg]) => (
-                <button key={key} onClick={() => setType(key)} style={{
+                <button key={key} onClick={() => handleSelectType(key)} style={{
                   background: C.cardBg, border: `2px solid ${cfg.color}33`,
                   borderLeft: `4px solid ${cfg.color}`, borderRadius: 6,
                   padding: "16px 18px", cursor: "pointer", textAlign: "left",
@@ -2316,6 +2350,60 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
             </div>
             <div style={{ marginTop: 16 }}>
               <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
+            </div>
+          </>
+        ) : type && !wellsConfirmed && jobWells.length > 1 ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+              <TicketTypeBadge type={type} />
+              <span style={{ fontSize: 16, fontWeight: 700 }}>Assign Wells — New {type} Ticket</span>
+              <button onClick={() => setType(null)} style={{
+                background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
+                padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
+              }}>← CHANGE TYPE</button>
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Select which wells apply to this ticket. All wells are pre-selected — uncheck any that don't apply.</div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELLS ON THIS JOB</label>
+                <button type="button" onClick={selectAllWells} style={{
+                  background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3,
+                  padding: "2px 10px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer",
+                }}>SELECT ALL</button>
+              </div>
+              {jobWells.map((well, idx) => {
+                const checked = assignedWells ? assignedWells.includes(well) : true;
+                return (
+                  <div key={idx} onClick={() => toggleWell(well)} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
+                    marginBottom: 6, background: checked ? "#e8f0fb" : C.steel,
+                    border: `1px solid ${checked ? C.blue + "44" : C.border}`,
+                    borderRadius: 5, cursor: "pointer",
+                  }}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: 3, border: `2px solid ${checked ? C.blue : C.border}`,
+                      background: checked ? C.blue : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    }}>
+                      {checked && <span style={{ color: C.white, fontSize: 12, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: checked ? 700 : 400, color: C.text }}>{well}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={() => {
+                const selected = assignedWells ?? [...jobWells];
+                if (selected.length === 0) return;
+                setAssignedWells(selected);
+              }}>
+                {(() => {
+                  const sel = assignedWells ?? jobWells;
+                  if (sel.length === 0) return "SELECT AT LEAST ONE WELL";
+                  return `CONFIRM — ${sel.length} WELL${sel.length !== 1 ? "S" : ""}`;
+                })()}
+              </Btn>
+              <Btn variant="ghost" onClick={handleClose}>CANCEL</Btn>
             </div>
           </>
         ) : (
@@ -2369,6 +2457,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     const payload = {
       job_id: ticketData.jobId, type: ticketData.type, status: ticketData.status || "draft",
       date: ticketData.date, notes: ticketData.notes,
+      assigned_wells: ticketData.assignedWells || [],
       lineItems: (ticketData.lineItems || []).map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
       })),
@@ -2531,7 +2620,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         );
       })}
 
-      {showAdd && <AddTicketModal jobId={jobId} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} />}
+      {showAdd && <AddTicketModal jobId={jobId} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} />}
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
@@ -3896,6 +3985,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           emailedAt: t.emailed_at || null,
           missingPieces: t.missing_pieces,
           locked: t.locked,
+          assignedWells: t.assigned_wells || [],
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
             qbCode: li.qb_code,
             desc: li.description,
@@ -4109,7 +4199,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.7</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.10</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -4125,7 +4215,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.7</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.10</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
