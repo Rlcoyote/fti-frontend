@@ -3846,6 +3846,58 @@ const ROLE_OPTIONS = [
 
 const PROTECTED_EMAILS = ["reggie@flotest.com", "accounts@flotest.com"];
 
+function DeletedJobsPage({ deletedJobs, currentUser, handleRestoreJob, handlePermanentDelete }) {
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
+  const canPermDelete = ["owner", "admin"].includes(currentUser.role);
+  const C = COLORS;
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Deleted Jobs</h1>
+        {canPermDelete && deletedJobs.length > 0 && (
+          <Btn onClick={() => setShowDeleteAllConfirm(true)} style={{ background: C.red, color: C.white, border: "none" }}>DELETE ALL</Btn>
+        )}
+      </div>
+      <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>{deletedJobs.length} deleted job{deletedJobs.length !== 1 ? "s" : ""}</div>
+      {deletedJobs.length === 0 && (
+        <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>No deleted jobs.</div>
+      )}
+      {deletedJobs.map(job => (
+        <div key={job.id} style={{
+          background: "#fdf0f0", border: `1px solid ${C.red}33`, borderLeft: `3px solid ${C.red}`,
+          borderRadius: 6, padding: "16px 20px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Job #{job.id}</div>
+            <div style={{ fontSize: 13, color: C.muted }}>{job.customer} — {job.location}</div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{job.wells?.map(w => w.well_name || w).join(", ")}</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn small onClick={() => handleRestoreJob(job.id)} variant="blue">RESTORE</Btn>
+            {canPermDelete && (
+              <Btn small onClick={() => handlePermanentDelete(job.id)}>PERMANENTLY DELETE</Btn>
+            )}
+          </div>
+        </div>
+      ))}
+      {showDeleteAllConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowDeleteAllConfirm(false)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Delete All Deleted Jobs?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
+              This will permanently delete all {deletedJobs.length} job{deletedJobs.length !== 1 ? "s" : ""} and their associated tickets, data, and records. This cannot be undone.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={async () => { for (const job of deletedJobs) { await handlePermanentDelete(job.id); } setShowDeleteAllConfirm(false); }}>CONFIRM — DELETE ALL</Btn>
+              <Btn variant="ghost" onClick={() => setShowDeleteAllConfirm(false)}>CANCEL</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UsersPage({ users, setUsers, currentUser, isAdmin }) {
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
@@ -4272,6 +4324,7 @@ function FTIDashboard({ currentUser, onLogout }) {
     if (i === "Inventory" && isField) return false;
     if (i === "Users" && !isManager) return false;
     if (i === "Job History" && isField) return false;
+    if (i === "Deleted" && !["owner", "admin", "ops_mgr"].includes(currentUser.role)) return false;
     return true;
   });
 
@@ -4329,6 +4382,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           const navIcons = { Dashboard: "⌂", "Job History": "📋", "To-Dos": "✓", Inventory: "📦", Crew: "👷", Reports: "📊", Deleted: "🗑", Users: "👤" };
           if (item === "Users" && !isManager) return null;
           if (item === "Job History" && isField) return null;
+          if (item === "Deleted" && !["owner", "admin", "ops_mgr"].includes(currentUser.role)) return null;
           const active = pageMap[item] === page;
           return (
             <div key={item} onClick={() => { setPage(pageMap[item]); setDrawerOpen(false); }} style={{
@@ -4370,7 +4424,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.14</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.15</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -4425,62 +4479,9 @@ function FTIDashboard({ currentUser, onLogout }) {
         <InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />
       )}
 
-      {page === "deleted" && (() => {
-        const [showDeleteAllConfirm, setShowDeleteAllConfirm] = React.useState(false);
-        const canPermDelete = ["owner", "admin"].includes(currentUser.role);
-        return (
-          <div style={{ padding: "24px 28px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Deleted Jobs</h1>
-              {canPermDelete && deletedJobs.length > 0 && (
-                <Btn onClick={() => setShowDeleteAllConfirm(true)} style={{ background: C.red, color: C.white, border: "none" }}>DELETE ALL</Btn>
-              )}
-            </div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>{deletedJobs.length} deleted job{deletedJobs.length !== 1 ? "s" : ""}</div>
-            {deletedJobs.length === 0 && (
-              <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>No deleted jobs.</div>
-            )}
-            {deletedJobs.map(job => (
-              <div key={job.id} style={{
-                background: "#fdf0f0", border: `1px solid ${C.red}33`, borderLeft: `3px solid ${C.red}`,
-                borderRadius: 6, padding: "16px 20px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center",
-              }}>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Job #{job.id}</div>
-                  <div style={{ fontSize: 13, color: C.muted }}>{job.customer} — {job.location}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{job.wells?.map(w => w.well_name || w).join(", ")}</div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Btn small onClick={() => handleRestoreJob(job.id)} variant="blue">RESTORE</Btn>
-                  {canPermDelete && (
-                    <Btn small onClick={() => handlePermanentDelete(job.id)}>PERMANENTLY DELETE</Btn>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {showDeleteAllConfirm && (
-              <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowDeleteAllConfirm(false)}>
-                <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Delete All Deleted Jobs?</div>
-                  <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
-                    This will permanently delete all {deletedJobs.length} job{deletedJobs.length !== 1 ? "s" : ""} and their associated tickets, data, and records. This cannot be undone.
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Btn onClick={async () => {
-                      for (const job of deletedJobs) {
-                        await handlePermanentDelete(job.id);
-                      }
-                      setShowDeleteAllConfirm(false);
-                    }}>CONFIRM — DELETE ALL</Btn>
-                    <Btn variant="ghost" onClick={() => setShowDeleteAllConfirm(false)}>CANCEL</Btn>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {page === "deleted" && ["owner", "admin", "ops_mgr"].includes(currentUser.role) && (
+        <DeletedJobsPage deletedJobs={deletedJobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handlePermanentDelete={handlePermanentDelete} />
+      )}
 
       {page === "users" && isManager && (
         <UsersPage users={users} setUsers={setUsers} currentUser={currentUser} isAdmin={isAdmin} />
