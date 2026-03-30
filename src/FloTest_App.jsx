@@ -2234,6 +2234,13 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
   const [lineItems, setLineItems] = useState([]);
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(today());
+  const [showUnsaved, setShowUnsaved] = useState(false);
+
+  const isDirty = type || lineItems.length > 0 || notes;
+
+  const handleClose = () => {
+    if (isDirty) { setShowUnsaved(true); } else { onClose(); }
+  };
 
   const handleSave = () => {
     if (!type) return;
@@ -2249,12 +2256,24 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
     <div style={{
       position: "fixed", inset: 0, background: "#00000088",
       display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-    }} onClick={onClose}>
+    }} onClick={handleClose}>
       <div style={{
         background: C.cardBg, border: `1px solid ${C.border}`,
         borderTop: `3px solid ${C.red}`, borderRadius: 8,
         padding: 24, width: type ? 820 : 480, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
       }} onClick={e => e.stopPropagation()}>
+        {showUnsaved && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
+            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This ticket has not been saved. Are you sure you want to close?</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={onClose}>YES, DISCARD</Btn>
+                <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>KEEP EDITING</Btn>
+              </div>
+            </div>
+          </div>
+        )}
         {!type ? (
           <>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Add Ticket — Select Type</div>
@@ -2280,7 +2299,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
               ))}
             </div>
             <div style={{ marginTop: 16 }}>
-              <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
+              <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
             </div>
           </>
         ) : (
@@ -2305,7 +2324,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems }) {
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={handleSave}>CREATE TICKET</Btn>
-              <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
+              <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
             </div>
           </>
         )}
@@ -4074,7 +4093,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.2</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.3</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -4090,7 +4109,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.2</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.3</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
