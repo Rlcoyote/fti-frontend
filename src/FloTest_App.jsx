@@ -2461,6 +2461,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
   const [qbConfirmId, setQbConfirmId] = useState(null);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth <= 900);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   const openTicket = (t, mode = "edit") => {
     setViewTicketMode(mode);
@@ -2553,9 +2559,47 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
           <div key={t.id} style={{
             background: C.cardBg, border: `1px solid ${C.border}`,
             borderLeft: `3px solid ${tcfg.color}`, borderRadius: 5, marginBottom: 6,
-            padding: "10px 14px",
-            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
           }}>
+          {isMobile ? (
+            // Mobile: stacked layout
+            <div>
+              <div onClick={() => openTicket(t, "edit")} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "10px 12px", cursor: "pointer",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <TicketTypeBadge type={t.type} />
+                  <div>
+                    <div style={{ fontSize: 11, color: C.muted }}>#{t.jobId} · {formatDate(t.date)}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                  ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, padding: "0 12px 10px", flexWrap: "wrap" }}>
+                {/* Sig button */}
+                {!isSigned && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
+                {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
+                {t.status === "sigNotReq" && <span style={{ ...btnDone, color: C.blue }}>SIG NOT REQ</span>}
+                {(isApproved) && <span style={btnDone}>✓ SIGNED</span>}
+                {/* Approval */}
+                {isSigned && !isApproved && <button type="button" style={btnAction} onClick={async () => { await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>}
+                {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && <span style={btnDone}>✓ APPROVED</span>}
+                {/* Send to QB */}
+                {t.status !== "sentToQB" && t.status !== "qbVerified" && (
+                  <button type="button" style={canSendToQB ? { ...btnBase, background: C.blue, color: C.white, border: "none" } : btnDisabled}
+                    disabled={!canSendToQB} onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO QB</button>
+                )}
+                {(t.status === "sentToQB" || t.status === "qbVerified") && <span style={{ ...btnDone, background: C.green, color: C.white }}>✓ SENT TO QB</span>}
+              </div>
+            </div>
+          ) : (
+            // Desktop: horizontal layout
+            <div style={{
+              padding: "10px 14px",
+              display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+            }}>
             {/* Left: type badge (clickable = open ticket) + info */}
             <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
               <div
@@ -2634,6 +2678,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
+          )}{/* end desktop ticket row */}
           </div>
         );
       })}
@@ -4243,7 +4288,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.19</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.20</div>
 
       {/* MOBILE HAMBURGER */}
       <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
@@ -4327,7 +4372,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.19</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.20</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
