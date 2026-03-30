@@ -1636,7 +1636,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
 
   const updateItem = (idx, field, value) => {
     setLineItems(prev => prev.map((li, i) => i === idx ? { ...li, [field]: value } : li));
-    if (["qbCode", "rate", "qty", "days"].includes(field)) onSigWipe?.();
+    if (["qbCode", "desc", "rate", "qty", "days", "um"].includes(field)) onSigWipe?.();
   };
 
   const removeItem = (idx) => {
@@ -2158,7 +2158,8 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
           )}
 
           {/* Always show close/cancel */}
-          {!isFullyLocked && <Btn variant="ghost" onClick={handleCancel}>CANCEL</Btn>}
+          {!isFullyLocked && !isEditing && !sigWiped && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
+          {!isFullyLocked && (isEditing || sigWiped) && <Btn variant="ghost" onClick={handleCancel}>CANCEL</Btn>}
           {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
 
         </div>
@@ -4107,7 +4108,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   return (
     <div style={{ minHeight: "100vh", minWidth: 1200, background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* VERSION BADGE */}
-      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.4</div>
+      <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.6</div>
       {/* NAV */}
       <div style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
@@ -4123,7 +4124,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.4</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.6</span></div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 20, alignItems: "center" }}>
