@@ -3899,30 +3899,25 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function FTIDashboard({ currentUser, onLogout }) {
   CURRENT_USER = currentUser.name;
-  const userRole = currentUser.role;
+  const userRole = currentUser.role; // owner | admin | ops_mgr | supervisor | field
   const isAdmin = ["owner", "admin"].includes(userRole);
   const isManager = ["owner", "admin", "ops_mgr", "supervisor"].includes(userRole);
   const isField = userRole === "field";
 
-  // Inject mobile CSS
   useEffect(() => {
-    const styleId = "fti-mobile-styles";
-    if (document.getElementById(styleId)) return;
-    const style = document.createElement("style");
-    style.id = styleId;
-    style.textContent = `
-      @media (max-width: 768px) {
-        .desktop-nav { display: none !important; }
-        .mobile-hamburger { display: flex !important; }
-      }
-      @media (min-width: 769px) {
-        .mobile-hamburger { display: none !important; }
-      }
+    const id = "fti-mobile-css";
+    if (document.getElementById(id)) return;
+    const s = document.createElement("style");
+    s.id = id;
+    s.textContent = `
+      @media (max-width: 768px) { .fti-desktop-nav { display: none !important; } .fti-hamburger { display: flex !important; } }
+      @media (min-width: 769px) { .fti-hamburger { display: none !important; } }
     `;
-    document.head.appendChild(style);
+    document.head.appendChild(s);
   }, []);
   
   const [page, setPage] = useState("dashboard");
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
   const [showNewJob, setShowNewJob] = useState(false);
@@ -4213,94 +4208,72 @@ function FTIDashboard({ currentUser, onLogout }) {
       {/* VERSION BADGE */}
       <div style={{ position: "fixed", bottom: 8, right: 12, zIndex: 9999, background: C.darkBlue, color: C.red, fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.08em", opacity: 0.85 }}>v25.12</div>
 
+      {/* MOBILE HAMBURGER */}
+      <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
+        position: "fixed", bottom: 24, right: 20, zIndex: 1000,
+        width: 52, height: 52, borderRadius: "50%", background: C.red,
+        boxShadow: "0 4px 16px #00000044", cursor: "pointer",
+        flexDirection: "column", gap: 5, alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
+        <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
+        <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
+      </div>
+
+      {/* MOBILE DRAWER BACKDROP */}
+      {drawerOpen && <div onClick={() => setDrawerOpen(false)} style={{ position: "fixed", inset: 0, background: "#00000066", zIndex: 1001 }} />}
+
       {/* MOBILE DRAWER */}
-      {(() => {
-        const [drawerOpen, setDrawerOpen] = React.useState(false);
-        const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "To-Dos": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
-        const navIcons = { Dashboard: "⌂", "Job History": "📋", "To-Dos": "✓", Inventory: "📦", Crew: "👷", Reports: "📊", Deleted: "🗑", Users: "👤" };
-        return (
-          <>
-            {/* Floating hamburger — mobile only */}
-            <div onClick={() => setDrawerOpen(true)} style={{
-              position: "fixed", bottom: 24, right: 20, zIndex: 1000,
-              width: 52, height: 52, borderRadius: "50%", background: C.red,
-              boxShadow: "0 4px 16px #00000044", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", flexDirection: "column", gap: 5,
-            }}
-              className="mobile-hamburger"
-            >
-              <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
-              <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
-              <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1002,
+        background: C.darkBlue, borderTop: `3px solid ${C.red}`,
+        borderRadius: "16px 16px 0 0",
+        transform: drawerOpen ? "translateY(0)" : "translateY(100%)",
+        transition: "transform 0.3s ease",
+        padding: "20px 0 40px", maxHeight: "80vh", overflowY: "auto",
+      }}>
+        <div style={{ width: 40, height: 4, background: "#ffffff33", borderRadius: 2, margin: "0 auto 20px" }} />
+        <div style={{ padding: "0 20px 16px", borderBottom: `1px solid #ffffff22`, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: C.white }}>
+              {currentUser.name.charAt(0).toUpperCase()}
             </div>
-
-            {/* Drawer backdrop */}
-            {drawerOpen && (
-              <div onClick={() => setDrawerOpen(false)} style={{
-                position: "fixed", inset: 0, background: "#00000066", zIndex: 1001,
-              }} />
-            )}
-
-            {/* Drawer */}
-            <div style={{
-              position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1002,
-              background: C.darkBlue, borderTop: `3px solid ${C.red}`,
-              borderRadius: "16px 16px 0 0",
-              transform: drawerOpen ? "translateY(0)" : "translateY(100%)",
-              transition: "transform 0.3s ease",
-              padding: "20px 0 40px",
-              maxHeight: "80vh", overflowY: "auto",
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.white }}>{currentUser.name}</div>
+              <div style={{ fontSize: 11, color: "#a0aec8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{currentUser.role}</div>
+            </div>
+          </div>
+        </div>
+        {NAV_ITEMS.map(item => {
+          const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "To-Dos": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
+          const navIcons = { Dashboard: "⌂", "Job History": "📋", "To-Dos": "✓", Inventory: "📦", Crew: "👷", Reports: "📊", Deleted: "🗑", Users: "👤" };
+          if (item === "Users" && !isManager) return null;
+          if (item === "Job History" && isField) return null;
+          const active = pageMap[item] === page;
+          return (
+            <div key={item} onClick={() => { setPage(pageMap[item]); setDrawerOpen(false); }} style={{
+              display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
+              background: active ? "#ffffff11" : "transparent",
+              borderLeft: active ? `3px solid ${C.red}` : "3px solid transparent",
+              cursor: "pointer",
             }}>
-              {/* Drag handle */}
-              <div style={{ width: 40, height: 4, background: "#ffffff33", borderRadius: 2, margin: "0 auto 20px" }} />
-
-              {/* User info */}
-              <div style={{ padding: "0 20px 16px", borderBottom: `1px solid #ffffff22`, marginBottom: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: C.white }}>
-                    {currentUser.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: C.white }}>{currentUser.name}</div>
-                    <div style={{ fontSize: 11, color: "#a0aec8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{currentUser.role}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Nav items */}
-              {NAV_ITEMS.map(item => {
-                if (item === "Users" && !isManager) return null;
-                if (item === "Job History" && isField) return null;
-                const active = pageMap[item] === page;
-                return (
-                  <div key={item} onClick={() => { setPage(pageMap[item]); setDrawerOpen(false); }} style={{
-                    display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
-                    background: active ? "#ffffff11" : "transparent",
-                    borderLeft: active ? `3px solid ${C.red}` : "3px solid transparent",
-                    cursor: "pointer",
-                  }}>
-                    <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{navIcons[item]}</span>
-                    <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.white : "#b0bdd4", letterSpacing: "0.04em" }}>
-                      {item}
-                      {item === "To-Dos" && myActiveTodos.length > 0 && <span style={{ marginLeft: 8, background: C.red, color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 800 }}>{myActiveTodos.length}</span>}
-                      {item === "Deleted" && deletedJobs.length > 0 && <span style={{ marginLeft: 8, background: "#ffffff33", color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11 }}>{deletedJobs.length}</span>}
-                    </span>
-                  </div>
-                );
-              })}
-
-              {/* Sign out */}
-              <div onClick={() => { setDrawerOpen(false); onLogout(); }} style={{
-                display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
-                borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
-              }}>
-                <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⏻</span>
-                <span style={{ fontSize: 15, color: C.red, fontWeight: 700 }}>Sign Out</span>
-              </div>
+              <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{navIcons[item]}</span>
+              <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.white : "#b0bdd4" }}>
+                {item}
+                {item === "To-Dos" && myActiveTodos.length > 0 && <span style={{ marginLeft: 8, background: C.red, color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 800 }}>{myActiveTodos.length}</span>}
+                {item === "Deleted" && deletedJobs.length > 0 && <span style={{ marginLeft: 8, background: "#ffffff33", color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11 }}>{deletedJobs.length}</span>}
+              </span>
             </div>
-          </>
-        );
-      })()}
+          );
+        })}
+        <div onClick={() => { setDrawerOpen(false); onLogout(); }} style={{
+          display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
+          borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
+        }}>
+          <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⏻</span>
+          <span style={{ fontSize: 15, color: C.red, fontWeight: 700 }}>Sign Out</span>
+        </div>
+      </div>
 
       {/* NAV — desktop */}
       <div style={{
@@ -4320,7 +4293,7 @@ function FTIDashboard({ currentUser, onLogout }) {
             <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v25.12</span></div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 20, alignItems: "center" }} className="desktop-nav">
+        <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
             const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "To-Dos": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
             const active = pageMap[item] === page;
@@ -4342,7 +4315,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           })}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span onClick={onLogout} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
-            <div onClick={onLogout} title={`${currentUser.name} — Click to sign out`} style={{
+            <div onClick={onLogout} style={{
               width: 30, height: 30, borderRadius: "50%", background: C.red,
               border: `2px solid #ffffff55`, display: "flex", alignItems: "center",
               justifyContent: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", color: C.white,
