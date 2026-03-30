@@ -2678,7 +2678,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
-          )}{/* end desktop ticket row */}
+          </div>
+          )}
           </div>
         );
       })}
