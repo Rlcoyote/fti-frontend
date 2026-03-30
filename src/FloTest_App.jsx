@@ -1872,9 +1872,10 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const [sigNotReqReason, setSigNotReqReason] = useState(() => ticket.sigNotReqReason || null);
   const [sigNotReqNote, setSigNotReqNote] = useState(() => ticket.sigNotReqNote || "");
   const [emailTo, setEmailTo] = useState(() => {
-    if (ticket.emailTo) return ticket.emailTo;
+    if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
     const job = jobs?.find(j => j.id === ticket.jobId);
-    return job?.wsmEmail || job?.wsm_email || "";
+    const wsm = job?.wsmEmail || job?.wsm_email || "";
+    return wsm ? [wsm] : [""];
   });
   const [emailCc, setEmailCc] = useState(() => ticket.emailCc || "");
   const [signedBy, setSignedBy] = useState(() => ticket.signedBy || null);
@@ -1902,7 +1903,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const save = (overrides = {}) => {
     const updates = {
       lineItems, notes, status, missingPieces,
-      sigNotReqReason, sigNotReqNote, emailTo, emailCc,
+      sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
       signedBy, signedAt, signatureImage,
       ...overrides,
     };
@@ -1978,9 +1979,10 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   };
 
   const handleEmailTicket = () => {
-    if (!emailTo) return;
+    if (!emailTo.some(e => e.trim())) return;
+    const emailToStr = emailTo.filter(e => e.trim()).join(", ");
     setStatus("emailed");
-    save({ status: "emailed", emailTo, emailCc, emailedAt: new Date().toISOString() });
+    save({ status: "emailed", emailTo: emailToStr, emailCc, emailedAt: new Date().toISOString() });
   };
 
   return (
@@ -2139,15 +2141,28 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
           {status === "emailed" && (
             <div style={{ background: "#f3eafa", border: `1px solid #7a3ca044`, borderRadius: 6, padding: 14, marginTop: 16 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: "#7a3ca0", marginBottom: 8 }}>EMAIL FOR SIGNATURE</div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>TO</label>
-                  <input style={inputStyle} value={emailTo} onChange={e => setEmailTo(e.target.value)} placeholder="customer@email.com" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>CC</label>
-                  <input style={inputStyle} value={emailCc} onChange={e => setEmailCc(e.target.value)} placeholder="Optional CC..." />
-                </div>
+              <div style={{ marginBottom: 6 }}>
+                <label style={labelStyle}>TO</label>
+                {emailTo.map((addr, idx) => (
+                  <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                    <input
+                      style={{ ...inputStyle, flex: 1 }}
+                      value={addr}
+                      onChange={e => setEmailTo(prev => prev.map((a, i) => i === idx ? e.target.value : a))}
+                      placeholder="recipient@email.com"
+                    />
+                    {emailTo.length > 1 && (
+                      <button onClick={() => setEmailTo(prev => prev.filter((_, i) => i !== idx))}
+                        style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 4, padding: "0 8px", cursor: "pointer", fontSize: 14 }}>✕</button>
+                    )}
+                  </div>
+                ))}
+                <button onClick={() => setEmailTo(prev => [...prev, ""])}
+                  style={{ background: "transparent", border: `1px solid #7a3ca0`, color: "#7a3ca0", borderRadius: 4, padding: "4px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, marginTop: 2 }}>+ ADD RECIPIENT</button>
+              </div>
+              <div>
+                <label style={labelStyle}>CC</label>
+                <input style={inputStyle} value={emailCc} onChange={e => setEmailCc(e.target.value)} placeholder="Optional CC..." />
               </div>
             </div>
           )}
@@ -4427,7 +4442,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.17</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.18</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
