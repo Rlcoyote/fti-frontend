@@ -4576,8 +4576,8 @@ function FTIDashboard({ currentUser, onLogout }) {
       afe: newJob.afe || null,
       contact_first: newJob.contactFirst || null,
       contact_last: newJob.contactLast || null,
-      email: newJob.email || null,
-      phone: newJob.phone || null,
+      wsm_phone: newJob.phone || null,
+      wsm_email: newJob.email || null,
       approver: newJob.approver || null,
       approver_last: newJob.approverLast || null,
       approver_phone: newJob.approverPhone || null,
@@ -4770,7 +4770,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.20</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.21</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
