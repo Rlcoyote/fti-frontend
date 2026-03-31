@@ -1192,6 +1192,12 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             <div style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}44`, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em" }}>{cfg.label}</div>
+            {hasJobPendingComment && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                COMMENT
+              </span>
+            )}
             <div style={{ fontSize: 11, color: C.muted }}>{job.wells.length} {job.wells.length === 1 ? "well" : "wells"}</div>
           </div>
         </div>
@@ -2915,6 +2921,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   <TicketTypeBadge type={t.type} />
                   <div>
                     <div style={{ fontSize: 11, color: C.muted }}>#{t.jobId} · {formatDate(t.date)}</div>
+                    {hasPendingComment && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044", marginTop: 3 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                        COMMENT PENDING
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
@@ -2923,10 +2935,36 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               </div>
               <div style={{ display: "flex", gap: 6, padding: "0 12px 10px", flexWrap: "wrap" }}>
                 {/* Sig button */}
-                {!isSigned && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
+                {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
                 {t.status === "sigNotReq" && <span style={{ ...btnDone, color: C.blue }}>SIG NOT REQ</span>}
-                {(isApproved) && <span style={btnDone}>✓ SIGNED</span>}
+                {(t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified") && <span style={btnDone}>✓ SIGNED</span>}
+                {/* Email */}
+                {!custEmail && <span style={btnDisabled}>NO EMAIL ON FILE</span>}
+                {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
+                  <button type="button"
+                    style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
+                    onClick={() => {
+                      if (isEmailed) {
+                        setResendConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt });
+                        setResendEmail(t.emailTo || custEmail);
+                      } else {
+                        (async () => {
+                          try {
+                            if (!t.emailTo) await handleUpdate(t.id, { emailTo: custEmail });
+                            const r = await fetch(`${API_URL}/signature/send/${t.id}`, {
+                              method: "POST", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ performed_by: currentUser?.name }),
+                            });
+                            if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
+                            setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, status: "emailed", emailTo: custEmail, emailedAt: new Date().toISOString() } : tk));
+                          } catch (err) { alert("Email send failed: " + err.message); }
+                        })();
+                      }
+                    }}>
+                    {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
+                  </button>
+                )}
                 {/* Approval */}
                 {isSigned && !isApproved && <button type="button" style={btnAction} onClick={async () => { await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>}
                 {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && <span style={btnDone}>✓ APPROVED</span>}
@@ -4835,7 +4873,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.23</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.24</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
