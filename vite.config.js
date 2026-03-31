@@ -2,6 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
-  build: { rollupOptions: { output: { entryFileNames: "assets/app-26.26.js", chunkFileNames: "assets/chunk-26.26.js", assetFileNames: "assets/style-26.26[extname]" } } },
+  build: { rollupOptions: { output: { entryFileNames: "assets/app-26.27.js", chunkFileNames: "assets/chunk-26.27.js", assetFileNames: "assets/style-26.27[extname]" } } },
   preview: { host: "0.0.0.0", port: process.env.PORT || 4173, allowedHosts: [".up.railway.app"] }
 });

@@ -2109,7 +2109,7 @@ function SignaturePad({ onSign, onCancel }) {
 }
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
-function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, qbItems, currentUser, openToSign = false }) {
+function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, qbItems, currentUser, openToSign = false }) {
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
   const [ticketDate, setTicketDate] = useState(() => ticket.date ? ticket.date.slice(0, 10) : "");
@@ -2151,6 +2151,14 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
     };
     setTdLoading(true);
     loadComments();
+    // Clear pending flag when ticket is opened
+    if (ticket.hasPendingComment || ticket.has_pending_comment) {
+      fetch(`${API_URL}/tickets/${ticket.id}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ has_pending_comment: false }),
+      }).catch(() => {});
+      if (onUpdate) onUpdate(ticket.id, { hasPendingComment: false, has_pending_comment: false });
+    }
     const interval = setInterval(loadComments, 30000);
     return () => clearInterval(interval);
   }, [ticket.id]);
@@ -2233,7 +2241,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
     }
     setIsEditing(false);
     setSigWiped(false);
-    onClose();
   };
 
   const handleSigNotRequired = () => {
@@ -2333,6 +2340,20 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
+
+          {/* Voided banner */}
+          {ticket.voidedAt && (
+            <div style={{ background: "#fdecea", border: `1px solid ${C.red}44`, borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: C.red }}>
+              VOIDED{ticket._replacedByLabel ? ` — Replaced by #${ticket._replacedByLabel}` : ""}
+            </div>
+          )}
+
+          {/* Revision banner */}
+          {ticket.revisionOf && (
+            <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: C.blue }}>
+              Revision of #{ticket._revisionOfLabel || "previous ticket"}
+            </div>
+          )}
 
           {/* Duplicate reminder */}
           {ticket._duplicateReminder && (
@@ -2435,36 +2456,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
             </div>
           )}
 
-          {/* Email options */}
-          {status === "emailed" && (
-            <div style={{ background: "#f3eafa", border: `1px solid #7a3ca044`, borderRadius: 6, padding: 14, marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: "#7a3ca0", marginBottom: 8 }}>EMAIL FOR SIGNATURE</div>
-              <div style={{ marginBottom: 6 }}>
-                <label style={labelStyle}>TO</label>
-                {emailTo.map((addr, idx) => (
-                  <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                    <input
-                      style={{ ...inputStyle, flex: 1 }}
-                      value={addr}
-                      onChange={e => setEmailTo(prev => prev.map((a, i) => i === idx ? e.target.value : a))}
-                      placeholder="recipient@email.com"
-                    />
-                    {emailTo.length > 1 && (
-                      <button onClick={() => setEmailTo(prev => prev.filter((_, i) => i !== idx))}
-                        style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 4, padding: "0 8px", cursor: "pointer", fontSize: 14 }}>✕</button>
-                    )}
-                  </div>
-                ))}
-                <button onClick={() => setEmailTo(prev => [...prev, ""])}
-                  style={{ background: "transparent", border: `1px solid #7a3ca0`, color: "#7a3ca0", borderRadius: 4, padding: "4px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, marginTop: 2 }}>+ ADD RECIPIENT</button>
-              </div>
-              <div>
-                <label style={labelStyle}>CC</label>
-                <input style={inputStyle} value={emailCc} onChange={e => setEmailCc(e.target.value)} placeholder="Optional CC..." />
-              </div>
-            </div>
-          )}
-
           {/* Sig pad — always rendered when showSigPad is true */}
           {showSigPad && (
             <SignaturePad onSign={handleSign} onCancel={() => setShowSigPad(false)} />
@@ -2556,17 +2547,26 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
               <Btn onClick={handleSave}>SAVE TICKET</Btn>
               {!sigWiped && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
               {!sigWiped && !signedBy && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
-              {status === "emailed" && <Btn variant="ghost" onClick={handleEmailTicket}>SEND EMAIL</Btn>}
             </>
           )}
 
-          {/* Edit button for locked tickets */}
-          {isLocked && !isFullyLocked && status !== "sentToQB" && !isEditing && (
+          {/* Edit button for locked but NOT signed tickets (e.g., sigNotReq) */}
+          {isLocked && !isFullyLocked && !signedBy && status !== "sentToQB" && status !== "voided" && !isEditing && (
             <Btn variant="ghost" onClick={() => setIsEditing(true)}>EDIT TICKET</Btn>
           )}
 
+          {/* Revise button for signed tickets only */}
+          {signedBy && !isFullyLocked && status !== "voided" && !isEditing && onRevise && (
+            <Btn variant="ghost" onClick={() => onRevise(ticket)}>REVISE</Btn>
+          )}
+
+          {/* Voided — no actions */}
+          {status === "voided" && (
+            <span style={{ fontSize: 12, fontWeight: 800, color: C.red, background: "#fdecea", padding: "6px 14px", borderRadius: 4 }}>VOIDED</span>
+          )}
+
           {/* Always show close/cancel */}
-          {!isFullyLocked && !isEditing && !sigWiped && <Btn variant="ghost" onClick={() => { save(); onClose(); }}>SAVE & CLOSE</Btn>}
+          {!isFullyLocked && !isEditing && !sigWiped && <Btn variant="ghost" onClick={handleClose}>CLOSE</Btn>}
           {!isFullyLocked && (isEditing || sigWiped) && <Btn variant="ghost" onClick={handleCancel}>CANCEL</Btn>}
           {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
 
@@ -2891,7 +2891,17 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
 
   const openTicket = (t, mode = "edit") => {
     setViewTicketMode(mode);
-    setViewTicket(t);
+    // Compute revision display labels
+    const enriched = { ...t };
+    if (t.replacedBy) {
+      const replacement = tickets.find(tk => tk.id === t.replacedBy);
+      enriched._replacedByLabel = replacement ? `${t.jobId}-${replacement.ticketNumber}` : null;
+    }
+    if (t.revisionOf) {
+      const original = tickets.find(tk => tk.id === t.revisionOf);
+      enriched._revisionOfLabel = original ? `${t.jobId}-${original.ticketNumber}` : null;
+    }
+    setViewTicket(enriched);
   };
 
   const jobTickets = tickets.filter(t => t.jobId === jobId);
@@ -3007,6 +3017,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, padding: "0 12px 10px", flexWrap: "wrap" }}>
+                {t.voidedAt ? (
+                  <span style={{ background: "#fdecea", color: C.red, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #B0102044" }}>VOIDED</span>
+                ) : (<>
                 {/* Sig button */}
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
@@ -3022,7 +3035,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                       setEmailConfirmTo(t.emailTo || custEmail);
                       setEmailConfirmCc("");
                     }}>
-                    {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
+                    {isEmailed ? "Emailed / Resend" : "EMAIL TICKET"}
                   </button>
                 )}
                 {/* Approval */}
@@ -3034,6 +3047,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                     disabled={!canSendToQB} onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO QB</button>
                 )}
                 {(t.status === "sentToQB" || t.status === "qbVerified") && <span style={{ ...btnDone, background: C.green, color: C.white }}>✓ SENT TO QB</span>}
+                </>)}
               </div>
             </div>
           ) : (
@@ -3059,11 +3073,17 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   COMMENT PENDING
                 </span>
               )}
+              {t.voidedAt && (
+                <span style={{ background: "#fdecea", color: C.red, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>VOIDED</span>
+              )}
             </div>
 
             {/* Right: action buttons + total */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
 
+            {t.voidedAt ? (
+              <span style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Voided</span>
+            ) : (<>
               {/* Col 2: Signature */}
               {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
                 <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIGNATURE REQUEST</button>
@@ -3090,7 +3110,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                     setEmailConfirmTo(t.emailTo || custEmail);
                     setEmailConfirmCc("");
                   }}>
-                  {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
+                  {isEmailed ? "Emailed / Resend" : "EMAIL TICKET"}
                 </button>
               )}
               {custEmail && (t.status === "sentToQB" || t.status === "qbVerified") && (
@@ -3122,6 +3142,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               {(t.status === "sentToQB" || t.status === "qbVerified") && (
                 <span style={{ ...btnDone, background: C.green, color: C.white, border: "none" }}>✓ SENT TO QB</span>
               )}
+            </>)}
 
               {/* Total */}
               <span style={{ fontSize: 13, fontWeight: 800, color: C.text, marginLeft: 6 }}>
@@ -3163,6 +3184,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   locked: tk.locked, ticketNumber: tk.ticket_number || null,
                   startDate: tk.start_date || null, endDate: tk.end_date || null,
                   cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
+                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null,
                   assignedWells: tk.assigned_wells || [],
                   lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
                     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
@@ -3181,6 +3203,46 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 }
               }
             } catch (err) { alert("Duplicate failed: " + err.message); }
+          }}
+          onRevise={async (t) => {
+            try {
+              const r = await fetch(`${API_URL}/tickets/${t.id}/revise`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+              });
+              if (!r.ok) { const d = await r.json(); alert(d.error || "Revise failed"); return; }
+              const saved = await r.json();
+              // Reload all tickets for this job (includes voided + new)
+              const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
+              if (tr.ok) {
+                const data = await tr.json();
+                const mapped = data.map(tk => ({
+                  id: tk.id, jobId: tk.job_id, type: tk.type, status: tk.status, date: tk.date,
+                  signedBy: tk.signed_by, signedAt: tk.signed_at, signatureImage: tk.signature_img,
+                  sigNotReqReason: tk.sig_not_req_reason, sigNotReqNote: tk.sig_not_req_note,
+                  notes: tk.notes, emailedAt: tk.emailed_at || null, emailTo: tk.email_to || null,
+                  hasPendingComment: tk.has_pending_comment || false, missingPieces: tk.missing_pieces,
+                  locked: tk.locked, ticketNumber: tk.ticket_number || null,
+                  startDate: tk.start_date || null, endDate: tk.end_date || null,
+                  cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
+                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null,
+                  assignedWells: tk.assigned_wells || [],
+                  lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
+                    qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
+                    qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
+                  })),
+                }));
+                setTickets(prev => {
+                  const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
+                  return [...otherJobs, ...mapped];
+                });
+                // Open the new revision ticket
+                const newTicket = mapped.find(tk => tk.id === saved.id);
+                if (newTicket) {
+                  setViewTicketMode("edit");
+                  setViewTicket(newTicket);
+                }
+              }
+            } catch (err) { alert("Revise failed: " + err.message); }
           }}
         />
       )}
@@ -4671,6 +4733,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           endDate: t.end_date || null,
           cycleDays: t.cycle_days || 28,
           isRecurring: t.is_recurring || false,
+          voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null, revisionOf: t.revision_of || null,
           assignedWells: t.assigned_wells || [],
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
             qbCode: li.qb_code,
@@ -4978,7 +5041,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.26</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.27</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
