@@ -1154,6 +1154,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   }, []);
   const jobTickets = tickets.filter(t => t.jobId === job.id);
   const ticketTotal = jobTickets.reduce((s, t) => s + calcTicketTotal(t), 0);
+  const hasJobPendingComment = jobTickets.some(t => t.hasPendingComment || t.has_pending_comment);
 
   // Derive dot states from actual tickets
   const dotState = (type) => {
@@ -1237,6 +1238,12 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
           <StatusBadge status={job.status} />
+          {hasJobPendingComment && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+              COMMENT
+            </span>
+          )}
           <span style={{ color: C.muted, fontSize: 12, display: "inline-block", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</span>
         </div>
       </div>
@@ -2125,14 +2132,19 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const [tdSending, setTdSending] = useState(false);
   const [tdLoading, setTdLoading] = useState(false);
 
-  // Load comments when ticket opens
+  // Load comments when ticket opens + poll every 30s
   useEffect(() => {
     if (!ticket.id) return;
+    const loadComments = () => {
+      fetch(`${API_URL}/signature/comments/${ticket.id}`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => { setTdComments(data); setTdLoading(false); })
+        .catch(() => setTdLoading(false));
+    };
     setTdLoading(true);
-    fetch(`${API_URL}/signature/comments/${ticket.id}`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => { setTdComments(data); setTdLoading(false); })
-      .catch(() => setTdLoading(false));
+    loadComments();
+    const interval = setInterval(loadComments, 30000);
+    return () => clearInterval(interval);
   }, [ticket.id]);
 
   const handleClose = () => {
@@ -4595,7 +4607,17 @@ function FTIDashboard({ currentUser, onLogout }) {
         body: JSON.stringify(payload),
       });
       if (r.ok) {
-        setJobs(prev => [newJob, ...prev]);
+        const mappedJob = {
+          ...newJob,
+          wsmEmail: newJob.email || "",
+          wsm_email: newJob.email || "",
+          wsmPhone: newJob.phone || "",
+          approverEmail: newJob.approverEmail || "",
+          approverPhone: newJob.approverPhone || "",
+          customer_name: cust?.name || newJob.customer,
+          wells: (newJob.wells || []).map((w, i) => ({ well_name: w, sort_order: i })),
+        };
+        setJobs(prev => [mappedJob, ...prev]);
         setShowNewJob(false);
         setExpandedId(newJob.id);
       }
@@ -4770,7 +4792,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.21</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.22</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
