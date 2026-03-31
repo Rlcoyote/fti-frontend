@@ -2109,9 +2109,10 @@ function SignaturePad({ onSign, onCancel }) {
 }
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
-function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, openToSign = false }) {
+function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, qbItems, currentUser, openToSign = false }) {
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
+  const [ticketDate, setTicketDate] = useState(() => ticket.date ? ticket.date.slice(0, 10) : "");
   const [notes, setNotes] = useState(() => ticket.notes || "");
   const [status, setStatus] = useState(() => ticket.status);
   const [missingPieces, setMissingPieces] = useState(() => ticket.missingPieces ?? null);
@@ -2137,6 +2138,7 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const [tdReply, setTdReply] = useState("");
   const [tdSending, setTdSending] = useState(false);
   const [tdLoading, setTdLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load comments when ticket opens + poll every 30s
   useEffect(() => {
@@ -2167,12 +2169,20 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
 
   const save = (overrides = {}) => {
     const updates = {
-      lineItems, notes, status, missingPieces,
+      lineItems, notes, status, missingPieces, date: ticketDate,
       sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
       signedBy, signedAt, signatureImage,
       ...overrides,
     };
     onUpdate(ticket.id, updates);
+  };
+
+  // Date change wipes signature (same as line item changes)
+  const handleDateChange = (newDate) => {
+    setTicketDate(newDate);
+    if (signedBy && newDate !== (ticket.date || "").slice(0, 10)) {
+      handleSigWipe();
+    }
   };
 
   const handleSigWipe = () => {
@@ -2275,10 +2285,16 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                 <TicketTypeBadge type={ticket.type} />
                 <TicketStatusBadge status={status} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId} — {ticket.type}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} — {ticket.type}</span>
                 {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
               </div>
-              <div style={{ fontSize: 12, color: C.muted }}>{job?.customer || "Unknown"} · {formatDate(ticket.date)}</div>
+              <div style={{ fontSize: 12, color: C.muted }}>
+                {job?.customer || "Unknown"} · {isLocked
+                  ? formatDate(ticketDate)
+                  : <input type="date" value={ticketDate} onChange={e => handleDateChange(e.target.value)}
+                      style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
+                }
+              </div>
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           </div>
@@ -2546,6 +2562,22 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
           {!isFullyLocked && (isEditing || sigWiped) && <Btn variant="ghost" onClick={handleCancel}>CANCEL</Btn>}
           {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
 
+          {/* Spacer to push delete/duplicate to the right */}
+          <div style={{ flex: 1 }} />
+
+          {/* Duplicate */}
+          {onDuplicate && !isFullyLocked && (
+            <Btn variant="ghost" onClick={() => onDuplicate(ticket)}>DUPLICATE</Btn>
+          )}
+
+          {/* Delete — not on locked/QB tickets */}
+          {onDelete && !isFullyLocked && (
+            <button type="button" onClick={() => setShowDeleteConfirm(true)}
+              style={{ background: "transparent", border: "none", color: C.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: "6px 10px", letterSpacing: "0.04em", opacity: 0.7 }}>
+              DELETE
+            </button>
+          )}
+
         </div>
 
         {/* Unsaved changes confirmation */}
@@ -2573,6 +2605,29 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn variant="blue" onClick={() => { setShowQBConfirm(false); handleSendToQB(); }}>CONFIRM — SEND TO QB</Btn>
                 <Btn variant="ghost" onClick={() => setShowQBConfirm(false)}>CANCEL</Btn>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete confirmation */}
+        {showDeleteConfirm && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowDeleteConfirm(false)}>
+            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Delete Ticket?</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+                This will remove ticket <strong>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}</strong> ({ticket.type}). The ticket can be recovered by an admin.
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={async () => {
+                  try {
+                    const r = await fetch(`${API_URL}/tickets/${ticket.id}`, { method: "DELETE" });
+                    if (!r.ok) { const d = await r.json(); alert(d.error || "Delete failed"); return; }
+                    if (onDelete) onDelete(ticket.id);
+                  } catch (err) { alert("Delete failed: " + err.message); }
+                  setShowDeleteConfirm(false);
+                }}>YES, DELETE</Btn>
+                <Btn variant="ghost" onClick={() => setShowDeleteConfirm(false)}>CANCEL</Btn>
               </div>
             </div>
           </div>
@@ -2839,7 +2894,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (r.ok) {
         const saved = await r.json();
-        setTickets(prev => [...prev, { ...ticketData, id: saved.id }]);
+        setTickets(prev => [...prev, { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number }]);
       }
     } catch (err) { console.error("Ticket create failed:", err); }
     setShowAdd(false);
@@ -2858,6 +2913,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     if (updates.emailedAt) payload.emailed_at = updates.emailedAt;
     if (updates.emailTo) payload.email_to = updates.emailTo;
     if (updates.notes !== undefined) payload.notes = updates.notes;
+    if (updates.date) payload.date = updates.date;
     if (updates.lineItems) {
       payload.lineItems = updates.lineItems.map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
@@ -2920,7 +2976,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <TicketTypeBadge type={t.type} />
                   <div>
-                    <div style={{ fontSize: 11, color: C.muted }}>#{t.jobId} · {formatDate(t.date)}</div>
+                    <div style={{ fontSize: 11, color: C.muted }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)}</div>
                     {hasPendingComment && (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044", marginTop: 3 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -2991,7 +3047,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               >
                 <TicketTypeBadge type={t.type} />
               </div>
-              <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>#{t.jobId} · {formatDate(t.date)}</span>
+              <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)}</span>
               <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
               {hasPendingComment && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
@@ -3094,6 +3150,44 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
           openToSign={viewTicketMode === "sign"}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
+          onDelete={(id) => { handleDelete(id); }}
+          onDuplicate={async (t) => {
+            const newDate = prompt("Enter date for the duplicate ticket (YYYY-MM-DD):", t.date ? t.date.slice(0, 10) : new Date().toISOString().slice(0, 10));
+            if (!newDate) return;
+            try {
+              const r = await fetch(`${API_URL}/tickets/${t.id}/duplicate`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ new_date: newDate, assigned_wells: t.assignedWells }),
+              });
+              if (!r.ok) { const d = await r.json(); alert(d.error || "Duplicate failed"); return; }
+              const saved = await r.json();
+              // Reload tickets to pick up the new one with correct data
+              const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}`);
+              if (tr.ok) {
+                const data = await tr.json();
+                const mapped = data.map(tk => ({
+                  id: tk.id, jobId: tk.job_id, type: tk.type, status: tk.status, date: tk.date,
+                  signedBy: tk.signed_by, signedAt: tk.signed_at, signatureImage: tk.signature_img,
+                  sigNotReqReason: tk.sig_not_req_reason, sigNotReqNote: tk.sig_not_req_note,
+                  notes: tk.notes, emailedAt: tk.emailed_at || null, emailTo: tk.email_to || null,
+                  hasPendingComment: tk.has_pending_comment || false, missingPieces: tk.missing_pieces,
+                  locked: tk.locked, ticketNumber: tk.ticket_number || null,
+                  startDate: tk.start_date || null, endDate: tk.end_date || null,
+                  cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
+                  assignedWells: tk.assigned_wells || [],
+                  lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
+                    qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
+                    qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
+                  })),
+                }));
+                setTickets(prev => {
+                  const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
+                  return [...otherJobs, ...mapped];
+                });
+              }
+              setViewTicket(null);
+            } catch (err) { alert("Duplicate failed: " + err.message); }
+          }}
         />
       )}
       {qbConfirmId && (
@@ -4566,6 +4660,11 @@ function FTIDashboard({ currentUser, onLogout }) {
           hasPendingComment: t.has_pending_comment || false,
           missingPieces: t.missing_pieces,
           locked: t.locked,
+          ticketNumber: t.ticket_number || null,
+          startDate: t.start_date || null,
+          endDate: t.end_date || null,
+          cycleDays: t.cycle_days || 28,
+          isRecurring: t.is_recurring || false,
           assignedWells: t.assigned_wells || [],
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
             qbCode: li.qb_code,
@@ -4873,7 +4972,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.24</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.25</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
