@@ -2802,6 +2802,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
   const [qbConfirmId, setQbConfirmId] = useState(null);
+  const [resendConfirm, setResendConfirm] = useState(null); // { ticketId, email, emailedAt }
+  const [resendEmail, setResendEmail] = useState("");
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth <= 900);
@@ -2986,16 +2988,22 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 <button type="button"
                   style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
                   onClick={async () => {
-                    try {
-                      // Save emailTo first if not already set
-                      if (!t.emailTo) await handleUpdate(t.id, { emailTo: custEmail });
-                      const r = await fetch(`${API_URL}/signature/send/${t.id}`, {
-                        method: "POST", headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ performed_by: currentUser?.name }),
-                      });
-                      if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
-                      setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, status: "emailed", emailTo: custEmail, emailedAt: new Date().toISOString() } : tk));
-                    } catch (err) { alert("Email send failed: " + err.message); }
+                    if (isEmailed) {
+                      // Show resend confirmation with editable recipient
+                      setResendConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt });
+                      setResendEmail(t.emailTo || custEmail);
+                    } else {
+                      // First send — fire immediately
+                      try {
+                        if (!t.emailTo) await handleUpdate(t.id, { emailTo: custEmail });
+                        const r = await fetch(`${API_URL}/signature/send/${t.id}`, {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ performed_by: currentUser?.name }),
+                        });
+                        if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
+                        setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, status: "emailed", emailTo: custEmail, emailedAt: new Date().toISOString() } : tk));
+                      } catch (err) { alert("Email send failed: " + err.message); }
+                    }
                   }}>
                   {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
                 </button>
@@ -3063,6 +3071,41 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 setQbConfirmId(null);
               }}>CONFIRM — SEND TO QB</Btn>
               <Btn variant="ghost" onClick={() => setQbConfirmId(null)}>CANCEL</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+      {resendConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setResendConfirm(null)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.coral || "#D85A30"}`, borderRadius: 8, padding: 28, width: 440, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8 }}>Resend Signature Request?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+              A signature request was sent on <strong>{resendConfirm.emailedAt ? new Date(resendConfirm.emailedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "a previous date"}</strong>.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>RECIPIENT</label>
+              <input
+                style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, marginTop: 4, boxSizing: "border-box" }}
+                value={resendEmail} onChange={e => setResendEmail(e.target.value)}
+                placeholder="email@company.com"
+              />
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn variant="blue" onClick={async () => {
+                const email = resendEmail.trim();
+                if (!email) { alert("Enter a recipient email."); return; }
+                try {
+                  await handleUpdate(resendConfirm.ticketId, { emailTo: email });
+                  const r = await fetch(`${API_URL}/signature/send/${resendConfirm.ticketId}`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ performed_by: currentUser?.name }),
+                  });
+                  if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
+                  setTickets(prev => prev.map(tk => tk.id === resendConfirm.ticketId ? { ...tk, emailTo: email, emailedAt: new Date().toISOString() } : tk));
+                  setResendConfirm(null);
+                } catch (err) { alert("Email send failed: " + err.message); }
+              }}>SEND</Btn>
+              <Btn variant="ghost" onClick={() => setResendConfirm(null)}>CANCEL</Btn>
             </div>
           </div>
         </div>
@@ -4792,7 +4835,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.22</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.23</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
