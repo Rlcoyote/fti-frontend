@@ -1307,7 +1307,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   const role = currentUser?.role || "field";
                   const canDelete = ["owner", "admin", "ops_mgr"].includes(role);
                   const actions = [
-                    { label: "View Field Tickets", action: () => setActiveTab("tickets") },
+                    { label: "Add / View Field Tickets", action: () => setActiveTab("tickets") },
                     { label: jsas.find(j => j.jobId === job.id) ? "Open JSA ✓" : "Open JSA", action: () => setShowJSA(true) },
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
                     { label: "Edit Job", action: () => setShowEditJob(true) },
@@ -2186,6 +2186,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
   };
 
   const handleSigWipe = () => {
+    if (!signedBy && !signatureImage) return; // Nothing to wipe
     setSigWiped(true);
     setSignedBy(null);
     setSignedAt(null);
@@ -2332,6 +2333,13 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
+
+          {/* Duplicate reminder */}
+          {ticket._duplicateReminder && (
+            <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.blue }}>
+              This ticket was duplicated. Please update the date and review before saving.
+            </div>
+          )}
 
           {/* Edit warning */}
           {isEditing && !sigWiped && signedBy && (
@@ -2558,7 +2566,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, jobs, 
           )}
 
           {/* Always show close/cancel */}
-          {!isFullyLocked && !isEditing && !sigWiped && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
+          {!isFullyLocked && !isEditing && !sigWiped && <Btn variant="ghost" onClick={() => { save(); onClose(); }}>SAVE & CLOSE</Btn>}
           {!isFullyLocked && (isEditing || sigWiped) && <Btn variant="ghost" onClick={handleCancel}>CANCEL</Btn>}
           {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
 
@@ -2683,7 +2691,7 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
 }
 
 // ─── ADD TICKET MODAL ─────────────────────────────────────────────────────────
-function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
+function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existingTickets = [] }) {
   const [type, setType] = useState(null);
   const [assignedWells, setAssignedWells] = useState([]);
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
@@ -2698,13 +2706,21 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [] }) {
     if (isDirty) { setShowUnsaved(true); } else { onClose(); }
   };
 
-  // When type is selected, initialize well assignment
+  // When type is selected, initialize well assignment + auto-populate RD from RU
   const handleSelectType = (t) => {
     setType(t);
     setAssignedWells([...jobWells]);
-    // Auto-confirm if 0 or 1 well
     if (jobWells.length <= 1) setWellsConfirmed(true);
     else setWellsConfirmed(false);
+    // Auto-populate Rig Down from Rig Up
+    if (t === "Rig Down") {
+      const ruTicket = existingTickets.find(tk => tk.type === "Rig Up" && tk.jobId === jobId);
+      if (ruTicket && ruTicket.lineItems?.length) {
+        setLineItems([...ruTicket.lineItems]);
+        if (ruTicket.assignedWells?.length) setAssignedWells([...ruTicket.assignedWells]);
+        if (ruTicket.notes) setNotes(ruTicket.notes);
+      }
+    }
   };
 
   const toggleWell = (well) => {
@@ -2863,8 +2879,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
   const [qbConfirmId, setQbConfirmId] = useState(null);
-  const [resendConfirm, setResendConfirm] = useState(null); // { ticketId, email, emailedAt }
-  const [resendEmail, setResendEmail] = useState("");
+  const [emailConfirm, setEmailConfirm] = useState(null); // { ticketId, email, emailedAt, cc }
+  const [emailConfirmTo, setEmailConfirmTo] = useState("");
+  const [emailConfirmCc, setEmailConfirmCc] = useState("");
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth <= 900);
@@ -3001,22 +3018,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   <button type="button"
                     style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
                     onClick={() => {
-                      if (isEmailed) {
-                        setResendConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt });
-                        setResendEmail(t.emailTo || custEmail);
-                      } else {
-                        (async () => {
-                          try {
-                            if (!t.emailTo) await handleUpdate(t.id, { emailTo: custEmail });
-                            const r = await fetch(`${API_URL}/signature/send/${t.id}`, {
-                              method: "POST", headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ performed_by: currentUser?.name }),
-                            });
-                            if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
-                            setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, status: "emailed", emailTo: custEmail, emailedAt: new Date().toISOString() } : tk));
-                          } catch (err) { alert("Email send failed: " + err.message); }
-                        })();
-                      }
+                      setEmailConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt || null });
+                      setEmailConfirmTo(t.emailTo || custEmail);
+                      setEmailConfirmCc("");
                     }}>
                     {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
                   </button>
@@ -3081,23 +3085,10 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                 <button type="button"
                   style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
-                  onClick={async () => {
-                    if (isEmailed) {
-                      // Show resend confirmation with editable recipient
-                      setResendConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt });
-                      setResendEmail(t.emailTo || custEmail);
-                    } else {
-                      // First send — fire immediately
-                      try {
-                        if (!t.emailTo) await handleUpdate(t.id, { emailTo: custEmail });
-                        const r = await fetch(`${API_URL}/signature/send/${t.id}`, {
-                          method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ performed_by: currentUser?.name }),
-                        });
-                        if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
-                        setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, status: "emailed", emailTo: custEmail, emailedAt: new Date().toISOString() } : tk));
-                      } catch (err) { alert("Email send failed: " + err.message); }
-                    }
+                  onClick={() => {
+                    setEmailConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt || null });
+                    setEmailConfirmTo(t.emailTo || custEmail);
+                    setEmailConfirmCc("");
                   }}>
                   {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
                 </button>
@@ -3143,7 +3134,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         );
       })}
 
-      {showAdd && <AddTicketModal jobId={jobId} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} />}
+      {showAdd && <AddTicketModal jobId={jobId} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} existingTickets={tickets} />}
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
@@ -3152,16 +3143,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
           onClose={() => setViewTicket(null)}
           onDelete={(id) => { handleDelete(id); }}
           onDuplicate={async (t) => {
-            const newDate = prompt("Enter date for the duplicate ticket (YYYY-MM-DD):", t.date ? t.date.slice(0, 10) : new Date().toISOString().slice(0, 10));
-            if (!newDate) return;
             try {
               const r = await fetch(`${API_URL}/tickets/${t.id}/duplicate`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ new_date: newDate, assigned_wells: t.assignedWells }),
+                body: JSON.stringify({ new_date: t.date ? t.date.slice(0, 10) : new Date().toISOString().slice(0, 10), assigned_wells: t.assignedWells }),
               });
               if (!r.ok) { const d = await r.json(); alert(d.error || "Duplicate failed"); return; }
               const saved = await r.json();
-              // Reload tickets to pick up the new one with correct data
+              // Reload tickets to pick up the new one
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}`);
               if (tr.ok) {
                 const data = await tr.json();
@@ -3184,8 +3173,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
                   return [...otherJobs, ...mapped];
                 });
+                // Open the new ticket with a date reminder
+                const newTicket = mapped.find(tk => tk.id === saved.id);
+                if (newTicket) {
+                  setViewTicketMode("edit");
+                  setViewTicket({ ...newTicket, _duplicateReminder: true });
+                }
               }
-              setViewTicket(null);
             } catch (err) { alert("Duplicate failed: " + err.message); }
           }}
         />
@@ -3207,37 +3201,49 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
           </div>
         </div>
       )}
-      {resendConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setResendConfirm(null)}>
-          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.coral || "#D85A30"}`, borderRadius: 8, padding: 28, width: 440, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8 }}>Resend Signature Request?</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-              A signature request was sent on <strong>{resendConfirm.emailedAt ? new Date(resendConfirm.emailedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : "a previous date"}</strong>.
+      {emailConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setEmailConfirm(null)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8 }}>
+              {emailConfirm.emailedAt ? "Resend Signature Request?" : "Send Signature Request"}
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>RECIPIENT</label>
+            {emailConfirm.emailedAt && (
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
+                Last sent: <strong>{new Date(emailConfirm.emailedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</strong>
+              </div>
+            )}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>TO</label>
               <input
                 style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, marginTop: 4, boxSizing: "border-box" }}
-                value={resendEmail} onChange={e => setResendEmail(e.target.value)}
-                placeholder="email@company.com"
+                value={emailConfirmTo} onChange={e => setEmailConfirmTo(e.target.value)}
+                placeholder="recipient@company.com"
+              />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>CC (optional)</label>
+              <input
+                style={{ width: "100%", padding: "10px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 14, marginTop: 4, boxSizing: "border-box" }}
+                value={emailConfirmCc} onChange={e => setEmailConfirmCc(e.target.value)}
+                placeholder="cc@company.com"
               />
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn variant="blue" onClick={async () => {
-                const email = resendEmail.trim();
+                const email = emailConfirmTo.trim();
                 if (!email) { alert("Enter a recipient email."); return; }
                 try {
-                  await handleUpdate(resendConfirm.ticketId, { emailTo: email });
-                  const r = await fetch(`${API_URL}/signature/send/${resendConfirm.ticketId}`, {
+                  await handleUpdate(emailConfirm.ticketId, { emailTo: email });
+                  const r = await fetch(`${API_URL}/signature/send/${emailConfirm.ticketId}`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ performed_by: currentUser?.name }),
                   });
                   if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
-                  setTickets(prev => prev.map(tk => tk.id === resendConfirm.ticketId ? { ...tk, emailTo: email, emailedAt: new Date().toISOString() } : tk));
-                  setResendConfirm(null);
+                  setTickets(prev => prev.map(tk => tk.id === emailConfirm.ticketId ? { ...tk, status: "emailed", emailTo: email, emailedAt: new Date().toISOString() } : tk));
+                  setEmailConfirm(null);
                 } catch (err) { alert("Email send failed: " + err.message); }
               }}>SEND</Btn>
-              <Btn variant="ghost" onClick={() => setResendConfirm(null)}>CANCEL</Btn>
+              <Btn variant="ghost" onClick={() => setEmailConfirm(null)}>CANCEL</Btn>
             </div>
           </div>
         </div>
@@ -4972,7 +4978,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.25</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.26</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
