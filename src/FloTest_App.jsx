@@ -183,8 +183,241 @@ function LoginScreen({ onLogin }) {
 }
 
 // ─── APP WRAPPER (handles auth state) ────────────────────────────────────────
+// ─── PUBLIC SIGNATURE PAGE (no login required) ───────────────────────────────
+const API_URL_PUBLIC = "https://fti-app-production.up.railway.app/api";
+
+function PublicSignPage({ token }) {
+  const [ticket, setTicket] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [printedName, setPrintedName] = useState("");
+  const [commentName, setCommentName] = useState("");
+  const [commentMsg, setCommentMsg] = useState("");
+  const [comments, setComments] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+  const [done, setDone] = useState(false);
+  const [isSigned, setIsSigned] = useState(false);
+  const canvasRef = useRef(null);
+  const isDrawing = useRef(false);
+  const lastPoint = useRef(null);
+
+  useEffect(() => {
+    fetch(`${API_URL_PUBLIC}/signature/${token}`)
+      .then(async r => {
+        if (r.status === 410) { setError("This signature link has expired."); setLoading(false); return; }
+        if (!r.ok) { setError("Invalid or expired link."); setLoading(false); return; }
+        const data = await r.json();
+        setTicket(data);
+        setComments(data.comments || []);
+        setIsSigned(data.isSigned || false);
+        setLoading(false);
+      })
+      .catch(() => { setError("Unable to load ticket."); setLoading(false); });
+  }, [token]);
+
+  const getPos = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
+    return { x: (touch.clientX - rect.left) * (canvasRef.current.width / rect.width), y: (touch.clientY - rect.top) * (canvasRef.current.height / rect.height) };
+  };
+  const startDraw = (e) => { e.preventDefault(); isDrawing.current = true; lastPoint.current = getPos(e); };
+  const draw = (e) => {
+    if (!isDrawing.current) return;
+    e.preventDefault();
+    const ctx = canvasRef.current.getContext("2d");
+    const p = getPos(e);
+    ctx.beginPath(); ctx.moveTo(lastPoint.current.x, lastPoint.current.y);
+    ctx.lineTo(p.x, p.y); ctx.strokeStyle = "#1a2340"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.stroke();
+    lastPoint.current = p;
+  };
+  const endDraw = () => { isDrawing.current = false; lastPoint.current = null; };
+  const clearSig = () => { const ctx = canvasRef.current.getContext("2d"); ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); };
+
+  const isCanvasBlank = () => {
+    const c = canvasRef.current, blank = document.createElement("canvas");
+    blank.width = c.width; blank.height = c.height;
+    return c.toDataURL() === blank.toDataURL();
+  };
+
+  const handleSign = async () => {
+    if (!printedName.trim()) { alert("Please enter your printed name."); return; }
+    if (isCanvasBlank()) { alert("Please provide your signature."); return; }
+    setSubmitting(true);
+    try {
+      const sigImg = canvasRef.current.toDataURL("image/png");
+      const r = await fetch(`${API_URL_PUBLIC}/signature/${token}/sign`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signed_by: printedName.trim(), signature_img: sigImg }),
+      });
+      if (!r.ok) { const d = await r.json(); alert(d.error || "Signature failed."); setSubmitting(false); return; }
+      setDone(true); setIsSigned(true);
+      setTicket(prev => ({ ...prev, isSigned: true, signed_by: printedName.trim(), signed_at: new Date().toISOString(), signature_img: sigImg }));
+    } catch { alert("Network error. Please try again."); setSubmitting(false); }
+  };
+
+  const handleComment = async () => {
+    if (!commentName.trim() || !commentMsg.trim()) { alert("Please enter your name and comment."); return; }
+    setSendingComment(true);
+    try {
+      const r = await fetch(`${API_URL_PUBLIC}/signature/${token}/comment`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ author: commentName.trim(), message: commentMsg.trim() }),
+      });
+      if (!r.ok) { const d = await r.json(); alert(d.error || "Comment failed."); setSendingComment(false); return; }
+      setComments(prev => [...prev, { author: commentName.trim(), author_type: "site_mgr", message: commentMsg.trim(), created_at: new Date().toISOString() }]);
+      setCommentMsg("");
+      setSendingComment(false);
+    } catch { alert("Network error."); setSendingComment(false); }
+  };
+
+  let wells = [];
+  if (ticket?.well_name) {
+    try {
+      const parsed = typeof ticket.well_name === "string" ? JSON.parse(ticket.well_name) : ticket.well_name;
+      if (Array.isArray(parsed)) wells = parsed.map(w => w.well_name).filter(Boolean);
+    } catch { wells = [ticket.well_name]; }
+  }
+
+  const grandTotal = (ticket?.lineItems || []).reduce((sum, li) =>
+    sum + (parseFloat(li.rate) || 0) * (parseFloat(li.qty) || 0) * (parseFloat(li.days) || 1), 0);
+
+  const S = {
+    page: { minHeight: "100vh", background: "#f0f3f8", fontFamily: "system-ui, sans-serif", padding: "24px 16px", color: "#1a2340" },
+    card: { maxWidth: 700, margin: "0 auto", background: "#fff", borderRadius: 8, border: "1px solid #d0d8e8", overflow: "hidden" },
+    header: { background: "#B01020", padding: "16px 24px", color: "#fff" },
+    body: { padding: "24px" },
+    row: { display: "flex", gap: 16, marginBottom: 8, fontSize: 14 },
+    label: { fontWeight: 700, minWidth: 120 },
+    table: { width: "100%", borderCollapse: "collapse", fontSize: 13, marginTop: 16 },
+    th: { padding: "8px 10px", background: "#f0f3f8", borderBottom: "2px solid #d0d8e8", textAlign: "left", fontWeight: 700 },
+    td: { padding: "8px 10px", borderBottom: "1px solid #e4e9f2" },
+    tdR: { padding: "8px 10px", borderBottom: "1px solid #e4e9f2", textAlign: "right" },
+    tdC: { padding: "8px 10px", borderBottom: "1px solid #e4e9f2", textAlign: "center" },
+    input: { width: "100%", padding: "10px 12px", border: "1px solid #d0d8e8", borderRadius: 6, fontSize: 15, marginTop: 4, boxSizing: "border-box" },
+    textarea: { width: "100%", padding: "10px 12px", border: "1px solid #d0d8e8", borderRadius: 6, fontSize: 14, marginTop: 4, minHeight: 80, resize: "vertical", boxSizing: "border-box" },
+    btn: { background: "#B01020", color: "#fff", border: "none", borderRadius: 6, padding: "12px 32px", fontSize: 16, fontWeight: 700, cursor: "pointer" },
+    btnSm: { background: "#1a5fa8", color: "#fff", border: "none", borderRadius: 6, padding: "8px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer" },
+  };
+
+  if (loading) return <div style={S.page}><div style={{ ...S.card, padding: 40, textAlign: "center" }}>Loading ticket...</div></div>;
+  if (error) return <div style={S.page}><div style={{ ...S.card, padding: 40, textAlign: "center" }}><p style={{ fontSize: 18, fontWeight: 600 }}>{error}</p></div></div>;
+
+  const signedNow = done || isSigned;
+
+  return (
+    <div style={S.page}>
+      <div style={S.card}>
+        <div style={S.header}>
+          <h2 style={{ margin: 0, fontSize: 20 }}>Flo-Test Inc. — Field Ticket</h2>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{signedNow ? "Signed" : "Signature Requested"}</div>
+        </div>
+        <div style={S.body}>
+          <div style={S.row}><span style={S.label}>Job #</span><span>{ticket.job_num}</span></div>
+          <div style={S.row}><span style={S.label}>Customer</span><span>{ticket.customer}</span></div>
+          <div style={S.row}><span style={S.label}>Type</span><span>{(ticket.type || "").toUpperCase()}</span></div>
+          <div style={S.row}><span style={S.label}>Date</span><span>{ticket.date ? new Date(ticket.date).toLocaleDateString("en-US") : ""}</span></div>
+          {wells.length > 0 && <div style={S.row}><span style={S.label}>Well(s)</span><span>{wells.join(", ")}</span></div>}
+          <div style={S.row}><span style={S.label}>Location</span><span>{ticket.location_county}, {ticket.location_state}</span></div>
+          {ticket.notes && <div style={S.row}><span style={S.label}>Notes</span><span>{ticket.notes}</span></div>}
+
+          <table style={S.table}>
+            <thead><tr>
+              <th style={S.th}>Description</th>
+              <th style={{ ...S.th, textAlign: "right" }}>Rate</th>
+              <th style={{ ...S.th, textAlign: "center" }}>Qty</th>
+              <th style={{ ...S.th, textAlign: "center" }}>Days</th>
+              <th style={{ ...S.th, textAlign: "right" }}>Total</th>
+            </tr></thead>
+            <tbody>{(ticket.lineItems || []).map((li, i) => {
+              const t = (parseFloat(li.rate) || 0) * (parseFloat(li.qty) || 0) * (parseFloat(li.days) || 1);
+              return (<tr key={i}>
+                <td style={S.td}>{li.description}</td><td style={S.tdR}>${parseFloat(li.rate || 0).toFixed(2)}</td>
+                <td style={S.tdC}>{li.qty}</td><td style={S.tdC}>{li.days || 1}</td><td style={S.tdR}>${t.toFixed(2)}</td>
+              </tr>);
+            })}</tbody>
+            <tfoot><tr>
+              <td colSpan={4} style={{ ...S.td, textAlign: "right", fontWeight: 700, borderTop: "2px solid #d0d8e8" }}>Grand Total</td>
+              <td style={{ ...S.tdR, fontWeight: 700, borderTop: "2px solid #d0d8e8" }}>${grandTotal.toFixed(2)}</td>
+            </tr></tfoot>
+          </table>
+
+          {/* Signature Section */}
+          <div style={{ marginTop: 28, borderTop: "2px solid #d0d8e8", paddingTop: 20 }}>
+            {signedNow ? (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: "#1a7a3c" }}>✓ Ticket Signed</div>
+                <div style={S.row}><span style={S.label}>Signed By</span><span>{ticket.signed_by}</span></div>
+                <div style={S.row}><span style={S.label}>Signed At</span><span>{ticket.signed_at ? new Date(ticket.signed_at).toLocaleString("en-US") : ""}</span></div>
+                {ticket.signature_img && <img src={ticket.signature_img} alt="Signature" style={{ border: "1px solid #d0d8e8", borderRadius: 6, maxWidth: "100%", height: 100, objectFit: "contain", background: "#fafbfc" }} />}
+              </>
+            ) : (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Sign Below</div>
+                <div style={{ fontSize: 12, color: "#4a5570", marginBottom: 10 }}>Print your name, then sign in the box below.</div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontWeight: 600, fontSize: 13 }}>Printed Name</label>
+                  <input style={S.input} value={printedName} onChange={e => setPrintedName(e.target.value)} placeholder="Your full name" />
+                </div>
+                <div style={{ border: "1px solid #d0d8e8", borderRadius: 6, background: "#fafbfc", position: "relative" }}>
+                  <canvas ref={canvasRef} width={650} height={160}
+                    style={{ width: "100%", height: 160, touchAction: "none", cursor: "crosshair" }}
+                    onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
+                    onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw} />
+                  <button type="button" onClick={clearSig}
+                    style={{ position: "absolute", top: 6, right: 6, background: "#e4e9f2", border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 12, cursor: "pointer" }}>Clear</button>
+                </div>
+                <div style={{ marginTop: 16, textAlign: "center" }}>
+                  <button style={{ ...S.btn, opacity: submitting ? 0.6 : 1 }} onClick={handleSign} disabled={submitting}>
+                    {submitting ? "Submitting..." : "Submit Signature"}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Comment Thread */}
+          <div style={{ marginTop: 28, borderTop: "2px solid #d0d8e8", paddingTop: 20 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Comments</div>
+            {comments.length === 0 && <div style={{ fontSize: 13, color: "#4a5570", marginBottom: 12 }}>No comments yet.</div>}
+            {comments.map((c, i) => {
+              const who = c.author_type === "fti" ? `Flo-Test (${c.author})` : `${c.author} (Site)`;
+              const bg = c.author_type === "fti" ? "#e8f0fb" : "#fef9e7";
+              const time = new Date(c.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+              return (
+                <div key={i} style={{ background: bg, borderRadius: 6, padding: "10px 14px", marginBottom: 8 }}>
+                  <div style={{ fontSize: 12, color: "#4a5570", marginBottom: 4 }}><strong>{who}</strong> · {time}</div>
+                  <div style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{c.message}</div>
+                </div>
+              );
+            })}
+            <div style={{ marginTop: 12 }}>
+              <label style={{ fontWeight: 600, fontSize: 13 }}>Your Name</label>
+              <input style={S.input} value={commentName} onChange={e => setCommentName(e.target.value)} placeholder="Your name" />
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <label style={{ fontWeight: 600, fontSize: 13 }}>Comment</label>
+              <textarea style={S.textarea} value={commentMsg} onChange={e => setCommentMsg(e.target.value)} placeholder="Questions, clarifications, or notes..." />
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <button style={{ ...S.btnSm, opacity: sendingComment ? 0.6 : 1 }} onClick={handleComment} disabled={sendingComment}>
+                {sendingComment ? "Sending..." : "Send Comment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function AppWrapper() {
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Public signature page — intercept /sign/:token before login
+  const signMatch = window.location.pathname.match(/^\/sign\/(.+)$/);
+  if (signMatch) return <PublicSignPage token={signMatch[1]} />;
 
   // Check for saved session
   useEffect(() => {
@@ -1887,6 +2120,20 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
   const [showSigOptions, setShowSigOptions] = useState(false);
   const [showQBConfirm, setShowQBConfirm] = useState(false);
   const [showUnsavedClose, setShowUnsavedClose] = useState(false);
+  const [tdComments, setTdComments] = useState([]);
+  const [tdReply, setTdReply] = useState("");
+  const [tdSending, setTdSending] = useState(false);
+  const [tdLoading, setTdLoading] = useState(false);
+
+  // Load comments when ticket opens
+  useEffect(() => {
+    if (!ticket.id) return;
+    setTdLoading(true);
+    fetch(`${API_URL}/signature/comments/${ticket.id}`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { setTdComments(data); setTdLoading(false); })
+      .catch(() => setTdLoading(false));
+  }, [ticket.id]);
 
   const handleClose = () => {
     if (isFullyLocked) { onClose(); return; }
@@ -1978,11 +2225,20 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
     save({ status: "sentToQB", sentToQBAt: new Date().toISOString() });
   };
 
-  const handleEmailTicket = () => {
+  const handleEmailTicket = async () => {
     if (!emailTo.some(e => e.trim())) return;
     const emailToStr = emailTo.filter(e => e.trim()).join(", ");
-    setStatus("emailed");
-    save({ status: "emailed", emailTo: emailToStr, emailCc, emailedAt: new Date().toISOString() });
+    try {
+      // Save emailTo first
+      await save({ emailTo: emailToStr, emailCc });
+      const r = await fetch(`${API_URL}/signature/send/${ticket.id}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ performed_by: CURRENT_USER }),
+      });
+      if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
+      setStatus("emailed");
+      save({ status: "emailed", emailTo: emailToStr, emailCc, emailedAt: new Date().toISOString() });
+    } catch (err) { alert("Email send failed: " + err.message); }
   };
 
   return (
@@ -2171,6 +2427,60 @@ function TicketDetail({ ticket, onUpdate, onClose, jobs, qbItems, currentUser, o
           {showSigPad && (
             <SignaturePad onSign={handleSign} onCancel={() => setShowSigPad(false)} />
           )}
+
+          {/* ── Comment Thread ── */}
+          <div style={{ marginTop: 20, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>Site Manager Comments</span>
+              {(ticket.hasPendingComment || ticket.has_pending_comment) && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                  COMMENT PENDING
+                </span>
+              )}
+            </div>
+            {tdLoading && <div style={{ fontSize: 12, color: C.muted }}>Loading comments...</div>}
+            {!tdLoading && tdComments.length === 0 && <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>No comments yet.</div>}
+            {tdComments.map((c, i) => {
+              const who = c.author_type === "fti" ? `Flo-Test (${c.author})` : `${c.author} (Site)`;
+              const bg = c.author_type === "fti" ? "#e8f0fb" : "#fef9e7";
+              const time = new Date(c.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+              return (
+                <div key={i} style={{ background: bg, borderRadius: 6, padding: "8px 12px", marginBottom: 6 }}>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}><strong>{who}</strong> · {time}</div>
+                  <div style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{c.message}</div>
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-end" }}>
+              <textarea
+                style={{ flex: 1, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minHeight: 50, resize: "vertical", boxSizing: "border-box" }}
+                value={tdReply} onChange={e => setTdReply(e.target.value)}
+                placeholder="Reply to site manager..."
+              />
+              <button type="button"
+                style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: tdSending ? 0.6 : 1, whiteSpace: "nowrap", height: 36 }}
+                disabled={tdSending || !tdReply.trim()}
+                onClick={async () => {
+                  if (!tdReply.trim()) return;
+                  setTdSending(true);
+                  try {
+                    const r = await fetch(`${API_URL}/signature/reply/${ticket.id}`, {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ author: currentUser?.name || "FTI", message: tdReply.trim() }),
+                    });
+                    if (!r.ok) { const d = await r.json(); alert(d.error || "Reply failed"); setTdSending(false); return; }
+                    setTdComments(prev => [...prev, { author: currentUser?.name || "FTI", author_type: "fti", message: tdReply.trim(), created_at: new Date().toISOString() }]);
+                    setTdReply("");
+                    // Clear pending flag locally
+                    if (onUpdate) onUpdate(ticket.id, { hasPendingComment: false, has_pending_comment: false });
+                  } catch (err) { alert("Reply failed: " + err.message); }
+                  setTdSending(false);
+                }}>
+                {tdSending ? "Sending..." : "Reply & Email"}
+              </button>
+            </div>
+          </div>
 
         </div>
 
@@ -2565,6 +2875,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         const isSigned = ["signed", "sigNotReq", "emailed", "approved", "sentToQB", "qbVerified"].includes(t.status);
         const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";
         const isEmailed = !!t.emailedAt;
+        const hasPendingComment = !!t.hasPendingComment || !!t.has_pending_comment;
         const canSendToQB = isSigned && isApproved;
 
         // Button styles
@@ -2630,6 +2941,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               </div>
               <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>#{t.jobId} · {formatDate(t.date)}</span>
               <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
+              {hasPendingComment && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                  COMMENT PENDING
+                </span>
+              )}
             </div>
 
             {/* Right: action buttons + total */}
@@ -2657,7 +2974,16 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 <button type="button"
                   style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
                   onClick={async () => {
-                    await handleUpdate(t.id, { emailTo: custEmail, emailedAt: new Date().toISOString() });
+                    try {
+                      // Save emailTo first if not already set
+                      if (!t.emailTo) await handleUpdate(t.id, { emailTo: custEmail });
+                      const r = await fetch(`${API_URL}/signature/send/${t.id}`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ performed_by: currentUser?.name }),
+                      });
+                      if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
+                      setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, status: "emailed", emailTo: custEmail, emailedAt: new Date().toISOString() } : tk));
+                    } catch (err) { alert("Email send failed: " + err.message); }
                   }}>
                   {isEmailed ? "✓ RESEND" : "EMAIL TICKET"}
                 </button>
@@ -4143,6 +4469,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           sigNotReqNote: t.sig_not_req_note,
           notes: t.notes,
           emailedAt: t.emailed_at || null,
+          emailTo: t.email_to || null,
+          hasPendingComment: t.has_pending_comment || false,
           missingPieces: t.missing_pieces,
           locked: t.locked,
           assignedWells: t.assigned_wells || [],
@@ -4442,7 +4770,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.19</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.20</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
