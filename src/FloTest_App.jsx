@@ -2243,6 +2243,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     }
     setIsEditing(false);
     setSigWiped(false);
+    onClose();
   };
 
   const handleSigNotRequired = () => {
@@ -2442,7 +2443,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {showSigOptions && (
             <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginTop: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 10 }}>REASON SIGNATURE NOT REQUIRED</div>
-              {[["not_available", "Customer requires signature but is not available"], ["not_required", "Customer does not require field signature"], ["other", "Other"]].map(([val, lbl]) => (
+              {[["not_required", "Customer does not require field signature"], ["other", "Other"]].map(([val, lbl]) => (
                 <div key={val} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer" }} onClick={() => setSigNotReqReason(sigNotReqReason === val ? null : val)}>
                   <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${sigNotReqReason === val ? C.blue : C.border}`, background: sigNotReqReason === val ? C.blue : "transparent" }} />
                   <span style={{ fontSize: 12, fontWeight: 700 }}>{lbl}</span>
@@ -2546,7 +2547,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Editable — save/sign buttons */}
           {!isLocked && !showSigPad && !showSigOptions && (
             <>
-              <Btn onClick={handleSave}>SAVE TICKET</Btn>
+              <Btn onClick={handleSave}>SAVE & CLOSE</Btn>
               {!sigWiped && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
               {!sigWiped && !signedBy && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
             </>
@@ -5039,7 +5040,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.27</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.28</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
