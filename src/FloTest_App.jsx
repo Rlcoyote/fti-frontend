@@ -303,6 +303,33 @@ function PublicSignPage({ token }) {
   if (loading) return <div style={S.page}><div style={{ ...S.card, padding: 40, textAlign: "center" }}>Loading ticket...</div></div>;
   if (error) return <div style={S.page}><div style={{ ...S.card, padding: 40, textAlign: "center" }}><p style={{ fontSize: 18, fontWeight: 600 }}>{error}</p></div></div>;
 
+  // Voided ticket — show notice with link to replacement
+  if (ticket.isVoided) {
+    const repNum = ticket.replacementInfo ? `${ticket.job_num}-${ticket.replacementInfo.ticketNumber}` : null;
+    const repLink = ticket.replacementInfo?.signToken ? `/sign/${ticket.replacementInfo.signToken}` : null;
+    return (
+      <div style={S.page}>
+        <div style={S.card}>
+          <div style={{ ...S.header, background: "#B01020" }}>
+            <h2 style={{ margin: 0, fontSize: 20, color: "#fff" }}>Flo-Test Inc. — Ticket Voided</h2>
+          </div>
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>✕</div>
+            <h2 style={{ color: "#B01020", margin: "8px 0" }}>Ticket #{ticket.job_num}{ticket.ticket_number ? `-${ticket.ticket_number}` : ""} has been voided</h2>
+            <p style={{ color: "#4a5570", fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>
+              This ticket is no longer valid. {repNum ? `It has been replaced by ticket #${repNum}.` : "A replacement ticket will be sent separately."}
+            </p>
+            {repLink && (
+              <a href={repLink} style={{ display: "inline-block", background: "#002868", color: "#fff", padding: "12px 28px", borderRadius: 6, textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
+                View Replacement Ticket #{repNum}
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const signedNow = done || isSigned;
 
   return (
@@ -3288,6 +3315,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               });
               if (!r.ok) { const d = await r.json(); alert(d.error || "Revise failed"); return; }
               const saved = await r.json();
+              // Send void notification email for the old ticket
+              try {
+                await fetch(`${API_URL}/signature/void-notify/${t.id}`, {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ new_ticket_number: saved.ticket_number, new_ticket_id: saved.id }),
+                });
+              } catch (e) { console.log("Void notify failed:", e); }
               // Reload all tickets for this job (includes voided + new)
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
               if (tr.ok) {
@@ -5114,7 +5148,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.31</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.32</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
