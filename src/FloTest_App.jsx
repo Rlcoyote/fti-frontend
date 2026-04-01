@@ -346,7 +346,13 @@ function PublicSignPage({ token }) {
           <div style={{ marginTop: 28, borderTop: "2px solid #d0d8e8", paddingTop: 20 }}>
             {signedNow ? (
               <>
-                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12, color: "#1a7a3c" }}>✓ Ticket Signed</div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1a7a3c" }}>✓ Ticket Signed</div>
+                  <button type="button" onClick={() => window.print()}
+                    style={{ background: "#002868", color: "#fff", border: "none", borderRadius: 6, padding: "8px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    PRINT
+                  </button>
+                </div>
                 <div style={S.row}><span style={S.label}>Signed By</span><span>{ticket.signed_by}</span></div>
                 <div style={S.row}><span style={S.label}>Signed At</span><span>{ticket.signed_at ? new Date(ticket.signed_at).toLocaleString("en-US") : ""}</span></div>
                 {ticket.signature_img && <img src={ticket.signature_img} alt="Signature" style={{ border: "1px solid #d0d8e8", borderRadius: 6, maxWidth: "100%", height: 100, objectFit: "contain", background: "#fafbfc" }} />}
@@ -2130,6 +2136,20 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [signatureImage, setSignatureImage] = useState(() => ticket.signatureImage || null);
   const [sigWiped, setSigWiped] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Track original values for dirty detection
+  const origRef = useRef({
+    lineItems: JSON.stringify(ticket.lineItems || []),
+    notes: ticket.notes || "",
+    date: ticket.date ? ticket.date.slice(0, 10) : "",
+  });
+  const isDirty = () => {
+    return sigWiped
+      || isEditing
+      || notes !== origRef.current.notes
+      || ticketDate !== origRef.current.date
+      || JSON.stringify(lineItems) !== origRef.current.lineItems;
+  };
   const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
   const [showSigOptions, setShowSigOptions] = useState(false);
   const [showQBConfirm, setShowQBConfirm] = useState(false);
@@ -2183,8 +2203,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   const handleClose = () => {
     if (isFullyLocked || ticket.voidedAt) { onClose(); return; }
-    // Only warn if actively editing or signature was wiped
-    if (isEditing || sigWiped) { setShowUnsavedClose(true); return; }
+    if (isDirty()) { setShowUnsavedClose(true); return; }
     onClose();
   };
 
@@ -2452,57 +2471,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Signature display */}
           {["signed", "approved", "sentToQB", "qbVerified"].includes(status) && signedBy && (
             <div style={{ background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: C.green }}>✓ SIGNED &nbsp; {signedBy} &nbsp; <span style={{ fontWeight: 400, color: C.muted }}>{signedAt ? formatDate(signedAt) : ""}</span></div>
-                <button type="button" onClick={() => {
-                  const wellsList = ticket.assignedWells?.length > 0 ? ticket.assignedWells.join(", ") : (job?.wells || []).map(w => w.well_name || w).join(", ");
-                  const liHtml = lineItems.map((li, i) => `<tr>
-                    <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:center">${i + 1}</td>
-                    <td style="padding:6px 8px;border-bottom:1px solid #ddd">${li.qbCode || ""}</td>
-                    <td style="padding:6px 8px;border-bottom:1px solid #ddd">${li.desc || ""}</td>
-                    <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">$${Number(li.rate || 0).toFixed(2)}</td>
-                    <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:center">${li.qty}</td>
-                    <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:center">${li.um || ""}</td>
-                    <td style="padding:6px 8px;border-bottom:1px solid #ddd;text-align:right">$${((Number(li.rate)||0)*(Number(li.qty)||0)*(Number(li.days)||1)).toFixed(2)}</td>
-                  </tr>`).join("");
-                  const printWin = window.open("", "_blank");
-                  printWin.document.write(`<!DOCTYPE html><html><head><title>Ticket #${ticket.jobId}${ticket.ticketNumber ? "-" + ticket.ticketNumber : ""}</title>
-                    <style>@page{size:letter;margin:0.75in}body{font-family:Arial,sans-serif;font-size:12px;color:#1a2340;max-width:7in;margin:0 auto}
-                    h1{font-size:18px;margin:0 0 4px;color:#B01020}h2{font-size:14px;margin:16px 0 6px;border-bottom:2px solid #B01020;padding-bottom:3px}
-                    table{width:100%;border-collapse:collapse;margin:8px 0}th{background:#f0f3f8;padding:6px 8px;text-align:left;border-bottom:2px solid #ccc;font-size:11px}
-                    .info{display:flex;flex-wrap:wrap;gap:4px 24px;margin:8px 0}.info span{font-size:12px}.lbl{color:#4a5570;font-weight:400}.val{font-weight:700}
-                    .sig-box{border:1px solid #ccc;border-radius:4px;padding:12px;margin:16px 0;background:#fafbfc}
-                    .total{text-align:right;font-size:14px;font-weight:800;margin:8px 0}
-                    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>
-                    <h1>Flo-Test Inc. — Field Ticket</h1>
-                    <div style="font-size:13px;font-weight:700;margin-bottom:12px">Ticket #${ticket.jobId}${ticket.ticketNumber ? "-" + ticket.ticketNumber : ""} — ${ticket.type}</div>
-                    <div class="info">
-                      <span><span class="lbl">Customer: </span><span class="val">${job?.customer || ""}</span></span>
-                      <span><span class="lbl">Date: </span><span class="val">${ticketDate}</span></span>
-                      ${job?.jobState ? `<span><span class="lbl">State: </span><span class="val">${job.jobState}</span></span>` : ""}
-                      ${job?.county ? `<span><span class="lbl">County: </span><span class="val">${job.county}</span></span>` : ""}
-                      <span><span class="lbl">Wells: </span><span class="val">${wellsList}</span></span>
-                      ${job?.afe ? `<span><span class="lbl">AFE: </span><span class="val">${job.afe}</span></span>` : ""}
-                      ${job?.companyCode ? `<span><span class="lbl">Co. Code: </span><span class="val">${job.companyCode}</span></span>` : ""}
-                      ${job?.costCenter ? `<span><span class="lbl">Cost Center: </span><span class="val">${job.costCenter}</span></span>` : ""}
-                      ${job?.po ? `<span><span class="lbl">PO: </span><span class="val">${job.po}</span></span>` : ""}
-                    </div>
-                    <h2>Line Items</h2>
-                    <table><thead><tr><th>#</th><th>Code</th><th>Description</th><th style="text-align:right">Rate</th><th style="text-align:center">Qty</th><th style="text-align:center">U/M</th><th style="text-align:right">Total</th></tr></thead>
-                    <tbody>${liHtml}</tbody></table>
-                    <div class="total">TOTAL: $${total.toFixed(2)}</div>
-                    ${notes ? `<h2>Notes</h2><div style="font-size:12px;white-space:pre-wrap">${notes}</div>` : ""}
-                    <h2>Signature</h2>
-                    <div class="sig-box">
-                      <div style="font-size:12px;font-weight:700;color:#1a7a3c;margin-bottom:6px">✓ SIGNED — ${signedBy} — ${signedAt ? new Date(signedAt).toLocaleDateString("en-US") : ""}</div>
-                      ${signatureImage ? `<img src="${signatureImage}" style="max-width:300px;height:80px;display:block" />` : ""}
-                    </div>
-                    <script>window.onload=function(){window.print();}</script></body></html>`);
-                  printWin.document.close();
-                }} style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 4, padding: "4px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-                  PRINT
-                </button>
-              </div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.green, marginBottom: 6 }}>✓ SIGNED &nbsp; {signedBy} &nbsp; <span style={{ fontWeight: 400, color: C.muted }}>{signedAt ? formatDate(signedAt) : ""}</span></div>
               {signatureImage && <img src={signatureImage} alt="Signature" style={{ maxWidth: 300, height: 80, display: "block", border: `1px solid ${C.border}`, borderRadius: 4, background: C.white }} />}
             </div>
           )}
@@ -5141,7 +5110,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.29</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.30</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
