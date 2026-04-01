@@ -795,13 +795,14 @@ const calcTicketTotal = (t) => t.lineItems.reduce((s, li) => s + calcLineTotal(l
 // Rental cycle countdown helper
 function RentalCountdown({ ticket }) {
   const endDate = ticket.endDate || ticket.end_date;
-  if (!endDate || ticket.type !== "Rental") return null;
+  if (!endDate || endDate === "" || ticket.type !== "Rental") return null;
   if (ticket.cycleEnded || ticket.cycle_ended || ticket.voidedAt || ticket.voided_at) return null;
   const end = new Date(endDate + "T23:59:59");
+  if (isNaN(end.getTime())) return null;
   const now = new Date();
   const diffMs = end - now;
   const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (daysLeft < 0) return null; // cycle check will flag it
+  if (daysLeft < 0 || isNaN(daysLeft)) return null;
   const color = daysLeft <= 1 ? "#B01020" : daysLeft <= 7 ? "#8a6500" : "#1a7a3c";
   const bg = daysLeft <= 1 ? "#fdecea" : daysLeft <= 7 ? "#fdf5d8" : "#e6f5ec";
   const border = daysLeft <= 1 ? "#B0102044" : daysLeft <= 7 ? "#e6c20044" : "#1a7a3c44";
