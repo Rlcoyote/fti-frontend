@@ -789,6 +789,27 @@ const todoVisible = (t) => t.createdBy === CURRENT_USER || t.assignedTo === CURR
 const calcLineTotal = (li) => li.rate * li.qty * (li.days || 1);
 const calcTicketTotal = (t) => t.lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
 
+// Rental cycle countdown helper
+function RentalCountdown({ ticket }) {
+  const endDate = ticket.endDate || ticket.end_date;
+  if (!endDate || ticket.type !== "Rental") return null;
+  if (ticket.cycleEnded || ticket.cycle_ended || ticket.voidedAt || ticket.voided_at) return null;
+  const end = new Date(endDate + "T23:59:59");
+  const now = new Date();
+  const diffMs = end - now;
+  const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (daysLeft < 0) return null; // cycle check will flag it
+  const color = daysLeft <= 1 ? "#B01020" : daysLeft <= 7 ? "#8a6500" : "#1a7a3c";
+  const bg = daysLeft <= 1 ? "#fdecea" : daysLeft <= 7 ? "#fdf5d8" : "#e6f5ec";
+  const border = daysLeft <= 1 ? "#B0102044" : daysLeft <= 7 ? "#e6c20044" : "#1a7a3c44";
+  const label = daysLeft === 0 ? "Last day" : daysLeft === 1 ? "1 day left" : `${daysLeft} days left`;
+  return (
+    <span style={{ background: bg, color, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${border}`, whiteSpace: "nowrap" }}>
+      {label}
+    </span>
+  );
+}
+
 // ─── SHARED UI ────────────────────────────────────────────────────────────────
 const inputStyle = {
   width: "100%", boxSizing: "border-box",
@@ -2422,6 +2443,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               {(ticket.cycleEnded || ticket.cycle_ended) && (
                 <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
               )}
+              <RentalCountdown ticket={ticket} />
             </div>
           </div>
         )}
@@ -3193,6 +3215,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 {cycleEnded && (
                   <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
                 )}
+                <RentalCountdown ticket={t} />
                 {/* Sig button */}
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
@@ -3252,6 +3275,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               {cycleEnded && !t.voidedAt && (
                 <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
               )}
+              <RentalCountdown ticket={t} />
             </div>
 
             {/* Right: action buttons + total */}
@@ -5223,7 +5247,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.33</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.34</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
