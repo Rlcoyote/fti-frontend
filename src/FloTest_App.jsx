@@ -307,13 +307,16 @@ function PublicSignPage({ token }) {
 
   return (
     <div style={S.page}>
+      <style>{`@media print { .no-print { display: none !important; } @page { size: letter; margin: 0.5in; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }`}</style>
       <div style={S.card}>
         <div style={S.header}>
           <h2 style={{ margin: 0, fontSize: 20 }}>Flo-Test Inc. — Field Ticket</h2>
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{signedNow ? "Signed" : "Signature Requested"}</div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>
+            #{ticket.job_num}{ticket.ticket_number ? `-${ticket.ticket_number}` : ""} — {signedNow ? "Signed" : "Signature Requested"}
+          </div>
         </div>
         <div style={S.body}>
-          <div style={S.row}><span style={S.label}>Job #</span><span>{ticket.job_num}</span></div>
+          <div style={S.row}><span style={S.label}>Ticket #</span><span>{ticket.job_num}{ticket.ticket_number ? `-${ticket.ticket_number}` : ""}</span></div>
           <div style={S.row}><span style={S.label}>Customer</span><span>{ticket.customer}</span></div>
           <div style={S.row}><span style={S.label}>Type</span><span>{(ticket.type || "").toUpperCase()}</span></div>
           <div style={S.row}><span style={S.label}>Date</span><span>{ticket.date ? new Date(ticket.date).toLocaleDateString("en-US") : ""}</span></div>
@@ -348,7 +351,7 @@ function PublicSignPage({ token }) {
               <>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ fontWeight: 700, fontSize: 15, color: "#1a7a3c" }}>✓ Ticket Signed</div>
-                  <button type="button" onClick={() => window.print()}
+                  <button type="button" className="no-print" onClick={() => window.print()}
                     style={{ background: "#002868", color: "#fff", border: "none", borderRadius: 6, padding: "8px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
                     PRINT
                   </button>
@@ -383,7 +386,7 @@ function PublicSignPage({ token }) {
           </div>
 
           {/* Comment Thread */}
-          <div style={{ marginTop: 28, borderTop: "2px solid #d0d8e8", paddingTop: 20 }}>
+          <div className="no-print" style={{ marginTop: 28, borderTop: "2px solid #d0d8e8", paddingTop: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Comments</div>
             {comments.length === 0 && <div style={{ fontSize: 13, color: "#4a5570", marginBottom: 12 }}>No comments yet.</div>}
             {comments.map((c, i) => {
@@ -2138,17 +2141,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [isEditing, setIsEditing] = useState(false);
 
   // Track original values for dirty detection
+  const normalizeLI = (items) => (items || []).map(li => `${li.qbCode||li.qb_code}|${li.desc||li.description}|${li.rate}|${li.qty}|${li.um||li.unit_measure}|${li.days||1}`).join("~");
   const origRef = useRef({
-    lineItems: JSON.stringify(ticket.lineItems || []),
+    lineItems: normalizeLI(ticket.lineItems),
     notes: ticket.notes || "",
     date: ticket.date ? ticket.date.slice(0, 10) : "",
   });
   const isDirty = () => {
-    return sigWiped
-      || isEditing
-      || notes !== origRef.current.notes
-      || ticketDate !== origRef.current.date
-      || JSON.stringify(lineItems) !== origRef.current.lineItems;
+    if (sigWiped || isEditing) return true;
+    if (notes !== origRef.current.notes) return true;
+    if (ticketDate !== origRef.current.date) return true;
+    if (normalizeLI(lineItems) !== origRef.current.lineItems) return true;
+    return false;
   };
   const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
   const [showSigOptions, setShowSigOptions] = useState(false);
@@ -5110,7 +5114,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.30</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.31</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
