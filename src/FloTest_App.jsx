@@ -3771,7 +3771,7 @@ function AddItemModal({ onSave, onClose }) {
 }
 
 // ─── NEW JOB MODAL ────────────────────────────────────────────────────────────
-function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) {
+function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
   const [custSearch, setCustSearch] = useState("");
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
@@ -3856,7 +3856,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
     setErrors({});
     const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
     onCreateJob({
-      id: nextJobId,
+      id: null, // Backend assigns ID
       customer: custSearch.trim(),
       location: [county, jobState].filter(Boolean).join(", ") || "TBD",
       jobState, county,
@@ -3883,7 +3883,7 @@ function NewJobModal({ onClose, onCreateJob, nextJobId, customers, userNames }) 
         borderTop: `3px solid ${C.red}`, borderRadius: 8,
         padding: 28, width: 640, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW JOB — #{nextJobId}</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW JOB</div>
 
         {/* Customer */}
         <div style={{ marginBottom: 14, position: "relative" }}>
@@ -4819,15 +4819,9 @@ function FTIDashboard({ currentUser, onLogout }) {
     setExpandedId(jobId);
   };
 
-  const nextJobId = useMemo(() => {
-    if (jobs.length === 0) return 300001;
-    return Math.max(...jobs.map(j => j.id)) + 1;
-  }, [jobs]);
-
   const handleCreateJob = async (newJob) => {
     const cust = customers.find(c => c.name === newJob.customer);
     const payload = {
-      id: newJob.id,
       customer_id: cust?.id || null,
       location: newJob.location,
       job_state: newJob.jobState || null,
@@ -4856,8 +4850,10 @@ function FTIDashboard({ currentUser, onLogout }) {
         body: JSON.stringify(payload),
       });
       if (r.ok) {
+        const saved = await r.json();
         const mappedJob = {
           ...newJob,
+          id: saved.id,
           wsmEmail: newJob.email || "",
           wsm_email: newJob.email || "",
           wsmPhone: newJob.phone || "",
@@ -4868,7 +4864,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         };
         setJobs(prev => [mappedJob, ...prev]);
         setShowNewJob(false);
-        setExpandedId(newJob.id);
+        setExpandedId(saved.id);
       }
     } catch (err) { console.error("Create job failed:", err); }
   };
@@ -5197,7 +5193,7 @@ function FTIDashboard({ currentUser, onLogout }) {
 
       {/* NEW JOB MODAL */}
       {showNewJob && (
-        <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} nextJobId={nextJobId} customers={customers} userNames={userNames} />
+        <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} customers={customers} userNames={userNames} />
       )}
     </div>
   );
