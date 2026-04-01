@@ -2409,6 +2409,23 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </div>
         )}
 
+        {/* Rental cycle info */}
+        {ticket.type === "Rental" && (ticket.startDate || ticket.start_date) && (
+          <div style={{ background: "#f8f4e8", borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
+              <span><span style={{ color: C.muted }}>Start: </span><strong>{formatDate(ticket.startDate || ticket.start_date)}</strong></span>
+              <span><span style={{ color: C.muted }}>End: </span><strong>{formatDate(ticket.endDate || ticket.end_date)}</strong></span>
+              <span><span style={{ color: C.muted }}>Cycle: </span><strong>{ticket.cycleDays || ticket.cycle_days || 28} days</strong></span>
+              <span style={{ color: (ticket.isRecurring || ticket.is_recurring) ? C.green : C.muted, fontWeight: 700 }}>
+                {(ticket.isRecurring || ticket.is_recurring) ? "● Recurring" : "○ Not recurring"}
+              </span>
+              {(ticket.cycleEnded || ticket.cycle_ended) && (
+                <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
 
@@ -2802,7 +2819,18 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
   const [lineItems, setLineItems] = useState([]);
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(today());
+  const [startDate, setStartDate] = useState(today());
+  const [cycleDays, setCycleDays] = useState(28);
+  const [isRecurring, setIsRecurring] = useState(true);
   const [showUnsaved, setShowUnsaved] = useState(false);
+
+  // Auto-calculate end date for rental
+  const endDate = useMemo(() => {
+    if (!startDate || !cycleDays) return "";
+    const d = new Date(startDate + "T00:00:00");
+    d.setDate(d.getDate() + (cycleDays - 1));
+    return d.toISOString().slice(0, 10);
+  }, [startDate, cycleDays]);
 
   const isDirty = type || lineItems.length > 0 || notes;
 
@@ -2825,6 +2853,12 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
         if (ruTicket.notes) setNotes(ruTicket.notes);
       }
     }
+    // Set rental defaults
+    if (t === "Rental") {
+      setStartDate(today());
+      setCycleDays(28);
+      setIsRecurring(true);
+    }
   };
 
   const toggleWell = (well) => {
@@ -2838,12 +2872,14 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
 
   const handleSave = () => {
     if (!type) return;
+    const isRental = type === "Rental";
     onSave({
-      jobId, type, status: "draft", date,
+      jobId, type, status: "draft", date: isRental ? startDate : date,
       signedBy: null, signedAt: null,
       lineItems, notes,
       assignedWells: assignedWells ?? jobWells,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
+      ...(isRental ? { startDate, endDate, cycleDays: parseInt(cycleDays) || 28, isRecurring } : {}),
     });
   };
 
@@ -2957,8 +2993,33 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
               }}>← CHANGE TYPE</button>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>DATE</label>
-              <input type="date" style={{ ...inputStyle, width: 180 }} value={date} onChange={e => setDate(e.target.value)} />
+              {type === "Rental" ? (
+                <>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+                    <div>
+                      <label style={labelStyle}>START DATE</label>
+                      <input type="date" style={{ ...inputStyle, width: 160 }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>CYCLE (DAYS)</label>
+                      <input type="number" style={{ ...inputStyle, width: 80 }} value={cycleDays} onChange={e => setCycleDays(e.target.value)} min={1} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>END DATE</label>
+                      <input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8" }} value={endDate} readOnly />
+                    </div>
+                  </div>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}>
+                    <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
+                    Recurring (auto-create next cycle ticket)
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label style={labelStyle}>DATE</label>
+                  <input type="date" style={{ ...inputStyle, width: 180 }} value={date} onChange={e => setDate(e.target.value)} />
+                </>
+              )}
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
             <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} />
@@ -3017,6 +3078,10 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       job_id: ticketData.jobId, type: ticketData.type, status: ticketData.status || "draft",
       date: ticketData.date, notes: ticketData.notes,
       assigned_wells: ticketData.assignedWells || [],
+      start_date: ticketData.startDate || null,
+      end_date: ticketData.endDate || null,
+      cycle_days: ticketData.cycleDays || 28,
+      is_recurring: ticketData.isRecurring || false,
       lineItems: (ticketData.lineItems || []).map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
       })),
@@ -3083,6 +3148,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";
         const isEmailed = !!t.emailedAt;
         const hasPendingComment = !!t.hasPendingComment || !!t.has_pending_comment;
+        const cycleEnded = !!t.cycleEnded || !!t.cycle_ended;
         const canSendToQB = isSigned && isApproved;
 
         // Button styles
@@ -3124,6 +3190,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 {t.voidedAt ? (
                   <span style={{ background: "#fdecea", color: C.red, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #B0102044" }}>VOIDED</span>
                 ) : (<>
+                {cycleEnded && (
+                  <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
+                )}
                 {/* Sig button */}
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
@@ -3179,6 +3248,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               )}
               {t.voidedAt && (
                 <span style={{ background: "#fdecea", color: C.red, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>VOIDED</span>
+              )}
+              {cycleEnded && !t.voidedAt && (
+                <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
               )}
             </div>
 
@@ -3288,7 +3360,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   locked: tk.locked, ticketNumber: tk.ticket_number || null,
                   startDate: tk.start_date || null, endDate: tk.end_date || null,
                   cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
-                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null,
+                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false,
                   assignedWells: tk.assigned_wells || [],
                   lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
                     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
@@ -3335,7 +3407,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   locked: tk.locked, ticketNumber: tk.ticket_number || null,
                   startDate: tk.start_date || null, endDate: tk.end_date || null,
                   cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
-                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null,
+                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false,
                   assignedWells: tk.assigned_wells || [],
                   lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
                     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
@@ -4844,7 +4916,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           endDate: t.end_date || null,
           cycleDays: t.cycle_days || 28,
           isRecurring: t.is_recurring || false,
-          voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null, revisionOf: t.revision_of || null,
+          voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null, revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false,
           assignedWells: t.assigned_wells || [],
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
             qbCode: li.qb_code,
@@ -4901,6 +4973,9 @@ function FTIDashboard({ currentUser, onLogout }) {
         setUsers(usersR || []);
         setCustomers(custR || []);
         setQbItems(qbMapped);
+
+        // Trigger rental cycle check on load
+        fetch(`${API_URL}/tickets/check-cycles`, { method: "POST" }).catch(() => {});
       } catch (err) {
         console.error("Failed to load data:", err);
       } finally {
@@ -5148,7 +5223,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.32</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.33</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
