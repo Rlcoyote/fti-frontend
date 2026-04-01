@@ -1781,8 +1781,13 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const [wellName, setWellName] = useState(jsa?.wellName || jsa?.well_name || wellsList[0] || "");
   const [time, setTime] = useState(jsa?.time || "");
   const [designatedDriver, setDesignatedDriver] = useState(jsa?.designatedDriver || "");
-  const [lat, setLat] = useState(jsa?.lat || "");
-  const [lng, setLng] = useState(jsa?.lng || "");
+  const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || "");
+  const [lng, setLng] = useState(jsa?.lng || jsa?.longitude || "");
+  const [mapLink, setMapLink] = useState(() => {
+    const la = jsa?.lat || jsa?.latitude;
+    const ln = jsa?.lng || jsa?.longitude;
+    return (la && ln) ? `${la}, ${ln}` : "";
+  });
   const [weather, setWeather] = useState(jsa?.weather || []);
   const [ppe, setPpe] = useState(jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false });
   const [signatures, setSignatures] = useState(jsa?.signatures || [""]);
@@ -1825,10 +1830,44 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             <div><label style={labelStyle}>WELL NAME & #</label><input style={inputStyle} value={wellName} onChange={e => setWellName(e.target.value)} /></div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
             <div><label style={labelStyle}>DESIGNATED DRIVER</label><input style={inputStyle} value={designatedDriver} onChange={e => setDesignatedDriver(e.target.value)} /></div>
-            <div><label style={labelStyle}>LATITUDE</label><input style={inputStyle} value={lat} onChange={e => setLat(e.target.value)} /></div>
-            <div><label style={labelStyle}>LONGITUDE</label><input style={inputStyle} value={lng} onChange={e => setLng(e.target.value)} /></div>
+            <div>
+              <label style={labelStyle}>LOCATION PIN (Paste Google Maps link or coordinates)</label>
+              <input style={inputStyle} value={mapLink} onChange={e => {
+                const val = e.target.value;
+                setMapLink(val);
+                // Parse coordinates from various Google Maps URL formats
+                let matched = false;
+                // Format: ?q=31.9523,-102.1748 or @31.9523,-102.1748
+                const qMatch = val.match(/[?&@]q?=?([-\d.]+)[,\s]+([-\d.]+)/);
+                if (qMatch) { setLat(qMatch[1]); setLng(qMatch[2]); matched = true; }
+                // Format: @31.9523,-102.1748,
+                if (!matched) {
+                  const atMatch = val.match(/@([-\d.]+),([-\d.]+)/);
+                  if (atMatch) { setLat(atMatch[1]); setLng(atMatch[2]); matched = true; }
+                }
+                // Format: place/31.9523,-102.1748 or /31.9523,-102.1748
+                if (!matched) {
+                  const slashMatch = val.match(/\/([-]?\d{1,3}\.\d+),([-]?\d{1,3}\.\d+)/);
+                  if (slashMatch) { setLat(slashMatch[1]); setLng(slashMatch[2]); matched = true; }
+                }
+                // Format: raw coordinates "31.9523, -102.1748"
+                if (!matched) {
+                  const rawMatch = val.trim().match(/^([-]?\d{1,3}\.\d+)[,\s]+([-]?\d{1,3}\.\d+)$/);
+                  if (rawMatch) { setLat(rawMatch[1]); setLng(rawMatch[2]); matched = true; }
+                }
+              }} placeholder="Paste Google Maps link or lat, lon" />
+              {lat && lng && (
+                <div style={{ marginTop: 6, display: "flex", gap: 12, alignItems: "center", fontSize: 11 }}>
+                  <span style={{ color: C.green, fontWeight: 700 }}>✓ Lat: {lat} &nbsp; Lon: {lng}</span>
+                  <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer"
+                    style={{ color: C.blue, fontWeight: 600, textDecoration: "none" }}>
+                    View on Google Maps ↗
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Crew Signatures */}
@@ -3482,6 +3521,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
                 )}
                 <RentalCountdown ticket={t} />
+                {t.hasJSA && <span style={{ background: "#e6f5ec", color: C.green, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${C.green}44` }}>✓ JSA</span>}
                 {/* Sig button */}
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
@@ -3542,6 +3582,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
               )}
               <RentalCountdown ticket={t} />
+              {t.hasJSA && <span style={{ background: "#e6f5ec", color: C.green, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${C.green}44` }}>✓ JSA</span>}
             </div>
 
             {/* Right: action buttons + total */}
@@ -3650,7 +3691,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   locked: tk.locked, ticketNumber: tk.ticket_number || null,
                   startDate: tk.start_date || null, endDate: tk.end_date || null,
                   cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
-                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false,
+                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false, hasJSA: tk.has_jsa || false,
                   assignedWells: tk.assigned_wells || [],
                   lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
                     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
@@ -3697,7 +3738,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   locked: tk.locked, ticketNumber: tk.ticket_number || null,
                   startDate: tk.start_date || null, endDate: tk.end_date || null,
                   cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
-                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false,
+                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false, hasJSA: tk.has_jsa || false,
                   assignedWells: tk.assigned_wells || [],
                   lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
                     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
@@ -5326,7 +5367,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           endDate: t.end_date || null,
           cycleDays: t.cycle_days || 28,
           isRecurring: t.is_recurring || false,
-          voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null, revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false,
+          voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null, revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false, hasJSA: t.has_jsa || false,
           assignedWells: t.assigned_wells || [],
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
             qbCode: li.qb_code,
@@ -5641,7 +5682,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.37</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.38</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
