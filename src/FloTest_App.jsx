@@ -730,7 +730,7 @@ const TICKET_STATUSES = {
   signed:     { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
   sigNotReq:  { color: "#1a5fa8", bg: "#e8f0fb", label: "SIG NOT REQ" },
   approved:   { color: "#b85c00", bg: "#fdf0e6", label: "APPROVED" },
-  sentToQB:   { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO QB" },
+  sentToQB:   { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO ACCOUNTING" },
   qbVerified: { color: "#1a7a3c", bg: "#d4edda", label: "QB VERIFIED" },
 };
 
@@ -1475,7 +1475,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
-            {[["details", "DETAILS"], ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["todos", `TO-DOS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
+            {[["details", "DETAILS"], ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 background: "transparent", border: "none",
                 borderBottom: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
@@ -2331,6 +2331,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
   const [ticketDate, setTicketDate] = useState(() => ticket.date ? ticket.date.slice(0, 10) : "");
   const [notes, setNotes] = useState(() => ticket.notes || "");
+  const [rentalStartDate, setRentalStartDate] = useState(() => (ticket.startDate || ticket.start_date || "").slice(0, 10));
+  const [rentalEndDate, setRentalEndDate] = useState(() => (ticket.endDate || ticket.end_date || "").slice(0, 10));
+  const [rentalCycleDays, setRentalCycleDays] = useState(() => ticket.cycleDays || ticket.cycle_days || 28);
+  const [rentalRecurring, setRentalRecurring] = useState(() => !!(ticket.isRecurring || ticket.is_recurring));
   const [status, setStatus] = useState(() => ticket.status);
   const [missingPieces, setMissingPieces] = useState(() => ticket.missingPieces ?? null);
   const [sigNotReqReason, setSigNotReqReason] = useState(() => ticket.sigNotReqReason || null);
@@ -2431,6 +2435,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       lineItems, notes, status, missingPieces, date: ticketDate,
       sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
       signedBy, signedAt, signatureImage,
+      ...(ticket.type === "Rental" ? { startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: parseInt(rentalCycleDays) || 28, isRecurring: rentalRecurring } : {}),
       ...overrides,
     };
     onUpdate(ticket.id, updates);
@@ -2591,20 +2596,46 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         )}
 
         {/* Rental cycle info */}
-        {ticket.type === "Rental" && (ticket.startDate || ticket.start_date) && (
+        {ticket.type === "Rental" && (rentalStartDate || ticket.startDate || ticket.start_date) && (
           <div style={{ background: "#f8f4e8", borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
-              <span><span style={{ color: C.muted }}>Start: </span><strong>{formatDate(ticket.startDate || ticket.start_date)}</strong></span>
-              <span><span style={{ color: C.muted }}>End: </span><strong>{formatDate(ticket.endDate || ticket.end_date)}</strong></span>
-              <span><span style={{ color: C.muted }}>Cycle: </span><strong>{ticket.cycleDays || ticket.cycle_days || 28} days</strong></span>
-              <span style={{ color: (ticket.isRecurring || ticket.is_recurring) ? C.green : C.muted, fontWeight: 700 }}>
-                {(ticket.isRecurring || ticket.is_recurring) ? "● Recurring" : "○ Not recurring"}
-              </span>
-              {(ticket.cycleEnded || ticket.cycle_ended) && (
-                <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
-              )}
-              <RentalCountdown ticket={ticket} />
-            </div>
+            {isFullyLocked || ticket.voidedAt ? (
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
+                <span><span style={{ color: C.muted }}>Start: </span><strong>{formatDate(rentalStartDate)}</strong></span>
+                <span><span style={{ color: C.muted }}>End: </span><strong>{formatDate(rentalEndDate)}</strong></span>
+                <span><span style={{ color: C.muted }}>Cycle: </span><strong>{rentalCycleDays} days</strong></span>
+                <span style={{ color: rentalRecurring ? C.green : C.muted, fontWeight: 700 }}>
+                  {rentalRecurring ? "● Recurring" : "○ Not recurring"}
+                </span>
+                {(ticket.cycleEnded || ticket.cycle_ended) && (
+                  <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
+                )}
+                <RentalCountdown ticket={{ ...ticket, endDate: rentalEndDate, isRecurring: rentalRecurring }} />
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
+                <div>
+                  <span style={{ color: C.muted, fontWeight: 600, fontSize: 10, letterSpacing: "0.06em" }}>START </span>
+                  <input type="date" value={rentalStartDate} onChange={e => setRentalStartDate(e.target.value)}
+                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
+                </div>
+                <div>
+                  <span style={{ color: C.muted, fontWeight: 600, fontSize: 10, letterSpacing: "0.06em" }}>END </span>
+                  <input type="date" value={rentalEndDate} onChange={e => setRentalEndDate(e.target.value)}
+                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
+                </div>
+                <div>
+                  <span style={{ color: C.muted, fontWeight: 600, fontSize: 10, letterSpacing: "0.06em" }}>CYCLE </span>
+                  <input type="number" value={rentalCycleDays} onChange={e => setRentalCycleDays(e.target.value)} min={1}
+                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg, width: 50 }} />
+                  <span style={{ fontSize: 11, color: C.muted }}> days</span>
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                  <input type="checkbox" checked={rentalRecurring} onChange={e => setRentalRecurring(e.target.checked)} style={{ width: 14, height: 14 }} />
+                  <span style={{ color: rentalRecurring ? C.green : C.muted }}>{rentalRecurring ? "● Recurring" : "○ Not recurring"}</span>
+                </label>
+                <RentalCountdown ticket={{ ...ticket, endDate: rentalEndDate, isRecurring: rentalRecurring }} />
+              </div>
+            )}
           </div>
         )}
 
@@ -2813,7 +2844,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
           {/* Approved — send to QB */}
           {status === "approved" && !isEditing && (
-            <Btn variant="blue" onClick={() => setShowQBConfirm(true)}>SEND TO QB</Btn>
+            <Btn variant="blue" onClick={() => setShowQBConfirm(true)}>SEND TO ACCOUNTING</Btn>
           )}
 
           {/* Signed/SigNotReq — approve */}
@@ -2884,16 +2915,16 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </div>
         )}
 
-        {/* Send to QB confirmation */}
+        {/* Send to Accounting confirmation */}
         {showQBConfirm && (
           <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowQBConfirm(false)}>
             <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to QuickBooks?</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to Accounting?</div>
               <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
                 Once submitted, this ticket will be permanently locked. No further edits, signatures, or deletions will be permitted.
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn variant="blue" onClick={() => { setShowQBConfirm(false); handleSendToQB(); }}>CONFIRM — SEND TO QB</Btn>
+                <Btn variant="blue" onClick={() => { setShowQBConfirm(false); handleSendToQB(); }}>CONFIRM — SEND TO ACCOUNTING</Btn>
                 <Btn variant="ghost" onClick={() => setShowQBConfirm(false)}>CANCEL</Btn>
               </div>
             </div>
@@ -3295,6 +3326,10 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     if (updates.emailTo) payload.email_to = updates.emailTo;
     if (updates.notes !== undefined) payload.notes = updates.notes;
     if (updates.date) payload.date = updates.date;
+    if (updates.startDate !== undefined) payload.start_date = updates.startDate;
+    if (updates.endDate !== undefined) payload.end_date = updates.endDate;
+    if (updates.cycleDays !== undefined) payload.cycle_days = updates.cycleDays;
+    if (updates.isRecurring !== undefined) payload.is_recurring = updates.isRecurring;
     if (updates.lineItems) {
       payload.lineItems = updates.lineItems.map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
@@ -3400,12 +3435,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 {/* Approval */}
                 {isSigned && !isApproved && <button type="button" style={btnAction} onClick={async () => { await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>}
                 {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && <span style={btnDone}>✓ APPROVED</span>}
-                {/* Send to QB */}
+                {/* Send to Accounting */}
                 {t.status !== "sentToQB" && t.status !== "qbVerified" && (
                   <button type="button" style={canSendToQB ? { ...btnBase, background: C.blue, color: C.white, border: "none" } : btnDisabled}
-                    disabled={!canSendToQB} onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO QB</button>
+                    disabled={!canSendToQB} onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO ACCOUNTING</button>
                 )}
-                {(t.status === "sentToQB" || t.status === "qbVerified") && <span style={{ ...btnDone, background: C.green, color: C.white }}>✓ SENT TO QB</span>}
+                {(t.status === "sentToQB" || t.status === "qbVerified") && <span style={{ ...btnDone, background: C.green, color: C.white }}>✓ SENT TO ACCOUNTING</span>}
                 </>)}
               </div>
             </div>
@@ -3496,14 +3531,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 <span style={btnDone}>✓ APPROVED</span>
               )}
 
-              {/* Col 5: Send to QB */}
+              {/* Col 5: Send to Accounting */}
               {t.status !== "sentToQB" && t.status !== "qbVerified" && (
                 <button type="button" style={canSendToQB ? { ...btnBase, background: C.blue, color: C.white, border: "none" } : btnDisabled}
                   disabled={!canSendToQB}
-                  onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO QB</button>
+                  onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO ACCOUNTING</button>
               )}
               {(t.status === "sentToQB" || t.status === "qbVerified") && (
-                <span style={{ ...btnDone, background: C.green, color: C.white, border: "none" }}>✓ SENT TO QB</span>
+                <span style={{ ...btnDone, background: C.green, color: C.white, border: "none" }}>✓ SENT TO ACCOUNTING</span>
               )}
             </>)}
 
@@ -3619,7 +3654,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       {qbConfirmId && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setQbConfirmId(null)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to QuickBooks?</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to Accounting?</div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
               Once submitted, this ticket will be permanently locked. No further edits, signatures, or deletions will be permitted.
             </div>
@@ -3627,7 +3662,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               <Btn variant="blue" onClick={async () => {
                 await handleUpdate(qbConfirmId, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
                 setQbConfirmId(null);
-              }}>CONFIRM — SEND TO QB</Btn>
+              }}>CONFIRM — SEND TO ACCOUNTING</Btn>
               <Btn variant="ghost" onClick={() => setQbConfirmId(null)}>CANCEL</Btn>
             </div>
           </div>
@@ -4875,7 +4910,7 @@ const PERMISSION_CATEGORIES = [
   { key: "edit_tickets", label: "Create/Edit Tickets", group: "Jobs & Tickets" },
   { key: "sign_tickets", label: "Sign Tickets", group: "Ticket Workflow" },
   { key: "approve_tickets", label: "Approve Tickets", group: "Ticket Workflow" },
-  { key: "send_to_qb", label: "Send to QB", group: "Ticket Workflow" },
+  { key: "send_to_qb", label: "Send to Accounting", group: "Ticket Workflow" },
   { key: "void_tickets", label: "Void Tickets", group: "Ticket Workflow" },
   { key: "manage_users", label: "Manage Users", group: "Admin & Inventory" },
   { key: "view_inventory", label: "View Inventory", group: "Admin & Inventory" },
@@ -5425,7 +5460,7 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["Dashboard", "Job History", "To-Dos", "Inventory", "Crew", "Reports", "Deleted", "Users"];
+  const ALL_NAV_ITEMS = ["Dashboard", "Job History", "Action Items", "Inventory", "Crew", "Reports", "Deleted", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && isField) return false;
     if (i === "Users" && !isManager) return false;
@@ -5484,8 +5519,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           </div>
         </div>
         {NAV_ITEMS.map(item => {
-          const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "To-Dos": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
-          const navIcons = { Dashboard: "⌂", "Job History": "📋", "To-Dos": "✓", Inventory: "📦", Crew: "👷", Reports: "📊", Deleted: "🗑", Users: "👤" };
+          const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
+          const navIcons = { Dashboard: "⌂", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Crew: "👷", Reports: "📊", Deleted: "🗑", Users: "👤" };
           if (item === "Users" && !isManager) return null;
           if (item === "Job History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "ops_mgr"].includes(currentUser.role)) return null;
@@ -5500,7 +5535,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{navIcons[item]}</span>
               <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.white : "#b0bdd4" }}>
                 {item}
-                {item === "To-Dos" && myActiveTodos.length > 0 && <span style={{ marginLeft: 8, background: C.red, color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 800 }}>{myActiveTodos.length}</span>}
+                {item === "Action Items" && myActiveTodos.length > 0 && <span style={{ marginLeft: 8, background: C.red, color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 800 }}>{myActiveTodos.length}</span>}
                 {item === "Deleted" && deletedJobs.length > 0 && <span style={{ marginLeft: 8, background: "#ffffff33", color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11 }}>{deletedJobs.length}</span>}
               </span>
             </div>
@@ -5538,12 +5573,12 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.36</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.37</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
-            const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "To-Dos": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
+            const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
@@ -5555,7 +5590,7 @@ function FTIDashboard({ currentUser, onLogout }) {
                 display: "flex", alignItems: "center",
               }}>
                 {item}
-                {item === "To-Dos" && <NavBadge count={myActiveTodos.length} />}
+                {item === "Action Items" && <NavBadge count={myActiveTodos.length} />}
                 {item === "Inventory" && totalOut > 0 && <NavBadge count={totalOut} />}
                 {item === "Deleted" && deletedJobs.length > 0 && <NavBadge count={deletedJobs.length} />}
               </span>
