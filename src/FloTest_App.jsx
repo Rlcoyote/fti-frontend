@@ -2164,8 +2164,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   }, [ticket.id]);
 
   const handleClose = () => {
-    if (isFullyLocked) { onClose(); return; }
-    setShowUnsavedClose(true);
+    if (isFullyLocked || ticket.voidedAt) { onClose(); return; }
+    // Only warn if actively editing or signature was wiped
+    if (isEditing || sigWiped) { setShowUnsavedClose(true); return; }
+    onClose();
   };
 
   const job = jobs.find(j => j.id === ticket.jobId);
