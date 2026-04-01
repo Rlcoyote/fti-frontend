@@ -186,6 +186,141 @@ function LoginScreen({ onLogin }) {
 // ─── PUBLIC SIGNATURE PAGE (no login required) ───────────────────────────────
 const API_URL_PUBLIC = "https://fti-app-production.up.railway.app/api";
 
+// Signing speed sayings
+const SIGN_SAYINGS = {
+  fast: [ // Under 1 day
+    "You signed faster than a roughneck finds the coffee pot at 5 AM. ☕",
+    "That was quicker than a tool pusher dodging a safety meeting. 🏃",
+    "You just signed that faster than a company man changes his mind. 🎯",
+    "If signing tickets was an Olympic sport, you'd be on the podium. 🥇",
+    "Signed before the ink dried on the email. We see you. 👀",
+    "Faster than a frac crew finds the lunch truck. 🌮",
+    "That signature hit faster than a water hammer on a 2-inch line. 💥",
+    "You signed so fast, our servers thought it was a glitch. ⚡",
+    "Speed like that deserves a hard hat sticker. 🎖️",
+    "If our iron came back as fast as your signatures, we'd never be short. 🏆",
+  ],
+  average: [ // 1-3 days
+    "Solid turnaround. You're the kind of person who actually returns rental equipment on time. 👍",
+    "Not bad. You beat 73% of site managers. The other 27% are still looking for their reading glasses. 👓",
+    "Three days? We've seen wellheads take longer to warm up. 🔥",
+    "Respectable. Like a good drilling mud — not too fast, not too slow. 🎯",
+    "You signed before we had to send the 'friendly reminder.' Our favorite kind of customer. ⭐",
+    "That's faster than most people return a phone call in this basin. 📞",
+    "Signed, sealed, delivered. Stevie Wonder would be proud. 🎵",
+    "Not a land speed record, but we'll take it over a carrier pigeon. 🐦",
+  ],
+  slow: [ // 4-7 days
+    "We were starting to think you went fishing. Glad you're back. 🎣",
+    "That signature took longer than a BOP test, but hey — it passed. ✅",
+    "Our accounts receivable department just did a happy dance. You don't want to see that. 💃",
+    "Better late than never. That's also what we tell the wireline guys. 🤷",
+    "Five days? Even the pumper made it to location faster than that. 🐌",
+    "We almost sent a search party. And by search party, we mean Eli with a phone call. 📱",
+    "You signed just in time. Our bookkeeper was sharpening her pencil. ✏️",
+  ],
+  reallySlow: [ // 7+ days
+    "We were about to put your signature on a milk carton. 🥛",
+    "Somewhere, a bookkeeper just unclenched. 😮‍💨",
+    "If this ticket aged any longer, we could've sold it as vintage. 🍷",
+    "The iron on this job has been picked up, cleaned, and redeployed. Twice. 🔄",
+    "Legend has it, this ticket was emailed during a different geological era. 🦕",
+    "Our office plant grew two inches waiting for this signature. 🌱",
+    "You know what's faster than your signature? Continental drift. 🌍",
+    "We were one day away from sending it by carrier pigeon. 🕊️",
+    "Signed! And the crowd goes mild! 👏",
+  ],
+};
+
+const SIGN_QUOTES = [
+  "Whatever you do, work at it with all your heart. — Colossians 3:23",
+  "The hand of the diligent will rule. — Proverbs 12:24",
+  "Integrity is doing the right thing, even when no one is watching. — C.S. Lewis",
+  "A good name is more desirable than great riches. — Proverbs 22:1",
+  "Well done is better than well said. — Benjamin Franklin",
+  "Commit your work to the Lord, and your plans will be established. — Proverbs 16:3",
+  "The only way to do great work is to love what you do. — Steve Jobs",
+  "Excellence is not a skill. It is an attitude. — Ralph Marston",
+];
+
+const SIGN_THANKS = [
+  "All jokes aside, we genuinely appreciate your business — a lot.",
+  "Thank you. We really need the work!",
+  "Thanks a lot! For real, we sincerely appreciate you.",
+  "Your partnership keeps our crews working and our families fed. Thank you.",
+  "We don't take your business for granted. Not even a little.",
+  "Seriously though — thank you for trusting us with the job.",
+  "You keep us busy and we keep you flowing. That's a good deal.",
+  "We appreciate you more than a fresh pot of coffee at 5 AM.",
+  "From all of us at Flo-Test — thank you for your continued trust.",
+  "Your business means the world to us. We mean that.",
+  "Thanks for making our job possible. We won't let you down.",
+  "We're grateful for the opportunity. Every single time.",
+  "Behind every signed ticket is a crew that's thankful for the work. That's us.",
+  "You could've called anyone. You called us. That means something.",
+  "Thank you for keeping us in the field. It's where we belong.",
+  "We don't just appreciate your business — we respect it.",
+  "One more signed ticket, one more reason to be grateful. Thank you.",
+  "Real talk: we appreciate you choosing Flo-Test. Every time.",
+];
+
+function SigningTracker({ emailedAt, signedAt }) {
+  if (!emailedAt || !signedAt) return null;
+  const sent = new Date(emailedAt);
+  const signed = new Date(signedAt);
+  const diffMs = signed - sent;
+  if (diffMs < 0) return null;
+
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  let tier = "fast";
+  if (days >= 7) tier = "reallySlow";
+  else if (days >= 4) tier = "slow";
+  else if (days >= 1) tier = "average";
+
+  const sayings = SIGN_SAYINGS[tier];
+  const sayingIndex = Math.abs((sent.getTime() + signed.getTime()) % sayings.length);
+  const saying = sayings[sayingIndex];
+
+  const quoteIndex = Math.abs(sent.getTime() % SIGN_QUOTES.length);
+  const quote = SIGN_QUOTES[quoteIndex];
+
+  const thanksIndex = Math.abs(signed.getTime() % SIGN_THANKS.length);
+  const thanks = SIGN_THANKS[thanksIndex];
+
+  const tierColors = {
+    fast: { bg: "#e6f5ec", border: "#1a7a3c44", text: "#1a7a3c" },
+    average: { bg: "#e8f0fb", border: "#00286844", text: "#002868" },
+    slow: { bg: "#fdf5d8", border: "#e6c20044", text: "#8a6500" },
+    reallySlow: { bg: "#fdecea", border: "#B0102044", text: "#B01020" },
+  };
+  const colors = tierColors[tier];
+
+  const timeStr = days > 0 ? `${days}d ${hours}h ${minutes}m` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+  return (
+    <div style={{ marginTop: 16, borderRadius: 8, overflow: "hidden" }}>
+      <div style={{ background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 8, padding: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: colors.text, letterSpacing: "0.04em" }}>SIGNING TIME</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: colors.text }}>{timeStr}</span>
+        </div>
+        <div style={{ fontSize: 14, color: colors.text, fontWeight: 600, lineHeight: 1.5, marginBottom: 10 }}>
+          {saying}
+        </div>
+        <div style={{ fontSize: 13, color: "#1a2340", fontWeight: 600, marginBottom: 10 }}>
+          {thanks}
+        </div>
+        <div style={{ fontSize: 11, color: "#4a5570", fontStyle: "italic", borderTop: "1px solid #d0d8e8", paddingTop: 8 }}>
+          {quote}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PublicSignPage({ token }) {
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -403,10 +538,16 @@ function PublicSignPage({ token }) {
                 <div style={S.row}><span style={S.label}>Signed By</span><span>{ticket.signed_by}</span></div>
                 <div style={S.row}><span style={S.label}>Signed At</span><span>{ticket.signed_at ? new Date(ticket.signed_at).toLocaleString("en-US") : ""}</span></div>
                 {ticket.signature_img && <img src={ticket.signature_img} alt="Signature" style={{ border: "1px solid #d0d8e8", borderRadius: 6, maxWidth: "100%", height: 100, objectFit: "contain", background: "#fafbfc" }} />}
+                <SigningTracker emailedAt={ticket.emailed_at} signedAt={ticket.signed_at} />
               </>
             ) : (
               <>
                 <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>Sign Below</div>
+                {ticket.emailed_at && (
+                  <div style={{ fontSize: 11, color: "#4a5570", marginBottom: 10, display: "flex", gap: 8, alignItems: "center" }}>
+                    <span>Sent: {new Date(ticket.emailed_at).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                  </div>
+                )}
                 <div style={{ fontSize: 12, color: "#4a5570", marginBottom: 10 }}>Print your name, then sign in the box below.</div>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontWeight: 600, fontSize: 13 }}>Printed Name</label>
@@ -5691,7 +5832,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.38</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.39</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
