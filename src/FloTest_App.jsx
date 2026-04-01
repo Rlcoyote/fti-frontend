@@ -301,7 +301,24 @@ function PublicSignPage({ token }) {
   };
 
   if (loading) return <div style={S.page}><div style={{ ...S.card, padding: 40, textAlign: "center" }}>Loading ticket...</div></div>;
-  if (error) return <div style={S.page}><div style={{ ...S.card, padding: 40, textAlign: "center" }}><p style={{ fontSize: 18, fontWeight: 600 }}>{error}</p></div></div>;
+  if (error) return (
+    <div style={S.page}>
+      <div style={S.card}>
+        <div style={{ ...S.header, background: "#8a6500" }}>
+          <h2 style={{ margin: 0, fontSize: 20, color: "#fff" }}>Flo-Test Inc.</h2>
+        </div>
+        <div style={{ padding: 32, textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 8 }}>⏰</div>
+          <h2 style={{ color: "#8a6500", margin: "8px 0" }}>{error}</h2>
+          <p style={{ color: "#4a5570", fontSize: 14, lineHeight: 1.6 }}>
+            {error.includes("expired")
+              ? "This signature link is no longer valid. Please contact Flo-Test Inc. to request a new link."
+              : "The link you followed is invalid. Please check your email for the correct link or contact Flo-Test Inc."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 
   // Voided ticket — show notice with link to replacement
   if (ticket.isVoided) {
@@ -1360,7 +1377,6 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   const costPerWell = job.wells.length > 1 ? (job.estimatedCost / job.wells.length).toFixed(0) : null;
   const [activeTab, setActiveTab] = useState("details");
   const [showEditJob, setShowEditJob] = useState(false);
-  const [showJSA, setShowJSA] = useState(false);
   const [showFlowback, setShowFlowback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
@@ -1525,7 +1541,6 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   const canDelete = ["owner", "admin", "ops_mgr"].includes(role);
                   const actions = [
                     { label: "Add / View Field Tickets", action: () => setActiveTab("tickets") },
-                    { label: jsas.find(j => j.jobId === job.id) ? "Open JSA ✓" : "Open JSA", action: () => setShowJSA(true) },
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
                     { label: "Edit Job", action: () => setShowEditJob(true) },
                     { label: "Export to QB", action: null },
@@ -1568,26 +1583,6 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         </div>
       )}
       {showEditJob && <EditJobModal job={job} onSave={(updates) => { onUpdateJob(job.id, updates); setShowEditJob(false); }} onClose={() => setShowEditJob(false)} />}
-      {showJSA && <JSAModal job={job} existingJSA={jsas.find(j => j.jobId === job.id) || null} onSave={async (jsaData) => {
-        try {
-          await fetch(`${API_URL}/jsas/${job.id}`, {
-            method: "PUT", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              date: jsaData.date, time: jsaData.time, operator: jsaData.operator,
-              well_name: jsaData.wellName, designated_driver: jsaData.designatedDriver,
-              latitude: jsaData.lat, longitude: jsaData.lng, weather: jsaData.weather,
-              ppe_fr_clothing: jsaData.ppe?.frClothing, ppe_tools_trained: jsaData.ppe?.toolsTrained,
-              ppe_confined_space: jsaData.ppe?.confinedSpace, presenter_review: jsaData.presenterReview,
-              signatures: jsaData.signatures, additional_steps: jsaData.additionalSteps,
-            }),
-          });
-        } catch (err) { console.error("JSA save failed:", err); }
-        setJsas(prev => {
-          const existing = prev.findIndex(j => j.jobId === job.id);
-          if (existing >= 0) return prev.map((j, i) => i === existing ? jsaData : j);
-          return [...prev, jsaData];
-        });
-      }} onClose={() => setShowJSA(false)} />}
       {showFlowback && <FlowbackModal job={job} onClose={() => setShowFlowback(false)} />}
       {showDeleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowDeleteConfirm(false)}>
@@ -1775,11 +1770,15 @@ function EditJobModal({ job, onSave, onClose }) {
 }
 
 // ─── JSA MODAL ────────────────────────────────────────────────────────────────
-function JSAModal({ job, onClose, onSave, existingJSA }) {
+function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const jsa = existingJSA;
-  const [date, setDate] = useState(jsa?.date || today());
+  const ticketNum = ticket ? `${job.id}${ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}` : job.id;
+  const wellsList = ticket?.assignedWells?.length > 0
+    ? ticket.assignedWells
+    : (job.wells || []).map(w => typeof w === "string" ? w : w.well_name || w);
+  const [date, setDate] = useState(jsa?.date || ticket?.date?.slice(0, 10) || today());
   const [operator, setOperator] = useState(jsa?.operator || job.customer);
-  const [wellName, setWellName] = useState(jsa?.wellName || job.wells[0] || "");
+  const [wellName, setWellName] = useState(jsa?.wellName || jsa?.well_name || wellsList[0] || "");
   const [time, setTime] = useState(jsa?.time || "");
   const [designatedDriver, setDesignatedDriver] = useState(jsa?.designatedDriver || "");
   const [lat, setLat] = useState(jsa?.lat || "");
@@ -1812,7 +1811,7 @@ function JSAModal({ job, onClose, onSave, existingJSA }) {
         <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em" }}>FLO-TEST, INC. — JSA</div>
-            <div style={{ fontSize: 11, color: C.muted }}>#{job.id} — Tailgate Safety Meeting · {job.customer}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>#{ticketNum} — Tailgate Safety Meeting · {job.customer}{ticket ? ` · ${ticket.type}` : ""}</div>
           </div>
           <div style={{ fontSize: 11, color: C.muted }}>AIRLIFE: 800-627-2376</div>
         </div>
@@ -1911,7 +1910,7 @@ function JSAModal({ job, onClose, onSave, existingJSA }) {
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8 }}>
           <Btn onClick={() => {
             onSave({
-              jobId: job.id, date, time, operator, wellName, designatedDriver,
+              jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
               lat, lng, weather, ppe, signatures: signatures.filter(Boolean),
               presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
               savedAt: new Date().toISOString(),
@@ -2376,6 +2375,32 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [tdLoading, setTdLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
+  const [showJSA, setShowJSA] = useState(false);
+  const [existingJSA, setExistingJSA] = useState(null);
+  const [jsaLoaded, setJsaLoaded] = useState(false);
+
+  // Load JSA for this ticket
+  useEffect(() => {
+    if (!ticket.id) return;
+    fetch(`${API_URL}/jsas/ticket/${ticket.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setExistingJSA({
+            ...data,
+            wellName: data.well_name,
+            designatedDriver: data.designated_driver,
+            lat: data.latitude,
+            lng: data.longitude,
+            ppe: { frClothing: data.ppe_fr_clothing, toolsTrained: data.ppe_tools_trained, confinedSpace: data.ppe_confined_space },
+            signatures: (data.signatures || []).map(s => s.name || s),
+            additionalSteps: (data.additional_steps || []).map(s => ({ step: s.step, hazard: s.hazard, procedure: s.procedure })),
+          });
+        }
+        setJsaLoaded(true);
+      })
+      .catch(() => setJsaLoaded(true));
+  }, [ticket.id]);
 
   // Load comments when ticket opens + poll every 30s
   useEffect(() => {
@@ -2732,6 +2757,16 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Photos */}
           <PhotoStrip ticketId={ticket.id} isLocked={isFullyLocked || !!ticket.voidedAt} />
 
+          {/* JSA */}
+          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <button type="button" onClick={() => setShowJSA(true)}
+              style={{ background: existingJSA ? C.green : C.blue, color: "#fff", border: "none", borderRadius: 4, padding: "6px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+              {existingJSA ? "VIEW / EDIT JSA" : "CREATE JSA"}
+            </button>
+            {existingJSA && <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>✓ JSA on file</span>}
+            {jsaLoaded && !existingJSA && <span style={{ fontSize: 11, color: "#8a6500", fontWeight: 600 }}>No JSA yet</span>}
+          </div>
+
           {/* Signature display */}
           {["signed", "approved", "sentToQB", "qbVerified"].includes(status) && signedBy && (
             <div style={{ background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
@@ -2976,6 +3011,39 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               </div>
             </div>
           </div>
+        )}
+
+        {/* JSA Modal */}
+        {showJSA && job && (
+          <JSAModal
+            job={job}
+            ticket={ticket}
+            existingJSA={existingJSA}
+            onClose={() => setShowJSA(false)}
+            onSave={async (jsaData) => {
+              try {
+                const endpoint = ticket.id
+                  ? `${API_URL}/jsas/ticket/${ticket.id}`
+                  : `${API_URL}/jsas/${job.id}`;
+                await fetch(endpoint, {
+                  method: "PUT", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    job_id: job.id,
+                    date: jsaData.date, time: jsaData.time, operator: jsaData.operator,
+                    well_name: jsaData.wellName, designated_driver: jsaData.designatedDriver,
+                    latitude: jsaData.lat, longitude: jsaData.lng, weather: jsaData.weather,
+                    ppe_fr_clothing: jsaData.ppe?.frClothing || false,
+                    ppe_tools_trained: jsaData.ppe?.toolsTrained || false,
+                    ppe_confined_space: jsaData.ppe?.confinedSpace || false,
+                    presenter_review: jsaData.presenterReview,
+                    signatures: jsaData.signatures,
+                    additional_steps: jsaData.additionalSteps,
+                  }),
+                });
+                setExistingJSA(jsaData);
+              } catch (err) { console.error("JSA save failed:", err); }
+            }}
+          />
         )}
 
       </div>
