@@ -1788,6 +1788,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
     const ln = jsa?.lng || jsa?.longitude;
     return (la && ln) ? `${la}, ${ln}` : "";
   });
+  const [mapResolving, setMapResolving] = useState(false);
   const [weather, setWeather] = useState(jsa?.weather || []);
   const [ppe, setPpe] = useState(jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false });
   const [signatures, setSignatures] = useState(jsa?.signatures || [""]);
@@ -1837,28 +1838,36 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
               <input style={inputStyle} value={mapLink} onChange={e => {
                 const val = e.target.value;
                 setMapLink(val);
-                // Parse coordinates from various Google Maps URL formats
+                // Try local parsing first
                 let matched = false;
-                // Format: ?q=31.9523,-102.1748 or @31.9523,-102.1748
-                const qMatch = val.match(/[?&@]q?=?([-\d.]+)[,\s]+([-\d.]+)/);
-                if (qMatch) { setLat(qMatch[1]); setLng(qMatch[2]); matched = true; }
-                // Format: @31.9523,-102.1748,
-                if (!matched) {
-                  const atMatch = val.match(/@([-\d.]+),([-\d.]+)/);
-                  if (atMatch) { setLat(atMatch[1]); setLng(atMatch[2]); matched = true; }
+                const patterns = [
+                  /[?&@]q?=?([-\d.]+)[,\s]+([-\d.]+)/,
+                  /@([-\d.]+),([-\d.]+)/,
+                  /\/([-]?\d{1,3}\.\d+),([-]?\d{1,3}\.\d+)/,
+                ];
+                for (const p of patterns) {
+                  const m = val.match(p);
+                  if (m) { setLat(m[1]); setLng(m[2]); matched = true; break; }
                 }
-                // Format: place/31.9523,-102.1748 or /31.9523,-102.1748
-                if (!matched) {
-                  const slashMatch = val.match(/\/([-]?\d{1,3}\.\d+),([-]?\d{1,3}\.\d+)/);
-                  if (slashMatch) { setLat(slashMatch[1]); setLng(slashMatch[2]); matched = true; }
-                }
-                // Format: raw coordinates "31.9523, -102.1748"
-                if (!matched) {
-                  const rawMatch = val.trim().match(/^([-]?\d{1,3}\.\d+)[,\s]+([-]?\d{1,3}\.\d+)$/);
-                  if (rawMatch) { setLat(rawMatch[1]); setLng(rawMatch[2]); matched = true; }
+                const rawMatch = val.trim().match(/^([-]?\d{1,3}\.\d+)[,\s]+([-]?\d{1,3}\.\d+)$/);
+                if (!matched && rawMatch) { setLat(rawMatch[1]); setLng(rawMatch[2]); matched = true; }
+                // If it's a URL but no coords found, call backend resolver
+                if (!matched && (val.includes("maps.app.goo.gl") || val.includes("goo.gl/maps") || val.includes("google.com/maps"))) {
+                  setMapResolving(true);
+                  fetch(`${API_URL}/resolve-map-link`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url: val }),
+                  })
+                    .then(r => r.json())
+                    .then(data => {
+                      if (data.lat && data.lng) { setLat(data.lat); setLng(data.lng); }
+                      setMapResolving(false);
+                    })
+                    .catch(() => setMapResolving(false));
                 }
               }} placeholder="Paste Google Maps link or lat, lon" />
-              {lat && lng && (
+              {mapResolving && <div style={{ fontSize: 11, color: C.blue, marginTop: 4, fontWeight: 600 }}>Resolving location...</div>}
+              {!mapResolving && lat && lng && (
                 <div style={{ marginTop: 6, display: "flex", gap: 12, alignItems: "center", fontSize: 11 }}>
                   <span style={{ color: C.green, fontWeight: 700 }}>✓ Lat: {lat} &nbsp; Lon: {lng}</span>
                   <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer"
