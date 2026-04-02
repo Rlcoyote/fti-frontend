@@ -386,8 +386,13 @@ function PublicSignPage({ token }) {
         body: JSON.stringify({ signed_by: printedName.trim(), signature_img: sigImg }),
       });
       if (!r.ok) { const d = await r.json(); alert(d.error || "Signature failed."); setSubmitting(false); return; }
+      const result = await r.json();
       setDone(true); setIsSigned(true);
-      setTicket(prev => ({ ...prev, isSigned: true, signed_by: printedName.trim(), signed_at: new Date().toISOString(), signature_img: sigImg }));
+      setTicket(prev => ({
+        ...prev, isSigned: true, signed_by: printedName.trim(),
+        signed_at: new Date().toISOString(), signature_img: sigImg,
+        emailed_at: result.emailed_at || prev.emailed_at,
+      }));
     } catch { alert("Network error. Please try again."); setSubmitting(false); }
   };
 
@@ -2527,6 +2532,14 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [missingPieces, setMissingPieces] = useState(() => ticket.missingPieces ?? null);
   const [sigNotReqReason, setSigNotReqReason] = useState(() => ticket.sigNotReqReason || null);
   const [sigNotReqNote, setSigNotReqNote] = useState(() => ticket.sigNotReqNote || "");
+  // Time & mileage fields (all ticket types except JSA and Rental)
+  const [reqLocTime, setReqLocTime] = useState(() => ticket.reqLocTime || ticket.req_loc_time || "");
+  const [arrivalTime, setArrivalTime] = useState(() => ticket.arrivalTime || ticket.arrival_time || "");
+  const [jobStartTime, setJobStartTime] = useState(() => ticket.jobStartTime || ticket.job_start_time || "");
+  const [jobEndTime, setJobEndTime] = useState(() => ticket.jobEndTime || ticket.job_end_time || "");
+  const [timeZone, setTimeZone] = useState(() => ticket.timeZone || ticket.time_zone || "");
+  const [mileageBegin, setMileageBegin] = useState(() => ticket.mileageBegin ?? ticket.mileage_begin ?? "");
+  const [mileageEnd, setMileageEnd] = useState(() => ticket.mileageEnd ?? ticket.mileage_end ?? "");
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
     const job = jobs?.find(j => j.id === ticket.jobId);
@@ -2650,6 +2663,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
       signedBy, signedAt, signatureImage,
       ...(ticket.type === "Rental" ? { startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: parseInt(rentalCycleDays) || 28, isRecurring: rentalRecurring } : {}),
+      ...(!["Rental", "JSA"].includes(ticket.type) ? {
+        reqLocTime, arrivalTime, jobStartTime, jobEndTime, timeZone,
+        mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
+        mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
+      } : {}),
       ...overrides,
     };
     onUpdate(ticket.id, updates);
@@ -2942,6 +2960,94 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               <div style={{ fontSize: 12, color: C.text, padding: "8px 0" }}>{notes || "—"}</div>
             )}
           </div>
+
+          {/* ── Time & Mileage (all types except Rental and JSA) ── */}
+          {!["Rental"].includes(ticket.type) && (
+            <div style={{ marginTop: 16, background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "12px 16px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>TIME &amp; MILEAGE</div>
+
+              {/* Time fields row */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 20px", marginBottom: 12, alignItems: "flex-end" }}>
+                {[
+                  { label: "REQ LOC TIME", val: reqLocTime, set: setReqLocTime },
+                  { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime },
+                  { label: "JOB START", val: jobStartTime, set: setJobStartTime },
+                  { label: "JOB END", val: jobEndTime, set: setJobEndTime },
+                ].map(({ label, val, set }) => (
+                  <div key={label}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 }}>{label}</div>
+                    {!isFullyLocked && !ticket.voidedAt ? (
+                      <input
+                        type="time"
+                        value={val}
+                        onChange={e => set(e.target.value)}
+                        style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 8px", fontSize: 13, color: C.text, background: C.cardBg, width: 110 }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: 13, color: C.text, fontWeight: 600, padding: "4px 0" }}>{val || "—"}</div>
+                    )}
+                  </div>
+                ))}
+
+                {/* Time zone */}
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 }}>TIME ZONE</div>
+                  {!isFullyLocked && !ticket.voidedAt ? (
+                    <div style={{ display: "flex", gap: 10, alignItems: "center", paddingTop: 4 }}>
+                      {["TX", "NM"].map(tz => (
+                        <label key={tz} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 13, fontWeight: 700, color: timeZone === tz ? C.text : C.muted }}>
+                          <input
+                            type="radio"
+                            name={`tz-${ticket.id}`}
+                            value={tz}
+                            checked={timeZone === tz}
+                            onChange={() => setTimeZone(tz)}
+                            style={{ width: 14, height: 14, accentColor: C.red }}
+                          />
+                          {tz}
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 13, color: C.text, fontWeight: 700, padding: "4px 0" }}>{timeZone || "—"}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Mileage row */}
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 6 }}>MILEAGE</div>
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
+                  {[
+                    { label: "BEGINNING", val: mileageBegin, set: setMileageBegin },
+                    { label: "END", val: mileageEnd, set: setMileageEnd },
+                  ].map(({ label, val, set }) => (
+                    <div key={label}>
+                      <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, marginBottom: 3 }}>{label}</div>
+                      {!isFullyLocked && !ticket.voidedAt ? (
+                        <input
+                          type="number"
+                          value={val}
+                          onChange={e => set(e.target.value)}
+                          min={0}
+                          placeholder="0"
+                          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 8px", fontSize: 13, color: C.text, background: C.cardBg, width: 110 }}
+                        />
+                      ) : (
+                        <div style={{ fontSize: 13, color: C.text, fontWeight: 600, padding: "4px 0" }}>{val !== "" && val != null ? val : "—"}</div>
+                      )}
+                    </div>
+                  ))}
+                  {(mileageBegin !== "" && mileageEnd !== "" && mileageBegin != null && mileageEnd != null) && (
+                    <div style={{ paddingBottom: 2 }}>
+                      <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, marginBottom: 3 }}>TOTAL</div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{Math.max(0, parseFloat(mileageEnd) - parseFloat(mileageBegin)).toLocaleString()} mi</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Photos */}
           <PhotoStrip ticketId={ticket.id} isLocked={isFullyLocked || !!ticket.voidedAt} />
@@ -3587,6 +3693,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     if (updates.endDate !== undefined) payload.end_date = updates.endDate;
     if (updates.cycleDays !== undefined) payload.cycle_days = updates.cycleDays;
     if (updates.isRecurring !== undefined) payload.is_recurring = updates.isRecurring;
+    if (updates.reqLocTime !== undefined) payload.req_loc_time = updates.reqLocTime;
+    if (updates.arrivalTime !== undefined) payload.arrival_time = updates.arrivalTime;
+    if (updates.jobStartTime !== undefined) payload.job_start_time = updates.jobStartTime;
+    if (updates.jobEndTime !== undefined) payload.job_end_time = updates.jobEndTime;
+    if (updates.timeZone !== undefined) payload.time_zone = updates.timeZone;
+    if (updates.mileageBegin !== undefined) payload.mileage_begin = updates.mileageBegin;
+    if (updates.mileageEnd !== undefined) payload.mileage_end = updates.mileageEnd;
     if (updates.lineItems) {
       payload.lineItems = updates.lineItems.map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
@@ -5832,7 +5945,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.39</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.40</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
