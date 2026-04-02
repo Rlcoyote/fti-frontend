@@ -2533,10 +2533,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [sigNotReqReason, setSigNotReqReason] = useState(() => ticket.sigNotReqReason || null);
   const [sigNotReqNote, setSigNotReqNote] = useState(() => ticket.sigNotReqNote || "");
   // Time & mileage fields (all ticket types except JSA and Rental)
-  const [reqLocTime, setReqLocTime] = useState(() => ticket.reqLocTime || ticket.req_loc_time || "");
+  const [lvYard, setLvYard] = useState(() => ticket.lvYard || ticket.lv_yard || "");
   const [arrivalTime, setArrivalTime] = useState(() => ticket.arrivalTime || ticket.arrival_time || "");
+  const [dueOnLoc, setDueOnLoc] = useState(() => ticket.dueOnLoc || ticket.due_on_loc || "");
   const [jobStartTime, setJobStartTime] = useState(() => ticket.jobStartTime || ticket.job_start_time || "");
   const [jobEndTime, setJobEndTime] = useState(() => ticket.jobEndTime || ticket.job_end_time || "");
+  const [retYard, setRetYard] = useState(() => ticket.retYard || ticket.ret_yard || "");
   const [timeZone, setTimeZone] = useState(() => ticket.timeZone || ticket.time_zone || "");
   const [mileageBegin, setMileageBegin] = useState(() => ticket.mileageBegin ?? ticket.mileage_begin ?? "");
   const [mileageEnd, setMileageEnd] = useState(() => ticket.mileageEnd ?? ticket.mileage_end ?? "");
@@ -2664,7 +2666,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       signedBy, signedAt, signatureImage,
       ...(ticket.type === "Rental" ? { startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: parseInt(rentalCycleDays) || 28, isRecurring: rentalRecurring } : {}),
       ...(!["Rental", "JSA"].includes(ticket.type) ? {
-        reqLocTime, arrivalTime, jobStartTime, jobEndTime, timeZone,
+        lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
         mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
         mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
       } : {}),
@@ -2827,6 +2829,120 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </div>
         )}
 
+        {/* Time & Mileage band — below job info, all types except Rental */}
+        {!["Rental"].includes(ticket.type) && (() => {
+          const TIME_OPTS = [""].concat(Array.from({ length: 48 }, (_, i) => {
+            const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
+            const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+            const period = h24 < 12 ? "AM" : "PM";
+            return `${h12}:${m} ${period}`;
+          }));
+          const parseT = (s) => {
+            if (!s) return null;
+            const match = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+            if (!match) return null;
+            let h = parseInt(match[1]), min = parseInt(match[2]);
+            const p = match[3].toUpperCase();
+            if (p === "PM" && h !== 12) h += 12;
+            if (p === "AM" && h === 12) h = 0;
+            return h * 60 + min;
+          };
+          const fmtDiff = (a, b) => {
+            if (a === null || b === null) return null;
+            let d = b - a; if (d < 0) d += 1440;
+            return `${Math.floor(d / 60)}h ${d % 60}m`;
+          };
+          const tLv = parseT(lvYard), tArr = parseT(arrivalTime), tJe = parseT(jobEndTime), tRy = parseT(retYard);
+          const overall = fmtDiff(tLv, tRy);
+          const onLoc = fmtDiff(tArr, tJe);
+          let driveTime = null;
+          if (tLv !== null && tArr !== null && tJe !== null && tRy !== null) {
+            let d1 = tArr - tLv; if (d1 < 0) d1 += 1440;
+            let d2 = tRy - tJe; if (d2 < 0) d2 += 1440;
+            const tot = d1 + d2;
+            driveTime = `${Math.floor(tot / 60)}h ${tot % 60}m`;
+          }
+          const totalMiles = (mileageBegin !== "" && mileageEnd !== "" && mileageBegin != null && mileageEnd != null)
+            ? Math.max(0, parseFloat(mileageEnd) - parseFloat(mileageBegin)) : null;
+          const selStyle = { border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 6px", fontSize: 12, color: C.text, background: C.cardBg, width: 98 };
+          const roStyle = { fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" };
+          const lblStyle = { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 };
+          const totalStyle = { fontSize: 12, fontWeight: 700, color: C.text };
+          const totalSubStyle = { fontSize: 10, color: C.muted, marginTop: 1 };
+          const editable = !isFullyLocked && !ticket.voidedAt;
+          return (
+            <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>TIME &amp; MILEAGE</div>
+              {/* Time fields */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end", marginBottom: 8 }}>
+                {[
+                  { label: "LV YARD", val: lvYard, set: setLvYard },
+                  { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime },
+                  { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc },
+                  { label: "JOB START", val: jobStartTime, set: setJobStartTime },
+                  { label: "JOB END", val: jobEndTime, set: setJobEndTime },
+                  { label: "RET YARD", val: retYard, set: setRetYard },
+                ].map(({ label, val, set }) => (
+                  <div key={label}>
+                    <div style={lblStyle}>{label}</div>
+                    {editable
+                      ? <select value={val} onChange={e => set(e.target.value)} style={selStyle}>
+                          {TIME_OPTS.map(o => <option key={o} value={o}>{o || "—"}</option>)}
+                        </select>
+                      : <div style={roStyle}>{val || "—"}</div>}
+                  </div>
+                ))}
+                <div>
+                  <div style={lblStyle}>TIME ZONE</div>
+                  {editable
+                    ? <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
+                        {["TX", "NM"].map(tz => (
+                          <label key={tz} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.text : C.muted }}>
+                            <input type="radio" name={`tz-${ticket.id}`} value={tz} checked={timeZone === tz} onChange={() => setTimeZone(tz)} style={{ width: 13, height: 13, accentColor: C.red }} />
+                            {tz}
+                          </label>
+                        ))}
+                      </div>
+                    : <div style={roStyle}>{timeZone || "—"}</div>}
+                </div>
+              </div>
+              {/* Totals */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", borderTop: `1px solid ${C.border}`, paddingTop: 7, marginBottom: 8 }}>
+                {[
+                  { label: "OVERALL TIME", val: overall, sub: "LV Yard → Ret Yard" },
+                  { label: "TIME ON LOC", val: onLoc, sub: "Arrival → Job End" },
+                  { label: "DRIVE TIME", val: driveTime, sub: "LV Yard→Arrival + Job End→Ret Yard" },
+                ].map(({ label, val, sub }) => (
+                  <div key={label} style={{ marginRight: 8 }}>
+                    <div style={lblStyle}>{label}</div>
+                    <div style={totalStyle}>{val || "—"}</div>
+                    <div style={totalSubStyle}>{sub}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Mileage */}
+              <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 7, display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end" }}>
+                {[
+                  { label: "MILEAGE — BEGINNING", val: mileageBegin, set: setMileageBegin },
+                  { label: "MILEAGE — END", val: mileageEnd, set: setMileageEnd },
+                ].map(({ label, val, set }) => (
+                  <div key={label}>
+                    <div style={lblStyle}>{label}</div>
+                    {editable
+                      ? <input type="number" value={val} onChange={e => set(e.target.value)} min={0} placeholder="0"
+                          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 8px", fontSize: 12, color: C.text, background: C.cardBg, width: 98 }} />
+                      : <div style={roStyle}>{val !== "" && val != null ? val : "—"}</div>}
+                  </div>
+                ))}
+                <div>
+                  <div style={lblStyle}>TOTAL MILES</div>
+                  <div style={totalStyle}>{totalMiles !== null ? `${totalMiles.toLocaleString()} mi` : "—"}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Rental cycle info */}
         {ticket.type === "Rental" && (rentalStartDate || ticket.startDate || ticket.start_date) && (
           <div style={{ background: "#f8f4e8", borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
@@ -2960,94 +3076,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               <div style={{ fontSize: 12, color: C.text, padding: "8px 0" }}>{notes || "—"}</div>
             )}
           </div>
-
-          {/* ── Time & Mileage (all types except Rental and JSA) ── */}
-          {!["Rental"].includes(ticket.type) && (
-            <div style={{ marginTop: 16, background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "12px 16px" }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>TIME &amp; MILEAGE</div>
-
-              {/* Time fields row */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "12px 20px", marginBottom: 12, alignItems: "flex-end" }}>
-                {[
-                  { label: "REQ LOC TIME", val: reqLocTime, set: setReqLocTime },
-                  { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime },
-                  { label: "JOB START", val: jobStartTime, set: setJobStartTime },
-                  { label: "JOB END", val: jobEndTime, set: setJobEndTime },
-                ].map(({ label, val, set }) => (
-                  <div key={label}>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 }}>{label}</div>
-                    {!isFullyLocked && !ticket.voidedAt ? (
-                      <input
-                        type="time"
-                        value={val}
-                        onChange={e => set(e.target.value)}
-                        style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 8px", fontSize: 13, color: C.text, background: C.cardBg, width: 110 }}
-                      />
-                    ) : (
-                      <div style={{ fontSize: 13, color: C.text, fontWeight: 600, padding: "4px 0" }}>{val || "—"}</div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Time zone */}
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 }}>TIME ZONE</div>
-                  {!isFullyLocked && !ticket.voidedAt ? (
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", paddingTop: 4 }}>
-                      {["TX", "NM"].map(tz => (
-                        <label key={tz} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 13, fontWeight: 700, color: timeZone === tz ? C.text : C.muted }}>
-                          <input
-                            type="radio"
-                            name={`tz-${ticket.id}`}
-                            value={tz}
-                            checked={timeZone === tz}
-                            onChange={() => setTimeZone(tz)}
-                            style={{ width: 14, height: 14, accentColor: C.red }}
-                          />
-                          {tz}
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 13, color: C.text, fontWeight: 700, padding: "4px 0" }}>{timeZone || "—"}</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Mileage row */}
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 6 }}>MILEAGE</div>
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
-                  {[
-                    { label: "BEGINNING", val: mileageBegin, set: setMileageBegin },
-                    { label: "END", val: mileageEnd, set: setMileageEnd },
-                  ].map(({ label, val, set }) => (
-                    <div key={label}>
-                      <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, marginBottom: 3 }}>{label}</div>
-                      {!isFullyLocked && !ticket.voidedAt ? (
-                        <input
-                          type="number"
-                          value={val}
-                          onChange={e => set(e.target.value)}
-                          min={0}
-                          placeholder="0"
-                          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 8px", fontSize: 13, color: C.text, background: C.cardBg, width: 110 }}
-                        />
-                      ) : (
-                        <div style={{ fontSize: 13, color: C.text, fontWeight: 600, padding: "4px 0" }}>{val !== "" && val != null ? val : "—"}</div>
-                      )}
-                    </div>
-                  ))}
-                  {(mileageBegin !== "" && mileageEnd !== "" && mileageBegin != null && mileageEnd != null) && (
-                    <div style={{ paddingBottom: 2 }}>
-                      <div style={{ fontSize: 10, color: C.muted, fontWeight: 600, marginBottom: 3 }}>TOTAL</div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{Math.max(0, parseFloat(mileageEnd) - parseFloat(mileageBegin)).toLocaleString()} mi</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Photos */}
           <PhotoStrip ticketId={ticket.id} isLocked={isFullyLocked || !!ticket.voidedAt} />
@@ -3693,10 +3721,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     if (updates.endDate !== undefined) payload.end_date = updates.endDate;
     if (updates.cycleDays !== undefined) payload.cycle_days = updates.cycleDays;
     if (updates.isRecurring !== undefined) payload.is_recurring = updates.isRecurring;
-    if (updates.reqLocTime !== undefined) payload.req_loc_time = updates.reqLocTime;
+    if (updates.lvYard !== undefined) payload.lv_yard = updates.lvYard;
     if (updates.arrivalTime !== undefined) payload.arrival_time = updates.arrivalTime;
+    if (updates.dueOnLoc !== undefined) payload.due_on_loc = updates.dueOnLoc;
     if (updates.jobStartTime !== undefined) payload.job_start_time = updates.jobStartTime;
     if (updates.jobEndTime !== undefined) payload.job_end_time = updates.jobEndTime;
+    if (updates.retYard !== undefined) payload.ret_yard = updates.retYard;
     if (updates.timeZone !== undefined) payload.time_zone = updates.timeZone;
     if (updates.mileageBegin !== undefined) payload.mileage_begin = updates.mileageBegin;
     if (updates.mileageEnd !== undefined) payload.mileage_end = updates.mileageEnd;
@@ -5945,7 +5975,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.40</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.41</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
