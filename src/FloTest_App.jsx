@@ -1684,7 +1684,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
                 {(() => {
                   const role = currentUser?.role || "field";
-                  const canDelete = ["owner", "admin", "ops_mgr"].includes(role);
+                  const canDelete = ["owner", "admin", "manager"].includes(role);
                   const actions = [
                     { label: "Add / View Field Tickets", action: () => setActiveTab("tickets") },
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
@@ -1734,25 +1734,25 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowDeleteConfirm(false)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.red, marginBottom: 12 }}>
-              {["owner", "admin", "ops_mgr"].includes(currentUser?.role) ? "Delete Job?" : "Flag for Cancellation?"}
+              {["owner", "admin", "manager"].includes(currentUser?.role) ? "Delete Job?" : "Flag for Cancellation?"}
             </div>
             <div style={{ fontSize: 13, color: C.text, marginBottom: 8 }}>
               <strong>Job #{job.id}</strong> — {job.customer}
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>
-              {["owner", "admin", "ops_mgr"].includes(currentUser?.role)
+              {["owner", "admin", "manager"].includes(currentUser?.role)
                 ? "This job will be moved to the Deleted Jobs page. It can be restored later."
                 : "This job will be flagged for review. A manager or admin will need to approve the cancellation."}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={() => {
-                if (["owner", "admin", "ops_mgr"].includes(currentUser?.role)) {
+                if (["owner", "admin", "manager"].includes(currentUser?.role)) {
                   onDeleteJob(job.id);
                 } else {
                   onFlagCancel(job.id);
                 }
                 setShowDeleteConfirm(false);
-              }}>{["owner", "admin", "ops_mgr"].includes(currentUser?.role) ? "YES, DELETE" : "YES, FLAG IT"}</Btn>
+              }}>{["owner", "admin", "manager"].includes(currentUser?.role) ? "YES, DELETE" : "YES, FLAG IT"}</Btn>
               <Btn onClick={() => setShowDeleteConfirm(false)} variant="ghost">CANCEL</Btn>
             </div>
           </div>
@@ -2657,7 +2657,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
   const isFullyLocked = status === "qbVerified" || status === "sentToQB";
-  const canApprove = ["owner", "admin", "ops_mgr", "supervisor"].includes(currentUser?.role);
+  const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
 
   const save = (overrides = {}) => {
     const updates = {
@@ -5088,7 +5088,7 @@ function CrewPage({ users, jobs }) {
   const statusBg = { "On Job": "#e6f5ec", "Available": "#e8f0fb" };
 
   const roleLabel = (r) => {
-    const map = { owner: "Owner", admin: "Admin", ops_mgr: "Ops Manager", supervisor: "Supervisor", field: "Field" };
+    const map = { owner: "Owner", admin: "Admin", manager: "Manager", lead: "Lead", salesman: "Salesman", field: "Field" };
     return map[r] || r;
   };
 
@@ -5246,8 +5246,9 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
 const ROLE_OPTIONS = [
   { value: "owner", label: "Owner" },
   { value: "admin", label: "Admin" },
-  { value: "ops_mgr", label: "Ops Manager" },
-  { value: "supervisor", label: "Supervisor" },
+  { value: "manager", label: "Manager" },
+  { value: "lead", label: "Lead" },
+  { value: "salesman", label: "Salesman" },
   { value: "field", label: "Field" },
 ];
 
@@ -5322,8 +5323,9 @@ const PERMISSION_CATEGORIES = [
 const DEFAULT_PERMS = {
   owner: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
   admin: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
-  ops_mgr: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, p.key !== "manage_users"])),
-  supervisor: { view_jobs: true, edit_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  manager: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, p.key !== "manage_users"])),
+  lead: { view_jobs: true, edit_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  salesman: { view_jobs: true, edit_jobs: false, edit_tickets: false, sign_tickets: false, view_inventory: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
   field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
 };
 
@@ -5525,7 +5527,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
             <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", padding: "10px 16px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{u.name}</div>
               <div style={{ fontSize: 12, color: C.muted }}>{u.email}</div>
-              <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: u.role === "owner" ? "#fdecea" : u.role === "admin" ? "#e8f0fb" : u.role === "ops_mgr" ? "#e6f5ec" : u.role === "supervisor" ? "#fdf5d8" : "#f0f3f8", color: u.role === "owner" ? C.red : u.role === "admin" ? C.blue : u.role === "ops_mgr" ? C.green : u.role === "supervisor" ? "#8a6500" : C.muted, letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
+              <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: u.role === "owner" ? "#fdecea" : u.role === "admin" ? "#e8f0fb" : u.role === "manager" ? "#e6f5ec" : u.role === "lead" ? "#fdf5d8" : u.role === "salesman" ? "#f3eafa" : "#f0f3f8", color: u.role === "owner" ? C.red : u.role === "admin" ? C.blue : u.role === "manager" ? C.green : u.role === "lead" ? "#8a6500" : u.role === "salesman" ? "#7a3ca0" : C.muted, letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
               <div style={{ display: "flex", gap: 6 }}>
                 {!isProtected && (
                   <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>REMOVE</button>
@@ -5548,7 +5550,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   CURRENT_USER = currentUser.name;
   const userRole = currentUser.role; // owner | admin | ops_mgr | supervisor | field
   const isAdmin = ["owner", "admin"].includes(userRole);
-  const isManager = ["owner", "admin", "ops_mgr", "supervisor"].includes(userRole);
+  const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
   const isField = userRole === "field";
 
   useEffect(() => {
@@ -5810,7 +5812,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (!["owner", "admin", "ops_mgr"].includes(currentUser.role)) return;
+    if (!["owner", "admin", "manager"].includes(currentUser.role)) return;
     const job = jobs.find(j => j.id === jobId);
     try {
       await fetch(`${API_URL}/jobs/${jobId}`, {
@@ -5867,7 +5869,7 @@ function FTIDashboard({ currentUser, onLogout }) {
     if (i === "Inventory" && isField) return false;
     if (i === "Users" && !isManager) return false;
     if (i === "Job History" && isField) return false;
-    if (i === "Deleted" && !["owner", "admin", "ops_mgr"].includes(currentUser.role)) return false;
+    if (i === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return false;
     return true;
   });
 
@@ -5925,7 +5927,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           const navIcons = { Dashboard: "⌂", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Crew: "👷", Reports: "📊", Deleted: "🗑", Users: "👤" };
           if (item === "Users" && !isManager) return null;
           if (item === "Job History" && isField) return null;
-          if (item === "Deleted" && !["owner", "admin", "ops_mgr"].includes(currentUser.role)) return null;
+          if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
           const active = pageMap[item] === page;
           return (
             <div key={item} onClick={() => { setPage(pageMap[item]); setDrawerOpen(false); }} style={{
@@ -5943,7 +5945,7 @@ function FTIDashboard({ currentUser, onLogout }) {
             </div>
           );
         })}
-        {["owner", "admin"].includes(currentUser.role) && (
+        {["owner", "admin", "manager"].includes(currentUser.role) && (
           <div onClick={() => { setDrawerOpen(false); setShowPermissions(true); }} style={{
             display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
           }}>
@@ -5975,7 +5977,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.41</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.42</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -5999,7 +6001,7 @@ function FTIDashboard({ currentUser, onLogout }) {
             );
           })}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {["owner", "admin"].includes(currentUser.role) && (
+            {["owner", "admin", "manager"].includes(currentUser.role) && (
               <span onClick={() => setShowPermissions(true)} style={{ fontSize: 18, color: "#a0aec8", cursor: "pointer", lineHeight: 1 }} title="Permissions">⚙</span>
             )}
             <span onClick={onLogout} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
@@ -6033,7 +6035,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         <InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />
       )}
 
-      {page === "deleted" && ["owner", "admin", "ops_mgr"].includes(currentUser.role) && (
+      {page === "deleted" && ["owner", "admin", "manager"].includes(currentUser.role) && (
         <DeletedJobsPage deletedJobs={deletedJobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handlePermanentDelete={handlePermanentDelete} />
       )}
 
