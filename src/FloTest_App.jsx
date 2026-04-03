@@ -5968,7 +5968,16 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), email: newEmail.trim().toLowerCase(), role: newRole }),
       });
-      if (!r.ok) { setMsg("Failed to create user"); return; }
+      if (!r.ok) {
+        const errData = await r.json().catch(() => null);
+        const errMsg = errData?.error || "Failed to create user";
+        if (errMsg.toLowerCase().includes("email") || errMsg.toLowerCase().includes("duplicate") || errMsg.toLowerCase().includes("unique")) {
+          setMsg("A user with this email address already exists.");
+        } else {
+          setMsg(errMsg);
+        }
+        return;
+      }
       const created = await r.json();
       await fetch(`${API_URL}/auth/set-password`, {
         method: "POST", headers: { "Content-Type": "application/json" },
