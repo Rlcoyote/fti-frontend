@@ -2064,7 +2064,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
                 // If it's a URL but no coords found, call backend resolver
                 if (!matched && (val.includes("maps.app.goo.gl") || val.includes("goo.gl/maps") || val.includes("google.com/maps"))) {
                   setMapResolving(true);
-                  fetch(`${API_URL}/resolve-map-link`, {
+                  fetch(`${API_URL}/jobs/resolve-map-pin`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ url: val }),
                   })
@@ -6471,7 +6471,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.46</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.47</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
