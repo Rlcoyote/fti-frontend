@@ -5117,9 +5117,9 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
               <div style={{ marginTop: 6, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: C.green }}>✓ PIN RESOLVED</span>
                 <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{parseFloat(pinLat).toFixed(6)}, {parseFloat(pinLng).toFixed(6)}</span>
-                <button type="button" onClick={() => { navigator.clipboard.writeText(`${pinLat},${pinLng}`); }}
+                <button type="button" onClick={() => { navigator.clipboard.writeText(googlePin || `${pinLat},${pinLng}`); }}
                   style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 8px", fontSize: 10, fontWeight: 700, color: C.muted, cursor: "pointer" }}>
-                  COPY COORDS
+                  COPY PIN
                 </button>
               </div>
             )}
