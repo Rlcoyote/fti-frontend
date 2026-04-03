@@ -2458,32 +2458,46 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
         <Btn small variant="ghost" onClick={addBlank}>+ BLANK LINE</Btn>
         {showSearch && (
           <div style={{
-            position: "absolute", top: 32, left: 0, zIndex: 10, width: 420,
-            background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
-            boxShadow: "0 8px 32px #00000022", padding: 8,
-          }}>
-            <input autoFocus style={{ ...inputStyle, marginBottom: 6 }} placeholder="Type to filter or scroll to browse..."
-              value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            <div style={{ maxHeight: 280, overflowY: "auto" }}>
-            {filteredQB.map(q => (
-              <div key={q.code} onClick={() => addItem(q)} style={{
-                padding: "6px 8px", cursor: "pointer", borderRadius: 4,
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                fontSize: 12,
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = C.steel}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-              >
-                <div>
-                  <span style={{ fontWeight: 700, color: C.blue, marginRight: 8 }}>{q.code}</span>
-                  <span style={{ color: C.text }}>{q.desc}</span>
+            position: "fixed", inset: 0, background: "#00000066", zIndex: 200,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }} onClick={() => { setShowSearch(false); setSearchTerm(""); }}>
+            <div style={{
+              background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.blue}`,
+              borderRadius: 8, width: 520, maxWidth: "95vw", maxHeight: "80vh",
+              display: "flex", flexDirection: "column", boxShadow: "0 12px 48px #00000033",
+            }} onClick={e => e.stopPropagation()}>
+              <div style={{ padding: "16px 16px 0 16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: C.text, letterSpacing: "0.06em" }}>RATE SHEET</div>
+                  <button onClick={() => { setShowSearch(false); setSearchTerm(""); }}
+                    style={{ background: "transparent", border: "none", fontSize: 20, color: C.muted, cursor: "pointer", fontWeight: 700, padding: "0 4px" }}>×</button>
                 </div>
-                <span style={{ color: C.muted, fontSize: 11 }}>{'$'}{q.price}/{q.um}</span>
+                <input autoFocus style={{ ...inputStyle, marginBottom: 8, fontSize: 13, padding: "10px 12px" }}
+                  placeholder="Type to filter or scroll to browse..."
+                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <div style={{ fontSize: 10, color: C.muted, marginBottom: 6, fontWeight: 600 }}>{filteredQB.length} item{filteredQB.length !== 1 ? "s" : ""}</div>
               </div>
-            ))}
-            {searchTerm && filteredQB.length === 0 && (
-              <div style={{ padding: "8px", color: C.muted, fontSize: 12, textAlign: "center" }}>No matches</div>
-            )}
+              <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 16px 16px" }}>
+                {filteredQB.map(q => (
+                  <div key={q.code} onClick={() => addItem(q)} style={{
+                    padding: "10px 10px", cursor: "pointer", borderRadius: 4,
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    fontSize: 13, borderBottom: `1px solid ${C.border}22`,
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  >
+                    <div>
+                      <span style={{ fontWeight: 700, color: C.blue, marginRight: 10 }}>{q.code}</span>
+                      <span style={{ color: C.text }}>{q.desc}</span>
+                    </div>
+                    <span style={{ color: C.muted, fontSize: 12, whiteSpace: "nowrap", marginLeft: 12 }}>{'$'}{q.price}/{q.um}</span>
+                  </div>
+                ))}
+                {searchTerm && filteredQB.length === 0 && (
+                  <div style={{ padding: "20px", color: C.muted, fontSize: 13, textAlign: "center" }}>No matches</div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -2906,12 +2920,13 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
         {/* Time & Mileage band — below job info, all types except Rental */}
         {!["Rental"].includes(ticket.type) && (() => {
-          const TIME_OPTS = [""].concat(Array.from({ length: 48 }, (_, i) => {
+          const ALL_TIMES = Array.from({ length: 48 }, (_, i) => {
             const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
             const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
             const period = h24 < 12 ? "AM" : "PM";
             return `${h12}:${m} ${period}`;
-          }));
+          });
+          const timeOpts = (startIdx) => [""].concat(ALL_TIMES.slice(startIdx).concat(ALL_TIMES.slice(0, startIdx)));
           const parseT = (s) => {
             if (!s) return null;
             const match = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -2951,18 +2966,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               {/* Time fields */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end", marginBottom: 8 }}>
                 {[
-                  { label: "LV YARD", val: lvYard, set: setLvYard },
-                  { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime },
-                  { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc },
-                  { label: "JOB START", val: jobStartTime, set: setJobStartTime },
-                  { label: "JOB END", val: jobEndTime, set: setJobEndTime },
-                  { label: "RET YARD", val: retYard, set: setRetYard },
-                ].map(({ label, val, set }) => (
+                  { label: "LV YARD", val: lvYard, set: setLvYard, startIdx: 12 },
+                  { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime, startIdx: 12 },
+                  { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc, startIdx: 12 },
+                  { label: "JOB START", val: jobStartTime, set: setJobStartTime, startIdx: 12 },
+                  { label: "JOB END", val: jobEndTime, set: setJobEndTime, startIdx: 24 },
+                  { label: "RET YARD", val: retYard, set: setRetYard, startIdx: 24 },
+                ].map(({ label, val, set, startIdx }) => (
                   <div key={label}>
                     <div style={lblStyle}>{label}</div>
                     {editable
                       ? <select value={val} onChange={e => set(e.target.value)} style={selStyle}>
-                          {TIME_OPTS.map(o => <option key={o} value={o}>{o || "—"}</option>)}
+                          {timeOpts(startIdx).map(o => <option key={o} value={o}>{o || "—"}</option>)}
                         </select>
                       : <div style={roStyle}>{val || "—"}</div>}
                   </div>
@@ -3610,11 +3625,12 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
   const [mileageBegin, setMileageBegin] = useState("");
   const [mileageEnd, setMileageEnd] = useState("");
 
-  const TIME_OPTS = [""].concat(Array.from({ length: 48 }, (_, i) => {
+  const ALL_TIMES = Array.from({ length: 48 }, (_, i) => {
     const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
     const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
     return `${h12}:${m} ${h24 < 12 ? "AM" : "PM"}`;
-  }));
+  });
+  const timeOpts = (startIdx) => [""].concat(ALL_TIMES.slice(startIdx).concat(ALL_TIMES.slice(0, startIdx)));
 
   const endDate = useMemo(() => {
     if (!startDate || !cycleDays) return "";
@@ -3817,17 +3833,17 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                   <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>TIME &amp; MILEAGE</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end", marginBottom: 8 }}>
                     {[
-                      { label: "LV YARD", val: lvYard, set: setLvYard },
-                      { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime },
-                      { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc },
-                      { label: "JOB START", val: jobStartTime, set: setJobStartTime },
-                      { label: "JOB END", val: jobEndTime, set: setJobEndTime },
-                      { label: "RET YARD", val: retYard, set: setRetYard },
-                    ].map(({ label, val, set }) => (
+                      { label: "LV YARD", val: lvYard, set: setLvYard, startIdx: 12 },
+                      { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime, startIdx: 12 },
+                      { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc, startIdx: 12 },
+                      { label: "JOB START", val: jobStartTime, set: setJobStartTime, startIdx: 12 },
+                      { label: "JOB END", val: jobEndTime, set: setJobEndTime, startIdx: 24 },
+                      { label: "RET YARD", val: retYard, set: setRetYard, startIdx: 24 },
+                    ].map(({ label, val, set, startIdx }) => (
                       <div key={label}>
                         <div style={lblSm}>{label}</div>
                         <select value={val} onChange={e => set(e.target.value)} style={selStyle}>
-                          {TIME_OPTS.map(o => <option key={o} value={o}>{o || "—"}</option>)}
+                          {timeOpts(startIdx).map(o => <option key={o} value={o}>{o || "—"}</option>)}
                         </select>
                       </div>
                     ))}
