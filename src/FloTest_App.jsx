@@ -1790,6 +1790,33 @@ function EditJobModal({ job, onSave, onClose }) {
   const [editPinLng, setEditPinLng] = useState(job.pinLng || job.pin_lng || null);
   const [editPinResolving, setEditPinResolving] = useState(false);
   const [editPinError, setEditPinError] = useState("");
+  const [showUnsaved, setShowUnsaved] = useState(false);
+
+  // Dirty state detection
+  const origRef = useRef({
+    customer: job.customer || "", jobState: job.jobState || "", county: job.county || "",
+    wells: (!job.wells || job.wells.length === 0) ? [""] : job.wells.map(w => w.well_name || w),
+    afe: job.afe || "", contactFirst: job.contactFirst || job.contact_first || "",
+    contactLast: job.contactLast || job.contact_last || "",
+    wsmPhone: job.wsmPhone || job.wsm_phone || "", wsmEmail: job.wsmEmail || job.wsm_email || "",
+    approver: job.approver || job.approver_first || "", approverLast: job.approverLast || job.approver_last || "",
+    approverPhone: job.approverPhone || job.approver_phone || "", approverEmail: job.approverEmail || job.approver_email || "",
+    companyCode: job.companyCode || job.company_code || "", costCenter: job.costCenter || job.cost_center || "",
+    po: job.po || job.po_number || "", status: job.status || "Scheduled",
+    googlePin: job.googlePin || job.google_pin || "",
+  });
+  const isDirty = () => {
+    const o = origRef.current;
+    return customer !== o.customer || jobState !== o.jobState || county !== o.county ||
+      JSON.stringify(wellList) !== JSON.stringify(o.wells) || afe !== o.afe ||
+      contactFirst !== o.contactFirst || contactLast !== o.contactLast ||
+      wsmPhone !== o.wsmPhone || wsmEmail !== o.wsmEmail ||
+      approver !== o.approver || approverLast !== o.approverLast ||
+      approverPhone !== o.approverPhone || approverEmail !== o.approverEmail ||
+      companyCode !== o.companyCode || costCenter !== o.costCenter || po !== o.po ||
+      status !== o.status || editGooglePin !== o.googlePin;
+  };
+  const handleClose = () => { if (isDirty()) { setShowUnsaved(true); } else { onClose(); } };
 
   const VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
   const TX_COUNTIES = ["Andrews","Archer","Armstrong","Bailey","Baylor","Borden","Brewster","Briscoe","Brooks","Brown","Callahan","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","Dickens","Dimmit","Donley","Eastland","Ector","Edwards","El Paso","Fisher","Floyd","Foard","Gaines","Garza","Glasscock","Gray","Hale","Hall","Hansford","Hardeman","Hartley","Haskell","Hemphill","Howard","Hudspeth","Hutchinson","Irion","Jeff Davis","Jones","Kent","Kimble","King","Kinney","Knox","Lamb","Lampasas","Lipscomb","Llano","Loving","Lubbock","Lynn","Martin","Mason","Maverick","McCulloch","McMullen","Menard","Midland","Mills","Mitchell","Montague","Moore","Motley","Nolan","Ochiltree","Oldham","Palo Pinto","Parmer","Pecos","Potter","Presidio","Randall","Reagan","Real","Reeves","Roberts","Runnels","San Saba","Schleicher","Scurry","Shackelford","Sherman","Stephens","Sterling","Stonewall","Sutton","Swisher","Taylor","Terrell","Terry","Throckmorton","Tom Green","Upton","Uvalde","Val Verde","Ward","Wheeler","Winkler","Yoakum","Young","Zavala"];
@@ -1809,7 +1836,19 @@ function EditJobModal({ job, onSave, onClose }) {
   );
 
   return (
-    <ModalWrap title={`Edit Job #${job.id}`} onClose={onClose} width={600}>
+    <ModalWrap title={`Edit Job #${job.id}`} onClose={handleClose} width={600}>
+      {showUnsaved && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This job card has unsaved changes. Are you sure you want to close?</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={onClose}>YES, DISCARD</Btn>
+              <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>KEEP EDITING</Btn>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Customer + Status */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 12 }}>
@@ -2647,12 +2686,32 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     lineItems: normalizeLI(ticket.lineItems),
     notes: ticket.notes || "",
     date: ticket.date ? ticket.date.slice(0, 10) : "",
+    lvYard: ticket.lvYard || ticket.lv_yard || "",
+    arrivalTime: ticket.arrivalTime || ticket.arrival_time || "",
+    dueOnLoc: ticket.dueOnLoc || ticket.due_on_loc || "",
+    jobStartTime: ticket.jobStartTime || ticket.job_start_time || "",
+    jobEndTime: ticket.jobEndTime || ticket.job_end_time || "",
+    retYard: ticket.retYard || ticket.ret_yard || "",
+    timeZone: ticket.timeZone || ticket.time_zone || "",
+    mileageBegin: String(ticket.mileageBegin ?? ticket.mileage_begin ?? ""),
+    mileageEnd: String(ticket.mileageEnd ?? ticket.mileage_end ?? ""),
+    ticketPin: ticket.googlePin || ticket.google_pin || "",
   });
   const isDirty = () => {
     if (sigWiped || isEditing) return true;
     if (notes !== origRef.current.notes) return true;
     if (ticketDate !== origRef.current.date) return true;
     if (normalizeLI(lineItems) !== origRef.current.lineItems) return true;
+    if (lvYard !== origRef.current.lvYard) return true;
+    if (arrivalTime !== origRef.current.arrivalTime) return true;
+    if (dueOnLoc !== origRef.current.dueOnLoc) return true;
+    if (jobStartTime !== origRef.current.jobStartTime) return true;
+    if (jobEndTime !== origRef.current.jobEndTime) return true;
+    if (retYard !== origRef.current.retYard) return true;
+    if (timeZone !== origRef.current.timeZone) return true;
+    if (String(mileageBegin) !== origRef.current.mileageBegin) return true;
+    if (String(mileageEnd) !== origRef.current.mileageEnd) return true;
+    if (ticketPin !== origRef.current.ticketPin) return true;
     return false;
   };
   const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
