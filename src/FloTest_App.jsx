@@ -5661,7 +5661,16 @@ const ROLE_OPTIONS = [
   { value: "field", label: "Field" },
 ];
 
-const PROTECTED_EMAILS = ["reggie@flotest.com", "accounts@flotest.com"];
+// Role hierarchy: owner > admin > manager > lead/salesman/field
+// Owner modifies everyone. Admin modifies manager and below. Manager modifies lead/salesman/field.
+// No one modifies their own role/permissions. Everyone can self-edit name/email/password.
+const ROLE_RANK = { owner: 4, admin: 3, manager: 2, lead: 1, salesman: 1, field: 0 };
+const canModifyUser = (currentUserRole, targetUserRole) => {
+  if (!currentUserRole || !targetUserRole) return false;
+  const myRank = ROLE_RANK[currentUserRole] ?? 0;
+  const theirRank = ROLE_RANK[targetUserRole] ?? 0;
+  return myRank > theirRank;
+};
 
 function DeletedJobsPage({ deletedJobs, currentUser, handleRestoreJob, handlePermanentDelete }) {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
@@ -5841,7 +5850,7 @@ const DEFAULT_PERMS = {
   field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
 };
 
-function PermissionsModal({ onClose }) {
+function PermissionsModal({ onClose, currentUser }) {
   const [permUsers, setPermUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
@@ -5861,9 +5870,8 @@ function PermissionsModal({ onClose }) {
   const togglePerm = async (userId, permKey) => {
     const user = permUsers.find(u => u.id === userId);
     if (!user) return;
-    // Owner and protected users can't be modified
-    if (user.role === "owner") return;
-    if (PROTECTED_EMAILS.includes(user.email)) return;
+    // Role hierarchy: can only modify users below your rank
+    if (!canModifyUser(currentUser?.role, user.role)) return;
 
     const updated = { ...user.permissions, [permKey]: !user.permissions[permKey] };
     setPermUsers(prev => prev.map(u => u.id === userId ? { ...u, permissions: updated } : u));
@@ -5909,14 +5917,14 @@ function PermissionsModal({ onClose }) {
               <tbody>
                 {permUsers.filter(u => u.is_active).map(u => {
                   const isOwner = u.role === "owner";
-                  const isProtected = PROTECTED_EMAILS.includes(u.email);
+                  const canModify = canModifyUser(currentUser?.role, u.role);
                   return (
                     <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: isOwner ? "#f0f3f8" : "transparent" }}>
                       <td style={{ padding: "8px 12px", fontWeight: 700, color: C.text }}>{u.name}</td>
                       <td style={{ padding: "8px 6px", color: C.muted, fontSize: 10, textTransform: "uppercase", fontWeight: 700, letterSpacing: "0.06em" }}>{u.role}</td>
                       {PERMISSION_CATEGORIES.map(p => {
                         const checked = u.permissions?.[p.key] ?? false;
-                        const disabled = isOwner || isProtected;
+                        const disabled = !canModify;
                         return (
                           <td key={p.key} style={{ padding: "8px 4px", textAlign: "center" }}>
                             <input type="checkbox" checked={checked} disabled={disabled}
@@ -5992,7 +6000,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
 
   const handleDeactivate = async (userId) => {
     const user = users.find(u => u.id === userId);
-    if (PROTECTED_EMAILS.includes(user?.email)) return;
+    if (!canModifyUser(currentUser?.role, user?.role)) return;
     try {
       await fetch(`${API_URL}/users/${userId}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
@@ -6048,7 +6056,8 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
           ))}
         </div>
         {users.map((u, i) => {
-          const isProtected = PROTECTED_EMAILS.includes(u.email);
+          const canModify = canModifyUser(currentUser?.role, u.role);
+          const isSelf = currentUser?.id === u.id;
           const isEditing = editId === u.id;
           return (
             <div key={u.id} style={{ borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
@@ -6056,7 +6065,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
                 <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr 120px 160px", gap: 8, alignItems: "center" }}>
                   <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editName} onChange={e => setEditName(e.target.value)} />
                   <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
-                  <select style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={isProtected}>
+                  <select style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={!canModify}>
                     {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                   </select>
                   <div style={{ display: "flex", gap: 6 }}>
@@ -6070,10 +6079,10 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
                   <div style={{ fontSize: 12, color: C.muted }}>{u.email}</div>
                   <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: roleBg(u.role), color: roleColor(u.role), letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    {!isProtected && <button onClick={() => startEdit(u)} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>EDIT</button>}
-                    {!isProtected && <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>REMOVE</button>}
-                    {!isProtected && <button onClick={() => handleResetPassword(u.id)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>RESET PW</button>}
-                    {isProtected && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
+                    {(canModify || isSelf) && <button onClick={() => startEdit(u)} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>EDIT</button>}
+                    {canModify && <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>REMOVE</button>}
+                    {canModify && <button onClick={() => handleResetPassword(u.id)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>RESET PW</button>}
+                    {!canModify && !isSelf && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                   </div>
                 </div>
               )}
@@ -6546,7 +6555,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.47</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.48</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -6699,6 +6708,9 @@ function FTIDashboard({ currentUser, onLogout }) {
                     company_code: updates.company_code,
                     cost_center: updates.cost_center,
                     po_number: updates.po_number,
+                    google_pin: updates.google_pin,
+                    pin_lat: updates.pin_lat,
+                    pin_lng: updates.pin_lng,
                   };
                   if (updates.customer) {
                     payload.customer = updates.customer;
@@ -6734,7 +6746,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} customers={customers} users={users} />
       )}
       {showPermissions && (
-        <PermissionsModal onClose={() => setShowPermissions(false)} />
+        <PermissionsModal onClose={() => setShowPermissions(false)} currentUser={currentUser} />
       )}
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} currentUser={currentUser} />
