@@ -1785,6 +1785,11 @@ function EditJobModal({ job, onSave, onClose }) {
   const [costCenter, setCostCenter] = useState(job.costCenter || job.cost_center || "");
   const [po, setPo] = useState(job.po || job.po_number || "");
   const [status, setStatus] = useState(job.status || "Scheduled");
+  const [editGooglePin, setEditGooglePin] = useState(job.googlePin || job.google_pin || "");
+  const [editPinLat, setEditPinLat] = useState(job.pinLat || job.pin_lat || null);
+  const [editPinLng, setEditPinLng] = useState(job.pinLng || job.pin_lng || null);
+  const [editPinResolving, setEditPinResolving] = useState(false);
+  const [editPinError, setEditPinError] = useState("");
 
   const VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
   const TX_COUNTIES = ["Andrews","Archer","Armstrong","Bailey","Baylor","Borden","Brewster","Briscoe","Brooks","Brown","Callahan","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","Dickens","Dimmit","Donley","Eastland","Ector","Edwards","El Paso","Fisher","Floyd","Foard","Gaines","Garza","Glasscock","Gray","Hale","Hall","Hansford","Hardeman","Hartley","Haskell","Hemphill","Howard","Hudspeth","Hutchinson","Irion","Jeff Davis","Jones","Kent","Kimble","King","Kinney","Knox","Lamb","Lampasas","Lipscomb","Llano","Loving","Lubbock","Lynn","Martin","Mason","Maverick","McCulloch","McMullen","Menard","Midland","Mills","Mitchell","Montague","Moore","Motley","Nolan","Ochiltree","Oldham","Palo Pinto","Parmer","Pecos","Potter","Presidio","Randall","Reagan","Real","Reeves","Roberts","Runnels","San Saba","Schleicher","Scurry","Shackelford","Sherman","Stephens","Sterling","Stonewall","Sutton","Swisher","Taylor","Terrell","Terry","Throckmorton","Tom Green","Upton","Uvalde","Val Verde","Ward","Wheeler","Winkler","Yoakum","Young","Zavala"];
@@ -1886,10 +1891,66 @@ function EditJobModal({ job, onSave, onClose }) {
 
       {/* Billing */}
       {sectionHead("BILLING")}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
         <div><label style={labelStyle}>COMPANY CODE</label><input style={inputStyle} value={companyCode} onChange={e => setCompanyCode(e.target.value)} /></div>
         <div><label style={labelStyle}>COST CENTER</label><input style={inputStyle} value={costCenter} onChange={e => setCostCenter(e.target.value)} /></div>
         <div><label style={labelStyle}>PO NUMBER</label><input style={inputStyle} value={po} onChange={e => setPo(e.target.value)} /></div>
+      </div>
+
+      {/* Google Pin */}
+      {sectionHead("GOOGLE PIN")}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Google Maps links only. Resolving will auto-fill State and County.</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6 }}>
+          <input style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
+            value={editGooglePin}
+            onChange={e => { setEditGooglePin(e.target.value); setEditPinLat(null); setEditPinLng(null); setEditPinError(""); }}
+            placeholder="Paste Google Maps link..." />
+          <button type="button"
+            onClick={async () => {
+              if (!editGooglePin.trim()) return;
+              setEditPinResolving(true); setEditPinError("");
+              try {
+                const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ url: editGooglePin.trim() }),
+                });
+                if (!r.ok) { setEditPinError("Could not resolve pin."); setEditPinResolving(false); return; }
+                const { lat, lng } = await r.json();
+                setEditPinLat(lat); setEditPinLng(lng);
+                // Geocode to state/county
+                const geoR = await fetch(`${API_URL}/jobs/geocode`, {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ lat, lng }),
+                });
+                if (geoR.ok) {
+                  const { state, county: geoCounty } = await geoR.json();
+                  if (state) setJobState(state);
+                  if (geoCounty) setCounty(geoCounty);
+                }
+              } catch { setEditPinError("Network error."); }
+              setEditPinResolving(false);
+            }}
+            disabled={!editGooglePin.trim() || editPinResolving}
+            style={{ background: editGooglePin.trim() ? C.blue : C.steel, color: editGooglePin.trim() ? C.white : C.muted, border: "none", borderRadius: 4, padding: "8px 14px", fontSize: 11, fontWeight: 700, cursor: editGooglePin.trim() ? "pointer" : "default", whiteSpace: "nowrap", flexShrink: 0 }}>
+            {editPinResolving ? "Resolving..." : "RESOLVE"}
+          </button>
+          {editGooglePin && (
+            <button type="button" onClick={() => navigator.clipboard.writeText(editGooglePin)}
+              style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, padding: "8px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+              COPY
+            </button>
+          )}
+        </div>
+        {editPinError && <div style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>⚠ {editPinError}</div>}
+        {editPinLat && editPinLng && (
+          <div style={{ fontSize: 11, color: C.green, fontFamily: "monospace" }}>
+            ✓ {parseFloat(editPinLat).toFixed(6)}, {parseFloat(editPinLng).toFixed(6)}
+          </div>
+        )}
+        {!editPinLat && editGooglePin && (
+          <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Resolve to update coordinates</div>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
@@ -1907,6 +1968,9 @@ function EditJobModal({ job, onSave, onClose }) {
             approver: approver, approver_last: approverLast,
             approver_phone: approverPhone, approver_email: approverEmail,
             company_code: companyCode, cost_center: costCenter, po_number: po,
+            google_pin: editGooglePin || null,
+            pin_lat: editPinLat || null,
+            pin_lng: editPinLng || null,
           });
         }}>SAVE</Btn>
         <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
@@ -2548,6 +2612,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [ticketPinLng, setTicketPinLng] = useState(() => ticket.pinLng || ticket.pin_lng || null);
   const [ticketPinResolving, setTicketPinResolving] = useState(false);
   const [ticketPinError, setTicketPinError] = useState("");
+  const [driveInfo, setDriveInfo] = useState(null);
+  const [driveLoading, setDriveLoading] = useState(false);
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
     const job = jobs?.find(j => j.id === ticket.jobId);
@@ -3002,6 +3068,41 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                     {(ticketPinLat || ticketPinLng) && (
                       <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4 }}>
                         {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}
+                      </div>
+                    )}
+                    {/* Drive distance from yard */}
+                    {(ticketPinLat && ticketPinLng) && (
+                      <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                        {!driveInfo && !driveLoading && (
+                          <button type="button" onClick={async () => {
+                            setDriveLoading(true);
+                            try {
+                              const r = await fetch(`${API_URL}/jobs/drive-distance`, {
+                                method: "POST", headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng }),
+                              });
+                              if (r.ok) { const d = await r.json(); setDriveInfo(d); }
+                              else setDriveInfo({ error: "Could not calculate — check yard location in Settings" });
+                            } catch { setDriveInfo({ error: "Network error" }); }
+                            setDriveLoading(false);
+                          }} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "3px 10px", fontSize: 10, fontWeight: 700, color: C.text, cursor: "pointer" }}>
+                            CALC DRIVE
+                          </button>
+                        )}
+                        {driveLoading && <span style={{ fontSize: 11, color: C.muted }}>Calculating...</span>}
+                        {driveInfo && !driveInfo.error && (
+                          <div style={{ display: "flex", gap: 16 }}>
+                            <div>
+                              <div style={lblStyle}>DRIVE DISTANCE</div>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{driveInfo.distance}</div>
+                            </div>
+                            <div>
+                              <div style={lblStyle}>EST. DRIVE TIME</div>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{driveInfo.duration}</div>
+                            </div>
+                          </div>
+                        )}
+                        {driveInfo?.error && <div style={{ fontSize: 11, color: C.red }}>⚠ {driveInfo.error}</div>}
                       </div>
                     )}
                   </div>
@@ -4993,19 +5094,69 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
         {/* Location */}
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>LOCATION</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+
+          {/* Google Pin — first */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>GOOGLE PIN <span style={{ fontSize: 10, color: C.muted, fontWeight: 400, letterSpacing: 0 }}>— Google Maps links only</span></label>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <input
+                style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
+                value={googlePin}
+                onChange={e => handlePinChange(e.target.value)}
+                placeholder="Paste Google Maps link..."
+              />
+              <button type="button" onClick={() => resolvePin(googlePin)} disabled={!googlePin.trim() || pinResolving}
+                style={{
+                  background: googlePin.trim() ? C.blue : C.steel, color: googlePin.trim() ? C.white : C.muted,
+                  border: "none", borderRadius: 4, padding: "8px 14px", fontSize: 11, fontWeight: 700,
+                  cursor: googlePin.trim() ? "pointer" : "default", whiteSpace: "nowrap", flexShrink: 0,
+                }}>{pinResolving ? "Resolving..." : "RESOLVE"}</button>
+            </div>
+            {pinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {pinError}</div>}
+            {pinLat && pinLng && (
+              <div style={{ marginTop: 6, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: C.green }}>✓ PIN RESOLVED</span>
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{parseFloat(pinLat).toFixed(6)}, {parseFloat(pinLng).toFixed(6)}</span>
+                <button type="button" onClick={() => { navigator.clipboard.writeText(`${pinLat},${pinLng}`); }}
+                  style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 8px", fontSize: 10, fontWeight: 700, color: C.muted, cursor: "pointer" }}>
+                  COPY COORDS
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* State / County — derived from pin, manually editable with warning */}
+          {(stateLockedByPin || countyLockedByPin) && (
+            <div style={{ fontSize: 11, color: C.blue, background: "#e8f0fb", border: `1px solid ${C.blue}22`, borderRadius: 4, padding: "6px 10px", marginBottom: 8 }}>
+              State and County are auto-filled from the pin. Editing them manually will break the pin association.
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
-              <label style={labelStyle}>STATE {stateLockedByPin && <span style={{ color: C.blue, fontSize: 10, fontWeight: 700 }}>PIN</span>}</label>
-              <input style={{ ...inputStyle, borderColor: errors.jobState ? C.red : stateLockedByPin ? C.blue : C.border }} value={jobState} onChange={e => !stateLockedByPin && setJobState(formatState(e.target.value))} readOnly={stateLockedByPin} placeholder="TX" maxLength={2} />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label style={labelStyle}>STATE</label>
+                {stateLockedByPin && (
+                  <button type="button" onClick={() => setStateLockedByPin(false)}
+                    style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}>unlock</button>
+                )}
+              </div>
+              <input style={{ ...inputStyle, borderColor: errors.jobState ? C.red : stateLockedByPin ? C.blue : C.border }}
+                value={jobState} onChange={e => !stateLockedByPin && setJobState(formatState(e.target.value))}
+                readOnly={stateLockedByPin} placeholder="TX" maxLength={2} />
               {errors.jobState && <div data-error="jobState" style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{errors.jobState}</div>}
             </div>
             <div style={{ position: "relative" }}>
-              <label style={labelStyle}>COUNTY</label>
-              <input
-                style={inputStyle}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <label style={labelStyle}>COUNTY</label>
+                {countyLockedByPin && (
+                  <button type="button" onClick={() => setCountyLockedByPin(false)}
+                    style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}>unlock</button>
+                )}
+              </div>
+              <input style={{ ...inputStyle, borderColor: countyLockedByPin ? C.blue : C.border }}
                 value={county}
-                onChange={e => { setCounty(e.target.value); setShowCountyDrop(true); }}
-                onFocus={() => setShowCountyDrop(true)}
+                onChange={e => { if (!countyLockedByPin) { setCounty(e.target.value); setShowCountyDrop(true); } }}
+                onFocus={() => !countyLockedByPin && setShowCountyDrop(true)}
                 onBlur={() => setTimeout(() => setShowCountyDrop(false), 150)}
                 placeholder="Start typing..."
                 readOnly={countyLockedByPin}
@@ -5017,9 +5168,8 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
                   boxShadow: "0 4px 16px #00000022", maxHeight: 180, overflowY: "auto", marginTop: 2,
                 }}>
                   {filteredCounties.map(c => (
-                    <div key={c} onMouseDown={() => { setCounty(c); setShowCountyDrop(false); }} style={{
-                      padding: "6px 12px", cursor: "pointer", fontSize: 12,
-                    }}
+                    <div key={c} onMouseDown={() => { setCounty(c); setShowCountyDrop(false); }}
+                      style={{ padding: "6px 12px", cursor: "pointer", fontSize: 12 }}
                       onMouseEnter={e => e.currentTarget.style.background = C.steel}
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     >{c}</div>
@@ -5027,45 +5177,6 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Google Pin */}
-          <div style={{ marginTop: 10 }}>
-            <label style={labelStyle}>GOOGLE PIN</label>
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-              <input
-                style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
-                value={googlePin}
-                onChange={e => handlePinChange(e.target.value)}
-                placeholder="Paste Google Maps link..."
-              />
-              <button
-                type="button"
-                onClick={() => resolvePin(googlePin)}
-                disabled={!googlePin.trim() || pinResolving}
-                style={{
-                  background: googlePin.trim() ? C.blue : C.steel,
-                  color: googlePin.trim() ? C.white : C.muted,
-                  border: "none", borderRadius: 4, padding: "8px 14px",
-                  fontSize: 11, fontWeight: 700, cursor: googlePin.trim() ? "pointer" : "default",
-                  whiteSpace: "nowrap", flexShrink: 0,
-                }}
-              >{pinResolving ? "Resolving..." : "RESOLVE"}</button>
-            </div>
-            {pinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {pinError}</div>}
-            {pinLat && pinLng && (
-              <div style={{ marginTop: 6, display: "flex", gap: 16, alignItems: "center" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: C.green }}>✓ PIN RESOLVED</span>
-                <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
-                  {parseFloat(pinLat).toFixed(6)}, {parseFloat(pinLng).toFixed(6)}
-                </span>
-                {(stateLockedByPin || countyLockedByPin) && (
-                  <span style={{ fontSize: 10, color: C.blue, fontWeight: 700 }}>
-                    State/County auto-filled from pin
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
@@ -5528,6 +5639,96 @@ function DeletedJobsPage({ deletedJobs, currentUser, handleRestoreJob, handlePer
   );
 }
 
+// ─── SETTINGS MODAL ───────────────────────────────────────────────────────────
+function SettingsModal({ onClose, currentUser }) {
+  const [yardAddress, setYardAddress] = useState("");
+  const [yardLat, setYardLat] = useState("");
+  const [yardLng, setYardLng] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const isOwner = currentUser?.role === "owner";
+
+  useEffect(() => {
+    fetch(`${API_URL}/settings`)
+      .then(r => r.ok ? r.json() : {})
+      .then(data => {
+        setYardAddress(data.yard_address || "");
+        setYardLat(data.yard_lat || "");
+        setYardLng(data.yard_lng || "");
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleGeocode = async () => {
+    if (!yardAddress.trim()) return;
+    setGeocoding(true); setError("");
+    try {
+      const r = await fetch(`${API_URL}/jobs/geocode-address`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: yardAddress.trim() }),
+      });
+      if (!r.ok) { setError("Could not geocode address."); setGeocoding(false); return; }
+      const { lat, lng } = await r.json();
+      setYardLat(lat); setYardLng(lng);
+    } catch { setError("Network error geocoding address."); }
+    setGeocoding(false);
+  };
+
+  const handleSave = async () => {
+    try {
+      await fetch(`${API_URL}/settings`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ yard_address: yardAddress, yard_lat: yardLat, yard_lng: yardLng }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch { setError("Failed to save settings."); }
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
+      onClick={onClose}>
+      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 520, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
+        onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>SETTINGS</div>
+
+        {/* Yard Location */}
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>YARD LOCATION</div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
+            Used to calculate drive distance and time to job locations. Owner-only.
+          </div>
+          <label style={labelStyle}>ADDRESS</label>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <input style={{ ...inputStyle, flex: 1 }} value={yardAddress}
+              onChange={e => { setYardAddress(e.target.value); setYardLat(""); setYardLng(""); }}
+              placeholder="e.g. 123 Main St, Odessa, TX 79761"
+              readOnly={!isOwner} />
+            {isOwner && (
+              <button type="button" onClick={handleGeocode} disabled={!yardAddress.trim() || geocoding}
+                style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "8px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                {geocoding ? "..." : "GEOCODE"}
+              </button>
+            )}
+          </div>
+          {yardLat && yardLng && (
+            <div style={{ fontSize: 11, color: C.green, fontFamily: "monospace" }}>
+              ✓ {parseFloat(yardLat).toFixed(6)}, {parseFloat(yardLng).toFixed(6)}
+            </div>
+          )}
+          {error && <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>⚠ {error}</div>}
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          {isOwner && <Btn onClick={handleSave}>{saved ? "SAVED ✓" : "SAVE SETTINGS"}</Btn>}
+          <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── PERMISSIONS MODAL ────────────────────────────────────────────────────────
 const PERMISSION_CATEGORIES = [
   { key: "view_jobs", label: "View Jobs", group: "Jobs & Tickets" },
@@ -5834,6 +6035,8 @@ function FTIDashboard({ currentUser, onLogout }) {
   
   const [page, setPage] = useState("dashboard");
   const [showPermissions, setShowPermissions] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
@@ -6223,6 +6426,14 @@ function FTIDashboard({ currentUser, onLogout }) {
             <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Permissions</span>
           </div>
         )}
+        {currentUser.role === "owner" && (
+          <div onClick={() => { setDrawerOpen(false); setShowSettings(true); }} style={{
+            display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
+          }}>
+            <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⚙</span>
+            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Settings</span>
+          </div>
+        )}
         <div onClick={() => { setDrawerOpen(false); onLogout(); }} style={{
           display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
           borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
@@ -6247,7 +6458,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.44</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.45</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -6272,7 +6483,33 @@ function FTIDashboard({ currentUser, onLogout }) {
           })}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {["owner", "admin", "manager"].includes(currentUser.role) && (
-              <span onClick={() => setShowPermissions(true)} style={{ fontSize: 18, color: "#a0aec8", cursor: "pointer", lineHeight: 1 }} title="Permissions">⚙</span>
+              <div style={{ position: "relative" }}>
+                <span onClick={() => setShowSettingsMenu(v => !v)}
+                  style={{ fontSize: 18, color: showSettingsMenu ? C.white : "#a0aec8", cursor: "pointer", lineHeight: 1, userSelect: "none" }}
+                  title="Settings">⚙</span>
+                {showSettingsMenu && (
+                  <div style={{
+                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 300,
+                    background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
+                    boxShadow: "0 4px 16px #00000033", minWidth: 160, overflow: "hidden",
+                  }} onClick={() => setShowSettingsMenu(false)}>
+                    <div onClick={() => setShowPermissions(true)}
+                      style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      Permissions
+                    </div>
+                    {currentUser.role === "owner" && (
+                      <div onClick={() => setShowSettings(true)}
+                        style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        Settings
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
             <span onClick={onLogout} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
             <div onClick={onLogout} style={{
@@ -6326,7 +6563,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               <Btn onClick={() => setPage("todos")} variant="ghost">
                 ☐ Tasks {myActiveTodos.length > 0 ? `(${myActiveTodos.length})` : ""}
               </Btn>
-              <Btn onClick={() => setShowNewJob(true)}>+ NEW MJC</Btn>
+              <Btn onClick={() => setShowNewJob(true)}>+ Job Card</Btn>
             </div>
           </div>
 
@@ -6410,6 +6647,9 @@ function FTIDashboard({ currentUser, onLogout }) {
       )}
       {showPermissions && (
         <PermissionsModal onClose={() => setShowPermissions(false)} />
+      )}
+      {showSettings && (
+        <SettingsModal onClose={() => setShowSettings(false)} currentUser={currentUser} />
       )}
     </div>
   );
