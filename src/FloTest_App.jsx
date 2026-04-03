@@ -5664,14 +5664,27 @@ function SettingsModal({ onClose, currentUser }) {
     if (!yardAddress.trim()) return;
     setGeocoding(true); setError("");
     try {
-      const r = await fetch(`${API_URL}/jobs/geocode-address`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address: yardAddress.trim() }),
-      });
-      if (!r.ok) { setError("Could not geocode address."); setGeocoding(false); return; }
-      const { lat, lng } = await r.json();
-      setYardLat(lat); setYardLng(lng);
-    } catch { setError("Network error geocoding address."); }
+      const isUrl = yardAddress.trim().startsWith('http');
+      if (isUrl) {
+        // It's a Google Maps link — resolve via pin resolver
+        const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: yardAddress.trim() }),
+        });
+        if (!r.ok) { setError("Could not resolve Google Maps link."); setGeocoding(false); return; }
+        const { lat, lng } = await r.json();
+        setYardLat(lat); setYardLng(lng);
+      } else {
+        // It's a street address — geocode it
+        const r = await fetch(`${API_URL}/jobs/geocode-address`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: yardAddress.trim() }),
+        });
+        if (!r.ok) { setError("Could not geocode address."); setGeocoding(false); return; }
+        const { lat, lng } = await r.json();
+        setYardLat(lat); setYardLng(lng);
+      }
+    } catch { setError("Network error. Try again."); }
     setGeocoding(false);
   };
 
@@ -5699,11 +5712,11 @@ function SettingsModal({ onClose, currentUser }) {
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
             Used to calculate drive distance and time to job locations. Owner-only.
           </div>
-          <label style={labelStyle}>ADDRESS</label>
+          <label style={labelStyle}>ADDRESS OR GOOGLE MAPS LINK</label>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <input style={{ ...inputStyle, flex: 1 }} value={yardAddress}
               onChange={e => { setYardAddress(e.target.value); setYardLat(""); setYardLng(""); }}
-              placeholder="e.g. 123 Main St, Odessa, TX 79761"
+              placeholder="123 Main St, Odessa, TX  or  https://maps.app.goo.gl/..."
               readOnly={!isOwner} />
             {isOwner && (
               <button type="button" onClick={handleGeocode} disabled={!yardAddress.trim() || geocoding}
@@ -6458,7 +6471,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.45</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.46</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
