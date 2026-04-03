@@ -2542,6 +2542,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [timeZone, setTimeZone] = useState(() => ticket.timeZone || ticket.time_zone || "");
   const [mileageBegin, setMileageBegin] = useState(() => ticket.mileageBegin ?? ticket.mileage_begin ?? "");
   const [mileageEnd, setMileageEnd] = useState(() => ticket.mileageEnd ?? ticket.mileage_end ?? "");
+  // Ticket-level pin
+  const [ticketPin, setTicketPin] = useState(() => ticket.googlePin || ticket.google_pin || "");
+  const [ticketPinLat, setTicketPinLat] = useState(() => ticket.pinLat || ticket.pin_lat || null);
+  const [ticketPinLng, setTicketPinLng] = useState(() => ticket.pinLng || ticket.pin_lng || null);
+  const [ticketPinResolving, setTicketPinResolving] = useState(false);
+  const [ticketPinError, setTicketPinError] = useState("");
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
     const job = jobs?.find(j => j.id === ticket.jobId);
@@ -2669,6 +2675,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
         mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
         mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
+        googlePin: ticketPin || null,
+        pinLat: ticketPinLat || null,
+        pinLng: ticketPinLng || null,
       } : {}),
       ...overrides,
     };
@@ -2939,6 +2948,65 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   <div style={totalStyle}>{totalMiles !== null ? `${totalMiles.toLocaleString()} mi` : "—"}</div>
                 </div>
               </div>
+
+              {/* Pin section */}
+              {(() => {
+                const jobPin = job?.googlePin || job?.google_pin || "";
+                const pinMismatch = jobPin && ticketPin && ticketPin.trim() !== jobPin.trim();
+                const resolveTicketPin = async (url) => {
+                  if (!url.trim()) return;
+                  setTicketPinResolving(true); setTicketPinError("");
+                  try {
+                    const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+                      method: "POST", headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ url: url.trim() }),
+                    });
+                    if (!r.ok) { setTicketPinError("Could not resolve pin."); setTicketPinResolving(false); return; }
+                    const { lat, lng } = await r.json();
+                    setTicketPinLat(lat); setTicketPinLng(lng);
+                  } catch { setTicketPinError("Network error."); }
+                  setTicketPinResolving(false);
+                };
+                return (
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 7, marginTop: 2 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                      <div style={lblStyle}>GOOGLE PIN</div>
+                      {pinMismatch && (
+                        <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
+                          ALT PIN — differs from Master Job Card
+                        </span>
+                      )}
+                      {jobPin && !ticketPin && (
+                        <span style={{ fontSize: 10, color: C.muted }}>MJC: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
+                      )}
+                    </div>
+                    {editable ? (
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <input
+                          style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
+                          value={ticketPin}
+                          onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }}
+                          placeholder={jobPin ? "Override MJC pin or leave blank to use MJC pin" : "Paste Google Maps link..."}
+                        />
+                        {ticketPin && (
+                          <button type="button" onClick={() => resolveTicketPin(ticketPin)} disabled={ticketPinResolving}
+                            style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                            {ticketPinResolving ? "..." : "RESOLVE"}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={roStyle}>{ticketPin || (jobPin ? `Using MJC pin` : "—")}</div>
+                    )}
+                    {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
+                    {(ticketPinLat || ticketPinLng) && (
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4 }}>
+                        {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })()}
@@ -3419,7 +3487,7 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
 }
 
 // ─── ADD TICKET MODAL ─────────────────────────────────────────────────────────
-function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existingTickets = [] }) {
+function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], existingTickets = [] }) {
   const [type, setType] = useState(null);
   const [assignedWells, setAssignedWells] = useState([]);
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
@@ -3430,8 +3498,23 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
   const [cycleDays, setCycleDays] = useState(28);
   const [isRecurring, setIsRecurring] = useState(true);
   const [showUnsaved, setShowUnsaved] = useState(false);
+  // Time & mileage
+  const [lvYard, setLvYard] = useState("");
+  const [arrivalTime, setArrivalTime] = useState("");
+  const [dueOnLoc, setDueOnLoc] = useState("");
+  const [jobStartTime, setJobStartTime] = useState("");
+  const [jobEndTime, setJobEndTime] = useState("");
+  const [retYard, setRetYard] = useState("");
+  const [timeZone, setTimeZone] = useState("");
+  const [mileageBegin, setMileageBegin] = useState("");
+  const [mileageEnd, setMileageEnd] = useState("");
 
-  // Auto-calculate end date for rental
+  const TIME_OPTS = [""].concat(Array.from({ length: 48 }, (_, i) => {
+    const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
+    const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+    return `${h12}:${m} ${h24 < 12 ? "AM" : "PM"}`;
+  }));
+
   const endDate = useMemo(() => {
     if (!startDate || !cycleDays) return "";
     const d = new Date(startDate + "T00:00:00");
@@ -3440,18 +3523,13 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
   }, [startDate, cycleDays]);
 
   const isDirty = type || lineItems.length > 0 || notes;
+  const handleClose = () => { if (isDirty) { setShowUnsaved(true); } else { onClose(); } };
 
-  const handleClose = () => {
-    if (isDirty) { setShowUnsaved(true); } else { onClose(); }
-  };
-
-  // When type is selected, initialize well assignment + auto-populate RD from RU
   const handleSelectType = (t) => {
     setType(t);
     setAssignedWells([...jobWells]);
     if (jobWells.length <= 1) setWellsConfirmed(true);
     else setWellsConfirmed(false);
-    // Auto-populate Rig Down from Rig Up
     if (t === "Rig Down") {
       const ruTicket = existingTickets.find(tk => tk.type === "Rig Up" && tk.jobId === jobId);
       if (ruTicket && ruTicket.lineItems?.length) {
@@ -3460,26 +3538,20 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
         if (ruTicket.notes) setNotes(ruTicket.notes);
       }
     }
-    // Set rental defaults
-    if (t === "Rental") {
-      setStartDate(today());
-      setCycleDays(28);
-      setIsRecurring(true);
-    }
+    if (t === "Rental") { setStartDate(today()); setCycleDays(28); setIsRecurring(true); }
   };
 
   const toggleWell = (well) => {
-    setAssignedWells(prev => {
-      if (!prev) return [well];
-      return prev.includes(well) ? prev.filter(w => w !== well) : [...prev, well];
-    });
+    setAssignedWells(prev => prev.includes(well) ? prev.filter(w => w !== well) : [...prev, well]);
   };
-
   const selectAllWells = () => setAssignedWells([...jobWells]);
 
   const handleSave = () => {
     if (!type) return;
     const isRental = type === "Rental";
+    const jobGooglePin = job?.googlePin || job?.google_pin || null;
+    const jobPinLat = job?.pinLat || job?.pin_lat || null;
+    const jobPinLng = job?.pinLng || job?.pin_lng || null;
     onSave({
       jobId, type, status: "draft", date: isRental ? startDate : date,
       signedBy: null, signedAt: null,
@@ -3487,8 +3559,19 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
       assignedWells: assignedWells ?? jobWells,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
       ...(isRental ? { startDate, endDate, cycleDays: parseInt(cycleDays) || 28, isRecurring } : {}),
+      ...(!isRental ? {
+        lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
+        mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
+        mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
+        googlePin: jobGooglePin,
+        pinLat: jobPinLat,
+        pinLng: jobPinLng,
+      } : {}),
     });
   };
+
+  const selStyle = { border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 6px", fontSize: 12, color: C.text, background: C.cardBg, width: 98 };
+  const lblSm = { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 };
 
   return (
     <div style={{
@@ -3498,7 +3581,7 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
       <div style={{
         background: C.cardBg, border: `1px solid ${C.border}`,
         borderTop: `3px solid ${C.red}`, borderRadius: 8,
-        padding: 24, width: type ? 820 : 480, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
+        width: type ? 820 : 480, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
       }} onClick={e => e.stopPropagation()}>
         {showUnsaved && (
           <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
@@ -3512,134 +3595,187 @@ function AddTicketModal({ jobId, onSave, onClose, qbItems, jobWells = [], existi
             </div>
           </div>
         )}
-        {!type ? (
-          <>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Add Ticket — Select Type</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {Object.entries(TICKET_TYPES).map(([key, cfg]) => (
-                <button key={key} onClick={() => handleSelectType(key)} style={{
-                  background: C.cardBg, border: `2px solid ${cfg.color}33`,
-                  borderLeft: `4px solid ${cfg.color}`, borderRadius: 6,
-                  padding: "16px 18px", cursor: "pointer", textAlign: "left",
-                }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = cfg.color}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = cfg.color + "33"}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-                    {key === "Rig Up" && "Crew mobilization, equipment, Day 1 rental"}
-                    {key === "Rig Down" && "Teardown, equipment return, DLR check"}
-                    {key === "Tester" && "Flo-back testing, hourly logging"}
-                    {key === "Pumper" && "Field specialist, daily operations"}
-                    {key === "Rental" && "Ongoing equipment rental (Day 2+)"}
-                  </div>
-                </button>
-              ))}
+
+        {/* Job info banner — always visible once type selected */}
+        {type && job && (
+          <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 20px" }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>JOB INFO</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 12 }}>
+              <span><span style={{ color: C.muted }}>Customer: </span><strong>{job.customer}</strong></span>
+              {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
+              {job.county && <span><span style={{ color: C.muted }}>County: </span><strong>{job.county}</strong></span>}
+              {job.wells?.length > 0 && <span><span style={{ color: C.muted }}>Wells: </span><strong>{job.wells.map(w => w.well_name || w).join(", ")}</strong></span>}
+              {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Site Mgr: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
             </div>
-            <div style={{ marginTop: 16 }}>
-              <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
-            </div>
-          </>
-        ) : type && !wellsConfirmed && jobWells.length > 1 ? (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-              <TicketTypeBadge type={type} />
-              <span style={{ fontSize: 16, fontWeight: 700 }}>Assign Wells — New {type} Ticket</span>
-              <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
-                background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
-                padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
-              }}>← CHANGE TYPE</button>
-            </div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Select which wells apply to this ticket. All wells are pre-selected — uncheck any that don't apply.</div>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELLS ON THIS JOB</label>
-                <button type="button" onClick={selectAllWells} style={{
-                  background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3,
-                  padding: "2px 10px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer",
-                }}>SELECT ALL</button>
-              </div>
-              {jobWells.map((well, idx) => {
-                const checked = assignedWells.includes(well);
-                return (
-                  <div key={idx} onClick={() => toggleWell(well)} style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                    marginBottom: 6, background: checked ? "#e8f0fb" : C.steel,
-                    border: `1px solid ${checked ? C.blue + "44" : C.border}`,
-                    borderRadius: 5, cursor: "pointer",
-                  }}>
-                    <div style={{
-                      width: 18, height: 18, borderRadius: 3, border: `2px solid ${checked ? C.blue : C.border}`,
-                      background: checked ? C.blue : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}>
-                      {checked && <span style={{ color: C.white, fontSize: 12, fontWeight: 900, lineHeight: 1 }}>✓</span>}
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: checked ? 700 : 400, color: C.text }}>{well}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={() => {
-                if (assignedWells.length === 0) return;
-                setWellsConfirmed(true);
-              }}>
-                {assignedWells.length === 0 ? "SELECT AT LEAST ONE WELL" : `CONFIRM — ${assignedWells.length} WELL${assignedWells.length !== 1 ? "S" : ""}`}
-              </Btn>
-              <Btn variant="ghost" onClick={handleClose}>CANCEL</Btn>
-            </div>
-          </>
-        ) : (
-          <>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-              <TicketTypeBadge type={type} />
-              <span style={{ fontSize: 16, fontWeight: 700 }}>New {type} Ticket</span>
-              <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
-                background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
-                padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
-              }}>← CHANGE TYPE</button>
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              {type === "Rental" ? (
-                <>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
-                    <div>
-                      <label style={labelStyle}>START DATE</label>
-                      <input type="date" style={{ ...inputStyle, width: 160 }} value={startDate} onChange={e => setStartDate(e.target.value)} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>CYCLE (DAYS)</label>
-                      <input type="number" style={{ ...inputStyle, width: 80 }} value={cycleDays} onChange={e => setCycleDays(e.target.value)} min={1} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>END DATE</label>
-                      <input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8" }} value={endDate} readOnly />
-                    </div>
-                  </div>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}>
-                    <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
-                    Recurring (auto-create next cycle ticket)
-                  </label>
-                </>
-              ) : (
-                <>
-                  <label style={labelStyle}>DATE</label>
-                  <input type="date" style={{ ...inputStyle, width: 180 }} value={date} onChange={e => setDate(e.target.value)} />
-                </>
-              )}
-            </div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
-            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} />
-            <div style={{ marginTop: 16, marginBottom: 16 }}>
-              <label style={labelStyle}>NOTES</label>
-              <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={e => setNotes(e.target.value)} />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={handleSave}>CREATE TICKET</Btn>
-              <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
-            </div>
-          </>
+          </div>
         )}
+
+        <div style={{ padding: 24 }}>
+          {!type ? (
+            <>
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Add Ticket — Select Type</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {Object.entries(TICKET_TYPES).map(([key, cfg]) => (
+                  <button key={key} onClick={() => handleSelectType(key)} style={{
+                    background: C.cardBg, border: `2px solid ${cfg.color}33`,
+                    borderLeft: `4px solid ${cfg.color}`, borderRadius: 6,
+                    padding: "16px 18px", cursor: "pointer", textAlign: "left",
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = cfg.color}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = cfg.color + "33"}
+                  >
+                    <div style={{ fontSize: 14, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
+                      {key === "Rig Up" && "Crew mobilization, equipment, Day 1 rental"}
+                      {key === "Rig Down" && "Teardown, equipment return, DLR check"}
+                      {key === "Tester" && "Flo-back testing, hourly logging"}
+                      {key === "Pumper" && "Field specialist, daily operations"}
+                      {key === "Rental" && "Ongoing equipment rental (Day 2+)"}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
+              </div>
+            </>
+          ) : type && !wellsConfirmed && jobWells.length > 1 ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+                <TicketTypeBadge type={type} />
+                <span style={{ fontSize: 16, fontWeight: 700 }}>Assign Wells — New {type} Ticket</span>
+                <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
+                  background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
+                  padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
+                }}>← CHANGE TYPE</button>
+              </div>
+              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELLS ON THIS JOB</label>
+                  <button type="button" onClick={selectAllWells} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer" }}>SELECT ALL</button>
+                </div>
+                {jobWells.map((well, idx) => {
+                  const checked = assignedWells.includes(well);
+                  return (
+                    <div key={idx} onClick={() => toggleWell(well)} style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", marginBottom: 6,
+                      background: checked ? "#e8f0fb" : C.steel, border: `1px solid ${checked ? C.blue + "44" : C.border}`,
+                      borderRadius: 5, cursor: "pointer",
+                    }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 3, border: `2px solid ${checked ? C.blue : C.border}`, background: checked ? C.blue : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        {checked && <span style={{ color: C.white, fontSize: 12, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: checked ? 700 : 400, color: C.text }}>{well}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={() => { if (assignedWells.length === 0) return; setWellsConfirmed(true); }}>
+                  {assignedWells.length === 0 ? "SELECT AT LEAST ONE WELL" : `CONFIRM — ${assignedWells.length} WELL${assignedWells.length !== 1 ? "S" : ""}`}
+                </Btn>
+                <Btn variant="ghost" onClick={handleClose}>CANCEL</Btn>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+                <TicketTypeBadge type={type} />
+                <span style={{ fontSize: 16, fontWeight: 700 }}>New {type} Ticket</span>
+                <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
+                  background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
+                  padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
+                }}>← CHANGE TYPE</button>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                {type === "Rental" ? (
+                  <>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
+                      <div><label style={labelStyle}>START DATE</label><input type="date" style={{ ...inputStyle, width: 160 }} value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
+                      <div><label style={labelStyle}>CYCLE (DAYS)</label><input type="number" style={{ ...inputStyle, width: 80 }} value={cycleDays} onChange={e => setCycleDays(e.target.value)} min={1} /></div>
+                      <div><label style={labelStyle}>END DATE</label><input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8" }} value={endDate} readOnly /></div>
+                    </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}>
+                      <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
+                      Recurring (auto-create next cycle ticket)
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <label style={labelStyle}>DATE</label>
+                    <input type="date" style={{ ...inputStyle, width: 180 }} value={date} onChange={e => setDate(e.target.value)} />
+                  </>
+                )}
+              </div>
+
+              {/* Time & Mileage — non-Rental only */}
+              {type !== "Rental" && (
+                <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>TIME &amp; MILEAGE</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end", marginBottom: 8 }}>
+                    {[
+                      { label: "LV YARD", val: lvYard, set: setLvYard },
+                      { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime },
+                      { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc },
+                      { label: "JOB START", val: jobStartTime, set: setJobStartTime },
+                      { label: "JOB END", val: jobEndTime, set: setJobEndTime },
+                      { label: "RET YARD", val: retYard, set: setRetYard },
+                    ].map(({ label, val, set }) => (
+                      <div key={label}>
+                        <div style={lblSm}>{label}</div>
+                        <select value={val} onChange={e => set(e.target.value)} style={selStyle}>
+                          {TIME_OPTS.map(o => <option key={o} value={o}>{o || "—"}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                    <div>
+                      <div style={lblSm}>TIME ZONE</div>
+                      <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
+                        {["TX", "NM"].map(tz => (
+                          <label key={tz} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.text : C.muted }}>
+                            <input type="radio" name="tz-new" value={tz} checked={timeZone === tz} onChange={() => setTimeZone(tz)} style={{ width: 13, height: 13, accentColor: C.red }} />
+                            {tz}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, display: "flex", gap: "8px 14px", flexWrap: "wrap", alignItems: "flex-end" }}>
+                    {[
+                      { label: "MILEAGE — BEGINNING", val: mileageBegin, set: setMileageBegin },
+                      { label: "MILEAGE — END", val: mileageEnd, set: setMileageEnd },
+                    ].map(({ label, val, set }) => (
+                      <div key={label}>
+                        <div style={lblSm}>{label}</div>
+                        <input type="number" value={val} onChange={e => set(e.target.value)} min={0} placeholder="0"
+                          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 8px", fontSize: 12, color: C.text, background: C.cardBg, width: 98 }} />
+                      </div>
+                    ))}
+                    {mileageBegin !== "" && mileageEnd !== "" && (
+                      <div>
+                        <div style={lblSm}>TOTAL MILES</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{Math.max(0, parseFloat(mileageEnd) - parseFloat(mileageBegin)).toLocaleString()} mi</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
+              <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} />
+              <div style={{ marginTop: 16, marginBottom: 16 }}>
+                <label style={labelStyle}>NOTES</label>
+                <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={e => setNotes(e.target.value)} />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={handleSave}>CREATE TICKET</Btn>
+                <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -3730,6 +3866,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     if (updates.timeZone !== undefined) payload.time_zone = updates.timeZone;
     if (updates.mileageBegin !== undefined) payload.mileage_begin = updates.mileageBegin;
     if (updates.mileageEnd !== undefined) payload.mileage_end = updates.mileageEnd;
+    if (updates.googlePin !== undefined) payload.google_pin = updates.googlePin;
+    if (updates.pinLat !== undefined) payload.pin_lat = updates.pinLat;
+    if (updates.pinLng !== undefined) payload.pin_lng = updates.pinLng;
     if (updates.lineItems) {
       payload.lineItems = updates.lineItems.map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
@@ -3955,7 +4094,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         );
       })}
 
-      {showAdd && <AddTicketModal jobId={jobId} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} existingTickets={tickets} />}
+      {showAdd && <AddTicketModal jobId={jobId} job={jobs.find(j => j.id === jobId)} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} existingTickets={tickets} />}
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
@@ -4578,7 +4717,7 @@ function AddItemModal({ onSave, onClose }) {
 }
 
 // ─── NEW JOB MODAL ────────────────────────────────────────────────────────────
-function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
+function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
   const [custSearch, setCustSearch] = useState("");
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
@@ -4588,7 +4727,7 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
   const [wellList, setWellList] = useState([""]);
   const [afe, setAfe] = useState("");
   const [schedDate, setSchedDate] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [salesman, setSalesman] = useState("");
   const [contactFirst, setContactFirst] = useState("");
   const [contactLast, setContactLast] = useState("");
   const [approver, setApprover] = useState("");
@@ -4600,48 +4739,81 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
   const [companyCode, setCompanyCode] = useState("");
   const [costCenter, setCostCenter] = useState("");
   const [po, setPo] = useState("");
+  const [googlePin, setGooglePin] = useState("");
+  const [pinLat, setPinLat] = useState(null);
+  const [pinLng, setPinLng] = useState(null);
+  const [pinResolving, setPinResolving] = useState(false);
+  const [pinError, setPinError] = useState("");
+  const [stateLockedByPin, setStateLockedByPin] = useState(false);
+  const [countyLockedByPin, setCountyLockedByPin] = useState(false);
   const [errors, setErrors] = useState({});
   const [showUnsaved, setShowUnsaved] = useState(false);
+
+  // Salesman users list
+  const salesmen = users.filter(u => u.role === "salesman");
 
   const isDirty = custSearch || contactFirst || contactLast || phone || email ||
     approver || approverLast || approverPhone || approverEmail ||
     companyCode || costCenter || po || jobState || county ||
-    wellList.some(w => w.trim()) || afe || schedDate || assignedTo;
+    wellList.some(w => w.trim()) || afe || schedDate || salesman || googlePin;
 
-  // Phone formatter: formats as 999-999-9999
   const formatPhone = (val) => {
     const digits = val.replace(/\D/g, "").slice(0, 10);
     if (digits.length <= 3) return digits;
     if (digits.length <= 6) return `${digits.slice(0,3)}-${digits.slice(3)}`;
     return `${digits.slice(0,3)}-${digits.slice(3,6)}-${digits.slice(6)}`;
   };
-
-  // State: force 2 uppercase letters
   const formatState = (val) => val.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase();
 
-  // TX and NM counties
   const TX_COUNTIES = ["Andrews","Archer","Armstrong","Bailey","Baylor","Borden","Brewster","Briscoe","Brooks","Brown","Callahan","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","Dickens","Dimmit","Donley","Eastland","Ector","Edwards","El Paso","Fisher","Floyd","Foard","Gaines","Garza","Glasscock","Gray","Hale","Hall","Hansford","Hardeman","Hartley","Haskell","Hemphill","Howard","Hudspeth","Hutchinson","Irion","Jeff Davis","Jones","Kent","Kimble","King","Kinney","Knox","Lamb","Lampasas","Lipscomb","Llano","Loving","Lubbock","Lynn","Martin","Mason","Maverick","McCulloch","McMullen","Menard","Midland","Mills","Mitchell","Montague","Moore","Motley","Nolan","Ochiltree","Oldham","Palo Pinto","Parmer","Pecos","Potter","Presidio","Randall","Reagan","Real","Reeves","Roberts","Runnels","San Saba","Schleicher","Scurry","Shackelford","Sherman","Stephens","Sterling","Stonewall","Sutton","Swisher","Taylor","Terrell","Terry","Throckmorton","Tom Green","Upton","Uvalde","Val Verde","Ward","Wheeler","Winkler","Yoakum","Young","Zavala"];
   const NM_COUNTIES = ["Chaves","Cibola","Curry","De Baca","Dona Ana","Eddy","Grant","Guadalupe","Harding","Hidalgo","Lea","Lincoln","Los Alamos","Luna","McKinley","Mora","Otero","Quay","Rio Arriba","Roosevelt","San Juan","San Miguel","Sandoval","Santa Fe","Sierra","Socorro","Taos","Torrance","Union","Valencia"];
   const ALL_COUNTIES = [...TX_COUNTIES, ...NM_COUNTIES].sort();
   const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter(c => c.toLowerCase().startsWith(county.toLowerCase())) : [];
-
-  const filteredCust = custSearch.length > 0
-    ? customers.filter(c => c.name.toLowerCase().includes(custSearch.toLowerCase()))
-    : customers;
+  const filteredCust = custSearch.length > 0 ? customers.filter(c => c.name.toLowerCase().includes(custSearch.toLowerCase())) : customers;
 
   const selectCustomer = (cust) => {
-    setSelectedCust(cust);
-    setCustSearch(cust.name);
-    setShowCustDrop(false);
+    setSelectedCust(cust); setCustSearch(cust.name); setShowCustDrop(false);
     setErrors(prev => ({ ...prev, customer: null }));
   };
 
   const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
   const updateWell = (idx, val) => setWellList(prev => prev.map((w, i) => i === idx ? val : w));
   const removeWell = (idx) => setWellList(prev => prev.filter((_, i) => i !== idx));
+  const handleClose = () => { if (isDirty) { setShowUnsaved(true); } else { onClose(); } };
 
-  const handleClose = () => {
-    if (isDirty) { setShowUnsaved(true); } else { onClose(); }
+  // Resolve Google pin → lat/lng → geocode → state/county
+  const resolvePin = async (pinUrl) => {
+    if (!pinUrl.trim()) return;
+    setPinResolving(true); setPinError("");
+    try {
+      // Step 1: resolve short URL to coordinates via existing backend resolver
+      const resolveR = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: pinUrl.trim() }),
+      });
+      if (!resolveR.ok) { setPinError("Could not resolve pin link. Check the URL and try again."); setPinResolving(false); return; }
+      const { lat, lng } = await resolveR.json();
+      if (!lat || !lng) { setPinError("No coordinates found in this link."); setPinResolving(false); return; }
+      setPinLat(lat); setPinLng(lng);
+      // Step 2: geocode coordinates → state + county
+      const geoR = await fetch(`${API_URL}/jobs/geocode`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lat, lng }),
+      });
+      if (geoR.ok) {
+        const { state, county: geoCounty } = await geoR.json();
+        if (state) { setJobState(state); setStateLockedByPin(true); }
+        if (geoCounty) { setCounty(geoCounty); setCountyLockedByPin(true); }
+      }
+    } catch { setPinError("Network error resolving pin. Try again."); }
+    setPinResolving(false);
+  };
+
+  const handlePinChange = (val) => {
+    setGooglePin(val);
+    setPinLat(null); setPinLng(null);
+    setPinError("");
+    setStateLockedByPin(false); setCountyLockedByPin(false);
   };
 
   const VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
@@ -4654,7 +4826,6 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
     if (jobState && !VALID_STATES.includes(jobState.toUpperCase())) errs.jobState = "Invalid state code";
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
-      // Scroll to first error
       const firstKey = Object.keys(errs)[0];
       const el = document.querySelector(`[data-error="${firstKey}"]`);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -4663,7 +4834,7 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
     setErrors({});
     const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
     onCreateJob({
-      id: null, // Backend assigns ID
+      id: null,
       customer: custSearch.trim(),
       location: [county, jobState].filter(Boolean).join(", ") || "TBD",
       jobState, county,
@@ -4671,12 +4842,16 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
       afe: afe || null,
       dateStarted: schedDate || today(),
       status: "Scheduled",
-      crew: assignedTo ? [{ name: assignedTo, role: "Supervisor" }] : [],
+      salesman: salesman || null,
+      crew: [],
       equipment: [],
       hoursLogged: 0, estimatedCost: 0, jsaComplete: false,
       contactFirst, contactLast, email, phone,
       approver, approverLast, approverPhone, approverEmail,
       companyCode, costCenter, po,
+      googlePin: googlePin || null,
+      pinLat: pinLat || null,
+      pinLng: pinLng || null,
     });
   };
 
@@ -4690,7 +4865,28 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
         borderTop: `3px solid ${C.red}`, borderRadius: 8,
         padding: 28, width: 640, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW JOB</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>MASTER JOB CARD</div>
+
+        {/* Scheduled Date + Salesman — TOP */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div>
+            <label style={labelStyle}>SCHEDULED DATE</label>
+            <input type="date" style={inputStyle} value={schedDate} onChange={e => setSchedDate(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>SALESMAN</label>
+            {salesmen.length > 0 ? (
+              <select style={inputStyle} value={salesman} onChange={e => setSalesman(e.target.value)}>
+                <option value="">— Select —</option>
+                {salesmen.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+              </select>
+            ) : (
+              <div style={{ ...inputStyle, color: C.muted, fontSize: 12, display: "flex", alignItems: "center" }}>
+                No salesmen assigned — add via User Management
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Customer */}
         <div style={{ marginBottom: 14, position: "relative" }}>
@@ -4799,8 +4995,8 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>LOCATION</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div>
-              <label style={labelStyle}>STATE</label>
-              <input style={{ ...inputStyle, borderColor: errors.jobState ? C.red : C.border }} value={jobState} onChange={e => setJobState(formatState(e.target.value))} placeholder="TX" maxLength={2} />
+              <label style={labelStyle}>STATE {stateLockedByPin && <span style={{ color: C.blue, fontSize: 10, fontWeight: 700 }}>PIN</span>}</label>
+              <input style={{ ...inputStyle, borderColor: errors.jobState ? C.red : stateLockedByPin ? C.blue : C.border }} value={jobState} onChange={e => !stateLockedByPin && setJobState(formatState(e.target.value))} readOnly={stateLockedByPin} placeholder="TX" maxLength={2} />
               {errors.jobState && <div data-error="jobState" style={{ fontSize: 10, color: C.red, marginTop: 2 }}>{errors.jobState}</div>}
             </div>
             <div style={{ position: "relative" }}>
@@ -4812,8 +5008,9 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
                 onFocus={() => setShowCountyDrop(true)}
                 onBlur={() => setTimeout(() => setShowCountyDrop(false), 150)}
                 placeholder="Start typing..."
+                readOnly={countyLockedByPin}
               />
-              {showCountyDrop && filteredCounties.length > 0 && (
+              {showCountyDrop && filteredCounties.length > 0 && !countyLockedByPin && (
                 <div style={{
                   position: "absolute", top: "100%", left: 0, right: 0, zIndex: 20,
                   background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 4,
@@ -4830,6 +5027,45 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Google Pin */}
+          <div style={{ marginTop: 10 }}>
+            <label style={labelStyle}>GOOGLE PIN</label>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <input
+                style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
+                value={googlePin}
+                onChange={e => handlePinChange(e.target.value)}
+                placeholder="Paste Google Maps link..."
+              />
+              <button
+                type="button"
+                onClick={() => resolvePin(googlePin)}
+                disabled={!googlePin.trim() || pinResolving}
+                style={{
+                  background: googlePin.trim() ? C.blue : C.steel,
+                  color: googlePin.trim() ? C.white : C.muted,
+                  border: "none", borderRadius: 4, padding: "8px 14px",
+                  fontSize: 11, fontWeight: 700, cursor: googlePin.trim() ? "pointer" : "default",
+                  whiteSpace: "nowrap", flexShrink: 0,
+                }}
+              >{pinResolving ? "Resolving..." : "RESOLVE"}</button>
+            </div>
+            {pinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {pinError}</div>}
+            {pinLat && pinLng && (
+              <div style={{ marginTop: 6, display: "flex", gap: 16, alignItems: "center" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: C.green }}>✓ PIN RESOLVED</span>
+                <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
+                  {parseFloat(pinLat).toFixed(6)}, {parseFloat(pinLng).toFixed(6)}
+                </span>
+                {(stateLockedByPin || countyLockedByPin) && (
+                  <span style={{ fontSize: 10, color: C.blue, fontWeight: 700 }}>
+                    State/County auto-filled from pin
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -4867,22 +5103,9 @@ function NewJobModal({ onClose, onCreateJob, customers, userNames }) {
         </div>
 
         {/* Scheduling */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
-          <div>
-            <label style={labelStyle}>SCHEDULED DATE</label>
-            <input type="date" style={inputStyle} value={schedDate} onChange={e => setSchedDate(e.target.value)} />
-          </div>
-          <div>
-            <label style={labelStyle}>ASSIGNED TO</label>
-            <select style={inputStyle} value={assignedTo} onChange={e => setAssignedTo(e.target.value)}>
-              <option value="">— Select —</option>
-              {userNames.map(u => <option key={u}>{u}</option>)}
-            </select>
-          </div>
-        </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={validateAndCreate}>CREATE JOB</Btn>
+        <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+          <Btn onClick={validateAndCreate}>CREATE MASTER JOB CARD</Btn>
           <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
         </div>
 
@@ -5432,6 +5655,13 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
   const [newRole, setNewRole] = useState("field");
   const [newPassword, setNewPassword] = useState("");
   const [msg, setMsg] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState("");
+
+  const roleBg = r => r === "owner" ? "#fdecea" : r === "admin" ? "#e8f0fb" : r === "manager" ? "#e6f5ec" : r === "lead" ? "#fdf5d8" : r === "salesman" ? "#f3eafa" : "#f0f3f8";
+  const roleColor = r => r === "owner" ? C.red : r === "admin" ? C.blue : r === "manager" ? C.green : r === "lead" ? "#8a6500" : r === "salesman" ? "#7a3ca0" : C.muted;
 
   const handleAddUser = async () => {
     if (!newName.trim() || !newEmail.trim() || !newPassword) { setMsg("All fields required"); return; }
@@ -5443,14 +5673,32 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
       });
       if (!r.ok) { setMsg("Failed to create user"); return; }
       const created = await r.json();
-      // Set password
       await fetch(`${API_URL}/auth/set-password`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: created.id, password: newPassword }),
       });
       setUsers(prev => [...prev, { ...created, is_active: true }]);
       setNewName(""); setNewEmail(""); setNewRole("field"); setNewPassword(""); setShowAdd(false); setMsg("");
-    } catch (err) { setMsg("Error creating user"); }
+    } catch { setMsg("Error creating user"); }
+  };
+
+  const startEdit = (u) => {
+    setEditId(u.id); setEditName(u.name); setEditEmail(u.email); setEditRole(u.role);
+    setShowAdd(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim() || !editEmail.trim()) { setMsg("Name and email required"); return; }
+    try {
+      const r = await fetch(`${API_URL}/users/${editId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editName.trim(), email: editEmail.trim().toLowerCase(), role: editRole }),
+      });
+      if (!r.ok) { setMsg("Failed to save"); return; }
+      setUsers(prev => prev.map(u => u.id === editId ? { ...u, name: editName.trim(), email: editEmail.trim().toLowerCase(), role: editRole } : u));
+      setEditId(null); setMsg("Saved.");
+      setTimeout(() => setMsg(""), 3000);
+    } catch { setMsg("Error saving user"); }
   };
 
   const handleDeactivate = async (userId) => {
@@ -5462,19 +5710,18 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         body: JSON.stringify({ is_active: false }),
       });
       setUsers(prev => prev.filter(u => u.id !== userId));
-    } catch (err) { console.error("Deactivate failed:", err); }
+    } catch { console.error("Deactivate failed"); }
   };
 
   const handleResetPassword = async (userId) => {
-    const pw = "fti2026";
     try {
       await fetch(`${API_URL}/auth/set-password`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, password: pw }),
+        body: JSON.stringify({ user_id: userId, password: "fti2026" }),
       });
-      setMsg(`Password reset to default for user`);
+      setMsg("Password reset to default.");
       setTimeout(() => setMsg(""), 3000);
-    } catch (err) { setMsg("Reset failed"); }
+    } catch { setMsg("Reset failed"); }
   };
 
   return (
@@ -5484,59 +5731,63 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>User Management</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{users.length} active user{users.length !== 1 ? "s" : ""}</div>
         </div>
-        <Btn onClick={() => setShowAdd(s => !s)}>{showAdd ? "CANCEL" : "+ ADD USER"}</Btn>
+        <Btn onClick={() => { setShowAdd(s => !s); setEditId(null); }}>{showAdd ? "CANCEL" : "+ ADD USER"}</Btn>
       </div>
 
-      {msg && <div style={{ padding: "8px 14px", background: msg.includes("failed") || msg.includes("Error") || msg.includes("required") ? "#fdecea" : "#e6f5ec", borderRadius: 4, fontSize: 12, fontWeight: 700, color: msg.includes("failed") || msg.includes("Error") || msg.includes("required") ? C.red : C.green, marginBottom: 16 }}>{msg}</div>}
+      {msg && <div style={{ padding: "8px 14px", background: msg.includes("fail") || msg.includes("Error") || msg.includes("required") ? "#fdecea" : "#e6f5ec", borderRadius: 4, fontSize: 12, fontWeight: 700, color: msg.includes("fail") || msg.includes("Error") || msg.includes("required") ? C.red : C.green, marginBottom: 16 }}>{msg}</div>}
 
       {showAdd && (
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginBottom: 16 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
-            <div>
-              <label style={labelStyle}>NAME *</label>
-              <input style={inputStyle} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Full name" />
-            </div>
-            <div>
-              <label style={labelStyle}>EMAIL *</label>
-              <input style={inputStyle} value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@flotest.com" />
-            </div>
-            <div>
-              <label style={labelStyle}>ROLE</label>
+            <div><label style={labelStyle}>NAME *</label><input style={inputStyle} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Full name" /></div>
+            <div><label style={labelStyle}>EMAIL *</label><input style={inputStyle} value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@flotest.com" /></div>
+            <div><label style={labelStyle}>ROLE</label>
               <select style={inputStyle} value={newRole} onChange={e => setNewRole(e.target.value)}>
                 {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
-            <div>
-              <label style={labelStyle}>PASSWORD *</label>
-              <input style={inputStyle} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 6 chars" />
-            </div>
+            <div><label style={labelStyle}>PASSWORD *</label><input style={inputStyle} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 6 chars" /></div>
           </div>
           <Btn onClick={handleAddUser}>CREATE USER</Btn>
         </div>
       )}
 
       <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", background: C.darkBlue, padding: "10px 16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 160px", background: C.darkBlue, padding: "10px 16px" }}>
           {["NAME", "EMAIL", "ROLE", "ACTIONS"].map(h => (
             <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{h}</div>
           ))}
         </div>
         {users.map((u, i) => {
           const isProtected = PROTECTED_EMAILS.includes(u.email);
+          const isEditing = editId === u.id;
           return (
-            <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 120px", padding: "10px 16px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{u.name}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>{u.email}</div>
-              <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: u.role === "owner" ? "#fdecea" : u.role === "admin" ? "#e8f0fb" : u.role === "manager" ? "#e6f5ec" : u.role === "lead" ? "#fdf5d8" : u.role === "salesman" ? "#f3eafa" : "#f0f3f8", color: u.role === "owner" ? C.red : u.role === "admin" ? C.blue : u.role === "manager" ? C.green : u.role === "lead" ? "#8a6500" : u.role === "salesman" ? "#7a3ca0" : C.muted, letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {!isProtected && (
-                  <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>REMOVE</button>
-                )}
-                {!isProtected && (
-                  <button onClick={() => handleResetPassword(u.id)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>RESET PW</button>
-                )}
-                {isProtected && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
-              </div>
+            <div key={u.id} style={{ borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
+              {isEditing ? (
+                <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr 120px 160px", gap: 8, alignItems: "center" }}>
+                  <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editName} onChange={e => setEditName(e.target.value)} />
+                  <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
+                  <select style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={isProtected}>
+                    {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={handleSaveEdit} style={{ background: C.green, border: "none", color: C.white, fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 3, cursor: "pointer" }}>SAVE</button>
+                    <button onClick={() => setEditId(null)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 3, cursor: "pointer" }}>CANCEL</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 160px", padding: "10px 16px", alignItems: "center" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{u.name}</div>
+                  <div style={{ fontSize: 12, color: C.muted }}>{u.email}</div>
+                  <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: roleBg(u.role), color: roleColor(u.role), letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {!isProtected && <button onClick={() => startEdit(u)} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>EDIT</button>}
+                    {!isProtected && <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>REMOVE</button>}
+                    {!isProtected && <button onClick={() => handleResetPassword(u.id)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>RESET PW</button>}
+                    {isProtected && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -5573,6 +5824,9 @@ function FTIDashboard({ currentUser, onLogout }) {
       }
       @media (min-width: 901px) {
         .fti-hamburger { display: none !important; }
+      }
+      .fti-nav-bar {
+        padding-top: max(8px, env(safe-area-inset-top));
       }
     `;
     document.head.appendChild(s);
@@ -5638,6 +5892,10 @@ function FTIDashboard({ currentUser, onLogout }) {
           companyCode: j.company_code || "",
           costCenter: j.cost_center || "",
           po: j.po_number || "",
+          salesman: j.salesman || "",
+          googlePin: j.google_pin || "",
+          pinLat: j.pin_lat || null,
+          pinLng: j.pin_lng || null,
         }));
         // Transform tickets
         const ticketsMapped = (ticketsR || []).map(t => ({
@@ -5664,6 +5922,14 @@ function FTIDashboard({ currentUser, onLogout }) {
           isRecurring: t.is_recurring || false,
           voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null, revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false, hasJSA: t.has_jsa || false,
           assignedWells: t.assigned_wells || [],
+          googlePin: t.google_pin || null,
+          pinLat: t.pin_lat || null,
+          pinLng: t.pin_lng || null,
+          lvYard: t.lv_yard || "", arrivalTime: t.arrival_time || "",
+          dueOnLoc: t.due_on_loc || "", jobStartTime: t.job_start_time || "",
+          jobEndTime: t.job_end_time || "", retYard: t.ret_yard || "",
+          timeZone: t.time_zone || "",
+          mileageBegin: t.mileage_begin ?? null, mileageEnd: t.mileage_end ?? null,
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
             qbCode: li.qb_code,
             desc: li.description,
@@ -5772,8 +6038,12 @@ function FTIDashboard({ currentUser, onLogout }) {
       company_code: newJob.companyCode || null,
       cost_center: newJob.costCenter || null,
       po_number: newJob.po || null,
+      salesman: newJob.salesman || null,
+      google_pin: newJob.googlePin || null,
+      pin_lat: newJob.pinLat || null,
+      pin_lng: newJob.pinLng || null,
       wells: newJob.wells.map(w => ({ well_name: w, afe_number: null })),
-      crew: newJob.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null })),
+      crew: [],
       equipment: newJob.equipment || [],
     };
     try {
@@ -5963,10 +6233,10 @@ function FTIDashboard({ currentUser, onLogout }) {
       </div>
 
       {/* NAV — desktop */}
-      <div style={{
+      <div className="fti-nav-bar" style={{
         background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
         padding: "0 28px", display: "flex", alignItems: "center",
-        justifyContent: "space-between", height: 56,
+        justifyContent: "space-between", minHeight: 56,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div style={{
@@ -5977,7 +6247,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.42</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.44</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -6056,7 +6326,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               <Btn onClick={() => setPage("todos")} variant="ghost">
                 ☐ Tasks {myActiveTodos.length > 0 ? `(${myActiveTodos.length})` : ""}
               </Btn>
-              <Btn onClick={() => setShowNewJob(true)}>+ NEW JOB</Btn>
+              <Btn onClick={() => setShowNewJob(true)}>+ NEW MJC</Btn>
             </div>
           </div>
 
@@ -6136,7 +6406,7 @@ function FTIDashboard({ currentUser, onLogout }) {
 
       {/* NEW JOB MODAL */}
       {showNewJob && (
-        <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} customers={customers} userNames={userNames} />
+        <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} customers={customers} users={users} />
       )}
       {showPermissions && (
         <PermissionsModal onClose={() => setShowPermissions(false)} />
