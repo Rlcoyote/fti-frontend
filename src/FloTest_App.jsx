@@ -3684,11 +3684,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
   const [mileageBegin, setMileageBegin] = useState("");
   const [mileageEnd, setMileageEnd] = useState("");
   // Google Pin
-  const [ticketPin, setTicketPin] = useState("");
-  const [ticketPinLat, setTicketPinLat] = useState(null);
-  const [ticketPinLng, setTicketPinLng] = useState(null);
+  const jobGooglePin = job?.googlePin || job?.google_pin || "";
+  const [ticketPin, setTicketPin] = useState(jobGooglePin);
+  const [ticketPinLat, setTicketPinLat] = useState(job?.pinLat || job?.pin_lat || null);
+  const [ticketPinLng, setTicketPinLng] = useState(job?.pinLng || job?.pin_lng || null);
   const [ticketPinResolving, setTicketPinResolving] = useState(false);
   const [ticketPinError, setTicketPinError] = useState("");
+  const pinMismatch = jobGooglePin && ticketPin && ticketPin.trim() !== jobGooglePin.trim();
 
   const ALL_TIMES = Array.from({ length: 48 }, (_, i) => {
     const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
@@ -3948,37 +3950,41 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
               {/* Google Pin */}
               {type !== "Rental" && (
                 <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>GOOGLE PIN</div>
-                  {(job?.googlePin || job?.google_pin) && (
-                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
-                      MJC: <span style={{ fontFamily: "monospace" }}>{(job.googlePin || job.google_pin || "").slice(0, 50)}...</span>
-                    </div>
-                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>GOOGLE PIN</div>
+                    {pinMismatch && (
+                      <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
+                        ALT PIN — differs from Master Job Card
+                      </span>
+                    )}
+                  </div>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    <input style={{ ...inputStyle, flex: 1, fontSize: 12, padding: "6px 8px" }}
-                      placeholder="Override MJC pin or leave blank to use MJC pin"
+                    <input style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11, padding: "6px 8px" }}
+                      placeholder={jobGooglePin ? "Override MJC pin or leave blank to use MJC pin" : "Paste Google Maps link..."}
                       value={ticketPin} onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }} />
-                    <button type="button" onClick={async () => {
-                      if (!ticketPin.trim()) return;
-                      setTicketPinResolving(true); setTicketPinError("");
-                      try {
-                        const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-                          method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ url: ticketPin.trim() }),
-                        });
-                        if (!r.ok) { setTicketPinError("Could not resolve pin."); setTicketPinResolving(false); return; }
-                        const { lat, lng } = await r.json();
-                        setTicketPinLat(lat); setTicketPinLng(lng);
-                      } catch { setTicketPinError("Network error."); }
-                      setTicketPinResolving(false);
-                    }} disabled={!ticketPin.trim() || ticketPinResolving}
-                      style={{ background: ticketPin.trim() ? C.blue : C.steel, color: ticketPin.trim() ? C.white : C.muted, border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: ticketPin.trim() ? "pointer" : "default", whiteSpace: "nowrap" }}>
-                      {ticketPinResolving ? "..." : "RESOLVE"}
-                    </button>
+                    {ticketPin && (
+                      <button type="button" onClick={async () => {
+                        if (!ticketPin.trim()) return;
+                        setTicketPinResolving(true); setTicketPinError("");
+                        try {
+                          const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ url: ticketPin.trim() }),
+                          });
+                          if (!r.ok) { setTicketPinError("Could not resolve pin."); setTicketPinResolving(false); return; }
+                          const { lat, lng } = await r.json();
+                          setTicketPinLat(lat); setTicketPinLng(lng);
+                        } catch { setTicketPinError("Network error."); }
+                        setTicketPinResolving(false);
+                      }} disabled={ticketPinResolving}
+                        style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>
+                        {ticketPinResolving ? "..." : "RESOLVE"}
+                      </button>
+                    )}
                   </div>
                   {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {ticketPinError}</div>}
                   {ticketPinLat && ticketPinLng && (
-                    <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginTop: 4 }}>✓ {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</div>
+                    <div style={{ fontSize: 11, color: C.green, fontWeight: 700, fontFamily: "monospace", marginTop: 4 }}>✓ {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</div>
                   )}
                 </div>
               )}
