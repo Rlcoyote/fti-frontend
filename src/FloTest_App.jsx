@@ -948,6 +948,30 @@ const INITIAL_TICKETS = [
 
 const today = () => new Date().toISOString().slice(0, 10);
 const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
+const mapTicketFromApi = (t) => ({
+  id: t.id, jobId: t.job_id, type: t.type, status: t.status, date: t.date,
+  signedBy: t.signed_by, signedAt: t.signed_at, signatureImage: t.signature_img,
+  sigNotReqReason: t.sig_not_req_reason, sigNotReqNote: t.sig_not_req_note,
+  notes: t.notes, emailedAt: t.emailed_at || null, emailTo: t.email_to || null,
+  hasPendingComment: t.has_pending_comment || false, missingPieces: t.missing_pieces,
+  locked: t.locked, ticketNumber: t.ticket_number || null,
+  startDate: t.start_date || null, endDate: t.end_date || null,
+  cycleDays: t.cycle_days || 28, isRecurring: t.is_recurring || false,
+  voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null,
+  revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false,
+  hasJSA: t.has_jsa || false, assignedWells: t.assigned_wells || [],
+  googlePin: t.google_pin || null, pinLat: t.pin_lat || null, pinLng: t.pin_lng || null,
+  lvYard: t.lv_yard || "", arrivalTime: t.arrival_time || "",
+  dueOnLoc: t.due_on_loc || "", jobStartTime: t.job_start_time || "",
+  jobEndTime: t.job_end_time || "", retYard: t.ret_yard || "",
+  timeZone: t.time_zone || "",
+  mileageBegin: t.mileage_begin ?? null, mileageEnd: t.mileage_end ?? null,
+  createdBy: t.created_by_name || null, createdAt: t.created_at || null,
+  lineItems: (t.lineItems || t.line_items || []).map(li => ({
+    qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
+    qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
+  })),
+});
 const formatShortStamp = (d) => {
   if (!d) return "";
   const dt = new Date(d);
@@ -4376,22 +4400,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}`);
               if (tr.ok) {
                 const data = await tr.json();
-                const mapped = data.map(tk => ({
-                  id: tk.id, jobId: tk.job_id, type: tk.type, status: tk.status, date: tk.date,
-                  signedBy: tk.signed_by, signedAt: tk.signed_at, signatureImage: tk.signature_img,
-                  sigNotReqReason: tk.sig_not_req_reason, sigNotReqNote: tk.sig_not_req_note,
-                  notes: tk.notes, emailedAt: tk.emailed_at || null, emailTo: tk.email_to || null,
-                  hasPendingComment: tk.has_pending_comment || false, missingPieces: tk.missing_pieces,
-                  locked: tk.locked, ticketNumber: tk.ticket_number || null,
-                  startDate: tk.start_date || null, endDate: tk.end_date || null,
-                  cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
-                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false, hasJSA: tk.has_jsa || false,
-                  assignedWells: tk.assigned_wells || [],
-                  lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
-                    qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
-                    qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
-                  })),
-                }));
+                const mapped = data.map(mapTicketFromApi);
                 setTickets(prev => {
                   const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
                   return [...otherJobs, ...mapped];
@@ -4423,22 +4432,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
               if (tr.ok) {
                 const data = await tr.json();
-                const mapped = data.map(tk => ({
-                  id: tk.id, jobId: tk.job_id, type: tk.type, status: tk.status, date: tk.date,
-                  signedBy: tk.signed_by, signedAt: tk.signed_at, signatureImage: tk.signature_img,
-                  sigNotReqReason: tk.sig_not_req_reason, sigNotReqNote: tk.sig_not_req_note,
-                  notes: tk.notes, emailedAt: tk.emailed_at || null, emailTo: tk.email_to || null,
-                  hasPendingComment: tk.has_pending_comment || false, missingPieces: tk.missing_pieces,
-                  locked: tk.locked, ticketNumber: tk.ticket_number || null,
-                  startDate: tk.start_date || null, endDate: tk.end_date || null,
-                  cycleDays: tk.cycle_days || 28, isRecurring: tk.is_recurring || false,
-                  voidedAt: tk.voided_at || null, replacedBy: tk.replaced_by || null, revisionOf: tk.revision_of || null, cycleEnded: tk.cycle_ended || false, hasJSA: tk.has_jsa || false,
-                  assignedWells: tk.assigned_wells || [],
-                  lineItems: (tk.lineItems || tk.line_items || []).map(li => ({
-                    qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
-                    qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
-                  })),
-                }));
+                const mapped = data.map(mapTicketFromApi);
                 setTickets(prev => {
                   const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
                   return [...otherJobs, ...mapped];
@@ -6897,49 +6891,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           createdAt: j.created_at || null,
         }));
         // Transform tickets
-        const ticketsMapped = (ticketsR || []).map(t => ({
-          id: t.id,
-          jobId: t.job_id,
-          type: t.type,
-          status: t.status,
-          date: t.date,
-          signedBy: t.signed_by,
-          signedAt: t.signed_at,
-          signatureImage: t.signature_img,
-          sigNotReqReason: t.sig_not_req_reason,
-          sigNotReqNote: t.sig_not_req_note,
-          notes: t.notes,
-          emailedAt: t.emailed_at || null,
-          emailTo: t.email_to || null,
-          hasPendingComment: t.has_pending_comment || false,
-          missingPieces: t.missing_pieces,
-          locked: t.locked,
-          ticketNumber: t.ticket_number || null,
-          startDate: t.start_date || null,
-          endDate: t.end_date || null,
-          cycleDays: t.cycle_days || 28,
-          isRecurring: t.is_recurring || false,
-          voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null, revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false, hasJSA: t.has_jsa || false,
-          assignedWells: t.assigned_wells || [],
-          googlePin: t.google_pin || null,
-          pinLat: t.pin_lat || null,
-          pinLng: t.pin_lng || null,
-          lvYard: t.lv_yard || "", arrivalTime: t.arrival_time || "",
-          dueOnLoc: t.due_on_loc || "", jobStartTime: t.job_start_time || "",
-          jobEndTime: t.job_end_time || "", retYard: t.ret_yard || "",
-          timeZone: t.time_zone || "",
-          mileageBegin: t.mileage_begin ?? null, mileageEnd: t.mileage_end ?? null,
-          createdBy: t.created_by_name || null,
-          createdAt: t.created_at || null,
-          lineItems: (t.lineItems || t.line_items || []).map(li => ({
-            qbCode: li.qb_code,
-            desc: li.description,
-            rate: Number(li.rate),
-            qty: Number(li.qty),
-            um: li.unit_measure,
-            days: Number(li.days) || 1,
-          })),
-        }));
+        const ticketsMapped = (ticketsR || []).map(mapTicketFromApi);
         // Transform todos
         const todosMapped = (todosR || []).map(t => ({
           id: t.id,
@@ -7275,7 +7227,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.54</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.55</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
