@@ -1526,7 +1526,7 @@ function computeJobStatus(job, jobTickets = []) {
   // If manually set to Completed, keep it
   if (job.status === "Completed") return "Completed";
   // If all tickets are sentToQB — eligible for closeout but not auto-completed
-  const schedDate = job.schedDate || job.sched_date || job.dateStarted || job.date_started;
+  const schedDate = (job.schedDate || job.sched_date || job.dateStarted || job.date_started || "").slice(0, 10);
   const today = new Date().toISOString().slice(0, 10);
   if (schedDate && schedDate <= today) return "In Progress";
   return "Scheduled";
@@ -2808,6 +2808,22 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   }, [ticket.id]);
 
   // Load comments when ticket opens + poll every 30s
+  // Auto-fetch drive distance from yard if pin coords available
+  useEffect(() => {
+    const lat = ticketPinLat || job?.pinLat || job?.pin_lat;
+    const lng = ticketPinLng || job?.pinLng || job?.pin_lng;
+    if (!lat || !lng) return;
+    setDriveLoading(true);
+    fetch(`${API_URL}/jobs/drive-distance`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ destLat: lat, destLng: lng }),
+    })
+      .then(r => r.ok ? r.json() : { error: "Could not calculate" })
+      .then(d => setDriveInfo(d))
+      .catch(() => setDriveInfo({ error: "Network error" }))
+      .finally(() => setDriveLoading(false));
+  }, [ticket.id]);
+
   useEffect(() => {
     if (!ticket.id) return;
     const loadComments = () => {
@@ -2992,12 +3008,30 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
                 {ticket.createdBy && <span style={{ fontSize: 9, color: "#a0aec8", marginLeft: "auto" }}>{shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}</span>}
               </div>
-              <div style={{ fontSize: 12, color: C.muted }}>
-                {job?.customer || "Unknown"} · {isLocked
+              <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 10 }}>
+                <span>{job?.customer || "Unknown"} · {isLocked
                   ? formatDate(ticketDate)
                   : <input type="date" value={ticketDate} onChange={e => handleDateChange(e.target.value)}
                       style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
-                }
+                }</span>
+                {ticket.type !== "Rental" && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>DUE ON LOC:</span>
+                    {editable
+                      ? <select value={dueOnLoc} onChange={e => setDueOnLoc(e.target.value)}
+                          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: dueOnLoc ? C.text : C.muted, background: C.cardBg, width: 100 }}>
+                          <option value="">—</option>
+                          {Array.from({ length: 48 }, (_, i) => {
+                            const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
+                            const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
+                            const period = h24 < 12 ? "AM" : "PM";
+                            return `${h12}:${m} ${period}`;
+                          }).map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      : <span style={{ fontWeight: 600 }}>{dueOnLoc || "—"}</span>
+                    }
+                  </span>
+                )}
               </div>
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
@@ -3084,7 +3118,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 {[
                   { label: "LV YARD", val: lvYard, set: setLvYard, startIdx: 12 },
                   { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime, startIdx: 12 },
-                  { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc, startIdx: 12 },
                   { label: "JOB START", val: jobStartTime, set: setJobStartTime, startIdx: 12 },
                   { label: "JOB END", val: jobEndTime, set: setJobEndTime, startIdx: 24 },
                   { label: "RET YARD", val: retYard, set: setRetYard, startIdx: 24 },
@@ -3145,6 +3178,44 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   <div style={totalStyle}>{totalMiles !== null ? `${totalMiles.toLocaleString()} mi` : "—"}</div>
                 </div>
               </div>
+
+              {/* GPS Reference — Recommended Leave Time & Expected Distance */}
+              {(driveInfo && !driveInfo.error) && (() => {
+                // Calculate recommended leave time = Due on Loc minus drive duration
+                let recLeave = null;
+                if (dueOnLoc && driveInfo.durationSeconds) {
+                  const dueMatch = dueOnLoc.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+                  if (dueMatch) {
+                    let h = parseInt(dueMatch[1]), min = parseInt(dueMatch[2]);
+                    const p = dueMatch[3].toUpperCase();
+                    if (p === "PM" && h !== 12) h += 12;
+                    if (p === "AM" && h === 12) h = 0;
+                    const dueMinutes = h * 60 + min;
+                    const driveMinutes = Math.ceil(driveInfo.durationSeconds / 60);
+                    let leaveMin = dueMinutes - driveMinutes;
+                    if (leaveMin < 0) leaveMin += 1440;
+                    const lh = Math.floor(leaveMin / 60);
+                    const lm = leaveMin % 60;
+                    const lh12 = lh === 0 ? 12 : lh > 12 ? lh - 12 : lh;
+                    const lp = lh < 12 ? "AM" : "PM";
+                    recLeave = `${lh12}:${String(lm).padStart(2, "0")} ${lp}`;
+                  }
+                }
+                return (
+                  <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, marginTop: 4, display: "flex", flexWrap: "wrap", gap: "6px 24px" }}>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>RECOMMENDED TIME TO LEAVE YARD</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: recLeave ? C.text : C.muted }}>{recLeave || (dueOnLoc ? "Calculating..." : "Set Due on Loc first")}</div>
+                      {recLeave && <div style={{ fontSize: 10, color: C.muted }}>Due on Loc ({dueOnLoc}) − Drive Time ({driveInfo.duration})</div>}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>EXPECTED DISTANCE</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{driveInfo.distance}</div>
+                      <div style={{ fontSize: 10, color: C.muted }}>From yard · Est. {driveInfo.duration}</div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Pin section */}
               {(() => {
@@ -4053,7 +4124,6 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                     {[
                       { label: "LV YARD", val: lvYard, set: setLvYard, startIdx: 12 },
                       { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime, startIdx: 12 },
-                      { label: "DUE ON LOC", val: dueOnLoc, set: setDueOnLoc, startIdx: 12 },
                       { label: "JOB START", val: jobStartTime, set: setJobStartTime, startIdx: 12 },
                       { label: "JOB END", val: jobEndTime, set: setJobEndTime, startIdx: 24 },
                       { label: "RET YARD", val: retYard, set: setRetYard, startIdx: 24 },
@@ -7388,7 +7458,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.56</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.57</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
