@@ -7116,7 +7116,7 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["Dashboard", "Job History", "Action Items", "Inventory", "Crew", "Final Review", "Reports", "Deleted", "Users"];
+  const ALL_NAV_ITEMS = ["Job History", "Action Items", "Inventory", "Crew", "Final Review", "Reports", "Deleted", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && isField) return false;
     if (i === "Users" && !isManager) return false;
@@ -7175,6 +7175,15 @@ function FTIDashboard({ currentUser, onLogout }) {
             </div>
           </div>
         </div>
+        <div onClick={() => { setPage("dashboard"); setDrawerOpen(false); }} style={{
+          display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
+          background: page === "dashboard" ? "#ffffff11" : "transparent",
+          borderLeft: page === "dashboard" ? `3px solid ${C.red}` : "3px solid transparent",
+          cursor: "pointer",
+        }}>
+          <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⌂</span>
+          <span style={{ fontSize: 15, fontWeight: page === "dashboard" ? 700 : 400, color: page === "dashboard" ? C.white : "#b0bdd4" }}>Dashboard</span>
+        </div>
         {NAV_ITEMS.map(item => {
           const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Users: "users" };
           const navIcons = { Dashboard: "⌂", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Users: "👤" };
@@ -7229,7 +7238,13 @@ function FTIDashboard({ currentUser, onLogout }) {
         padding: "0 28px", display: "flex", alignItems: "center",
         justifyContent: "space-between", minHeight: 56,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div
+          onClick={() => setPage("dashboard")}
+          onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
+          style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "opacity 0.15s", userSelect: "none" }}
+          title="Go to Dashboard"
+        >
           <div style={{
             width: 36, height: 36, border: `2px solid ${C.red}`, borderRadius: "50%",
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -7238,7 +7253,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.52</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.53</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
