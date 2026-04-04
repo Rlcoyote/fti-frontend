@@ -2874,6 +2874,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
   const isFullyLocked = status === "qbVerified" || status === "sentToQB";
+  const editable = !isFullyLocked && !ticket.voidedAt;
   const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
 
   const save = (overrides = {}) => {
@@ -3109,7 +3110,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           const lblStyle = { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 };
           const totalStyle = { fontSize: 12, fontWeight: 700, color: C.text };
           const totalSubStyle = { fontSize: 10, color: C.muted, marginTop: 1 };
-          const editable = !isFullyLocked && !ticket.voidedAt;
           return (
             <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
               <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>TIME &amp; MILEAGE</div>
