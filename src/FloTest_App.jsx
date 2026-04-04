@@ -3683,6 +3683,12 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
   const [timeZone, setTimeZone] = useState("");
   const [mileageBegin, setMileageBegin] = useState("");
   const [mileageEnd, setMileageEnd] = useState("");
+  // Google Pin
+  const [ticketPin, setTicketPin] = useState("");
+  const [ticketPinLat, setTicketPinLat] = useState(null);
+  const [ticketPinLng, setTicketPinLng] = useState(null);
+  const [ticketPinResolving, setTicketPinResolving] = useState(false);
+  const [ticketPinError, setTicketPinError] = useState("");
 
   const ALL_TIMES = Array.from({ length: 48 }, (_, i) => {
     const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
@@ -3739,9 +3745,9 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
         lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
         mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
         mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
-        googlePin: jobGooglePin,
-        pinLat: jobPinLat,
-        pinLng: jobPinLng,
+        googlePin: ticketPin.trim() || jobGooglePin,
+        pinLat: ticketPinLat || jobPinLat,
+        pinLng: ticketPinLng || jobPinLng,
       } : {}),
     });
   };
@@ -3936,6 +3942,44 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Google Pin */}
+              {type !== "Rental" && (
+                <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>GOOGLE PIN</div>
+                  {(job?.googlePin || job?.google_pin) && (
+                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
+                      MJC: <span style={{ fontFamily: "monospace" }}>{(job.googlePin || job.google_pin || "").slice(0, 50)}...</span>
+                    </div>
+                  )}
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input style={{ ...inputStyle, flex: 1, fontSize: 12, padding: "6px 8px" }}
+                      placeholder="Override MJC pin or leave blank to use MJC pin"
+                      value={ticketPin} onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }} />
+                    <button type="button" onClick={async () => {
+                      if (!ticketPin.trim()) return;
+                      setTicketPinResolving(true); setTicketPinError("");
+                      try {
+                        const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ url: ticketPin.trim() }),
+                        });
+                        if (!r.ok) { setTicketPinError("Could not resolve pin."); setTicketPinResolving(false); return; }
+                        const { lat, lng } = await r.json();
+                        setTicketPinLat(lat); setTicketPinLng(lng);
+                      } catch { setTicketPinError("Network error."); }
+                      setTicketPinResolving(false);
+                    }} disabled={!ticketPin.trim() || ticketPinResolving}
+                      style={{ background: ticketPin.trim() ? C.blue : C.steel, color: ticketPin.trim() ? C.white : C.muted, border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: ticketPin.trim() ? "pointer" : "default", whiteSpace: "nowrap" }}>
+                      {ticketPinResolving ? "..." : "RESOLVE"}
+                    </button>
+                  </div>
+                  {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {ticketPinError}</div>}
+                  {ticketPinLat && ticketPinLng && (
+                    <div style={{ fontSize: 11, color: C.green, fontWeight: 700, marginTop: 4 }}>✓ {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</div>
+                  )}
                 </div>
               )}
 
@@ -6932,7 +6976,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.49</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.50</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
