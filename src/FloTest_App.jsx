@@ -4072,6 +4072,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
   const [emailConfirm, setEmailConfirm] = useState(null); // { ticketId, email, emailedAt, cc }
   const [emailConfirmTo, setEmailConfirmTo] = useState("");
   const [emailConfirmCc, setEmailConfirmCc] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth <= 900);
@@ -4268,6 +4269,16 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                 )}
                 {(t.status === "sentToQB" || t.status === "qbVerified") && <span style={{ ...btnDone, background: C.green, color: C.white }}>✓ SENT TO ACCOUNTING</span>}
                 </>)}
+                {/* Delete — only if not sent to QB */}
+                {!isSent && (
+                  <span
+                    title="Delete ticket"
+                    onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }}
+                    style={{ fontSize: 14, color: "#ccc", cursor: "pointer", padding: "2px 4px" }}
+                    onMouseEnter={e => { e.currentTarget.style.color = C.red; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = "#ccc"; }}
+                  >🗑</span>
+                )}
               </div>
             </div>
           ) : (
@@ -4373,6 +4384,16 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               <span style={{ fontSize: 13, fontWeight: 800, color: C.text, marginLeft: 6 }}>
                 {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
+              {/* Delete — only if not sent to QB */}
+              {!isSent && (
+                <span
+                  title="Delete ticket"
+                  onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }}
+                  style={{ fontSize: 14, color: "#ccc", cursor: "pointer", marginLeft: 4, padding: "2px 4px" }}
+                  onMouseEnter={e => { e.currentTarget.style.color = C.red; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = "#ccc"; }}
+                >🗑</span>
+              )}
             </div>
           </div>
           )}
@@ -4448,6 +4469,35 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
           }}
         />
       )}
+      {/* Delete ticket confirmation */}
+      {deleteConfirmId && (() => {
+        const delTicket = jobTickets.find(t => t.id === deleteConfirmId);
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setDeleteConfirmId(null)}>
+            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Delete Ticket?</div>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
+                This will permanently delete ticket #{delTicket?.jobId}{delTicket?.ticketNumber ? `-${delTicket.ticketNumber}` : ""} ({delTicket?.type}). This cannot be undone.
+              </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <Btn variant="red" onClick={async () => {
+                  try {
+                    const r = await fetch(`${API_URL}/tickets/${deleteConfirmId}`, { method: "DELETE" });
+                    if (r.ok) {
+                      setTickets(prev => prev.filter(tk => tk.id !== deleteConfirmId));
+                      setDeleteConfirmId(null);
+                    } else {
+                      const d = await r.json();
+                      alert(d.error || "Delete failed");
+                    }
+                  } catch (err) { alert("Delete failed: " + err.message); }
+                }}>DELETE</Btn>
+                <Btn variant="ghost" onClick={() => setDeleteConfirmId(null)}>CANCEL</Btn>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {qbConfirmId && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setQbConfirmId(null)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
