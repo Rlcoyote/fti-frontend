@@ -5128,18 +5128,13 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
             <input type="date" style={inputStyle} value={schedDate} onChange={e => setSchedDate(e.target.value)} />
           </div>
           <div>
-            <label style={labelStyle}>SALESMAN</label>
-            {salesmen.length > 0 ? (
-              <select style={inputStyle} value={salesman} onChange={e => setSalesman(e.target.value)}>
-                <option value="">— Select —</option>
-                <option value="No Salesman Assigned">No Salesman Assigned</option>
-                {salesmen.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
-              </select>
-            ) : (
-              <div style={{ ...inputStyle, color: C.muted, fontSize: 12, display: "flex", alignItems: "center" }}>
-                No salesmen assigned — add via User Management
-              </div>
-            )}
+            <label style={labelStyle}>SALESMAN *</label>
+            <select style={{ ...inputStyle, borderColor: errors.salesman ? C.red : C.border }} value={salesman} onChange={e => { setSalesman(e.target.value); setErrors(prev => ({...prev, salesman: null})); }}>
+              <option value="">— Select —</option>
+              <option value="No Salesman Assigned">No Salesman Assigned</option>
+              {salesmen.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+            </select>
+            {errors.salesman && <div data-error="salesman" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.salesman}</div>}
           </div>
         </div>
 
@@ -5185,16 +5180,19 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
           <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>SITE MANAGER</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
             <div>
-              <label style={labelStyle}>FIRST NAME</label>
-              <input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} placeholder="First" />
+              <label style={labelStyle}>FIRST NAME *</label>
+              <input style={{ ...inputStyle, borderColor: errors.contactFirst ? C.red : C.border }} value={contactFirst} onChange={e => { setContactFirst(e.target.value); setErrors(prev => ({...prev, contactFirst: null})); }} placeholder="First" />
+              {errors.contactFirst && <div data-error="contactFirst" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.contactFirst}</div>}
             </div>
             <div>
-              <label style={labelStyle}>LAST NAME</label>
-              <input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} placeholder="Last" />
+              <label style={labelStyle}>LAST NAME *</label>
+              <input style={{ ...inputStyle, borderColor: errors.contactLast ? C.red : C.border }} value={contactLast} onChange={e => { setContactLast(e.target.value); setErrors(prev => ({...prev, contactLast: null})); }} placeholder="Last" />
+              {errors.contactLast && <div data-error="contactLast" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.contactLast}</div>}
             </div>
             <div>
-              <label style={labelStyle}>PHONE</label>
-              <input style={inputStyle} value={phone} onChange={e => setPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
+              <label style={labelStyle}>PHONE *</label>
+              <input style={{ ...inputStyle, borderColor: errors.phone ? C.red : C.border }} value={phone} onChange={e => { setPhone(formatPhone(e.target.value)); setErrors(prev => ({...prev, phone: null})); }} placeholder="555-555-5555" />
+              {errors.phone && <div data-error="phone" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.phone}</div>}
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
@@ -5288,7 +5286,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label style={labelStyle}>STATE</label>
+                <label style={labelStyle}>STATE *</label>
                 {stateLockedByPin && (
                   <button type="button" onClick={() => setStateLockedByPin(false)}
                     style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}>unlock</button>
@@ -5301,20 +5299,21 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
             </div>
             <div style={{ position: "relative" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label style={labelStyle}>COUNTY</label>
+                <label style={labelStyle}>COUNTY *</label>
                 {countyLockedByPin && (
                   <button type="button" onClick={() => setCountyLockedByPin(false)}
                     style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}>unlock</button>
                 )}
               </div>
-              <input style={{ ...inputStyle, borderColor: countyLockedByPin ? C.blue : C.border }}
+              <input style={{ ...inputStyle, borderColor: errors.county ? C.red : countyLockedByPin ? C.blue : C.border }}
                 value={county}
-                onChange={e => { if (!countyLockedByPin) { setCounty(e.target.value); setShowCountyDrop(true); } }}
+                onChange={e => { if (!countyLockedByPin) { setCounty(e.target.value); setShowCountyDrop(true); setErrors(prev => ({...prev, county: null})); } }}
                 onFocus={() => !countyLockedByPin && setShowCountyDrop(true)}
                 onBlur={() => setTimeout(() => setShowCountyDrop(false), 150)}
                 placeholder="Start typing..."
                 readOnly={countyLockedByPin}
               />
+              {errors.county && <div data-error="county" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.county}</div>}
               {showCountyDrop && filteredCounties.length > 0 && !countyLockedByPin && (
                 <div style={{
                   position: "absolute", top: "100%", left: 0, right: 0, zIndex: 20,
@@ -5337,7 +5336,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
         {/* Wells */}
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELL NAME / LOCATION</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELL NAME / LOCATION *</div>
             <div style={{ display: "flex", gap: 6 }}>
               {wellList.length > 1 && (
                 <span style={{ fontSize: 11, color: C.muted }}>{wellList.filter(w => w.trim()).length} of {wellList.length} named</span>
@@ -5361,6 +5360,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
               )}
             </div>
           ))}
+          {errors.wells && <div data-error="wells" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.wells}</div>}
           <div style={{ marginTop: 10 }}>
             <label style={labelStyle}>AFE</label>
             <input style={{ ...inputStyle, maxWidth: 240 }} value={afe} onChange={e => setAfe(e.target.value)} placeholder="AFE number if applicable" />
@@ -7238,7 +7238,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.51</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.52</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
