@@ -948,6 +948,17 @@ const INITIAL_TICKETS = [
 
 const today = () => new Date().toISOString().slice(0, 10);
 const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
+const formatShortStamp = (d) => {
+  if (!d) return "";
+  const dt = new Date(d);
+  if (isNaN(dt)) return "";
+  return dt.toLocaleString("en-US", { month: "numeric", day: "numeric", year: "2-digit", hour: "numeric", minute: "2-digit" });
+};
+const shortName = (name) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+};
 const isOverdue = (t) => !t.completed && t.dueDate && t.dueDate < today();
 const todoVisible = (t) => t.createdBy === CURRENT_USER || t.assignedTo === CURRENT_USER;
 const calcLineTotal = (li) => li.rate * li.qty * (li.days || 1);
@@ -1577,6 +1588,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
               <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>JOB #{job.id}</div>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{job.customer}</div>
               <div style={{ fontSize: 11, color: C.muted }}>{job.location}</div>
+              {job.createdBy && <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 1 }}>{shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}</div>}
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
@@ -1600,6 +1612,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>JOB #</div>
           <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{job.id}</div>
+          {job.createdBy && <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 2 }}>{shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}</div>}
         </div>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>CUSTOMER</div>
@@ -2952,6 +2965,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 <TicketStatusBadge status={status} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} — {ticket.type}</span>
                 {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
+                {ticket.createdBy && <span style={{ fontSize: 9, color: "#a0aec8", marginLeft: "auto" }}>{shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}</span>}
               </div>
               <div style={{ fontSize: 12, color: C.muted }}>
                 {job?.customer || "Unknown"} · {isLocked
@@ -4064,6 +4078,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     const payload = {
       job_id: ticketData.jobId, type: ticketData.type, status: ticketData.status || "incomplete",
       date: ticketData.date, notes: ticketData.notes,
+      created_by: currentUser?.id || null,
       assigned_wells: ticketData.assignedWells || [],
       start_date: ticketData.startDate || null,
       end_date: ticketData.endDate || null,
@@ -4077,7 +4092,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (r.ok) {
         const saved = await r.json();
-        setTickets(prev => [...prev, { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number }]);
+        setTickets(prev => [...prev, { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() }]);
       }
     } catch (err) { console.error("Ticket create failed:", err); }
     setShowAdd(false);
@@ -6878,6 +6893,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           googlePin: j.google_pin || "",
           pinLat: j.pin_lat || null,
           pinLng: j.pin_lng || null,
+          createdBy: j.created_by_name || null,
+          createdAt: j.created_at || null,
         }));
         // Transform tickets
         const ticketsMapped = (ticketsR || []).map(t => ({
@@ -6912,6 +6929,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           jobEndTime: t.job_end_time || "", retYard: t.ret_yard || "",
           timeZone: t.time_zone || "",
           mileageBegin: t.mileage_begin ?? null, mileageEnd: t.mileage_end ?? null,
+          createdBy: t.created_by_name || null,
+          createdAt: t.created_at || null,
           lineItems: (t.lineItems || t.line_items || []).map(li => ({
             qbCode: li.qb_code,
             desc: li.description,
@@ -7024,6 +7043,7 @@ function FTIDashboard({ currentUser, onLogout }) {
       google_pin: newJob.googlePin || null,
       pin_lat: newJob.pinLat || null,
       pin_lng: newJob.pinLng || null,
+      created_by: currentUser?.id || null,
       wells: newJob.wells.map(w => ({ well_name: w, afe_number: null })),
       crew: [],
       equipment: newJob.equipment || [],
@@ -7045,6 +7065,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           approverPhone: newJob.approverPhone || "",
           customer_name: cust?.name || newJob.customer,
           wells: (newJob.wells || []).map((w, i) => ({ well_name: w, sort_order: i })),
+          createdBy: currentUser?.name || null,
+          createdAt: new Date().toISOString(),
         };
         setJobs(prev => [mappedJob, ...prev]);
         setShowNewJob(false);
@@ -7253,7 +7275,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.53</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.54</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
