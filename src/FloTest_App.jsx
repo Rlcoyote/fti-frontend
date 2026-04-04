@@ -13,12 +13,10 @@ const C = {
 
 const STATUS_CONFIG = {
   Scheduled:    { color: "#1a5fa8", bg: "#e8f0fb", label: "SCHEDULED" },
-  "Rigged Up":  { color: "#8a6500", bg: "#fdf5d8", label: "RIGGED UP" },
-  Active:       { color: "#1a7a3c", bg: "#e6f5ec", label: "ACTIVE" },
-  "Rigged Down":{ color: "#b85c00", bg: "#fdf0e6", label: "RIGGED DOWN" },
-  Invoiced:     { color: "#6b7a99", bg: "#f0f3f8", label: "INVOICED" },
+  "In Progress":{ color: "#1a7a3c", bg: "#e6f5ec", label: "IN PROGRESS" },
+  Completed:    { color: "#6b7a99", bg: "#f0f3f8", label: "COMPLETED" },
 };
-const STATUS_ORDER = ["Scheduled", "Rigged Up", "Active", "Rigged Down", "Invoiced"];
+const STATUS_ORDER = ["Scheduled", "In Progress", "Completed"];
 
 const USERS_DEFAULT = [];
 let CURRENT_USER = "";  // Set dynamically after login
@@ -887,7 +885,7 @@ const TICKET_TYPES = {
 };
 
 const TICKET_STATUSES = {
-  draft:      { color: "#6b7a99", bg: "#f0f3f8", label: "DRAFT" },
+  incomplete: { color: "#6b7a99", bg: "#f0f3f8", label: "INCOMPLETE" },
   inField:    { color: "#8a6500", bg: "#fdf5d8", label: "IN FIELD" },
   emailed:    { color: "#7a3ca0", bg: "#f3eafa", label: "EMAIL FOR SIGNATURE" },
   signed:     { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
@@ -917,7 +915,7 @@ const INITIAL_TICKETS = [
       { qbCode: "TRVLTR", desc: "Travel Trailer", rate: 100, qty: 10, um: "DAY" },
     ],
     notes: "Ongoing — logging daily." },
-  { id: 3, jobId: 300002, type: "Rig Up", status: "draft", date: "2026-03-05", signedBy: null, signedAt: null,
+  { id: 3, jobId: 300002, type: "Rig Up", status: "incomplete", date: "2026-03-05", signedBy: null, signedAt: null,
     lineItems: [
       { qbCode: "RU2", desc: "Rig Up - 2 Men", rate: 85, qty: 4, um: "HR" },
       { qbCode: "FLLP200", desc: '2" Flowline LP < 200\'', rate: 100, qty: 1, um: "DAY" },
@@ -1488,8 +1486,19 @@ function TicketDot({ label, state }) {
 }
 
 // ─── STATUS BADGE ─────────────────────────────────────────────────────────────
+// Compute job status dynamically based on schedule date and ticket states
+function computeJobStatus(job, jobTickets = []) {
+  // If manually set to Completed, keep it
+  if (job.status === "Completed") return "Completed";
+  // If all tickets are sentToQB — eligible for closeout but not auto-completed
+  const schedDate = job.schedDate || job.sched_date || job.dateStarted || job.date_started;
+  const today = new Date().toISOString().slice(0, 10);
+  if (schedDate && schedDate <= today) return "In Progress";
+  return "Scheduled";
+}
+
 function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status];
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Scheduled"];
   return (
     <span style={{
       display: "inline-block", padding: "3px 10px", borderRadius: 3,
@@ -1519,7 +1528,9 @@ function PipelineSummary({ jobs }) {
 
 // ─── JOB CARD ─────────────────────────────────────────────────────────────────
 function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, jsas, setJsas, userNames, qbItems, userIdByName, currentUser, customers }) {
-  const cfg = STATUS_CONFIG[job.status];
+  const jobTickets = tickets.filter(t => t.jobId === job.id);
+  const computedStatus = computeJobStatus(job, jobTickets);
+  const cfg = STATUS_CONFIG[computedStatus] || STATUS_CONFIG["Scheduled"];
   const costPerWell = job.wells.length > 1 ? (job.estimatedCost / job.wells.length).toFixed(0) : null;
   const [activeTab, setActiveTab] = useState("details");
   const [showEditJob, setShowEditJob] = useState(false);
@@ -1531,7 +1542,6 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
-  const jobTickets = tickets.filter(t => t.jobId === job.id);
   const ticketTotal = jobTickets.reduce((s, t) => s + calcTicketTotal(t), 0);
   const hasJobPendingComment = jobTickets.some(t => t.hasPendingComment || t.has_pending_comment);
 
@@ -1544,7 +1554,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
     if (t.some(tk => tk.status === "signed" || tk.status === "sigNotReq")) return "signed";
     if (t.some(tk => tk.status === "emailed")) return "inField";
     if (t.some(tk => tk.status === "inField")) return "inField";
-    return "draft";
+    return "incomplete";
   };
 
   const isFlagged = job.status === "flaggedCancel";
@@ -1622,7 +1632,12 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           {!pendingTodos && <span style={{ fontSize: 11, color: C.muted }}>None pending</span>}
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-          <StatusBadge status={job.status} />
+          <StatusBadge status={computedStatus} />
+          {computedStatus === "In Progress" && jobTickets.some(t => t.status === "incomplete") && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>
+              {jobTickets.filter(t => t.status === "incomplete").length} INCOMPLETE
+            </span>
+          )}
           {hasJobPendingComment && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -1689,8 +1704,17 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                     { label: "Add / View Field Tickets", action: () => setActiveTab("tickets") },
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
                     { label: "Edit Job", action: () => setShowEditJob(true) },
-                    { label: "Export to QB", action: null },
                   ];
+                  // Close Out — only if all tickets are sentToQB or qbVerified
+                  const jTickets = tickets.filter(t => t.jobId === job.id);
+                  const allSent = jTickets.length > 0 && jTickets.every(t => ["sentToQB", "qbVerified"].includes(t.status));
+                  const hasIncomplete = jTickets.some(t => !["sentToQB", "qbVerified"].includes(t.status));
+                  if (allSent && canDelete) {
+                    actions.push({ label: "CLOSE OUT JOB", action: () => { onUpdateJob(job.id, { status: "Completed" }); }, success: true });
+                  } else if (hasIncomplete && jTickets.length > 0 && canDelete) {
+                    const pending = jTickets.filter(t => !["sentToQB", "qbVerified"].includes(t.status)).length;
+                    actions.push({ label: `CLOSE OUT — ${pending} ticket${pending !== 1 ? "s" : ""} not sent`, action: null, warn: true });
+                  }
                   if (canDelete) {
                     actions.push({ label: "DELETE JOB", action: () => setShowDeleteConfirm(true), danger: true });
                   } else if (job.status !== "flaggedCancel") {
@@ -1699,13 +1723,13 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   return actions;
                 })().map((btn, i) => (
                   <button key={i} onClick={(e) => { e.stopPropagation(); if (btn.action) btn.action(); }} style={{
-                    display: "block", width: "100%", background: btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : "transparent",
-                    border: `1px solid ${btn.danger ? C.red : btn.warn ? "#8a6500" : C.border}`,
-                    color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.action ? C.text : C.muted,
+                    display: "block", width: "100%", background: btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : btn.success ? "#e6f5ec" : "transparent",
+                    border: `1px solid ${btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : C.border}`,
+                    color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : btn.action ? C.text : C.muted,
                     padding: "7px 12px", borderRadius: 4, fontSize: 12,
                     cursor: btn.action ? "pointer" : "default", textAlign: "left", marginBottom: 6,
                     fontFamily: "'Arial', sans-serif", opacity: btn.action ? 1 : 0.5,
-                    fontWeight: btn.danger || btn.warn ? 800 : 400,
+                    fontWeight: btn.danger || btn.warn || btn.success ? 800 : 400,
                   }}
                     onMouseEnter={e => { if (btn.action) { e.target.style.borderColor = C.red; e.target.style.background = btn.danger ? "#f5c6cb" : "#fbeaec"; }}}
                     onMouseLeave={e => { e.target.style.borderColor = btn.danger ? C.red : btn.warn ? "#8a6500" : C.border; e.target.style.background = btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : "transparent"; }}
@@ -1851,16 +1875,10 @@ function EditJobModal({ job, onSave, onClose }) {
       )}
 
       {/* Customer + Status */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 10, marginBottom: 12 }}>
+      <div style={{ marginBottom: 12 }}>
         <div>
           <label style={labelStyle}>CUSTOMER</label>
           <input style={inputStyle} value={customer} onChange={e => setCustomer(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>STATUS</label>
-          <select style={inputStyle} value={status} onChange={e => setStatus(e.target.value)}>
-            {STATUS_ORDER.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
-          </select>
         </div>
       </div>
 
@@ -3295,7 +3313,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {!isLocked && status !== "emailed" && (
             <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4 }}>STATUS:</span>
-              {[["draft", "DRAFT"], ["inField", "IN FIELD"]].map(([key, lbl]) => (
+              {[["incomplete", "INCOMPLETE"], ["inField", "IN FIELD"]].map(([key, lbl]) => (
                 <FilterBtn key={key} active={status === key} onClick={() => setStatus(key)}>{lbl}</FilterBtn>
               ))}
             </div>
@@ -3737,7 +3755,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
     const jobPinLat = job?.pinLat || job?.pin_lat || null;
     const jobPinLng = job?.pinLng || job?.pin_lng || null;
     onSave({
-      jobId, type, status: "draft", date: isRental ? startDate : date,
+      jobId, type, status: "incomplete", date: isRental ? startDate : date,
       signedBy: null, signedAt: null,
       lineItems, notes,
       assignedWells: assignedWells ?? jobWells,
@@ -4044,7 +4062,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
 
   const handleAdd = async (ticketData) => {
     const payload = {
-      job_id: ticketData.jobId, type: ticketData.type, status: ticketData.status || "draft",
+      job_id: ticketData.jobId, type: ticketData.type, status: ticketData.status || "incomplete",
       date: ticketData.date, notes: ticketData.notes,
       assigned_wells: ticketData.assignedWells || [],
       start_date: ticketData.startDate || null,
@@ -4143,10 +4161,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         const btnDisabled = { ...btnBase, background: C.steel, color: C.muted, border: `1px solid ${C.border}`, cursor: "not-allowed", opacity: 0.6 };
         const btnBlue = { ...btnBase, background: "#e8f0fb", color: C.blue, border: `1px solid ${C.blue}44` };
 
+        const isSent = ["sentToQB", "qbVerified"].includes(t.status);
+
         return (
           <div key={t.id} style={{
-            background: C.cardBg, border: `1px solid ${C.border}`,
-            borderLeft: `3px solid ${tcfg.color}`, borderRadius: 5, marginBottom: 6,
+            background: isSent ? "#f5f5f5" : C.cardBg, border: `1px solid ${C.border}`,
+            borderLeft: `3px solid ${isSent ? "#ccc" : tcfg.color}`, borderRadius: 5, marginBottom: 6,
+            opacity: isSent ? 0.6 : 1,
           }}>
           {isMobile ? (
             // Mobile: stacked layout
@@ -5047,6 +5068,13 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
   const validateAndCreate = () => {
     const errs = {};
     if (!custSearch.trim()) errs.customer = "Customer is required";
+    if (!wellList.some(w => w.trim())) errs.wells = "At least one well name is required";
+    if (!jobState.trim()) errs.jobState = "State is required";
+    if (!county.trim()) errs.county = "County is required";
+    if (!contactFirst.trim()) errs.contactFirst = "Site manager first name is required";
+    if (!contactLast.trim()) errs.contactLast = "Site manager last name is required";
+    if (!phone.trim()) errs.phone = "Site manager phone is required";
+    if (!salesman) errs.salesman = "Salesman selection is required";
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
     if (approverEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(approverEmail)) errs.approverEmail = "Invalid email format";
     if (jobState && !VALID_STATES.includes(jobState.toUpperCase())) errs.jobState = "Invalid state code";
@@ -5104,6 +5132,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
             {salesmen.length > 0 ? (
               <select style={inputStyle} value={salesman} onChange={e => setSalesman(e.target.value)}>
                 <option value="">— Select —</option>
+                <option value="No Salesman Assigned">No Salesman Assigned</option>
                 {salesmen.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
               </select>
             ) : (
@@ -5883,6 +5912,232 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
       {tab === "crew" && renderCrew()}
       {tab === "efficiency" && renderEfficiency()}
       {tab === "inventory" && renderInventory()}
+    </div>
+  );
+}
+
+
+// ─── FINAL REVIEW PAGE ──────────────────────────────────────────────────────
+function FinalReviewPage({ jobs, tickets, setTickets, currentUser, qbItems }) {
+  const [expandedId, setExpandedId] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
+  const [accountingMenu, setAccountingMenu] = useState(null);
+
+  const isSalesman = currentUser?.role === "salesman";
+
+  // Tickets eligible for final review: signed, sigNotReq, approved
+  const reviewStatuses = ["signed", "sigNotReq", "approved"];
+  const allReviewable = tickets.filter(t => reviewStatuses.includes(t.status));
+  const visibleTickets = isSalesman
+    ? allReviewable.filter(t => {
+        const job = jobs.find(j => j.id === t.jobId);
+        return job?.salesman === currentUser?.name;
+      })
+    : allReviewable;
+
+  const getJob = (t) => jobs.find(j => j.id === t.jobId);
+  const ticketTotal = (t) => (t.lineItems || []).reduce((s, li) => s + ((li.rate || 0) * (li.qty || 0) * (li.days || 1)), 0);
+  const formatDate = (d) => d ? new Date(d + "T00:00:00").toLocaleDateString("en-US") : "—";
+
+  const handleApproveAndSend = async (ticketId) => {
+    try {
+      await fetch(`${API_URL}/tickets/${ticketId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "sentToQB", sentToQBAt: new Date().toISOString() }),
+      });
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: "sentToQB", sentToQBAt: new Date().toISOString() } : t));
+    } catch (err) { console.error("Approve & send failed:", err); }
+    setAccountingMenu(null);
+  };
+
+  const handleMarkAsProcessed = async (ticketId) => {
+    try {
+      await fetch(`${API_URL}/tickets/${ticketId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "sentToQB", sentToQBAt: new Date().toISOString(), manuallyProcessed: true }),
+      });
+      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: "sentToQB", sentToQBAt: new Date().toISOString() } : t));
+    } catch (err) { console.error("Mark processed failed:", err); }
+    setAccountingMenu(null);
+  };
+
+  const handleBatchApprove = async () => {
+    const ids = [...selected];
+    for (const id of ids) {
+      await handleApproveAndSend(id);
+    }
+    setSelected(new Set());
+    setShowBatchConfirm(false);
+  };
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selected.size === visibleTickets.length) setSelected(new Set());
+    else setSelected(new Set(visibleTickets.map(t => t.id)));
+  };
+
+  const cardStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 };
+
+  return (
+    <div style={{ padding: "24px 28px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Final Review</h1>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
+            {visibleTickets.length} ticket{visibleTickets.length !== 1 ? "s" : ""} awaiting final review
+            {isSalesman && <span style={{ color: C.blue, fontWeight: 600, marginLeft: 8 }}>(Your jobs only)</span>}
+          </div>
+        </div>
+        {selected.size > 0 && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{selected.size} selected</span>
+            <button onClick={() => {
+              if (selected.size >= 3) setShowBatchConfirm(true);
+              else handleBatchApprove();
+            }} style={{
+              background: C.red, color: C.white, border: "none", borderRadius: 4,
+              padding: "8px 16px", fontSize: 12, fontWeight: 800, cursor: "pointer",
+            }}>APPROVE & SEND TO ACCOUNTING ({selected.size})</button>
+          </div>
+        )}
+      </div>
+
+      {visibleTickets.length === 0 && (
+        <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: C.muted }}>All caught up</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>No tickets awaiting review</div>
+        </div>
+      )}
+
+      {/* Header row */}
+      {visibleTickets.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "36px 80px 1fr 120px 100px 100px 90px 120px", gap: 4, padding: "8px 12px", background: C.darkBlue, borderRadius: "6px 6px 0 0" }}>
+          <div><input type="checkbox" checked={selected.size === visibleTickets.length && visibleTickets.length > 0} onChange={selectAll} style={{ width: 15, height: 15, accentColor: C.blue }} /></div>
+          {["TICKET #", "CUSTOMER", "TYPE", "DATE", "TOTAL", "STATUS", "ACTION"].map(h => (
+            <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>{h}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Ticket rows */}
+      {visibleTickets.map(t => {
+        const job = getJob(t);
+        const total = ticketTotal(t);
+        const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type };
+        const scfg = TICKET_STATUSES[t.status] || { color: C.muted, bg: C.steel, label: t.status };
+        const isExpanded = expandedId === t.id;
+
+        return (
+          <div key={t.id} style={{ borderBottom: `1px solid ${C.border}`, background: C.cardBg }}>
+            {/* Summary row */}
+            <div style={{
+              display: "grid", gridTemplateColumns: "36px 80px 1fr 120px 100px 100px 90px 120px",
+              gap: 4, padding: "10px 12px", alignItems: "center", cursor: "pointer",
+            }} onClick={() => setExpandedId(isExpanded ? null : t.id)}>
+              <div onClick={e => e.stopPropagation()}>
+                <input type="checkbox" checked={selected.has(t.id)} onChange={() => toggleSelect(t.id)} style={{ width: 15, height: 15, accentColor: C.blue }} />
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</div>
+              <div style={{ fontSize: 12, color: C.text }}>{job?.customer || "Unknown"}</div>
+              <div><span style={{ fontSize: 10, fontWeight: 700, color: tcfg.color }}>{tcfg.label || t.type}</span></div>
+              <div style={{ fontSize: 12, color: C.muted }}>{formatDate(t.date)}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.green }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              <div><span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: scfg.bg, color: scfg.color }}>{scfg.label}</span></div>
+              <div onClick={e => e.stopPropagation()} style={{ position: "relative" }}>
+                <button onClick={() => setAccountingMenu(accountingMenu === t.id ? null : t.id)} style={{
+                  background: C.darkBlue, color: C.white, border: "none", borderRadius: 4,
+                  padding: "5px 10px", fontSize: 10, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em",
+                }}>ACCOUNTING ▾</button>
+                {accountingMenu === t.id && (
+                  <div style={{
+                    position: "absolute", top: 30, right: 0, zIndex: 50, background: C.cardBg,
+                    border: `1px solid ${C.border}`, borderRadius: 4, boxShadow: "0 4px 16px #00000022",
+                    minWidth: 220, overflow: "hidden",
+                  }}>
+                    <div onClick={() => handleApproveAndSend(t.id)} style={{
+                      padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: C.text,
+                      borderBottom: `1px solid ${C.border}`,
+                    }} onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      Send to Accounting
+                    </div>
+                    <div onClick={() => handleMarkAsProcessed(t.id)} style={{
+                      padding: "10px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: C.muted,
+                    }} onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      Mark as Already Processed
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Expanded inline preview */}
+            {isExpanded && (
+              <div style={{ padding: "0 12px 14px 48px", borderTop: `1px solid ${C.border}22` }}>
+                <div style={{ display: "flex", gap: 20, flexWrap: "wrap", fontSize: 11, color: C.muted, marginBottom: 8, marginTop: 8 }}>
+                  {job?.jobState && <span>State: <strong style={{ color: C.text }}>{job.jobState}</strong></span>}
+                  {job?.county && <span>County: <strong style={{ color: C.text }}>{job.county}</strong></span>}
+                  {job?.wells?.length > 0 && <span>Wells: <strong style={{ color: C.text }}>{job.wells.map(w => w.well_name || w).join(", ")}</strong></span>}
+                  {t.assignedWells?.length > 0 && <span>Assigned: <strong style={{ color: C.text }}>{t.assignedWells.join(", ")}</strong></span>}
+                </div>
+                {/* Line items */}
+                <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>LINE ITEMS</div>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11, marginBottom: 8 }}>
+                  <thead>
+                    <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                      {["CODE", "DESCRIPTION", "RATE", "QTY", "U/M", "TOTAL"].map(h => (
+                        <th key={h} style={{ padding: "4px 6px", fontSize: 9, fontWeight: 800, color: C.muted, textAlign: h === "TOTAL" || h === "RATE" || h === "QTY" ? "right" : "left" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(t.lineItems || []).map((li, idx) => (
+                      <tr key={idx} style={{ borderBottom: `1px solid ${C.border}11` }}>
+                        <td style={{ padding: "4px 6px", fontWeight: 700, color: C.blue }}>{li.qbCode || li.qb_code || "—"}</td>
+                        <td style={{ padding: "4px 6px", color: C.text }}>{li.desc || li.description || "—"}</td>
+                        <td style={{ padding: "4px 6px", textAlign: "right" }}>${li.rate}</td>
+                        <td style={{ padding: "4px 6px", textAlign: "right" }}>{li.qty}</td>
+                        <td style={{ padding: "4px 6px" }}>{li.um || li.unit_measure || "—"}</td>
+                        <td style={{ padding: "4px 6px", textAlign: "right", fontWeight: 700 }}>${((li.rate || 0) * (li.qty || 0) * (li.days || 1)).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {t.notes && (
+                  <div style={{ fontSize: 11, color: C.muted }}>
+                    <span style={{ fontWeight: 700 }}>Notes: </span>{t.notes}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Batch confirm dialog */}
+      {showBatchConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowBatchConfirm(false)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 440, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Confirm Batch Approval</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+              You are about to approve and send <strong>{selected.size} tickets</strong> to accounting. This cannot be undone. Each ticket will be locked from further editing.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={handleBatchApprove}>YES, APPROVE & SEND ALL ({selected.size})</Btn>
+              <Btn variant="ghost" onClick={() => setShowBatchConfirm(false)}>CANCEL</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -6861,12 +7116,13 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["Dashboard", "Job History", "Action Items", "Inventory", "Crew", "Reports", "Deleted", "Users"];
+  const ALL_NAV_ITEMS = ["Dashboard", "Job History", "Action Items", "Inventory", "Crew", "Final Review", "Reports", "Deleted", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && isField) return false;
     if (i === "Users" && !isManager) return false;
     if (i === "Job History" && isField) return false;
     if (i === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return false;
+    if (i === "Final Review" && !["owner", "admin", "manager"].includes(currentUser.role) && !currentUser?.permissions?.approve_tickets) return false;
     return true;
   });
 
@@ -6920,8 +7176,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           </div>
         </div>
         {NAV_ITEMS.map(item => {
-          const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
-          const navIcons = { Dashboard: "⌂", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Crew: "👷", Reports: "📊", Deleted: "🗑", Users: "👤" };
+          const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Users: "users" };
+          const navIcons = { Dashboard: "⌂", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Users: "👤" };
           if (item === "Users" && !isManager) return null;
           if (item === "Job History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
@@ -6982,12 +7238,12 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.50</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.51</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
-            const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", Reports: "reports", Deleted: "deleted", Users: "users" };
+            const pageMap = { Dashboard: "dashboard", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Users: "users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
@@ -7056,6 +7312,10 @@ function FTIDashboard({ currentUser, onLogout }) {
 
       {page === "crew" && (
         <CrewPage users={users} jobs={jobs} />
+      )}
+
+      {page === "finalReview" && (
+        <FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} currentUser={currentUser} qbItems={qbItems} />
       )}
 
       {page === "reports" && (
