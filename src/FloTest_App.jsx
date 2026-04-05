@@ -1781,6 +1781,12 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
               </div>
             </div>
           )}
+            {job.notes && (
+              <div style={{ padding: "0 18px 14px", background: "#f7f9fc" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
+                <div style={{ fontSize: 12, color: C.text, whiteSpace: "pre-wrap", background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 4, padding: "8px 12px" }}>{job.notes}</div>
+              </div>
+            )}
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
@@ -1857,6 +1863,7 @@ function EditJobModal({ job, onSave, onClose }) {
   const [editPinLng, setEditPinLng] = useState(job.pinLng || job.pin_lng || null);
   const [editPinResolving, setEditPinResolving] = useState(false);
   const [editPinError, setEditPinError] = useState("");
+  const [jobNotes, setJobNotes] = useState(job.notes || "");
   const [showUnsaved, setShowUnsaved] = useState(false);
 
   // Dirty state detection
@@ -1971,8 +1978,8 @@ function EditJobModal({ job, onSave, onClose }) {
         <input style={{ ...inputStyle, maxWidth: 220 }} value={afe} onChange={e => setAfe(e.target.value)} placeholder="AFE number if applicable" />
       </div>
 
-      {/* Site Manager */}
-      {sectionHead("SITE MANAGER")}
+      {/* Point of Contact */}
+      {sectionHead("POINT OF CONTACT")}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
         <div><label style={labelStyle}>FIRST</label><input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} /></div>
         <div><label style={labelStyle}>LAST</label><input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} /></div>
@@ -2053,6 +2060,17 @@ function EditJobModal({ job, onSave, onClose }) {
         )}
       </div>
 
+      {/* Notes */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>NOTES</div>
+        <textarea
+          style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 12, color: C.text, background: C.cardBg, minHeight: 60, resize: "vertical", boxSizing: "border-box", fontFamily: "'Arial', sans-serif" }}
+          value={jobNotes}
+          onChange={e => setJobNotes(e.target.value)}
+          placeholder="Internal notes — visible on job card only, not on field tickets"
+        />
+      </div>
+
       <div style={{ display: "flex", gap: 8 }}>
         <Btn onClick={() => {
           if (jobState && !VALID_STATES.includes(jobState)) return;
@@ -2071,6 +2089,7 @@ function EditJobModal({ job, onSave, onClose }) {
             google_pin: editGooglePin || null,
             pin_lat: editPinLat || null,
             pin_lng: editPinLng || null,
+            notes: jobNotes || null,
           });
         }}>SAVE</Btn>
         <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
@@ -3070,7 +3089,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               {job.companyCode && <span><span style={{ color: C.muted }}>Co. Code: </span><strong>{job.companyCode}</strong></span>}
               {job.costCenter && <span><span style={{ color: C.muted }}>Cost Center: </span><strong>{job.costCenter}</strong></span>}
               {job.po && <span><span style={{ color: C.muted }}>PO: </span><strong>{job.po}</strong></span>}
-              {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Site Mgr: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
+              {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Point of Contact: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
             </div>
           </div>
         )}
@@ -4017,7 +4036,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
               {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
               {job.county && <span><span style={{ color: C.muted }}>County: </span><strong>{job.county}</strong></span>}
               {job.wells?.length > 0 && <span><span style={{ color: C.muted }}>Wells: </span><strong>{job.wells.map(w => w.well_name || w).join(", ")}</strong></span>}
-              {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Site Mgr: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
+              {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Point of Contact: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
             </div>
           </div>
         )}
@@ -5218,6 +5237,8 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
   const [county, setCounty] = useState("");
   const [showCountyDrop, setShowCountyDrop] = useState(false);
   const [wellList, setWellList] = useState([""]);
+  const [wellTBD, setWellTBD] = useState(false);
+  const [jobNotes, setJobNotes] = useState("");
   const [afe, setAfe] = useState("");
   const [schedDate, setSchedDate] = useState("");
   const [salesman, setSalesman] = useState("");
@@ -5314,12 +5335,12 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
   const validateAndCreate = () => {
     const errs = {};
     if (!custSearch.trim()) errs.customer = "Customer is required";
-    if (!wellList.some(w => w.trim())) errs.wells = "At least one well name is required";
+    if (!wellTBD && !wellList.some(w => w.trim())) errs.wells = "At least one well name is required";
     if (!jobState.trim()) errs.jobState = "State is required";
     if (!county.trim()) errs.county = "County is required";
-    if (!contactFirst.trim()) errs.contactFirst = "Site manager first name is required";
-    if (!contactLast.trim()) errs.contactLast = "Site manager last name is required";
-    if (!phone.trim()) errs.phone = "Site manager phone is required";
+    if (!contactFirst.trim()) errs.contactFirst = "Point of Contact first name is required";
+    if (!contactLast.trim()) errs.contactLast = "Point of Contact last name is required";
+    if (!phone.trim()) errs.phone = "Point of Contact phone is required";
     if (!salesman) errs.salesman = "Salesman selection is required";
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Invalid email format";
     if (approverEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(approverEmail)) errs.approverEmail = "Invalid email format";
@@ -5332,7 +5353,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
       return;
     }
     setErrors({});
-    const cleanWells = wellList.map(w => w.trim()).filter(Boolean);
+    const cleanWells = wellTBD ? ["TBD"] : wellList.map(w => w.trim()).filter(Boolean);
     onCreateJob({
       id: null,
       customer: custSearch.trim(),
@@ -5352,6 +5373,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
       googlePin: googlePin || null,
       pinLat: pinLat || null,
       pinLng: pinLng || null,
+      notes: jobNotes || null,
     });
   };
 
@@ -5423,7 +5445,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>CONTACT INFORMATION</div>
 
           {/* Site Manager */}
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>SITE MANAGER</div>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>POINT OF CONTACT</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
             <div>
               <label style={labelStyle}>FIRST NAME *</label>
@@ -5582,7 +5604,13 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
         {/* Wells */}
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELL NAME / LOCATION *</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELL NAME / LOCATION *</div>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 11, fontWeight: 700, color: wellTBD ? C.blue : C.muted }}>
+                <input type="checkbox" checked={wellTBD} onChange={e => { setWellTBD(e.target.checked); if (e.target.checked) setErrors(prev => ({ ...prev, wells: null })); }} style={{ width: 14, height: 14, accentColor: C.blue }} />
+                TBD
+              </label>
+            </div>
             <div style={{ display: "flex", gap: 6 }}>
               {wellList.length > 1 && (
                 <span style={{ fontSize: 11, color: C.muted }}>{wellList.filter(w => w.trim()).length} of {wellList.length} named</span>
@@ -5592,6 +5620,10 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
               )}
             </div>
           </div>
+          {wellTBD ? (
+            <div style={{ padding: "10px 0", fontSize: 12, color: C.muted, fontStyle: "italic" }}>Well name will be set to TBD — update via Edit Job when known.</div>
+          ) : (
+          <>
           {wellList.map((w, idx) => (
             <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, minWidth: 20, textAlign: "right" }}>{idx + 1}.</div>
@@ -5606,11 +5638,24 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
               )}
             </div>
           ))}
+          </>
+          )}
           {errors.wells && <div data-error="wells" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.wells}</div>}
           <div style={{ marginTop: 10 }}>
             <label style={labelStyle}>AFE</label>
             <input style={{ ...inputStyle, maxWidth: 240 }} value={afe} onChange={e => setAfe(e.target.value)} placeholder="AFE number if applicable" />
           </div>
+        </div>
+
+        {/* Notes */}
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
+          <textarea
+            style={{ ...inputStyle, minHeight: 60, resize: "vertical", width: "100%", boxSizing: "border-box" }}
+            value={jobNotes}
+            onChange={e => setJobNotes(e.target.value)}
+            placeholder="Internal notes — visible on job card only, not on field tickets"
+          />
         </div>
 
         {/* Scheduling */}
@@ -7233,6 +7278,7 @@ function FTIDashboard({ currentUser, onLogout }) {
       pin_lat: newJob.pinLat || null,
       pin_lng: newJob.pinLng || null,
       created_by: currentUser?.id || null,
+      notes: newJob.notes || null,
       wells: newJob.wells.map(w => ({ well_name: w, afe_number: null })),
       crew: [],
       equipment: newJob.equipment || [],
@@ -7465,7 +7511,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.58</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.59</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
