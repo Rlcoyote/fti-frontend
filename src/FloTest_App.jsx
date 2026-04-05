@@ -1567,7 +1567,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   const computedStatus = computeJobStatus(job, jobTickets);
   const cfg = STATUS_CONFIG[computedStatus] || STATUS_CONFIG["Scheduled"];
   const costPerWell = job.wells.length > 1 ? (job.estimatedCost / job.wells.length).toFixed(0) : null;
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState("tickets");
   const [showEditJob, setShowEditJob] = useState(false);
   const [showFlowback, setShowFlowback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1689,10 +1689,16 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
-            {[["details", "DETAILS"], ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
+            {[["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["details", "DETAILS"], ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
-                background: "transparent", border: "none",
+                background: activeTab === tab ? C.cardBg : "transparent", border: "none",
                 borderBottom: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
+                borderTop: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
+                borderLeft: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
+                borderRight: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
+                borderTopLeftRadius: activeTab === tab ? 4 : 0,
+                borderTopRightRadius: activeTab === tab ? 4 : 0,
+                marginBottom: activeTab === tab ? -1 : 0,
                 color: activeTab === tab ? C.text : C.muted,
                 padding: "10px 16px", fontSize: 12, fontWeight: 700,
                 cursor: "pointer", letterSpacing: "0.06em",
@@ -3042,7 +3048,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {/* Job / Customer Info — read only */}
         {job && (
           <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "12px 24px" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>JOB INFO — <span style={{ color: C.muted, fontWeight: 400 }}>To update, edit the job on the main dashboard</span></div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>JOB INFO — <span style={{ color: C.muted, fontWeight: 400 }}>To update, go to Active Jobs → Details → Edit Job</span></div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 24px", fontSize: 12 }}>
               <span><span style={{ color: C.muted }}>Customer: </span><strong>{job.customer}</strong></span>
               {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
@@ -7458,7 +7464,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.57</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.58</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
