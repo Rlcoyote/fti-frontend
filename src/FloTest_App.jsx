@@ -649,233 +649,7 @@ function AppWrapper() {
 
 export { AppWrapper as default };
 
-// ─── MOCK DATA ────────────────────────────────────────────────────────────────
-const INITIAL_JOBS = [
-  { id: 300001, customer: "Pioneer Natural Resources", location: "Permian Basin — Midland, TX",
-    wells: ["Wolfcamp A #1H", "Wolfcamp A #2H", "Wolfcamp B #1H"],
-    afe: ["AFE-2024-0441", null, "AFE-2024-0443"], dateStarted: "2026-03-01", status: "Active",
-    crew: [{ name: "Josh Trevino", role: "Supervisor" }, { name: "Mike Garza", role: "Rig Up" }, { name: "Danny Reyes", role: "Helper" }],
-    equipment: ["2\" HP Iron Package", "3\" Sand Separator 10K", "Flare Stack 20'", "Plug Catcher"],
-    hoursLogged: 184, estimatedCost: 24850,
-    ticketStatus: { ru: "signed", tester: "active", rd: null }, jsaComplete: true },
-  { id: 300002, customer: "Devon Energy", location: "Delaware Basin — Pecos, TX",
-    wells: ["Bone Spring #4H"], afe: [null], dateStarted: "2026-03-05", status: "Rigged Up",
-    crew: [{ name: "Eli Springer", role: "Supervisor" }, { name: "Carlos Mendez", role: "Rig Up" }],
-    equipment: ["2\" HP Iron Package", "Sand Separator 5K", "Choke Assembly"],
-    hoursLogged: 16, estimatedCost: 4200,
-    ticketStatus: { ru: "pending", tester: null, rd: null }, jsaComplete: true },
-  { id: 300003, customer: "Chevron USA", location: "Midland Basin — Andrews, TX",
-    wells: ["Spraberry #7H", "Spraberry #8H"], afe: ["AFE-2024-0512", "AFE-2024-0513"],
-    dateStarted: "2026-03-08", status: "Scheduled",
-    crew: [{ name: "Josh Trevino", role: "Supervisor" }, { name: "TBD", role: "Helper" }],
-    equipment: ["3\" Iron Package", "Separator 1440 PSI"],
-    hoursLogged: 0, estimatedCost: 0,
-    ticketStatus: { ru: null, tester: null, rd: null }, jsaComplete: false },
-  { id: 300000, customer: "Occidental Petroleum", location: "Permian Basin — Odessa, TX",
-    wells: ["Delaware #2H", "Delaware #3H", "Delaware #4H", "Delaware #5H"],
-    afe: ["AFE-2024-0388", "AFE-2024-0389", "AFE-2024-0390", "AFE-2024-0391"],
-    dateStarted: "2026-02-10", status: "Invoiced",
-    crew: [{ name: "Eli Springer", role: "Supervisor" }, { name: "Mike Garza", role: "Rig Up" }, { name: "Danny Reyes", role: "Helper" }, { name: "Carlos Mendez", role: "Helper" }],
-    equipment: ["2\" & 3\" Iron Package", "Sand Separator 10K", "Manifold 5V", "Flare Stack >20'", "Chart Recorder"],
-    hoursLogged: 312, estimatedCost: 41600,
-    ticketStatus: { ru: "signed", tester: "signed", rd: "signed" }, jsaComplete: true },
-];
-
-const INITIAL_TODOS = [
-  { id: 1, title: "Confirm AFE number from Devon rep", description: "Devon #4H still missing AFE — call Mark before EOD", jobId: 300002, priority: "high", dueDate: "2026-03-09", createdBy: "Eli Springer", assignedTo: "Eli Springer", completed: false, completedBy: null, completedAt: null },
-  { id: 2, title: "Order replacement choke seat", description: "3/4\" tungsten seat needed before next rig-up", jobId: 300001, priority: "high", dueDate: "2026-03-10", createdBy: "Josh Trevino", assignedTo: "Eli Springer", completed: false, completedBy: null, completedAt: null },
-  { id: 3, title: "Schedule pre-job safety meeting", description: "", jobId: 300003, priority: "normal", dueDate: "2026-03-07", createdBy: "Eli Springer", assignedTo: "Josh Trevino", completed: false, completedBy: null, completedAt: null },
-  { id: 4, title: "Submit invoice to Occidental", description: "All tickets signed — ready to invoice", jobId: 300000, priority: "high", dueDate: "2026-03-08", createdBy: "Eli Springer", assignedTo: "Eli Springer", completed: false, completedBy: null, completedAt: null },
-  { id: 5, title: "Pick up replacement H2S monitors", description: "Two units need new sensors", jobId: null, priority: "normal", dueDate: "2026-03-12", createdBy: "Eli Springer", assignedTo: "Mike Garza", completed: false, completedBy: null, completedAt: null },
-  { id: 6, title: "Call insurance agent re: new truck", description: "", jobId: null, priority: "low", dueDate: null, createdBy: "Eli Springer", assignedTo: "Eli Springer", completed: true, completedBy: "Eli Springer", completedAt: "2026-03-08T14:22:00" },
-  { id: 7, title: "Review updated rate sheet with Josh", description: "", jobId: null, priority: "low", dueDate: "2026-03-15", createdBy: "Eli Springer", assignedTo: "Eli Springer", completed: false, completedBy: null, completedAt: null },
-];
-
-// ─── INVENTORY DATA (mirrors 2026_FloTest_Iron_Inventory.xlsx) ───────────────
-const INITIAL_INVENTORY = [
-  { id: 1,  size: '2"', category: "Fitting",    item: "Cushion 90",           psi: null, itemNum: "2C90-###",  serial: null, qtyOwned: 256, inYard: 256, customer: null, fieldTicket: null, notes: null },
-  { id: 2,  size: '2"', category: "Pup Joint",  item: '2" x 6"',             psi: null, itemNum: "26IN-###",  serial: null, qtyOwned: 85,  inYard: 85,  customer: null, fieldTicket: null, notes: null },
-  { id: 3,  size: '2"', category: "Pup Joint",  item: '2" x 9"',             psi: null, itemNum: "29IN-###",  serial: null, qtyOwned: 48,  inYard: 48,  customer: null, fieldTicket: null, notes: null },
-  { id: 4,  size: '2"', category: "Pup Joint",  item: "2\" x 1'",            psi: null, itemNum: "21-###",    serial: null, qtyOwned: 167, inYard: 167, customer: null, fieldTicket: null, notes: null },
-  { id: 5,  size: '2"', category: "Pup Joint",  item: "2\" x 2'",            psi: null, itemNum: "22-###",    serial: null, qtyOwned: 116, inYard: 116, customer: null, fieldTicket: null, notes: null },
-  { id: 6,  size: '2"', category: "Pup Joint",  item: "2\" x 3'",            psi: null, itemNum: "23-###",    serial: null, qtyOwned: 65,  inYard: 65,  customer: null, fieldTicket: null, notes: null },
-  { id: 7,  size: '2"', category: "Pup Joint",  item: "2\" x 4'",            psi: null, itemNum: "24-###",    serial: null, qtyOwned: 120, inYard: 120, customer: null, fieldTicket: null, notes: null },
-  { id: 8,  size: '2"', category: "Pup Joint",  item: "2\" x 6'",            psi: null, itemNum: "26-###",    serial: null, qtyOwned: 105, inYard: 105, customer: null, fieldTicket: null, notes: null },
-  { id: 9,  size: '2"', category: "Pup Joint",  item: "2\" x 8'",            psi: null, itemNum: "28-###",    serial: null, qtyOwned: 36,  inYard: 36,  customer: null, fieldTicket: null, notes: null },
-  { id: 10, size: '2"', category: "Pup Joint",  item: "2\" x 10'",           psi: null, itemNum: "210-###",   serial: null, qtyOwned: 295, inYard: 295, customer: null, fieldTicket: null, notes: null },
-  { id: 11, size: '2"', category: "Pup Joint",  item: "2\" x 20'",           psi: null, itemNum: "220-###",   serial: null, qtyOwned: 214, inYard: 214, customer: null, fieldTicket: null, notes: null },
-  { id: 12, size: '2"', category: "Fitting",    item: "Upstream Tee",         psi: null, itemNum: "2TWW-###",  serial: null, qtyOwned: 23,  inYard: 23,  customer: null, fieldTicket: null, notes: null },
-  { id: 13, size: '2"', category: "Fitting",    item: "Downstream Tee",       psi: null, itemNum: "2WTT-###",  serial: null, qtyOwned: 92,  inYard: 92,  customer: null, fieldTicket: null, notes: null },
-  { id: 14, size: '2"', category: "Fitting",    item: "Upstream Cross",       psi: null, itemNum: "2TWWW-###", serial: null, qtyOwned: 27,  inYard: 27,  customer: null, fieldTicket: null, notes: null },
-  { id: 15, size: '2"', category: "Fitting",    item: "Downstream Cross",     psi: null, itemNum: "2WTTT-###", serial: null, qtyOwned: 7,   inYard: 7,   customer: null, fieldTicket: null, notes: null },
-  { id: 16, size: '2"', category: "Fitting",    item: "Dbl Wing",             psi: null, itemNum: "2DW-###",   serial: null, qtyOwned: 25,  inYard: 25,  customer: null, fieldTicket: null, notes: null },
-  { id: 17, size: '2"', category: "Fitting",    item: "Dbl Thread",           psi: null, itemNum: "2DT-###",   serial: null, qtyOwned: 31,  inYard: 31,  customer: null, fieldTicket: null, notes: null },
-  { id: 18, size: '2"', category: "Valve",      item: "Plug Valve",           psi: null, itemNum: "2PV-###",   serial: null, qtyOwned: 129, inYard: 129, customer: null, fieldTicket: null, notes: null },
-  { id: 19, size: '2"', category: "Valve",      item: "Positive Choke",       psi: null, itemNum: "2PC-###",   serial: null, qtyOwned: 25,  inYard: 25,  customer: null, fieldTicket: null, notes: null },
-  { id: 20, size: '2"', category: "Valve",      item: "Adjustable Choke",     psi: null, itemNum: "2AC-###",   serial: null, qtyOwned: 29,  inYard: 29,  customer: null, fieldTicket: null, notes: null },
-  { id: 21, size: '2"', category: "Fitting",    item: "Male Cap",             psi: null, itemNum: "2MC-###",   serial: null, qtyOwned: 23,  inYard: 23,  customer: null, fieldTicket: null, notes: null },
-  { id: 22, size: '2"', category: "Fitting",    item: "Female Cap",           psi: null, itemNum: "2FC-###",   serial: null, qtyOwned: 17,  inYard: 17,  customer: null, fieldTicket: null, notes: null },
-  { id: 23, size: '2"', category: "Fitting",    item: '3" x 2" Cross Over',   psi: null, itemNum: "32CO-###",  serial: null, qtyOwned: 112, inYard: 112, customer: null, fieldTicket: null, notes: null },
-  { id: 24, size: '2"', category: "Fitting",    item: "Pop Off",              psi: null, itemNum: "2PO-###",   serial: null, qtyOwned: 13,  inYard: 13,  customer: null, fieldTicket: null, notes: null },
-  { id: 25, size: '3"', category: "Fitting",    item: "Cushion 90",           psi: null, itemNum: "3C90-###",  serial: null, qtyOwned: 68,  inYard: 68,  customer: null, fieldTicket: null, notes: null },
-  { id: 26, size: '3"', category: "Pup Joint",  item: '3" x 6"',             psi: null, itemNum: "36IN-###",  serial: null, qtyOwned: 30,  inYard: 30,  customer: null, fieldTicket: null, notes: null },
-  { id: 27, size: '3"', category: "Pup Joint",  item: "3\" x 1'",            psi: null, itemNum: "31-###",    serial: null, qtyOwned: 49,  inYard: 49,  customer: null, fieldTicket: null, notes: null },
-  { id: 28, size: '3"', category: "Pup Joint",  item: "3\" x 2'",            psi: null, itemNum: "32-###",    serial: null, qtyOwned: 46,  inYard: 46,  customer: null, fieldTicket: null, notes: null },
-  { id: 29, size: '3"', category: "Pup Joint",  item: "3\" x 3'",            psi: null, itemNum: "33-###",    serial: null, qtyOwned: 39,  inYard: 39,  customer: null, fieldTicket: null, notes: null },
-  { id: 30, size: '3"', category: "Pup Joint",  item: "3\" x 4'",            psi: null, itemNum: "34-###",    serial: null, qtyOwned: 43,  inYard: 43,  customer: null, fieldTicket: null, notes: null },
-  { id: 31, size: '3"', category: "Pup Joint",  item: "3\" x 6'",            psi: null, itemNum: "36-###",    serial: null, qtyOwned: 39,  inYard: 39,  customer: null, fieldTicket: null, notes: null },
-  { id: 32, size: '3"', category: "Pup Joint",  item: "3\" x 8'",            psi: null, itemNum: "38-###",    serial: null, qtyOwned: 0,   inYard: 0,   customer: null, fieldTicket: null, notes: null },
-  { id: 33, size: '3"', category: "Pup Joint",  item: "3\" x 10'",           psi: null, itemNum: "310-###",   serial: null, qtyOwned: 54,  inYard: 54,  customer: null, fieldTicket: null, notes: null },
-  { id: 34, size: '3"', category: "Pup Joint",  item: "3\" x 20'",           psi: null, itemNum: "320-###",   serial: null, qtyOwned: 13,  inYard: 13,  customer: null, fieldTicket: null, notes: null },
-  { id: 35, size: '3"', category: "Fitting",    item: "Upstream Tee",         psi: null, itemNum: "3TWW-###",  serial: null, qtyOwned: 21,  inYard: 21,  customer: null, fieldTicket: null, notes: null },
-  { id: 36, size: '3"', category: "Fitting",    item: "Downstream Tee",       psi: null, itemNum: "3WTT-###",  serial: null, qtyOwned: 27,  inYard: 27,  customer: null, fieldTicket: null, notes: null },
-  { id: 37, size: '3"', category: "Fitting",    item: "Upstream Cross",       psi: null, itemNum: "3TWWW-###", serial: null, qtyOwned: 5,   inYard: 5,   customer: null, fieldTicket: null, notes: null },
-  { id: 38, size: '3"', category: "Fitting",    item: "Downstream Cross",     psi: null, itemNum: "3WTTT-###", serial: null, qtyOwned: 5,   inYard: 5,   customer: null, fieldTicket: null, notes: null },
-  { id: 39, size: '3"', category: "Fitting",    item: "Dbl Wing",             psi: null, itemNum: "3DW-###",   serial: null, qtyOwned: 28,  inYard: 28,  customer: null, fieldTicket: null, notes: null },
-  { id: 40, size: '3"', category: "Fitting",    item: "Dbl Thread",           psi: null, itemNum: "3DT-###",   serial: null, qtyOwned: 12,  inYard: 12,  customer: null, fieldTicket: null, notes: null },
-  { id: 41, size: '3"', category: "Valve",      item: "Plug Valve",           psi: null, itemNum: "3PV-###",   serial: null, qtyOwned: 53,  inYard: 53,  customer: null, fieldTicket: null, notes: null },
-  { id: 42, size: '3"', category: "Valve",      item: "Positive Choke",       psi: null, itemNum: "3PC-###",   serial: null, qtyOwned: 9,   inYard: 9,   customer: null, fieldTicket: null, notes: null },
-  { id: 43, size: '3"', category: "Valve",      item: "Adjustable Choke",     psi: null, itemNum: "3AC-###",   serial: null, qtyOwned: 9,   inYard: 9,   customer: null, fieldTicket: null, notes: null },
-  { id: 44, size: '3"', category: "Fitting",    item: "Male Cap",             psi: null, itemNum: "3MC-###",   serial: null, qtyOwned: 19,  inYard: 19,  customer: null, fieldTicket: null, notes: null },
-  { id: 45, size: '3"', category: "Fitting",    item: "Female Cap",           psi: null, itemNum: "3FC-###",   serial: null, qtyOwned: 25,  inYard: 25,  customer: null, fieldTicket: null, notes: null },
-  { id: 46, size: '3"', category: "Cross Over", item: '4" x 3" Cross Over',   psi: null, itemNum: "43CO-###",  serial: null, qtyOwned: 16,  inYard: 16,  customer: null, fieldTicket: null, notes: null },
-  { id: 47, size: '4"', category: "Pup Joint",  item: '4" x 6"',             psi: null, itemNum: "46IN-###",  serial: null, qtyOwned: 97,  inYard: 97,  customer: null, fieldTicket: null, notes: null },
-  { id: 48, size: '4"', category: "Pup Joint",  item: "4\" x 6'",            psi: null, itemNum: "46-###",    serial: null, qtyOwned: 4,   inYard: 4,   customer: null, fieldTicket: null, notes: null },
-  { id: 49, size: '4"', category: "Fitting",    item: "Upstream Tee",         psi: null, itemNum: "4TWW-###",  serial: null, qtyOwned: 2,   inYard: 2,   customer: null, fieldTicket: null, notes: null },
-  { id: 50, size: '4"', category: "Fitting",    item: "Downstream Tee",       psi: null, itemNum: "4WTT-###",  serial: null, qtyOwned: 4,   inYard: 4,   customer: null, fieldTicket: null, notes: null },
-  { id: 51, size: '4"', category: "Fitting",    item: "Male Cap",             psi: null, itemNum: "4MC-###",   serial: null, qtyOwned: 18,  inYard: 18,  customer: null, fieldTicket: null, notes: null },
-  { id: 52, size: '4"', category: "Fitting",    item: "Female Cap",           psi: null, itemNum: "4FC-###",   serial: null, qtyOwned: 56,  inYard: 56,  customer: null, fieldTicket: null, notes: null },
-  { id: 53, size: '4"', category: "Cross Over", item: '4" x 2" Cross Over',   psi: null, itemNum: "42CO-###",  serial: null, qtyOwned: 27,  inYard: 27,  customer: null, fieldTicket: null, notes: null },
-  { id: 54, size: '4"', category: "Fitting",    item: '4" x 3" Tee',          psi: null, itemNum: "4TBD-###",  serial: null, qtyOwned: 4,   inYard: 4,   customer: null, fieldTicket: null, notes: null },
-  { id: 55, size: '4"', category: "Fitting",    item: '4" x 2" Tee',          psi: null, itemNum: "4TBD-###",  serial: null, qtyOwned: 0,   inYard: 0,   customer: null, fieldTicket: null, notes: null },
-];
-
-// ─── QB RATE SHEET (from FT__Item_List_260310.xlsx) ──────────────────────────
-const QB_ITEMS = [
-  { code: "1502 Iron - 2", desc: '2" - 1502 Iron', um: "DAY", price: 75 },
-  { code: "1502 Iron - 3", desc: '3" - 1502 Iron', um: "DAY", price: 135 },
-  { code: "1502 Seal", desc: "1502 Seal", um: "EA", price: 11 },
-  { code: "1502TEE2IN", desc: "1502 HP Tee Connection", um: "DAY", price: 25 },
-  { code: "BALLCATCH10", desc: '3" Ball Catcher 10k', um: "DAY", price: 225 },
-  { code: "BALLCATCH5", desc: '3" Ball Catcher 5k', um: "DAY", price: 150 },
-  { code: "BB", desc: "Black Beard Frac Support Package", um: "DAY", price: 350 },
-  { code: "BBI", desc: "Black Beard Iron Package", um: "DAY", price: 175 },
-  { code: "BBR", desc: "Black Beard Rig Up Rate", um: "HR", price: 750 },
-  { code: "BHDT", desc: "Back Hoe / DumpTruck", um: "HR", price: 125 },
-  { code: "BLMI", desc: "BLM Iron", um: "DAY", price: 75 },
-  { code: "Bolt Cutters", desc: "Bolt Cutters", um: "DAY", price: 50 },
-  { code: "CHART", desc: "Meter - Chart Recorder", um: "DAY", price: 25 },
-  { code: "CHKADJ", desc: 'Choke Assembly: 3/4" - 1" Adjustable', um: "DAY", price: 40 },
-  { code: "CHKSEAT", desc: 'Choke Seat: 3/4" - 1" Tungsten / Ceramic', um: "DAY", price: 15 },
-  { code: "CONPMP", desc: "Field Specialist: Contract Pumper", um: "HR", price: 68 },
-  { code: "CR55", desc: "Crane 55 Ton", um: "HR", price: 204 },
-  { code: "Crane 225", desc: "Crane 225", um: "HR", price: 330 },
-  { code: "DELRET", desc: "Deliver / Retrieve Equipment", um: "HR", price: 55 },
-  { code: "DIESEL", desc: "Diesel / Gal. - Fuel Replacement", um: "GAL", price: 5 },
-  { code: "FBTNKDAY", desc: "Flowback Tank / Day", um: "DAY", price: 125 },
-  { code: "FBTNKMIN", desc: "Flowback Tank - 5 Day Minimum", um: "EA", price: 500 },
-  { code: "FLADD", desc: '2" - Additional Flowline < 50\'', um: "DAY", price: 50 },
-  { code: "FLHP200", desc: '2" Flowline HP & Misc. Connections < 200\'', um: "DAY", price: 150 },
-  { code: "FLLP200", desc: '2" Flowline LP & Misc. Connections < 200\'', um: "DAY", price: 100 },
-  { code: "FLNG10K", desc: "Flange 10K / Day", um: "DAY", price: 35 },
-  { code: "FLNG5K", desc: "Flange 5K / Day", um: "DAY", price: 15 },
-  { code: "FLRLNADD", desc: "Additional Flare Line < 150'", um: "DAY", price: 100 },
-  { code: "FM", desc: "Supervisor / Foreman", um: "HR", price: 75 },
-  { code: "FORKL", desc: "Forklift Rental", um: "DAY", price: 135 },
-  { code: "FS>20", desc: "Flare Stack >20' & Flare Line", um: "DAY", price: 125 },
-  { code: "FS20", desc: "Flare Stack 20' & Flare Line", um: "DAY", price: 95 },
-  { code: "FT1", desc: "Flo Test Well - 1 Man", um: "HR", price: 70 },
-  { code: "FT2", desc: "Flo Test Well - 2 Man", um: "HR", price: 120 },
-  { code: "FTASST", desc: "Flo Test Well - Assist (2nd Man)", um: "HR", price: 45 },
-  { code: "FU", desc: "Fuel Charge", um: "DAY", price: 78 },
-  { code: "GEN20KW", desc: "Generator 20KW", um: "DAY", price: 135 },
-  { code: "GEN8KW", desc: "Generator 8KW", um: "DAY", price: 100 },
-  { code: "HD", desc: "Daily Housing", um: "DAY", price: 125 },
-  { code: "HO", desc: 'Hoses 3"', um: "DAY", price: 15 },
-  { code: "HOTSHOT", desc: "Hot Shot / Trucking", um: "HR", price: 115 },
-  { code: "HT", desc: "Haul Tractor", um: "HR", price: 140 },
-  { code: "HV", desc: "Hydrovac Unit - <= 8hrs", um: "DAY", price: 2000 },
-  { code: "LHTR", desc: "Line Heater - 6k PSI", um: "DAY", price: 300 },
-  { code: "LI", desc: "Long Iron", um: "DAY", price: 150 },
-  { code: "LT", desc: "Light Tower", um: "DAY", price: 45 },
-  { code: "MAN2V", desc: 'Manifold - 2 x 2" Plug Valve - 15K PSI', um: "DAY", price: 200 },
-  { code: "MAN5V", desc: 'Manifold - 5 x 2" Plug Valve Wrap Around - 15K PSI', um: "DAY", price: 210 },
-  { code: "MAN9V", desc: 'Manifold - 9 x 2" Plug Valve Wrap Around - 15K PSI', um: "DAY", price: 550 },
-  { code: "MB", desc: "Man Basket: Crane", um: "DAY", price: 165 },
-  { code: "MIGTRK", desc: "Mileage Charge - Tractor / Gin Truck", um: "MILE", price: 3 },
-  { code: "MITRK", desc: "Mileage Charge - Truck Only", um: "MILE", price: 1.8 },
-  { code: "MITRKTRL", desc: "Mileage Charge - Truck & Bumper Pull Trailer", um: "MILE", price: 2 },
-  { code: "MITRLLB", desc: "Lowboy Trailer", um: "DAY", price: 375 },
-  { code: "MOBDEL", desc: "Equipment Delivery", um: "DAY", price: 825 },
-  { code: "MP", desc: "Monthly Package - Flowline HP with Sand Trap", um: "DAY", price: 75 },
-  { code: "MUFF", desc: "Gas Muffler", um: "DAY", price: 50 },
-  { code: "Op", desc: "Operator", um: "HR", price: 65 },
-  { code: "ORIF", desc: "Orifice Plate", um: "DAY", price: 30 },
-  { code: "Plug Catcher", desc: "Plug Catcher", um: "DAY", price: 100 },
-  { code: "PP", desc: "Power Pack - Light Tower/Generator/Water/Propane/Trash", um: "DAY", price: 140 },
-  { code: "PROPANE", desc: "Propane / Gal. - Fuel Replacement", um: "GAL", price: 5 },
-  { code: "PV1IN", desc: 'Plug Valve 1" - 1502', um: "DAY", price: 25 },
-  { code: "PV2IN", desc: 'Plug Valve 2" - 1502', um: "DAY", price: 50 },
-  { code: "R", desc: "Roustabout", um: "HR", price: 125 },
-  { code: "RD2", desc: "Rig Down - 2 Men", um: "HR", price: 130 },
-  { code: "RD3", desc: "Rig Down - 3 Men", um: "HR", price: 125 },
-  { code: "RD4", desc: "Rig Down - 4 Men", um: "HR", price: 145 },
-  { code: "REST", desc: "Restraints", um: "DAY", price: 40 },
-  { code: "RU2", desc: "Rig Up - Iron - 2 Men", um: "HR", price: 85 },
-  { code: "RU3", desc: "Rig Up - 3 Men", um: "HR", price: 125 },
-  { code: "RU4", desc: "Rig Up - 4 Men", um: "HR", price: 154 },
-  { code: "RURD", desc: "Rig Up/Rig Down", um: "HR", price: 60 },
-  { code: "SCBA", desc: "SCBA / H2S Monitoring", um: "DAY", price: 35 },
-  { code: "SEP125", desc: "Separator - 125 PSI", um: "DAY", price: 125 },
-  { code: "SEP1440", desc: "Separator - 1440 PSI", um: "DAY", price: 140 },
-  { code: "SEP250", desc: "Separator - 250 PSI", um: "DAY", price: 212.5 },
-  { code: "SEP500", desc: "Separator - 500 PSI", um: "DAY", price: 600 },
-  { code: "SEP750", desc: "Separator - 750 PSI", um: "DAY", price: 250 },
-  { code: "SEPSTBY", desc: "Separator Standby Time", um: "DAY", price: 150 },
-  { code: "SS10KDAY", desc: "Sand Separator 10k", um: "DAY", price: 800 },
-  { code: "SS10KDAYMANPKG", desc: "Sand Sep 10K Daily Pkg (w/ Manifold)", um: "DAY", price: 575 },
-  { code: "SS10KMOPKG", desc: "Sand Sep 10K Monthly Pkg (No Manifold)", um: "DAY", price: 375 },
-  { code: "SS5K", desc: "Sand Separator 5K", um: "DAY", price: 600 },
-  { code: "SS5KDAYPKG", desc: "Sand Sep 5K Daily Pkg", um: "DAY", price: 800 },
-  { code: "SS5KMOPKG", desc: "Sand Sep 5K Monthly Pkg", um: "DAY", price: 275 },
-  { code: "ST5k", desc: "Sand Trap 5k", um: "DAY", price: 510 },
-  { code: "SP10", desc: "Stack Pack: 10K", um: "DAY", price: 400 },
-  { code: "SP15", desc: "Stack Pack: 15K", um: "DAY", price: 500 },
-  { code: "SP6K", desc: "Stack Pack - 6k", um: "DAY", price: 400 },
-  { code: "Standby", desc: "Standby for Crew", um: "HR", price: 125 },
-  { code: "TRVLTR", desc: "Travel Trailer", um: "DAY", price: 100 },
-  { code: "TT", desc: "Tool Truck", um: "HR", price: 45 },
-  { code: "TWS", desc: "Truck Fee", um: "HR", price: 19 },
-  { code: "XH", desc: "Extra Hand", um: "HR", price: 60 },
-  { code: "WW", desc: "Well Watch", um: "DAY", price: 70 },
-  { code: "MWS", desc: "Mileage - Water Specialist", um: "MILE", price: 1.5 },
-  { code: "SITEVISIT", desc: "Site Visit to Evaluate Equipment", um: "HR", price: 45 },
-];
-
-// ─── CUSTOMER LIST (from FT__Customer_List_260310.xlsx) ──────────────────────
-const CUSTOMERS = [
-  { name: "4-Star Tank Rental", contact: "Jake Ethridge", phone: "432-208-3583", email: "4startankrental@att.net", city: "Kermit", state: "TX", zip: "79745", address: "PO Box 471" },
-  { name: "9 Band/Atlas", contact: null, phone: null, email: "ap@atlasoperating.com", city: null, state: null, zip: null, address: null },
-  { name: "Blackbeard Operating", contact: "Michael Randle", phone: "806-420-9070", email: "ap@blackbeardoperating.com", city: "Midland", state: "TX", zip: "79701", address: "200 N Loraine, Ste 300" },
-  { name: "Blue Sky Services", contact: null, phone: null, email: null, city: "Odessa", state: "TX", zip: "79768", address: "P.O. Box 13742" },
-  { name: "Certarus", contact: null, phone: null, email: "ap@certarus.com", city: null, state: null, zip: null, address: null },
-  { name: "Chevron - Pyote 0064", contact: "James McClain", phone: null, email: null, city: null, state: null, zip: null, address: "UWTN 0064" },
-  { name: "Chevron - Reeves 9411", contact: null, phone: null, email: null, city: null, state: null, zip: "9411", address: null },
-  { name: "Chevron - WT Pump/Transfer NM Eddy 0064", contact: null, phone: null, email: null, city: "UWTN", state: null, zip: "0064", address: null },
-  { name: "Chevron - WT Pump/Transfer NM Lea 0064", contact: null, phone: null, email: null, city: "NM Lea", state: null, zip: "0064", address: null },
-  { name: "Chevron - WT Pump/Transfer TX 0064", contact: null, phone: null, email: null, city: "UWTN", state: null, zip: "0064", address: null },
-  { name: "CHEVRON 0064", contact: null, phone: null, email: "accounts@flo-test.com", city: "MCBU", state: null, zip: "0064", address: null },
-  { name: "CHEVRON 9201", contact: null, phone: null, email: null, city: "UPMC", state: null, zip: "9201", address: null },
-  { name: "CHEVRON 9446", contact: null, phone: null, email: null, city: null, state: null, zip: "9446", address: null },
-  { name: "CHEVRON 9542", contact: null, phone: null, email: null, city: null, state: null, zip: "9542", address: null },
-  { name: "Circle S Energy", contact: "Justin Meyer", phone: null, email: "jmeyer@circlesenergy.com", city: null, state: null, zip: null, address: null },
-  { name: "Four Corners Petroleum", contact: "Greg Foster", phone: null, email: "accounts@flotest.com", city: null, state: null, zip: null, address: null },
-  { name: "MANZANO LLC (Not Taxed)", contact: "Tom Becker", phone: null, email: "vicki@manzanoenergy.com", city: "Roswell", state: "NM", zip: "88202-2107", address: "PO Box 2107" },
-  { name: "MANZANO LLC (Taxed)", contact: "Tom Becker", phone: "575-623-1996", email: "vicki@manzanoenergy.com", city: "Roswell", state: "NM", zip: "88202-1737", address: "PO Box 1737" },
-  { name: "Moonlite Oil and Gas Co", contact: "Mason Wilkinson", phone: "432-257-9708", email: "masonmjw2017@gmail.com", city: "Imperial", state: "TX", zip: "79743", address: "PO Box 353" },
-  { name: "Sundown Energy / Eland Energy", contact: "James", phone: null, email: "ElandAP@elandenergy.com", city: "Dallas", state: "TX", zip: "75248", address: "16400 Dallas Parkway, Suite 100" },
-  { name: "UTOCO LTD.", contact: "Doyle Snow", phone: "432-631-5447", email: "natalie@doylesnow.com", city: null, state: null, zip: null, address: null },
-];
+// ─── TICKET CONFIG ────────────────────────────────────────────────────────────
 const TICKET_TYPES = {
   "Rig Up":   { color: "#B01020", bg: "#fdecea", label: "RIG UP",   abbr: "RU" },
   "Rig Down": { color: "#1a2340", bg: "#e8eaf0", label: "RIG DOWN", abbr: "RD" },
@@ -894,57 +668,6 @@ const TICKET_STATUSES = {
   sentToQB:   { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO ACCOUNTING" },
   qbVerified: { color: "#1a7a3c", bg: "#d4edda", label: "QB VERIFIED" },
 };
-
-// ─── INITIAL TICKETS (mock — tied to jobs) ───────────────────────────────────
-const INITIAL_TICKETS = [
-  { id: 1, jobId: 300001, type: "Rig Up", status: "signed", date: "2026-03-01", signedBy: "Josh Trevino", signedAt: "2026-03-01",
-    lineItems: [
-      { qbCode: "RU3", desc: "Rig Up - 3 Men", rate: 125, qty: 6, um: "HR" },
-      { qbCode: "FLHP200", desc: '2" Flowline HP < 200\'', rate: 150, qty: 3, um: "DAY" },
-      { qbCode: "MAN5V", desc: "Manifold - 5V Wrap Around", rate: 210, qty: 3, um: "DAY" },
-      { qbCode: "SS10KDAYMANPKG", desc: "Sand Sep 10K Daily Pkg", rate: 575, qty: 1, um: "DAY" },
-      { qbCode: "FS>20", desc: "Flare Stack >20'", rate: 125, qty: 3, um: "DAY" },
-      { qbCode: "MITRKTRL", desc: "Mileage - Truck & Trailer", rate: 2, qty: 180, um: "MILE" },
-    ],
-    notes: "3 wells, full package. Day 1 rental included." },
-  { id: 2, jobId: 300001, type: "Tester", status: "inField", date: "2026-03-01", signedBy: null, signedAt: null,
-    lineItems: [
-      { qbCode: "FT2", desc: "Flo Test - 2 Man", rate: 120, qty: 184, um: "HR" },
-      { qbCode: "LT", desc: "Light Tower", rate: 45, qty: 10, um: "DAY" },
-      { qbCode: "DIESEL", desc: "Diesel", rate: 5, qty: 120, um: "GAL" },
-      { qbCode: "TRVLTR", desc: "Travel Trailer", rate: 100, qty: 10, um: "DAY" },
-    ],
-    notes: "Ongoing — logging daily." },
-  { id: 3, jobId: 300002, type: "Rig Up", status: "incomplete", date: "2026-03-05", signedBy: null, signedAt: null,
-    lineItems: [
-      { qbCode: "RU2", desc: "Rig Up - 2 Men", rate: 85, qty: 4, um: "HR" },
-      { qbCode: "FLLP200", desc: '2" Flowline LP < 200\'', rate: 100, qty: 1, um: "DAY" },
-      { qbCode: "CHKADJ", desc: "Adjustable Choke", rate: 40, qty: 1, um: "DAY" },
-    ],
-    notes: "" },
-  { id: 4, jobId: 300000, type: "Rig Up", status: "signed", date: "2026-02-10", signedBy: "Eli Springer", signedAt: "2026-02-10",
-    lineItems: [
-      { qbCode: "RU4", desc: "Rig Up - 4 Men", rate: 154, qty: 8, um: "HR" },
-      { qbCode: "FLHP200", desc: '2" Flowline HP < 200\'', rate: 150, qty: 30, um: "DAY" },
-      { qbCode: "MAN5V", desc: "Manifold - 5V", rate: 210, qty: 30, um: "DAY" },
-      { qbCode: "FS>20", desc: "Flare Stack >20'", rate: 125, qty: 30, um: "DAY" },
-      { qbCode: "SS10KDAYMANPKG", desc: "Sand Sep 10K Pkg", rate: 575, qty: 30, um: "DAY" },
-    ],
-    notes: "4 wells, 30-day job." },
-  { id: 5, jobId: 300000, type: "Tester", status: "signed", date: "2026-02-10", signedBy: "Eli Springer", signedAt: "2026-03-08",
-    lineItems: [
-      { qbCode: "FT2", desc: "Flo Test - 2 Man", rate: 120, qty: 312, um: "HR" },
-      { qbCode: "LT", desc: "Light Tower", rate: 45, qty: 30, um: "DAY" },
-      { qbCode: "DIESEL", desc: "Diesel", rate: 5, qty: 400, um: "GAL" },
-    ],
-    notes: "" },
-  { id: 6, jobId: 300000, type: "Rig Down", status: "signed", date: "2026-03-08", signedBy: "Eli Springer", signedAt: "2026-03-08",
-    lineItems: [
-      { qbCode: "RD4", desc: "Rig Down - 4 Men", rate: 145, qty: 6, um: "HR" },
-      { qbCode: "MITRKTRL", desc: "Mileage - Truck & Trailer", rate: 2, qty: 180, um: "MILE" },
-    ],
-    notes: "All iron accounted for. No DLR.", missingPieces: false },
-];
 
 const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local time
 const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
@@ -1652,7 +1375,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           <div style={{ fontSize: 11, color: C.muted }}>{job.wells[0]?.well_name || job.wells[0]}{job.wells.length > 1 ? ` +${job.wells.length - 1}` : ""}</div>
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>DATE STARTED</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>SCHEDULED DATE</div>
           <div style={{ fontSize: 13, color: C.text }}>{formatDate(job.dateStarted)}</div>
           <div style={{ fontSize: 11, color: C.muted }}>{job.hoursLogged}h logged</div>
         </div>
@@ -3773,7 +3496,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           const TYPES = ["Rig Up", "Tester", "Pumper", "Rental", "Rig Down"];
           const DupModal = () => {
             const [dupType, setDupType] = useState(ticket.type);
-            const [dupDate, setDupDate] = useState(new Date().toISOString().slice(0, 10));
+            const [dupDate, setDupDate] = useState(today());
             const [dupJobId, setDupJobId] = useState(ticket.jobId);
             const [incLineItems, setIncLineItems] = useState(true);
             const [incNotes, setIncNotes] = useState(false);
@@ -3971,7 +3694,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
     if (!startDate || !cycleDays) return "";
     const d = new Date(startDate + "T00:00:00");
     d.setDate(d.getDate() + (cycleDays - 1));
-    return d.toISOString().slice(0, 10);
+    return d.toLocaleDateString("en-CA");
   }, [startDate, cycleDays]);
 
   const isDirty = type || lineItems.length > 0 || notes;
@@ -4681,7 +4404,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               const r = await fetch(`${API_URL}/tickets/${t.id}/duplicate`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  new_date: opts.new_date || (t.date ? t.date.slice(0, 10) : new Date().toISOString().slice(0, 10)),
+                  new_date: opts.new_date || (t.date ? t.date.slice(0, 10) : today()),
                   new_job_id: opts.new_job_id || undefined,
                   new_type: opts.new_type || undefined,
                   assigned_wells: opts.assigned_wells ?? t.assignedWells,
@@ -7587,7 +7310,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.61</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.62</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
