@@ -946,7 +946,7 @@ const INITIAL_TICKETS = [
     notes: "All iron accounted for. No DLR.", missingPieces: false },
 ];
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local time
 const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
 const mapTicketFromApi = (t) => ({
   id: t.id, jobId: t.job_id, type: t.type, status: t.status, date: t.date,
@@ -1525,10 +1525,13 @@ function TicketDot({ label, state }) {
 function computeJobStatus(job, jobTickets = []) {
   // If manually set to Completed, keep it
   if (job.status === "Completed") return "Completed";
-  // If all tickets are sentToQB — eligible for closeout but not auto-completed
-  const schedDate = (job.schedDate || job.sched_date || job.dateStarted || job.date_started || "").slice(0, 10);
-  const today = new Date().toISOString().slice(0, 10);
-  if (schedDate && schedDate <= today) return "In Progress";
+  // In Progress = at least one ticket with a date of today or earlier
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
+  const hasCurrentTicket = jobTickets.some(t => {
+    const td = (t.date || t.ticket_date || "").slice(0, 10);
+    return td && td <= today;
+  });
+  if (hasCurrentTicket) return "In Progress";
   return "Scheduled";
 }
 
@@ -7584,7 +7587,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.60</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.61</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
