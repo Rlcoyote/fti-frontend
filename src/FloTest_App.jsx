@@ -1544,11 +1544,11 @@ function StatusBadge({ status }) {
 }
 
 // ─── PIPELINE SUMMARY ─────────────────────────────────────────────────────────
-function PipelineSummary({ jobs }) {
+function PipelineSummary({ jobs, tickets }) {
   return (
     <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
       {STATUS_ORDER.map(status => {
-        const count = jobs.filter(j => j.status === status).length;
+        const count = jobs.filter(j => computeJobStatus(j, (tickets || []).filter(t => t.jobId === j.id)) === status).length;
         const cfg = STATUS_CONFIG[status];
         return (
           <div key={status} style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -7322,8 +7322,9 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   const activeJobs = jobs.filter(j => j.status !== "Deleted");
   const deletedJobs = jobs.filter(j => j.status === "Deleted");
-  const filteredJobs = filterStatus === "All" ? activeJobs : activeJobs.filter(j => j.status === filterStatus);
-  const sortedJobs = [...filteredJobs].sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
+  const jobWithComputedStatus = activeJobs.map(j => ({ ...j, _computedStatus: computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) }));
+  const filteredJobs = filterStatus === "All" ? jobWithComputedStatus : jobWithComputedStatus.filter(j => j._computedStatus === filterStatus);
+  const sortedJobs = [...filteredJobs].sort((a, b) => STATUS_ORDER.indexOf(a._computedStatus) - STATUS_ORDER.indexOf(b._computedStatus));
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
@@ -7561,12 +7562,12 @@ function FTIDashboard({ currentUser, onLogout }) {
       )}
 
       {page === "dashboard" && (
-        <div className="fti-dashboard-pad" style={{ padding: "24px 28px" }}>
+        <div className="fti-dashboard-pad" style={{ padding: "32px 28px" }}>
           <div className="fti-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
             <div>
               <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Jobs</h1>
               <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                {activeJobs.length} total · {activeJobs.filter(j => j.status === "Active").length} active · Updated just now
+                {activeJobs.length} total · {activeJobs.filter(j => computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) === "In Progress").length} active · Updated just now
               </div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
@@ -7577,19 +7578,27 @@ function FTIDashboard({ currentUser, onLogout }) {
             </div>
           </div>
 
-          <PipelineSummary jobs={jobs} />
+          <PipelineSummary jobs={jobs} tickets={tickets} />
 
-          <div className="fti-filter-row" style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4 }}>FILTER:</span>
-            {["All", ...STATUS_ORDER].map(s => (
-              <button key={s} onClick={() => setFilterStatus(s)} style={{
-                background: filterStatus === s ? (s === "All" ? C.blue : STATUS_CONFIG[s]?.bg) : "transparent",
-                border: `1px solid ${filterStatus === s ? (s === "All" ? C.blue : STATUS_CONFIG[s]?.color) : C.border}`,
-                color: filterStatus === s ? (s === "All" ? C.white : STATUS_CONFIG[s]?.color) : C.muted,
-                padding: "5px 12px", borderRadius: 4, fontSize: 11,
-                fontWeight: 700, cursor: "pointer", fontFamily: "'Arial', sans-serif",
-              }}>{s === "All" ? "ALL" : STATUS_CONFIG[s].label}</button>
-            ))}
+          <div className="fti-filter-row" style={{ display: "flex", gap: 0, marginBottom: 16, alignItems: "center", borderBottom: `1px solid ${C.border}` }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 10 }}>FILTER:</span>
+            {["All", ...STATUS_ORDER].map(s => {
+              const active = filterStatus === s;
+              const cfg = s === "All" ? null : STATUS_CONFIG[s];
+              return (
+                <button key={s} onClick={() => setFilterStatus(s)} style={{
+                  background: active ? C.cardBg : "transparent",
+                  border: active ? `1px solid ${C.border}` : "1px solid transparent",
+                  borderBottom: active ? `1px solid ${C.cardBg}` : "1px solid transparent",
+                  borderTopLeftRadius: 4, borderTopRightRadius: 4,
+                  borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+                  marginBottom: active ? -1 : 0,
+                  color: active ? (s === "All" ? C.blue : cfg?.color) : C.muted,
+                  padding: "8px 14px", fontSize: 11,
+                  fontWeight: 700, cursor: "pointer", fontFamily: "'Arial', sans-serif",
+                }}>{s === "All" ? "ALL" : cfg.label}</button>
+              );
+            })}
           </div>
 
           {sortedJobs.map(job => (
