@@ -1574,8 +1574,8 @@ function EditJobModal({ job, onSave, onClose }) {
   const [afe, setAfe] = useState(job.afe || "");
   const [contactFirst, setContactFirst] = useState(job.contactFirst || job.contact_first || "");
   const [contactLast, setContactLast] = useState(job.contactLast || job.contact_last || "");
-  const [wsmPhone, setWsmPhone] = useState(job.wsmPhone || job.wsm_phone || "");
-  const [wsmEmail, setWsmEmail] = useState(job.wsmEmail || job.wsm_email || "");
+  const [pocPhone, setPocPhone] = useState(job.pocPhone || job.poc_phone || "");
+  const [pocEmail, setPocEmail] = useState(job.pocEmail || job.poc_email || "");
   const [approver, setApprover] = useState(job.approver || job.approver_first || "");
   const [approverLast, setApproverLast] = useState(job.approverLast || job.approver_last || "");
   const [approverPhone, setApproverPhone] = useState(job.approverPhone || job.approver_phone || "");
@@ -1598,7 +1598,7 @@ function EditJobModal({ job, onSave, onClose }) {
     wells: (!job.wells || job.wells.length === 0) ? [""] : job.wells.map(w => w.well_name || w),
     afe: job.afe || "", contactFirst: job.contactFirst || job.contact_first || "",
     contactLast: job.contactLast || job.contact_last || "",
-    wsmPhone: job.wsmPhone || job.wsm_phone || "", wsmEmail: job.wsmEmail || job.wsm_email || "",
+    pocPhone: job.pocPhone || job.poc_phone || "", pocEmail: job.pocEmail || job.poc_email || "",
     approver: job.approver || job.approver_first || "", approverLast: job.approverLast || job.approver_last || "",
     approverPhone: job.approverPhone || job.approver_phone || "", approverEmail: job.approverEmail || job.approver_email || "",
     companyCode: job.companyCode || job.company_code || "", costCenter: job.costCenter || job.cost_center || "",
@@ -1610,7 +1610,7 @@ function EditJobModal({ job, onSave, onClose }) {
     return customer !== o.customer || jobState !== o.jobState || county !== o.county ||
       JSON.stringify(wellList) !== JSON.stringify(o.wells) || afe !== o.afe ||
       contactFirst !== o.contactFirst || contactLast !== o.contactLast ||
-      wsmPhone !== o.wsmPhone || wsmEmail !== o.wsmEmail ||
+      pocPhone !== o.pocPhone || pocEmail !== o.pocEmail ||
       approver !== o.approver || approverLast !== o.approverLast ||
       approverPhone !== o.approverPhone || approverEmail !== o.approverEmail ||
       companyCode !== o.companyCode || costCenter !== o.costCenter || po !== o.po ||
@@ -1709,8 +1709,8 @@ function EditJobModal({ job, onSave, onClose }) {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
         <div><label style={labelStyle}>FIRST</label><input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} /></div>
         <div><label style={labelStyle}>LAST</label><input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} /></div>
-        <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={wsmPhone} onChange={e => setWsmPhone(formatPhone(e.target.value))} placeholder="555-555-5555" /></div>
-        <div><label style={labelStyle}>EMAIL</label><input style={inputStyle} value={wsmEmail} onChange={e => setWsmEmail(e.target.value)} placeholder="email@co.com" /></div>
+        <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={pocPhone} onChange={e => setPocPhone(formatPhone(e.target.value))} placeholder="555-555-5555" /></div>
+        <div><label style={labelStyle}>EMAIL</label><input style={inputStyle} value={pocEmail} onChange={e => setPocEmail(e.target.value)} placeholder="email@co.com" /></div>
       </div>
 
       {/* Approver */}
@@ -1808,7 +1808,7 @@ function EditJobModal({ job, onSave, onClose }) {
             wells: cleanWells.length > 0 ? cleanWells.map(w => ({ well_name: w })) : [{ well_name: "TBD" }],
             afe: afe || null,
             contact_first: contactFirst, contact_last: contactLast,
-            wsm_phone: wsmPhone, wsm_email: wsmEmail,
+            poc_phone: pocPhone, poc_email: pocEmail,
             approver: approver, approver_last: approverLast,
             approver_phone: approverPhone, approver_email: approverEmail,
             company_code: companyCode, cost_center: costCenter, po_number: po,
@@ -2477,8 +2477,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
     const job = jobs?.find(j => j.id === ticket.jobId);
-    const wsm = job?.wsmEmail || job?.wsm_email || "";
-    return wsm ? [wsm] : [""];
+    const pocAddr = job?.pocEmail || job?.poc_email || "";
+    return pocAddr ? [pocAddr] : [""];
   });
   const [emailCc, setEmailCc] = useState(() => ticket.emailCc || "");
   const [signedBy, setSignedBy] = useState(() => ticket.signedBy || null);
@@ -4175,7 +4175,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         const tcfg = TICKET_TYPES[t.type];
         const total = calcTicketTotal(t);
         const job = jobs.find(j => j.id === jobId);
-        const custEmail = job?.wsmEmail || job?.wsm_email || null;
+        const custEmail = job?.pocEmail || job?.poc_email || null;
         const isSigned = ["signed", "sigNotReq", "emailed", "approved", "sentToQB", "qbVerified"].includes(t.status);
         const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";
         const isEmailed = !!t.emailedAt;
@@ -6955,8 +6955,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           notes: j.notes,
           contactFirst: j.contact_first || "",
           contactLast: j.contact_last || "",
-          wsmPhone: j.wsm_phone || "",
-          wsmEmail: j.wsm_email || "",
+          pocPhone: j.poc_phone || "",
+          pocEmail: j.poc_email || "",
           approver: j.approver_first || "",
           approverLast: j.approver_last || "",
           approverPhone: j.approver_phone || "",
@@ -7063,8 +7063,8 @@ function FTIDashboard({ currentUser, onLogout }) {
       afe: newJob.afe || null,
       contact_first: newJob.contactFirst || null,
       contact_last: newJob.contactLast || null,
-      wsm_phone: newJob.phone || null,
-      wsm_email: newJob.email || null,
+      poc_phone: newJob.phone || null,
+      poc_email: newJob.email || null,
       approver: newJob.approver || null,
       approver_last: newJob.approverLast || null,
       approver_phone: newJob.approverPhone || null,
@@ -7092,9 +7092,9 @@ function FTIDashboard({ currentUser, onLogout }) {
         const mappedJob = {
           ...newJob,
           id: saved.id,
-          wsmEmail: newJob.email || "",
-          wsm_email: newJob.email || "",
-          wsmPhone: newJob.phone || "",
+          pocEmail: newJob.email || "",
+          poc_email: newJob.email || "",
+          pocPhone: newJob.phone || "",
           approverEmail: newJob.approverEmail || "",
           approverPhone: newJob.approverPhone || "",
           customer_name: cust?.name || newJob.customer,
@@ -7310,7 +7310,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.62</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.63</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -7466,8 +7466,8 @@ function FTIDashboard({ currentUser, onLogout }) {
                     afe: updates.afe,
                     contact_first: updates.contact_first,
                     contact_last: updates.contact_last,
-                    wsm_phone: updates.wsm_phone,
-                    wsm_email: updates.wsm_email,
+                    poc_phone: updates.poc_phone,
+                    poc_email: updates.poc_email,
                     approver: updates.approver,
                     approver_last: updates.approver_last,
                     approver_phone: updates.approver_phone,
