@@ -4516,6 +4516,18 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       end_date: ticketData.endDate || null,
       cycle_days: ticketData.cycleDays || 28,
       is_recurring: ticketData.isRecurring || false,
+      lv_yard: ticketData.lvYard || null,
+      arrival_time: ticketData.arrivalTime || null,
+      due_on_loc: ticketData.dueOnLoc || null,
+      job_start_time: ticketData.jobStartTime || null,
+      job_end_time: ticketData.jobEndTime || null,
+      ret_yard: ticketData.retYard || null,
+      time_zone: ticketData.timeZone || null,
+      mileage_begin: ticketData.mileageBegin !== undefined ? ticketData.mileageBegin : null,
+      mileage_end: ticketData.mileageEnd !== undefined ? ticketData.mileageEnd : null,
+      google_pin: ticketData.googlePin || null,
+      pin_lat: ticketData.pinLat || null,
+      pin_lng: ticketData.pinLng || null,
       lineItems: (ticketData.lineItems || []).map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
       })),
@@ -7272,7 +7284,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.66</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.67</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
