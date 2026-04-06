@@ -1942,17 +1942,18 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
       <div style={{
         background: C.cardBg, border: `1px solid ${C.border}`,
         borderTop: `3px solid ${C.red}`, borderRadius: 8,
-        padding: 28, width: 640, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
+        padding: 28, width: 640, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto",
+        margin: "20px 0",
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>MASTER JOB CARD</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW JOB CARD</div>
 
         {/* Scheduled Date + Salesman — TOP */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
             <label style={labelStyle}>SCHEDULED DATE</label>
             <input type="date" style={inputStyle} value={schedDate} onChange={e => setSchedDate(e.target.value)} />
           </div>
-          <div>
+          <div style={{ flex: 1, minWidth: 180 }}>
             <label style={labelStyle}>SALESMAN *</label>
             <select style={{ ...inputStyle, borderColor: errors.salesman ? C.red : C.border }} value={salesman} onChange={e => { setSalesman(e.target.value); setErrors(prev => ({...prev, salesman: null})); }}>
               <option value="">— Select —</option>
@@ -2218,7 +2219,7 @@ function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
         {/* Scheduling */}
 
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <Btn onClick={validateAndCreate}>CREATE MASTER JOB CARD</Btn>
+          <Btn onClick={validateAndCreate}>CREATE JOB CARD</Btn>
           <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
         </div>
 
@@ -7271,7 +7272,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.65</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.66</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
