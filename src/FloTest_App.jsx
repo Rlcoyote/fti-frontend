@@ -5463,6 +5463,9 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
   const [dateFrom, setDateFrom] = useState(monthStart);
   const [dateTo, setDateTo] = useState("");
   const [tab, setTab] = useState("revenue");
+  const [winW, setWinW] = useState(window.innerWidth);
+  React.useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  const rptGrid = winW < 700 ? "1fr" : "1fr 1fr";
 
   const isSalesman = currentUser?.role === "salesman";
 
@@ -5574,7 +5577,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
     const avgTicket = filteredTickets.length > 0 ? totalRevenue / filteredTickets.length : 0;
 
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         {/* Summary Cards */}
         <div style={{ ...cardStyle, gridColumn: "1 / -1", display: "flex", gap: 32, flexWrap: "wrap" }}>
           <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>TOTAL REVENUE</div><div style={{ fontSize: 24, fontWeight: 800, color: C.green }}>{fmtMoney(totalRevenue)}</div></div>
@@ -5587,7 +5590,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
         <div style={cardStyle}>
           <div style={headerStyle}>BY CUSTOMER</div>
           {revCustSorted.map(([c, r]) => (
-            <div key={c} style={rowStyle}><span style={{ fontWeight: 600, color: C.text }}>{c}</span><span style={{ fontWeight: 800, color: C.green }}>{fmtMoney(r)}</span></div>
+            <div key={c} style={rowStyle}><span style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1, marginRight: 8 }}>{c}</span><span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(r)}</span></div>
           ))}
           {revCustSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No data</div>}
         </div>
@@ -5596,7 +5599,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
         <div style={cardStyle}>
           <div style={headerStyle}>BY SALESMAN</div>
           {revSmSorted.map(([s, r]) => (
-            <div key={s} style={rowStyle}><span style={{ fontWeight: 600, color: C.text }}>{s}</span><span style={{ fontWeight: 800, color: C.green }}>{fmtMoney(r)}</span></div>
+            <div key={s} style={rowStyle}><span style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1, marginRight: 8 }}>{s}</span><span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(r)}</span></div>
           ))}
           {revSmSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No data</div>}
         </div>
@@ -5605,7 +5608,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
         <div style={cardStyle}>
           <div style={headerStyle}>BY STATE / COUNTY</div>
           {revRegionSorted.map(([r, v]) => (
-            <div key={r} style={rowStyle}><span style={{ fontWeight: 600, color: C.text }}>{r}</span><span style={{ fontWeight: 800, color: C.green }}>{fmtMoney(v)}</span></div>
+            <div key={r} style={rowStyle}><span style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1, marginRight: 8 }}>{r}</span><span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(v)}</span></div>
           ))}
           {revRegionSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No data</div>}
         </div>
@@ -5667,7 +5670,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
     }).sort((a, b) => b.age - a.age);
 
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         {/* Jobs by Status */}
         <div style={cardStyle}>
           <div style={headerStyle}>JOBS BY STATUS</div>
@@ -5844,12 +5847,12 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
     });
 
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         {/* On-Time Arrival */}
         <div style={cardStyle}>
           <div style={headerStyle}>ON-TIME ARRIVAL</div>
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Arrival vs Due On Location. Within 15 min = on time.</div>
-          <div style={{ display: "flex", gap: 24, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
             <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>ON TIME</div><div style={{ fontSize: 28, fontWeight: 800, color: parseFloat(onTimePct) >= 90 ? C.green : parseFloat(onTimePct) >= 70 ? "#b85c00" : C.red }}>{onTimePct}%</div></div>
             <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>EARLY/ON TIME</div><div style={{ fontSize: 20, fontWeight: 800, color: C.green }}>{earlyCount + onTimeCount}</div></div>
             <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>LATE</div><div style={{ fontSize: 20, fontWeight: 800, color: C.red }}>{lateCount}</div></div>
@@ -5899,7 +5902,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
     const lowStock = inventory.filter(i => i.inYard < 4 && i.inYard > 0);
 
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         <div style={cardStyle}>
           <div style={headerStyle}>IN FIELD ({totalOut} items out)</div>
           {invOut.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>All inventory in yard</div>}
@@ -5932,9 +5935,9 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
   };
 
   return (
-    <div style={{ padding: "24px 28px" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+    <div style={{ padding: "16px 16px 24px", maxWidth: 1200 }}>
+      {/* Header — stacks on mobile */}
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Reports</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
@@ -5942,14 +5945,14 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
             {isSalesman && <span style={{ color: C.blue, fontWeight: 600, marginLeft: 8 }}>(Filtered to your jobs)</span>}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div>
             <label style={labelStyle}>FROM</label>
-            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            <input type="date" style={{ ...inputStyle, width: 140 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
           </div>
           <div>
             <label style={labelStyle}>TO</label>
-            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            <input type="date" style={{ ...inputStyle, width: 140 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
           </div>
           {(dateFrom || dateTo) && (
             <button onClick={() => { setDateFrom(""); setDateTo(""); }}
@@ -5958,16 +5961,18 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: `2px solid ${C.border}` }}>
-        {tabs.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            style={{
-              background: "transparent", border: "none", borderBottom: tab === t.key ? `3px solid ${C.red}` : "3px solid transparent",
-              padding: "10px 20px", fontSize: 12, fontWeight: 800, letterSpacing: "0.06em",
-              color: tab === t.key ? C.text : C.muted, cursor: "pointer",
-            }}>{t.label}</button>
-        ))}
+      {/* Tabs — horizontally scrollable on mobile */}
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", marginBottom: 20, borderBottom: `2px solid ${C.border}` }}>
+        <div style={{ display: "flex", gap: 0, minWidth: "max-content" }}>
+          {tabs.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              style={{
+                background: "transparent", border: "none", borderBottom: tab === t.key ? `3px solid ${C.red}` : "3px solid transparent",
+                padding: "10px 14px", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em",
+                color: tab === t.key ? C.text : C.muted, cursor: "pointer", whiteSpace: "nowrap",
+              }}>{t.label}</button>
+          ))}
+        </div>
       </div>
 
       {/* Tab Content */}
@@ -7284,7 +7289,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.67</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.68</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
