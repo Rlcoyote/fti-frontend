@@ -6061,7 +6061,6 @@ function FinalReviewPage({ jobs, tickets, setTickets, currentUser, qbItems }) {
 
   return (
     <div style={{ padding: frMobile ? "16px 12px" : "24px 28px" }}>
-      <div style={{ fontSize: 10, color: C.red, marginBottom: 4 }}>DEBUG: winW2={winW2} frMobile={String(frMobile)}</div>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 20 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Final Review</h1>
@@ -7344,7 +7343,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.68</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.69</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
