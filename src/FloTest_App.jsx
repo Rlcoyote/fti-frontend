@@ -6055,37 +6055,6 @@ function FinalReviewPage({ jobs, tickets, setTickets, currentUser, qbItems }) {
 
   const cardStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 };
 
-  return (
-    <div style={{ padding: "24px 28px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Final Review</h1>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-            {visibleTickets.length} ticket{visibleTickets.length !== 1 ? "s" : ""} awaiting final review
-            {isSalesman && <span style={{ color: C.blue, fontWeight: 600, marginLeft: 8 }}>(Your jobs only)</span>}
-          </div>
-        </div>
-        {selected.size > 0 && (
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{selected.size} selected</span>
-            <button onClick={() => {
-              if (selected.size >= 3) setShowBatchConfirm(true);
-              else handleBatchApprove();
-            }} style={{
-              background: C.red, color: C.white, border: "none", borderRadius: 4,
-              padding: "8px 16px", fontSize: 12, fontWeight: 800, cursor: "pointer",
-            }}>APPROVE & SEND TO ACCOUNTING ({selected.size})</button>
-          </div>
-        )}
-      </div>
-
-      {visibleTickets.length === 0 && (
-        <div style={{ ...cardStyle, padding: 40, textAlign: "center" }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: C.muted }}>All caught up</div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>No tickets awaiting review</div>
-        </div>
-      )}
-
   const [winW2, setWinW2] = useState(window.innerWidth);
   useEffect(() => { const h = () => setWinW2(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const frMobile = winW2 < 900;
