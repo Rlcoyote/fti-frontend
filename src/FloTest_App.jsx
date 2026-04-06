@@ -4870,7 +4870,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   method: "POST", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ new_ticket_number: saved.ticket_number, new_ticket_id: saved.id }),
                 });
-              } catch (e) { console.log("Void notify failed:", e); }
+              } catch (e) { console.error("Void notify failed:", e); }
               // Reload all tickets for this job (includes voided + new)
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
               if (tr.ok) {
@@ -7271,7 +7271,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.64</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.65</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
