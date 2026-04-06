@@ -1249,7 +1249,7 @@ function PipelineSummary({ jobs, tickets }) {
 }
 
 // ─── JOB CARD ─────────────────────────────────────────────────────────────────
-function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, jsas, setJsas, userNames, qbItems, userIdByName, currentUser, customers }) {
+function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onTicketDeleted, jsas, setJsas, userNames, qbItems, userIdByName, currentUser, customers }) {
   const jobTickets = tickets.filter(t => t.jobId === job.id);
   const computedStatus = computeJobStatus(job, jobTickets);
   const cfg = STATUS_CONFIG[computedStatus] || STATUS_CONFIG["Scheduled"];
@@ -1477,7 +1477,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
-              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} />
+              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} onTicketDeleted={onTicketDeleted} />
             </div>
           )}
 
@@ -4471,7 +4471,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
 }
 
 // ─── TICKETS TAB (inside JobCard expanded) ────────────────────────────────────
-function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser, customers }) {
+function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser, customers, onTicketDeleted }) {
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
@@ -4584,6 +4584,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
   };
 
   const handleDelete = (id) => {
+    const deleted = tickets.find(t => t.id === id);
+    if (deleted && onTicketDeleted) onTicketDeleted(deleted);
     setTickets(prev => prev.filter(t => t.id !== id));
     setViewTicket(null);
   };
@@ -6468,39 +6470,78 @@ const canModifyUser = (currentUserRole, targetUserRole) => {
   return myRank > theirRank;
 };
 
-function DeletedJobsPage({ deletedJobs, currentUser, handleRestoreJob, handlePermanentDelete }) {
+function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, currentUser, handleRestoreJob, handlePermanentDelete, handleRestoreTicket, handlePermanentDeleteTicket }) {
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const canPermDelete = ["owner", "admin"].includes(currentUser.role);
+  const totalDeleted = deletedJobs.length + deletedTickets.length;
   return (
     <div style={{ padding: "24px 28px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Deleted Jobs</h1>
-        {canPermDelete && deletedJobs.length > 0 && (
-          <Btn onClick={() => setShowDeleteAllConfirm(true)} style={{ background: C.red, color: C.white, border: "none" }}>DELETE ALL</Btn>
-        )}
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Deleted Items</h1>
       </div>
-      <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>{deletedJobs.length} deleted job{deletedJobs.length !== 1 ? "s" : ""}</div>
-      {deletedJobs.length === 0 && (
-        <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>No deleted jobs.</div>
+      {totalDeleted === 0 && (
+        <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>Nothing in the trash.</div>
       )}
-      {deletedJobs.map(job => (
-        <div key={job.id} style={{
-          background: "#fdf0f0", border: `1px solid ${C.red}33`, borderLeft: `3px solid ${C.red}`,
-          borderRadius: 6, padding: "16px 20px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center",
-        }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Job #{job.id}</div>
-            <div style={{ fontSize: 13, color: C.muted }}>{job.customer} — {job.location}</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{job.wells?.map(w => w.well_name || w).join(", ")}</div>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Btn small onClick={() => handleRestoreJob(job.id)} variant="blue">RESTORE</Btn>
-            {canPermDelete && (
-              <Btn small onClick={() => handlePermanentDelete(job.id)}>PERMANENTLY DELETE</Btn>
-            )}
-          </div>
-        </div>
-      ))}
+
+      {/* ── DELETED JOBS ── */}
+      {deletedJobs.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 8, marginTop: 16 }}>DELETED JOBS ({deletedJobs.length})</div>
+          {deletedJobs.map(job => (
+            <div key={job.id} style={{
+              background: "#fdf0f0", border: `1px solid ${C.red}33`, borderLeft: `3px solid ${C.red}`,
+              borderRadius: 6, padding: "16px 20px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10,
+            }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Job #{job.id}</div>
+                <div style={{ fontSize: 13, color: C.muted }}>{job.customer} — {job.location}</div>
+                <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{job.wells?.map(w => w.well_name || w).join(", ")}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn small onClick={() => handleRestoreJob(job.id)} variant="blue">RESTORE</Btn>
+                {canPermDelete && (
+                  <Btn small onClick={() => handlePermanentDelete(job.id)}>PERMANENTLY DELETE</Btn>
+                )}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* ── DELETED TICKETS ── */}
+      {deletedTickets.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.text, marginBottom: 8, marginTop: 24 }}>DELETED TICKETS ({deletedTickets.length})</div>
+          {deletedTickets.map(t => {
+            const job = jobs.find(j => j.id === t.jobId);
+            const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type };
+            return (
+              <div key={t.id} style={{
+                background: "#fdf0f0", border: `1px solid ${C.red}33`, borderLeft: `3px solid ${tcfg.color}`,
+                borderRadius: 6, padding: "16px 20px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10,
+              }}>
+                <div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Ticket #{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tcfg.color }}>{tcfg.label || t.type}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: C.muted }}>{job?.customer || "Unknown"} — {formatDate(t.date)}</div>
+                  {t.lineItems?.length > 0 && (
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{t.lineItems.length} line item{t.lineItems.length !== 1 ? "s" : ""} — ${t.lineItems.reduce((s, li) => s + ((li.rate || 0) * (li.qty || 0) * (li.days || 1)), 0).toFixed(2)}</div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Btn small onClick={() => handleRestoreTicket(t.id)} variant="blue">RESTORE</Btn>
+                  {canPermDelete && (
+                    <Btn small onClick={() => handlePermanentDeleteTicket(t.id)}>PERMANENTLY DELETE</Btn>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
       {showDeleteAllConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowDeleteAllConfirm(false)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
@@ -6997,6 +7038,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   const [todos, setTodos] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [deletedTickets, setDeletedTickets] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [jsas, setJsas] = useState([]);
   const [users, setUsers] = useState([]);
@@ -7007,7 +7049,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const [jobsR, ticketsR, todosR, invR, usersR, custR, qbR] = await Promise.all([
+        const [jobsR, ticketsR, todosR, invR, usersR, custR, qbR, delTicketsR] = await Promise.all([
           fetch(`${API_URL}/jobs`).then(r => r.json()),
           fetch(`${API_URL}/tickets`).then(r => r.json()),
           fetch(`${API_URL}/todos`).then(r => r.json()),
@@ -7015,6 +7057,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           fetch(`${API_URL}/users`).then(r => r.json()),
           fetch(`${API_URL}/customers`).then(r => r.json()),
           fetch(`${API_URL}/qb-items`).then(r => r.json()),
+          fetch(`${API_URL}/tickets?include_deleted=true`).then(r => r.json()),
         ]);
         // Transform jobs from API format to app format
         const jobsMapped = (jobsR || []).map(j => ({
@@ -7095,6 +7138,7 @@ function FTIDashboard({ currentUser, onLogout }) {
 
         setJobs(jobsMapped);
         setTickets(ticketsMapped);
+        setDeletedTickets((delTicketsR || []).map(mapTicketFromApi));
         setTodos(todosMapped);
         setInventory(invMapped);
         setUsers(usersR || []);
@@ -7234,6 +7278,23 @@ function FTIDashboard({ currentUser, onLogout }) {
     } catch (err) { console.error("Permanent delete failed:", err); }
   };
 
+  const handleRestoreTicket = async (ticketId) => {
+    try {
+      await fetch(`${API_URL}/tickets/${ticketId}/restore`, { method: "POST" });
+      const restored = deletedTickets.find(t => t.id === ticketId);
+      setDeletedTickets(prev => prev.filter(t => t.id !== ticketId));
+      if (restored) setTickets(prev => [...prev, restored]);
+    } catch (err) { console.error("Restore ticket failed:", err); }
+  };
+
+  const handlePermanentDeleteTicket = async (ticketId) => {
+    if (!["owner", "admin"].includes(currentUser.role)) return;
+    try {
+      await fetch(`${API_URL}/tickets/${ticketId}/hard`, { method: "DELETE" });
+      setDeletedTickets(prev => prev.filter(t => t.id !== ticketId));
+    } catch (err) { console.error("Permanent delete ticket failed:", err); }
+  };
+
   const handleFlagCancel = async (jobId) => {
     const job = jobs.find(j => j.id === jobId);
     try {
@@ -7340,7 +7401,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.white : "#b0bdd4" }}>
                 {item}
                 {item === "Action Items" && myActiveTodos.length > 0 && <span style={{ marginLeft: 8, background: C.red, color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 800 }}>{myActiveTodos.length}</span>}
-                {item === "Deleted" && deletedJobs.length > 0 && <span style={{ marginLeft: 8, background: "#ffffff33", color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11 }}>{deletedJobs.length}</span>}
+                {item === "Deleted" && (deletedJobs.length + deletedTickets.length) > 0 && <span style={{ marginLeft: 8, background: "#ffffff33", color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11 }}>{deletedJobs.length + deletedTickets.length}</span>}
               </span>
             </div>
           );
@@ -7391,7 +7452,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.70</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.71</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -7410,7 +7471,7 @@ function FTIDashboard({ currentUser, onLogout }) {
                 {item}
                 {item === "Action Items" && <NavBadge count={myActiveTodos.length} />}
                 {item === "Inventory" && totalOut > 0 && <NavBadge count={totalOut} />}
-                {item === "Deleted" && deletedJobs.length > 0 && <NavBadge count={deletedJobs.length} />}
+                {item === "Deleted" && (deletedJobs.length + deletedTickets.length) > 0 && <NavBadge count={deletedJobs.length + deletedTickets.length} />}
               </span>
             );
           })}
@@ -7480,7 +7541,7 @@ function FTIDashboard({ currentUser, onLogout }) {
       )}
 
       {page === "deleted" && ["owner", "admin", "manager"].includes(currentUser.role) && (
-        <DeletedJobsPage deletedJobs={deletedJobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handlePermanentDelete={handlePermanentDelete} />
+        <DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handlePermanentDelete={handlePermanentDelete} handleRestoreTicket={handleRestoreTicket} handlePermanentDeleteTicket={handlePermanentDeleteTicket} />
       )}
 
       {page === "users" && isManager && (
@@ -7584,6 +7645,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               customers={customers}
               onDeleteJob={handleDeleteJob}
               onFlagCancel={handleFlagCancel}
+              onTicketDeleted={(ticket) => setDeletedTickets(prev => [...prev, ticket])}
             />
           ))}
         </div>
