@@ -5464,7 +5464,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
   const [dateTo, setDateTo] = useState("");
   const [tab, setTab] = useState("revenue");
   const [winW, setWinW] = useState(window.innerWidth);
-  React.useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const rptGrid = winW < 700 ? "1fr" : "1fr 1fr";
 
   const isSalesman = currentUser?.role === "salesman";
