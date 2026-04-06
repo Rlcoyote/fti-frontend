@@ -6092,6 +6092,7 @@ function FinalReviewPage({ jobs, tickets, setTickets, currentUser, qbItems }) {
 
   return (
     <div style={{ padding: frMobile ? "16px 12px" : "24px 28px" }}>
+      <div style={{ fontSize: 10, color: C.red, marginBottom: 4 }}>DEBUG: winW2={winW2} frMobile={String(frMobile)}</div>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 20 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Final Review</h1>
