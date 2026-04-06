@@ -5465,7 +5465,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
   const [tab, setTab] = useState("revenue");
   const [winW, setWinW] = useState(window.innerWidth);
   useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
-  const rptGrid = winW < 700 ? "1fr" : "1fr 1fr";
+  const rptGrid = winW < 900 ? "1fr" : "1fr 1fr";
 
   const isSalesman = currentUser?.role === "salesman";
 
@@ -6088,7 +6088,7 @@ function FinalReviewPage({ jobs, tickets, setTickets, currentUser, qbItems }) {
 
   const [winW2, setWinW2] = useState(window.innerWidth);
   useEffect(() => { const h = () => setWinW2(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
-  const frMobile = winW2 < 700;
+  const frMobile = winW2 < 900;
 
   return (
     <div style={{ padding: frMobile ? "16px 12px" : "24px 28px" }}>
