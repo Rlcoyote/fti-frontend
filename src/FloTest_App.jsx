@@ -3248,7 +3248,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     const checkSignatureStatus = () => {
       // Only poll if ticket is emailed and unsigned
       if (status !== "emailed" || signedBy) return;
-      fetch(`${API_URL}/tickets?job_id=${ticket.jobId}`)
+      fetch(`${API_URL}/tickets?job_id=${ticket.jobId}&include_voided=true`)
         .then(r => r.ok ? r.json() : [])
         .then(data => {
           const updated = data.find(t => t.id === ticket.id);
@@ -5147,7 +5147,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
               if (!r.ok) { const d = await r.json(); alert(d.error || "Duplicate failed"); return; }
               const saved = await r.json();
               // Reload tickets for the target job
-              const tr = await fetch(`${API_URL}/tickets?job_id=${targetJobId}`);
+              const tr = await fetch(`${API_URL}/tickets?job_id=${targetJobId}&include_voided=true`);
               if (tr.ok) {
                 const data = await tr.json();
                 const mapped = data.map(mapTicketFromApi);
@@ -7517,7 +7517,7 @@ function FTIDashboard({ currentUser, onLogout }) {
       try {
         const [jobsR, ticketsR, todosR, invR, usersR, custR, qbR, delTicketsR] = await Promise.all([
           fetch(`${API_URL}/jobs`).then(r => r.json()),
-          fetch(`${API_URL}/tickets`).then(r => r.json()),
+          fetch(`${API_URL}/tickets?include_voided=true`).then(r => r.json()),
           fetch(`${API_URL}/todos`).then(r => r.json()),
           fetch(`${API_URL}/inventory`).then(r => r.json()),
           fetch(`${API_URL}/users`).then(r => r.json()),
@@ -7918,7 +7918,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.79</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.80</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
