@@ -621,6 +621,7 @@ const TICKET_TYPES = {
 
 const TICKET_STATUSES = {
   incomplete: { color: "#6b7a99", bg: "#f0f3f8", label: "INCOMPLETE" },
+  draft:      { color: "#6b7a99", bg: "#f0f3f8", label: "DRAFT" },
   inField:    { color: "#8a6500", bg: "#fdf5d8", label: "IN FIELD" },
   emailed:    { color: "#7a3ca0", bg: "#f3eafa", label: "EMAIL FOR SIGNATURE" },
   signed:     { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
@@ -628,6 +629,7 @@ const TICKET_STATUSES = {
   approved:   { color: "#b85c00", bg: "#fdf0e6", label: "APPROVED" },
   sentToQB:   { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO ACCOUNTING" },
   qbVerified: { color: "#1a7a3c", bg: "#d4edda", label: "QB VERIFIED" },
+  voided:     { color: "#B01020", bg: "#fdecea", label: "VOIDED" },
 };
 
 const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local time
@@ -1450,7 +1452,7 @@ function PipelineSummary({ jobs, tickets }) {
     <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
       {STATUS_ORDER.map(status => {
         const count = jobs.filter(j => computeJobStatus(j, (tickets || []).filter(t => t.jobId === j.id)) === status).length;
-        const cfg = STATUS_CONFIG[status];
+        const cfg = STATUS_CONFIG[status] || { color: C.muted, label: status };
         return (
           <div key={status} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ fontSize: 18, fontWeight: 800, color: cfg.color }}>{count}</span>
@@ -2834,7 +2836,7 @@ function FlowbackModal({ job, onClose }) {
 
 // ─── TICKET BADGE ─────────────────────────────────────────────────────────────
 function TicketTypeBadge({ type }) {
-  const cfg = TICKET_TYPES[type];
+  const cfg = TICKET_TYPES[type] || { color: C.muted, bg: C.steel, label: type || "—" };
   return (
     <span style={{
       display: "inline-block", padding: "3px 10px", borderRadius: 3,
@@ -2845,7 +2847,7 @@ function TicketTypeBadge({ type }) {
 }
 
 function TicketStatusBadge({ status }) {
-  const cfg = TICKET_STATUSES[status];
+  const cfg = TICKET_STATUSES[status] || { color: C.muted, bg: C.steel, label: status || "—" };
   return (
     <span style={{
       display: "inline-block", padding: "2px 8px", borderRadius: 3,
@@ -5979,7 +5981,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
         <div style={cardStyle}>
           <div style={headerStyle}>JOBS BY STATUS</div>
           {STATUS_ORDER.map(s => {
-            const cfg = STATUS_CONFIG[s];
+            const cfg = STATUS_CONFIG[s] || { color: C.muted, label: s };
             const count = jobsByStatus[s] || 0;
             if (count === 0) return null;
             return (
@@ -6307,7 +6309,7 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
   const filtered = activeTickets.filter(t => {
     if (filterType !== "All" && t.type !== filterType) return false;
     if (filterStatus !== "All") {
-      const scfg = TICKET_STATUSES[t.status];
+      const scfg = TICKET_STATUSES[t.status] || { color: C.muted, bg: C.steel, label: t.status };
       if (scfg?.label !== filterStatus && t.status !== filterStatus) return false;
     }
     if (filterCustomer !== "All") {
@@ -7916,7 +7918,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.78</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.79</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
