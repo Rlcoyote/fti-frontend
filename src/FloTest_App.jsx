@@ -2859,10 +2859,16 @@ function TicketStatusBadge({ status }) {
 }
 
 // ─── TICKET LINE ITEM EDITOR ──────────────────────────────────────────────────
-function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onSigWipe }) {
+function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onSigWipe, rigUpLineItems = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const isRental = ticketType === "Rental";
+
+  const copyFromRigUp = () => {
+    if (!rigUpLineItems.length) return;
+    setLineItems([...rigUpLineItems.map(li => ({ ...li }))]);
+    onSigWipe?.();
+  };
 
   const filteredQB = searchTerm.length > 0 ? qbItems.filter(q =>
     q.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -2956,9 +2962,12 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
         <div />
       </div>
       {/* Add buttons */}
-      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", position: "relative" }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", position: "relative", flexWrap: "wrap" }}>
         <Btn small onClick={() => setShowSearch(s => !s)}>+ FROM RATE SHEET</Btn>
         <Btn small variant="ghost" onClick={addBlank}>+ BLANK LINE</Btn>
+        {rigUpLineItems.length > 0 && (
+          <Btn small variant="ghost" onClick={copyFromRigUp}>📋 COPY ITEMS FROM RIG UP</Btn>
+        )}
         {showSearch && (
           <div style={{
             position: "fixed", inset: 0, background: "#00000066", zIndex: 200,
@@ -3100,7 +3109,7 @@ function SignaturePad({ onSign, onCancel }) {
 }
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
-function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, qbItems, currentUser, openToSign = false }) {
+function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, qbItems, currentUser, openToSign = false, rigUpLineItems = [] }) {
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
   const [ticketDate, setTicketDate] = useState(() => ticket.date ? ticket.date.slice(0, 10) : "");
@@ -3906,7 +3915,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Line items */}
           <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
           {!isLocked ? (
-            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={handleSigWipe} />
+            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={handleSigWipe} rigUpLineItems={rigUpLineItems} />
           ) : (
             <ReadOnlyLineItems lineItems={lineItems} ticketType={ticket.type} total={total} />
           )}
@@ -4436,8 +4445,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
     else setWellsConfirmed(false);
     if (t === "Rig Down") {
       const ruTicket = existingTickets.find(tk => tk.type === "Rig Up" && tk.jobId === jobId);
-      if (ruTicket && ruTicket.lineItems?.length) {
-        setLineItems([...ruTicket.lineItems]);
+      if (ruTicket) {
         if (ruTicket.assignedWells?.length) setAssignedWells([...ruTicket.assignedWells]);
         if (ruTicket.notes) setNotes(ruTicket.notes);
       }
@@ -4783,7 +4791,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
               )}
 
               <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
-              <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} />
+              <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} rigUpLineItems={(() => { const ru = (existingTickets || []).filter(tk => tk.type === "Rig Up" && !tk.voidedAt).sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0]; return ru?.lineItems || []; })()} />
               <div style={{ marginTop: 16, marginBottom: 16 }}>
                 <label style={labelStyle}>NOTES</label>
                 <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={e => setNotes(e.target.value)} />
@@ -5141,6 +5149,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
+          rigUpLineItems={(() => { const ru = tickets.filter(tk => tk.type === "Rig Up" && tk.jobId === viewTicket.jobId && !tk.voidedAt && tk.id !== viewTicket.id).sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0]; return ru?.lineItems || []; })()}
           openToSign={viewTicketMode === "sign"}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
@@ -6464,6 +6473,7 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
           onClose={() => setViewTicket(null)}
           onDelete={(id) => { setTickets(prev => prev.filter(t => t.id !== id)); setViewTicket(null); }}
           jobs={jobs} qbItems={qbItems} currentUser={currentUser}
+          rigUpLineItems={(() => { const ru = tickets.filter(tk => tk.type === "Rig Up" && tk.jobId === viewTicket.jobId && !tk.voidedAt && tk.id !== viewTicket.id).sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0]; return ru?.lineItems || []; })()}
         />
       )}
     </div>
@@ -8064,7 +8074,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.82</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.83</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
