@@ -3282,7 +3282,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   };
 
   const job = jobs.find(j => j.id === ticket.jobId);
-  const tcfg = TICKET_TYPES[ticket.type];
+  const tcfg = TICKET_TYPES[ticket.type] || { color: C.muted, label: ticket.type || "Unknown" };
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
   const isFullyLocked = status === "qbVerified" || status === "sentToQB";
@@ -4900,7 +4900,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       )}
 
       {jobTickets.map(t => {
-        const tcfg = TICKET_TYPES[t.type];
+        const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type || "Unknown" };
         const total = calcTicketTotal(t);
         const job = jobs.find(j => j.id === jobId);
         const custEmail = job?.pocEmail || job?.poc_email || null;
@@ -5159,11 +5159,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   }
                   return [...otherJobs, ...mapped];
                 });
-                // Open the new ticket
+                // Open the new ticket — close first to force remount
                 const newTicket = mapped.find(tk => tk.id === saved.id);
                 if (newTicket) {
-                  setViewTicketMode("edit");
-                  setViewTicket({ ...newTicket, _duplicateReminder: true });
+                  setViewTicket(null);
+                  setTimeout(() => {
+                    setViewTicketMode("edit");
+                    setViewTicket({ ...newTicket, _duplicateReminder: true });
+                  }, 50);
                 }
               }
             } catch (err) { alert("Duplicate failed: " + err.message); }
@@ -7913,7 +7916,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.77</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.78</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
