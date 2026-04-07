@@ -3290,7 +3290,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 }</span>
                 {ticket.type !== "Rental" && (
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>DUE ON LOC:</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>LOCATION TIME:</span>
                     {editable
                       ? <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
                       : <span style={{ fontWeight: 600 }}>{dueOnLoc || "—"}</span>
@@ -3490,7 +3490,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
               {/* GPS Reference — Recommended Leave Time & Expected Distance */}
               {(driveInfo && !driveInfo.error) && (() => {
-                // Calculate recommended leave time = Due on Loc minus drive duration
+                // Calculate recommended leave time = Location Time minus drive duration
                 let recLeave = null;
                 if (dueOnLoc && driveInfo.durationSeconds) {
                   const dueMatch = dueOnLoc.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -3514,8 +3514,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, marginTop: 4, display: "flex", flexWrap: "wrap", gap: "6px 24px" }}>
                     <div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>RECOMMENDED TIME TO LEAVE YARD</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: recLeave ? C.text : C.muted }}>{recLeave || (dueOnLoc ? "Calculating..." : "Set Due on Loc first")}</div>
-                      {recLeave && <div style={{ fontSize: 10, color: C.muted }}>Due on Loc ({dueOnLoc}) − Drive Time ({driveInfo.duration})</div>}
+                      <div style={{ fontSize: 14, fontWeight: 800, color: recLeave ? C.text : C.muted }}>{recLeave || (dueOnLoc ? "Calculating..." : "Set Location Time first")}</div>
+                      {recLeave && <div style={{ fontSize: 10, color: C.muted }}>Location Time ({dueOnLoc}) − Drive Time ({driveInfo.duration})</div>}
                     </div>
                     <div>
                       <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>EXPECTED DISTANCE</div>
@@ -4448,7 +4448,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                       <input type="date" style={{ ...inputStyle, width: 180 }} value={date} onChange={e => setDate(e.target.value)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>DUE ON LOCATION</label>
+                      <label style={labelStyle}>LOCATION TIME</label>
                       <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
                     </div>
                   </div>
@@ -4553,8 +4553,8 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 24px" }}>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>RECOMMENDED TIME TO LEAVE YARD</div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: recLeave ? C.text : C.muted }}>{recLeave || (dueOnLoc ? "Calculating..." : "Set Due on Loc first")}</div>
-                        {recLeave && <div style={{ fontSize: 10, color: C.muted }}>Due on Loc ({dueOnLoc}) − Drive Time ({driveInfo.duration})</div>}
+                        <div style={{ fontSize: 14, fontWeight: 800, color: recLeave ? C.text : C.muted }}>{recLeave || (dueOnLoc ? "Calculating..." : "Set Location Time first")}</div>
+                        {recLeave && <div style={{ fontSize: 10, color: C.muted }}>Location Time ({dueOnLoc}) − Drive Time ({driveInfo.duration})</div>}
                       </div>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>EXPECTED DISTANCE</div>
@@ -5954,7 +5954,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
 
   // ─── EFFICIENCY TAB ───
   const renderEfficiency = () => {
-    // On-time arrival: Arrival vs Due On Loc
+    // On-time arrival: Arrival vs Location Time
     let onTimeCount = 0, lateCount = 0, earlyCount = 0, noDataCount = 0;
     const lateTix = [];
     filteredTickets.forEach(t => {
@@ -5988,7 +5988,7 @@ function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
         {/* On-Time Arrival */}
         <div style={cardStyle}>
           <div style={headerStyle}>ON-TIME ARRIVAL</div>
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Arrival vs Due On Location. Within 15 min = on time.</div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Arrival vs Location Time. Within 15 min = on time.</div>
           <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
             <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>ON TIME</div><div style={{ fontSize: 28, fontWeight: 800, color: parseFloat(onTimePct) >= 90 ? C.green : parseFloat(onTimePct) >= 70 ? "#b85c00" : C.red }}>{onTimePct}%</div></div>
             <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>EARLY/ON TIME</div><div style={{ fontSize: 20, fontWeight: 800, color: C.green }}>{earlyCount + onTimeCount}</div></div>
