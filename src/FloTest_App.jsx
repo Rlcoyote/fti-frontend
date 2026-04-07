@@ -1029,6 +1029,118 @@ function TimePicker({ value, onChange, startHour = 6, startPeriod = "AM" }) {
   );
 }
 
+// ─── EDIT LOCK HOOK ──────────────────────────────────────────────────────────
+function useEditLock(type, id, currentUser, onAutoSave) {
+  const [lockState, setLockState] = useState({ isLocked: false, lockedBy: null, lockedByName: null, requestedByName: null, hasLock: false });
+  const lockAcquired = useRef(false);
+  const inactivityTimer = useRef(null);
+  const pollTimer = useRef(null);
+  const TIMEOUT = 5 * 60 * 1000; // 5 min
+  const POLL_INTERVAL = 5000; // 5 sec
+
+  const resetInactivity = () => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    if (!lockAcquired.current) return;
+    inactivityTimer.current = setTimeout(() => {
+      // Auto-save and release
+      if (onAutoSave) onAutoSave();
+      releaseLock();
+    }, TIMEOUT);
+  };
+
+  const acquireLock = async () => {
+    if (!id || !currentUser?.id) return;
+    try {
+      const r = await fetch(`${API_URL}/edit-lock/${type}/${id}/lock`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name }),
+      });
+      const data = await r.json();
+      if (data.locked) {
+        lockAcquired.current = true;
+        setLockState({ isLocked: false, lockedBy: null, lockedByName: null, requestedByName: null, hasLock: true });
+        resetInactivity();
+      } else {
+        lockAcquired.current = false;
+        setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name, requestedByName: null, hasLock: false });
+      }
+    } catch { lockAcquired.current = false; }
+  };
+
+  const releaseLock = async () => {
+    if (!id || !currentUser?.id) return;
+    lockAcquired.current = false;
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    try {
+      await fetch(`${API_URL}/edit-lock/${type}/${id}/unlock`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id }),
+      });
+    } catch {}
+    setLockState(prev => ({ ...prev, hasLock: false }));
+  };
+
+  const requestEdit = async () => {
+    if (!id || !currentUser?.id) return;
+    try {
+      await fetch(`${API_URL}/edit-lock/${type}/${id}/request-edit`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id }),
+      });
+    } catch {}
+  };
+
+  const dismissRequest = async () => {
+    if (!id || !currentUser?.id) return;
+    try {
+      await fetch(`${API_URL}/edit-lock/${type}/${id}/dismiss-request`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+      });
+    } catch {}
+    setLockState(prev => ({ ...prev, requestedByName: null }));
+  };
+
+  const pollStatus = async () => {
+    if (!id) return;
+    try {
+      const r = await fetch(`${API_URL}/edit-lock/${type}/${id}/status`);
+      const data = await r.json();
+      if (lockAcquired.current) {
+        // I have the lock — check if someone requested
+        setLockState(prev => ({ ...prev, requestedByName: data.requested_by_name || null }));
+      } else {
+        // I don't have the lock — check if it's been released
+        if (!data.is_locked) {
+          // Lock released — try to acquire
+          acquireLock();
+        } else {
+          setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name, requestedByName: null, hasLock: false });
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    acquireLock();
+    pollTimer.current = setInterval(pollStatus, POLL_INTERVAL);
+    // Activity listeners for inactivity reset
+    const activity = () => resetInactivity();
+    window.addEventListener("click", activity);
+    window.addEventListener("keydown", activity);
+    window.addEventListener("touchstart", activity);
+    return () => {
+      releaseLock();
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+      if (pollTimer.current) clearInterval(pollTimer.current);
+      window.removeEventListener("click", activity);
+      window.removeEventListener("keydown", activity);
+      window.removeEventListener("touchstart", activity);
+    };
+  }, [id]);
+
+  return { ...lockState, releaseLock, requestEdit, dismissRequest, resetInactivity };
+}
+
 // ─── TODO FORM ────────────────────────────────────────────────────────────────
 function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [] }) {
   const [form, setForm] = useState({
@@ -1586,7 +1698,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           )}
         </div>
       )}
-      {showEditJob && <EditJobModal job={job} onSave={(updates) => { onUpdateJob(job.id, updates); setShowEditJob(false); }} onClose={() => setShowEditJob(false)} />}
+      {showEditJob && <EditJobModal job={job} currentUser={currentUser} onSave={(updates) => { onUpdateJob(job.id, updates); setShowEditJob(false); }} onClose={() => setShowEditJob(false)} />}
       {showFlowback && <FlowbackModal job={job} onClose={() => setShowFlowback(false)} />}
       {showDeleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowDeleteConfirm(false)}>
@@ -1621,7 +1733,12 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 }
 
 // ─── EDIT JOB MODAL ───────────────────────────────────────────────────────────
-function EditJobModal({ job, onSave, onClose }) {
+function EditJobModal({ job, onSave, onClose, currentUser }) {
+  // Edit lock for concurrent access
+  const editLock = useEditLock("jobs", job.id, currentUser, () => {
+    // Auto-save on timeout — save current state
+    onSave({ customer, jobState, county, wells: wellList.filter(w => w.trim()), afe, contact_first: contactFirst, contact_last: contactLast, poc_phone: pocPhone, poc_email: pocEmail, approver, approver_last: approverLast, approver_phone: approverPhone, approver_email: approverEmail, company_code: companyCode, cost_center: costCenter, po_number: po, status, google_pin: editGooglePin, pin_lat: editPinLat, pin_lng: editPinLng });
+  });
   const [customer, setCustomer] = useState(job.customer || "");
   const [jobState, setJobState] = useState(job.jobState || "");
   const [county, setCounty] = useState(job.county || "");
@@ -1675,7 +1792,7 @@ function EditJobModal({ job, onSave, onClose }) {
       companyCode !== o.companyCode || costCenter !== o.costCenter || po !== o.po ||
       status !== o.status || editGooglePin !== o.googlePin;
   };
-  const handleClose = () => { if (isDirty()) { setShowUnsaved(true); } else { onClose(); } };
+  const handleClose = () => { if (isDirty()) { setShowUnsaved(true); } else { editLock.releaseLock(); onClose(); } };
 
   const VALID_STATES = ["AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC"];
   const TX_COUNTIES = ["Andrews","Archer","Armstrong","Bailey","Baylor","Borden","Brewster","Briscoe","Brooks","Brown","Callahan","Carson","Castro","Childress","Clay","Cochran","Coke","Coleman","Collingsworth","Comanche","Concho","Cottle","Crane","Crockett","Crosby","Culberson","Dallam","Dawson","Deaf Smith","Dickens","Dimmit","Donley","Eastland","Ector","Edwards","El Paso","Fisher","Floyd","Foard","Gaines","Garza","Glasscock","Gray","Hale","Hall","Hansford","Hardeman","Hartley","Haskell","Hemphill","Howard","Hudspeth","Hutchinson","Irion","Jeff Davis","Jones","Kent","Kimble","King","Kinney","Knox","Lamb","Lampasas","Lipscomb","Llano","Loving","Lubbock","Lynn","Martin","Mason","Maverick","McCulloch","McMullen","Menard","Midland","Mills","Mitchell","Montague","Moore","Motley","Nolan","Ochiltree","Oldham","Palo Pinto","Parmer","Pecos","Potter","Presidio","Randall","Reagan","Real","Reeves","Roberts","Runnels","San Saba","Schleicher","Scurry","Shackelford","Sherman","Stephens","Sterling","Stonewall","Sutton","Swisher","Taylor","Terrell","Terry","Throckmorton","Tom Green","Upton","Uvalde","Val Verde","Ward","Wheeler","Winkler","Yoakum","Young","Zavala"];
@@ -1696,13 +1813,30 @@ function EditJobModal({ job, onSave, onClose }) {
 
   return (
     <ModalWrap title={`Edit Job #${job.id}`} onClose={handleClose} width={600}>
+      {/* Edit Lock Banner */}
+      {editLock.isLocked && !editLock.hasLock && (
+        <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 16px", marginBottom: 8, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+            This job is being edited by <strong>{editLock.lockedByName}</strong>. As soon as they are done, you may edit.
+          </div>
+          <button onClick={editLock.requestEdit} style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>REQUEST EDIT</button>
+        </div>
+      )}
+      {editLock.hasLock && editLock.requestedByName && (
+        <div style={{ background: "#e8f0fb", borderBottom: `1px solid ${C.blue}33`, padding: "10px 16px", marginBottom: 8, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>
+            <strong>{editLock.requestedByName}</strong> is requesting access to this job.
+          </div>
+          <button onClick={editLock.dismissRequest} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>THE CURRENT USER WILL BE FINISHED SHORTLY</button>
+        </div>
+      )}
       {showUnsaved && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This job card has unsaved changes. Are you sure you want to close?</div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={onClose}>YES, DISCARD</Btn>
+              <Btn onClick={() => { editLock.releaseLock(); onClose(); }}>YES, DISCARD</Btn>
               <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>KEEP EDITING</Btn>
             </div>
           </div>
@@ -1876,8 +2010,9 @@ function EditJobModal({ job, onSave, onClose }) {
             pin_lng: editPinLng || null,
             notes: jobNotes || null,
           });
-        }}>SAVE</Btn>
-        <Btn onClick={onClose} variant="ghost">CANCEL</Btn>
+          editLock.releaseLock();
+        }} disabled={!editLock.hasLock}>SAVE</Btn>
+        <Btn onClick={() => { editLock.releaseLock(); onClose(); }} variant="ghost">CANCEL</Btn>
       </div>
     </ModalWrap>
   );
@@ -3136,8 +3271,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   }, [ticket.id]);
 
   const handleClose = () => {
-    if (isFullyLocked || ticket.voidedAt) { onClose(); return; }
+    if (isFullyLocked || ticket.voidedAt) { editLock.releaseLock(); onClose(); return; }
     if (isDirty()) { setShowUnsavedClose(true); return; }
+    editLock.releaseLock();
     onClose();
   };
 
@@ -3146,7 +3282,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
   const isFullyLocked = status === "qbVerified" || status === "sentToQB";
-  const editable = !isFullyLocked && !ticket.voidedAt;
+
+  // Edit lock — pessimistic locking for concurrent access
+  const editLock = useEditLock("tickets", ticket.id, currentUser, () => save());
+  const editable = !isFullyLocked && !ticket.voidedAt && editLock.hasLock;
   const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
 
   const save = (overrides = {}) => {
@@ -3271,6 +3410,24 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${tcfg.color}`, borderRadius: 8, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
         onClick={e => e.stopPropagation()}
       >
+        {/* Edit Lock Banner */}
+        {editLock.isLocked && !editLock.hasLock && (
+          <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+              This ticket is being edited by <strong>{editLock.lockedByName}</strong>. As soon as they are done, you may edit.
+            </div>
+            <button onClick={editLock.requestEdit} style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>REQUEST EDIT</button>
+          </div>
+        )}
+        {/* Edit Request Notification (shown to lock holder) */}
+        {editLock.hasLock && editLock.requestedByName && (
+          <div style={{ background: "#e8f0fb", borderBottom: `1px solid ${C.blue}33`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>
+              <strong>{editLock.requestedByName}</strong> is requesting access to this ticket.
+            </div>
+            <button onClick={editLock.dismissRequest} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>THE CURRENT USER WILL BE FINISHED SHORTLY</button>
+          </div>
+        )}
         {/* Header */}
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -7749,7 +7906,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.74</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.75</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
