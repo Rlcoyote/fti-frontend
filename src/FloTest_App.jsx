@@ -3286,8 +3286,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const job = jobs.find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type] || { color: C.muted, label: ticket.type || "Unknown" };
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
-  const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified"].includes(status);
-  const isFullyLocked = status === "qbVerified" || status === "sentToQB";
+  const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified", "voided"].includes(status);
+  const isFullyLocked = status === "qbVerified" || status === "sentToQB" || !!ticket.voidedAt;
 
   // Edit lock — pessimistic locking for concurrent access
   const editLock = useEditLock("tickets", ticket.id, currentUser, () => save());
@@ -3934,9 +3934,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </div>
 
           {/* Signature display */}
-          {["signed", "approved", "sentToQB", "qbVerified"].includes(status) && signedBy && (
-            <div style={{ background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.green, marginBottom: 6 }}>✓ SIGNED &nbsp; {signedBy} &nbsp; <span style={{ fontWeight: 400, color: C.muted }}>{signedAt ? formatDate(signedAt) : ""}</span></div>
+          {["signed", "approved", "sentToQB", "qbVerified", "voided"].includes(status) && signedBy && (
+            <div style={{ background: status === "voided" ? "#fdecea" : "#e6f5ec", border: `1px solid ${status === "voided" ? C.red : C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: status === "voided" ? C.red : C.green, marginBottom: 6 }}>✓ SIGNED &nbsp; {signedBy}</div>
+              {signedAt && <div style={{ fontSize: 10, color: C.muted, marginBottom: 6 }}>Signed: {new Date(signedAt).toLocaleString("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true })}</div>}
               {signatureImage && <img src={signatureImage} alt="Signature" style={{ maxWidth: 300, height: 80, display: "block", border: `1px solid ${C.border}`, borderRadius: 4, background: C.white }} />}
             </div>
           )}
@@ -7918,7 +7919,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.80</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.81</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
