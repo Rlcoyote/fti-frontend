@@ -3360,10 +3360,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   {editable
                     ? <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
                         {["TX", "NM"].map(tz => (
-                          <label key={tz} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.text : C.muted }}>
-                            <input type="radio" name={`tz-${ticket.id}`} value={tz} checked={timeZone === tz} onChange={() => setTimeZone(tz)} style={{ width: 13, height: 13, accentColor: C.red }} />
+                          <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
+                            <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
                             {tz}
-                          </label>
+                          </span>
                         ))}
                       </div>
                     : <div style={roStyle}>{timeZone || "—"}</div>}
@@ -4507,10 +4507,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                       <div style={lblSm}>TIME ZONE</div>
                       <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
                         {["TX", "NM"].map(tz => (
-                          <label key={tz} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.text : C.muted }}>
-                            <input type="radio" name="tz-new" value={tz} checked={timeZone === tz} onChange={() => setTimeZone(tz)} style={{ width: 13, height: 13, accentColor: C.red }} />
+                          <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
+                            <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
                             {tz}
-                          </label>
+                          </span>
                         ))}
                       </div>
                     </div>
