@@ -3251,17 +3251,14 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>SITE MANAGER</div>
             {editable && job && (job.contactFirst || job.contactLast) && (
-              <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer" }}>
-                <input type="checkbox" checked={false} onChange={(e) => {
-                  if (e.target.checked) {
-                    setSiteMgrFirst(job.contactFirst || "");
-                    setSiteMgrLast(job.contactLast || "");
-                    setSiteMgrPhone(job.pocPhone || job.poc_phone || "");
-                    setSiteMgrEmail(job.pocEmail || job.poc_email || "");
-                  }
-                }} style={{ accentColor: C.blue }} />
-                Copy Point of Contact Info
-              </label>
+              <span onClick={() => {
+                setSiteMgrFirst(job.contactFirst || "");
+                setSiteMgrLast(job.contactLast || "");
+                setSiteMgrPhone(job.pocPhone || job.poc_phone || "");
+                setSiteMgrEmail(job.pocEmail || job.poc_email || "");
+              }} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer", padding: "3px 10px", border: `1px solid ${C.blue}44`, borderRadius: 4, background: "transparent" }}>
+                <span style={{ fontSize: 13 }}>📋</span> Copy Point of Contact Info
+              </span>
             )}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
@@ -4381,17 +4378,14 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>SITE MANAGER</div>
                   {job && (job.contactFirst || job.contactLast) && (
-                    <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer" }}>
-                      <input type="checkbox" checked={false} onChange={(e) => {
-                        if (e.target.checked) {
-                          setSmFirst(job.contactFirst || "");
-                          setSmLast(job.contactLast || "");
-                          setSmPhone(job.pocPhone || job.poc_phone || "");
-                          setSmEmail(job.pocEmail || job.poc_email || "");
-                        }
-                      }} style={{ accentColor: C.blue }} />
-                      Copy Point of Contact Info
-                    </label>
+                    <span onClick={() => {
+                      setSmFirst(job.contactFirst || "");
+                      setSmLast(job.contactLast || "");
+                      setSmPhone(job.pocPhone || job.poc_phone || "");
+                      setSmEmail(job.pocEmail || job.poc_email || "");
+                    }} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer", padding: "3px 10px", border: `1px solid ${C.blue}44`, borderRadius: 4, background: "transparent" }}>
+                      <span style={{ fontSize: 13 }}>📋</span> Copy Point of Contact Info
+                    </span>
                   )}
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
