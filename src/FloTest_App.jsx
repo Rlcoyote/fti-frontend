@@ -5191,11 +5191,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
                   const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
                   return [...otherJobs, ...mapped];
                 });
-                // Open the new revision ticket
+              // Open the new revision ticket — close first to force remount
                 const newTicket = mapped.find(tk => tk.id === saved.id);
                 if (newTicket) {
-                  setViewTicketMode("edit");
-                  setViewTicket(newTicket);
+                  setViewTicket(null);
+                  setTimeout(() => {
+                    setViewTicketMode("edit");
+                    setViewTicket(newTicket);
+                  }, 50);
                 }
               }
             } catch (err) { alert("Revise failed: " + err.message); }
@@ -7910,7 +7913,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.76</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.77</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
