@@ -6088,6 +6088,7 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
   const [filterCustomer, setFilterCustomer] = useState("All");
   const [dragOrder, setDragOrder] = useState(null); // null = default date order
   const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
 
   // Exclude deleted/voided
   const activeTickets = tickets.filter(t => !t.voidedAt && t.status !== "voided");
@@ -6116,11 +6117,11 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
 
   // Simple drag-to-reorder
   const handleDragStart = (idx) => {
-    // Initialize drag order from current sorted if not already
     if (!dragOrder) setDragOrder(sorted.map(t => t.id));
     setDragIdx(idx);
   };
-  const handleDragOver = (e, idx) => { e.preventDefault(); };
+  const handleDragOver = (e, idx) => { e.preventDefault(); setDragOverIdx(idx); };
+  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
   const handleDrop = (idx) => {
     if (dragIdx === null) return;
     const order = dragOrder || sorted.map(t => t.id);
@@ -6129,6 +6130,7 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
     newOrder.splice(idx, 0, moved);
     setDragOrder(newOrder);
     setDragIdx(null);
+    setDragOverIdx(null);
   };
 
   // Unique customer list for filter
@@ -6224,26 +6226,40 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
         const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type };
         const scfg = TICKET_STATUSES[t.status] || { color: C.muted, bg: C.steel, label: t.status };
         const total = (t.lineItems || []).reduce((s, li) => s + ((li.rate || 0) * (li.qty || 0) * (li.days || 1)), 0);
+        const isDragging = dragIdx === idx;
+        const isDropTarget = dragOverIdx === idx && dragIdx !== null && dragIdx !== idx;
         return (
-          <div key={t.id}
-            draggable
-            onDragStart={() => handleDragStart(idx)}
-            onDragOver={(e) => handleDragOver(e, idx)}
-            onDrop={() => handleDrop(idx)}
-            style={{
-              background: C.cardBg, border: `1px solid ${C.border}`,
-              borderLeft: `3px solid ${tcfg.color}`, borderRadius: 5, marginBottom: 6,
-              cursor: "grab",
-            }}>
-            <div onClick={() => setViewTicket(t)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", flexWrap: "wrap" }}>
-              <span style={{ fontSize: 15, color: "#bbb", cursor: "grab" }}>⠿</span>
-              <TicketTypeBadge type={t.type} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
-              <span style={{ fontSize: 12, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>{job?.customer || "Unknown"}</span>
-              <span style={{ fontSize: 11, color: C.muted }}>{formatDate(t.date)}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: scfg.bg, color: scfg.color }}>{scfg.label}</span>
-              <span style={{ fontSize: 13, fontWeight: 800, color: C.green, marginLeft: "auto" }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <div key={t.id}>
+            {isDropTarget && dragIdx > idx && (
+              <div style={{ height: 3, background: C.blue, borderRadius: 2, margin: "2px 0" }} />
+            )}
+            <div
+              draggable
+              onDragStart={() => handleDragStart(idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDragEnd={handleDragEnd}
+              onDrop={() => handleDrop(idx)}
+              style={{
+                background: isDragging ? "#e8f0fb" : C.cardBg,
+                border: `1px solid ${isDragging ? C.blue : C.border}`,
+                borderLeft: `3px solid ${tcfg.color}`, borderRadius: 5, marginBottom: 6,
+                cursor: "grab", opacity: isDragging ? 0.5 : 1,
+                transition: "transform 0.15s ease, opacity 0.15s ease",
+                transform: isDropTarget ? "translateY(4px)" : "none",
+              }}>
+              <div onClick={() => setViewTicket(t)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", flexWrap: "wrap" }}>
+                <span style={{ fontSize: 15, color: "#bbb", cursor: "grab" }}>⠿</span>
+                <TicketTypeBadge type={t.type} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
+                <span style={{ fontSize: 12, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>{job?.customer || "Unknown"}</span>
+                <span style={{ fontSize: 11, color: C.muted }}>{formatDate(t.date)}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: scfg.bg, color: scfg.color }}>{scfg.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.green, marginLeft: "auto" }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
             </div>
+            {isDropTarget && dragIdx < idx && (
+              <div style={{ height: 3, background: C.blue, borderRadius: 2, margin: "2px 0" }} />
+            )}
           </div>
         );
       })}
