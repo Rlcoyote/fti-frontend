@@ -674,6 +674,49 @@ const todoVisible = (t) => t.createdBy === CURRENT_USER || t.assignedTo === CURR
 const calcLineTotal = (li) => li.rate * li.qty * (li.days || 1);
 const calcTicketTotal = (t) => t.lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
 
+// Shared helper: maps camelCase ticket updates to snake_case backend payload
+const buildTicketPayload = (updates) => {
+  const p = {};
+  if (updates.status) p.status = updates.status;
+  if (updates.signedBy) p.signed_by = updates.signedBy;
+  if (updates.signedAt) p.signed_at = updates.signedAt;
+  if (updates.signatureImage) p.signature_img = updates.signatureImage;
+  if (updates.sigNotReqReason) p.sig_not_req_reason = updates.sigNotReqReason;
+  if (updates.sigNotReqNote) p.sig_not_req_note = updates.sigNotReqNote;
+  if (updates.approvedBy) p.approved_by = updates.approvedBy;
+  if (updates.approvedAt) p.approved_at = updates.approvedAt;
+  if (updates.emailedAt) p.emailed_at = updates.emailedAt;
+  if (updates.emailTo) p.email_to = updates.emailTo;
+  if (updates.notes !== undefined) p.notes = updates.notes;
+  if (updates.date) p.date = updates.date;
+  if (updates.startDate !== undefined) p.start_date = updates.startDate;
+  if (updates.endDate !== undefined) p.end_date = updates.endDate;
+  if (updates.cycleDays !== undefined) p.cycle_days = updates.cycleDays;
+  if (updates.isRecurring !== undefined) p.is_recurring = updates.isRecurring;
+  if (updates.lvYard !== undefined) p.lv_yard = updates.lvYard;
+  if (updates.arrivalTime !== undefined) p.arrival_time = updates.arrivalTime;
+  if (updates.dueOnLoc !== undefined) p.due_on_loc = updates.dueOnLoc;
+  if (updates.jobStartTime !== undefined) p.job_start_time = updates.jobStartTime;
+  if (updates.jobEndTime !== undefined) p.job_end_time = updates.jobEndTime;
+  if (updates.retYard !== undefined) p.ret_yard = updates.retYard;
+  if (updates.timeZone !== undefined) p.time_zone = updates.timeZone;
+  if (updates.mileageBegin !== undefined) p.mileage_begin = updates.mileageBegin;
+  if (updates.mileageEnd !== undefined) p.mileage_end = updates.mileageEnd;
+  if (updates.googlePin !== undefined) p.google_pin = updates.googlePin;
+  if (updates.pinLat !== undefined) p.pin_lat = updates.pinLat;
+  if (updates.pinLng !== undefined) p.pin_lng = updates.pinLng;
+  if (updates.siteMgrFirst !== undefined) p.site_mgr_first = updates.siteMgrFirst;
+  if (updates.siteMgrLast !== undefined) p.site_mgr_last = updates.siteMgrLast;
+  if (updates.siteMgrPhone !== undefined) p.site_mgr_phone = updates.siteMgrPhone;
+  if (updates.siteMgrEmail !== undefined) p.site_mgr_email = updates.siteMgrEmail;
+  if (updates.lineItems) {
+    p.lineItems = updates.lineItems.map(li => ({
+      qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
+    }));
+  }
+  return p;
+};
+
 // Rental cycle countdown helper
 function RentalCountdown({ ticket }) {
   const endDate = ticket.endDate || ticket.end_date;
@@ -3804,7 +3847,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {(status === "signed" || status === "sigNotReq") && !isEditing && (
             canApprove
               ? <Btn variant="blue" onClick={handleApprove}>APPROVE TICKET</Btn>
-              : <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, padding: "6px 0" }}>Awaiting supervisor approval</span>
+              : <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, padding: "6px 0" }}>Awaiting approval</span>
           )}
 
           {/* Editable — save/sign buttons */}
@@ -4631,44 +4674,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
   };
 
   const handleUpdate = async (id, updates) => {
-    const payload = {};
-    if (updates.status) payload.status = updates.status;
-    if (updates.signedBy) payload.signed_by = updates.signedBy;
-    if (updates.signedAt) payload.signed_at = updates.signedAt;
-    if (updates.signatureImage) payload.signature_img = updates.signatureImage;
-    if (updates.sigNotReqReason) payload.sig_not_req_reason = updates.sigNotReqReason;
-    if (updates.sigNotReqNote) payload.sig_not_req_note = updates.sigNotReqNote;
-    if (updates.approvedBy) payload.approved_by = updates.approvedBy;
-    if (updates.approvedAt) payload.approved_at = updates.approvedAt;
-    if (updates.emailedAt) payload.emailed_at = updates.emailedAt;
-    if (updates.emailTo) payload.email_to = updates.emailTo;
-    if (updates.notes !== undefined) payload.notes = updates.notes;
-    if (updates.date) payload.date = updates.date;
-    if (updates.startDate !== undefined) payload.start_date = updates.startDate;
-    if (updates.endDate !== undefined) payload.end_date = updates.endDate;
-    if (updates.cycleDays !== undefined) payload.cycle_days = updates.cycleDays;
-    if (updates.isRecurring !== undefined) payload.is_recurring = updates.isRecurring;
-    if (updates.lvYard !== undefined) payload.lv_yard = updates.lvYard;
-    if (updates.arrivalTime !== undefined) payload.arrival_time = updates.arrivalTime;
-    if (updates.dueOnLoc !== undefined) payload.due_on_loc = updates.dueOnLoc;
-    if (updates.jobStartTime !== undefined) payload.job_start_time = updates.jobStartTime;
-    if (updates.jobEndTime !== undefined) payload.job_end_time = updates.jobEndTime;
-    if (updates.retYard !== undefined) payload.ret_yard = updates.retYard;
-    if (updates.timeZone !== undefined) payload.time_zone = updates.timeZone;
-    if (updates.mileageBegin !== undefined) payload.mileage_begin = updates.mileageBegin;
-    if (updates.mileageEnd !== undefined) payload.mileage_end = updates.mileageEnd;
-    if (updates.googlePin !== undefined) payload.google_pin = updates.googlePin;
-    if (updates.pinLat !== undefined) payload.pin_lat = updates.pinLat;
-    if (updates.pinLng !== undefined) payload.pin_lng = updates.pinLng;
-    if (updates.siteMgrFirst !== undefined) payload.site_mgr_first = updates.siteMgrFirst;
-    if (updates.siteMgrLast !== undefined) payload.site_mgr_last = updates.siteMgrLast;
-    if (updates.siteMgrPhone !== undefined) payload.site_mgr_phone = updates.siteMgrPhone;
-    if (updates.siteMgrEmail !== undefined) payload.site_mgr_email = updates.siteMgrEmail;
-    if (updates.lineItems) {
-      payload.lineItems = updates.lineItems.map(li => ({
-        qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
-      }));
-    }
+    const payload = buildTicketPayload(updates);
     try {
       await fetch(`${API_URL}/tickets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     } catch (err) { console.error("Ticket update failed:", err); }
@@ -6146,44 +6152,7 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
   const typeKeys = ["All", ...Object.keys(TICKET_TYPES)];
 
   const handleUpdate = async (id, updates) => {
-    const payload = {};
-    if (updates.status) payload.status = updates.status;
-    if (updates.signedBy) payload.signed_by = updates.signedBy;
-    if (updates.signedAt) payload.signed_at = updates.signedAt;
-    if (updates.signatureImage) payload.signature_img = updates.signatureImage;
-    if (updates.sigNotReqReason) payload.sig_not_req_reason = updates.sigNotReqReason;
-    if (updates.sigNotReqNote) payload.sig_not_req_note = updates.sigNotReqNote;
-    if (updates.approvedBy) payload.approved_by = updates.approvedBy;
-    if (updates.approvedAt) payload.approved_at = updates.approvedAt;
-    if (updates.emailedAt) payload.emailed_at = updates.emailedAt;
-    if (updates.emailTo) payload.email_to = updates.emailTo;
-    if (updates.notes !== undefined) payload.notes = updates.notes;
-    if (updates.date) payload.date = updates.date;
-    if (updates.lvYard !== undefined) payload.lv_yard = updates.lvYard;
-    if (updates.arrivalTime !== undefined) payload.arrival_time = updates.arrivalTime;
-    if (updates.dueOnLoc !== undefined) payload.due_on_loc = updates.dueOnLoc;
-    if (updates.jobStartTime !== undefined) payload.job_start_time = updates.jobStartTime;
-    if (updates.jobEndTime !== undefined) payload.job_end_time = updates.jobEndTime;
-    if (updates.retYard !== undefined) payload.ret_yard = updates.retYard;
-    if (updates.timeZone !== undefined) payload.time_zone = updates.timeZone;
-    if (updates.mileageBegin !== undefined) payload.mileage_begin = updates.mileageBegin;
-    if (updates.mileageEnd !== undefined) payload.mileage_end = updates.mileageEnd;
-    if (updates.googlePin !== undefined) payload.google_pin = updates.googlePin;
-    if (updates.pinLat !== undefined) payload.pin_lat = updates.pinLat;
-    if (updates.pinLng !== undefined) payload.pin_lng = updates.pinLng;
-    if (updates.siteMgrFirst !== undefined) payload.site_mgr_first = updates.siteMgrFirst;
-    if (updates.siteMgrLast !== undefined) payload.site_mgr_last = updates.siteMgrLast;
-    if (updates.siteMgrPhone !== undefined) payload.site_mgr_phone = updates.siteMgrPhone;
-    if (updates.siteMgrEmail !== undefined) payload.site_mgr_email = updates.siteMgrEmail;
-    if (updates.lineItems) {
-      payload.lineItems = updates.lineItems.map(li => ({
-        qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
-      }));
-    }
-    if (updates.startDate !== undefined) payload.start_date = updates.startDate;
-    if (updates.endDate !== undefined) payload.end_date = updates.endDate;
-    if (updates.cycleDays !== undefined) payload.cycle_days = updates.cycleDays;
-    if (updates.isRecurring !== undefined) payload.is_recurring = updates.isRecurring;
+    const payload = buildTicketPayload(updates);
     try {
       await fetch(`${API_URL}/tickets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     } catch (err) { console.error("Ticket update failed:", err); }
@@ -7282,7 +7251,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 function FTIDashboard({ currentUser, onLogout }) {
   CURRENT_USER = currentUser.name;
-  const userRole = currentUser.role; // owner | admin | ops_mgr | supervisor | field
+  const userRole = currentUser.role; // owner | admin | manager | lead | salesman | field
   const isAdmin = ["owner", "admin"].includes(userRole);
   const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
   const isField = userRole === "field";
