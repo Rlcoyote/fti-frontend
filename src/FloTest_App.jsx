@@ -3287,11 +3287,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const tcfg = TICKET_TYPES[ticket.type] || { color: C.muted, label: ticket.type || "Unknown" };
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified", "voided"].includes(status);
-  const isFullyLocked = status === "qbVerified" || status === "sentToQB" || !!ticket.voidedAt;
+  const isFullyLocked = status === "qbVerified" || status === "sentToQB";
+  const isVoided = !!ticket.voidedAt;
 
   // Edit lock — pessimistic locking for concurrent access
   const editLock = useEditLock("tickets", ticket.id, currentUser, () => save());
-  const editable = !isFullyLocked && !ticket.voidedAt && editLock.hasLock;
+  const editable = !isFullyLocked && !isVoided && editLock.hasLock;
   const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
 
   const save = (overrides = {}) => {
