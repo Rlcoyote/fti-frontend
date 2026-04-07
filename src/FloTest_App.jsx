@@ -651,6 +651,8 @@ const mapTicketFromApi = (t) => ({
   timeZone: t.time_zone || "",
   mileageBegin: t.mileage_begin ?? null, mileageEnd: t.mileage_end ?? null,
   createdBy: t.created_by_name || null, createdAt: t.created_at || null,
+  siteMgrFirst: t.site_mgr_first || "", siteMgrLast: t.site_mgr_last || "",
+  siteMgrPhone: t.site_mgr_phone || "", siteMgrEmail: t.site_mgr_email || "",
   lineItems: (t.lineItems || t.line_items || []).map(li => ({
     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
     qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
@@ -2891,6 +2893,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [ticketPinError, setTicketPinError] = useState("");
   const [driveInfo, setDriveInfo] = useState(null);
   const [driveLoading, setDriveLoading] = useState(false);
+  // Site Manager fields (ticket-level)
+  const [siteMgrFirst, setSiteMgrFirst] = useState(() => ticket.siteMgrFirst || "");
+  const [siteMgrLast, setSiteMgrLast] = useState(() => ticket.siteMgrLast || "");
+  const [siteMgrPhone, setSiteMgrPhone] = useState(() => ticket.siteMgrPhone || "");
+  const [siteMgrEmail, setSiteMgrEmail] = useState(() => ticket.siteMgrEmail || "");
   const [showDupModal, setShowDupModal] = useState(false);
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
@@ -3051,6 +3058,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       lineItems, notes, status, missingPieces, date: ticketDate,
       sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
       signedBy, signedAt, signatureImage,
+      siteMgrFirst, siteMgrLast, siteMgrPhone, siteMgrEmail,
       ...(ticket.type === "Rental" ? { startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: parseInt(rentalCycleDays) || 28, isRecurring: rentalRecurring } : {}),
       ...(!["Rental", "JSA"].includes(ticket.type) ? {
         lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
@@ -3237,6 +3245,56 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             </div>
           </div>
         )}
+
+        {/* Site Manager — ticket level */}
+        <div style={{ background: C.cardBg, borderBottom: `1px solid ${C.border}`, padding: "12px 24px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>SITE MANAGER</div>
+            {editable && job && (job.contactFirst || job.contactLast) && (
+              <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer" }}>
+                <input type="checkbox" checked={false} onChange={(e) => {
+                  if (e.target.checked) {
+                    setSiteMgrFirst(job.contactFirst || "");
+                    setSiteMgrLast(job.contactLast || "");
+                    setSiteMgrPhone(job.pocPhone || job.poc_phone || "");
+                    setSiteMgrEmail(job.pocEmail || job.poc_email || "");
+                  }
+                }} style={{ accentColor: C.blue }} />
+                Copy Point of Contact Info
+              </label>
+            )}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+            <div>
+              <label style={labelStyle}>FIRST NAME</label>
+              {editable
+                ? <input style={inputStyle} value={siteMgrFirst} onChange={e => setSiteMgrFirst(e.target.value)} placeholder="First" />
+                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrFirst || "—"}</div>
+              }
+            </div>
+            <div>
+              <label style={labelStyle}>LAST NAME</label>
+              {editable
+                ? <input style={inputStyle} value={siteMgrLast} onChange={e => setSiteMgrLast(e.target.value)} placeholder="Last" />
+                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrLast || "—"}</div>
+              }
+            </div>
+            <div>
+              <label style={labelStyle}>PHONE</label>
+              {editable
+                ? <input style={inputStyle} value={siteMgrPhone} onChange={e => setSiteMgrPhone(e.target.value)} placeholder="555-555-5555" />
+                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrPhone || "—"}</div>
+              }
+            </div>
+            <div>
+              <label style={labelStyle}>EMAIL</label>
+              {editable
+                ? <input style={inputStyle} value={siteMgrEmail} onChange={e => setSiteMgrEmail(e.target.value)} placeholder="email@company.com" />
+                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrEmail || "—"}</div>
+              }
+            </div>
+          </div>
+        </div>
 
         {/* Time & Mileage band — below job info, all types except Rental */}
         {!["Rental"].includes(ticket.type) && (() => {
@@ -4077,6 +4135,11 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
   // Google Pin
   const jobGooglePin = job?.googlePin || job?.google_pin || "";
   const [ticketPin, setTicketPin] = useState(jobGooglePin);
+  // Site Manager
+  const [smFirst, setSmFirst] = useState("");
+  const [smLast, setSmLast] = useState("");
+  const [smPhone, setSmPhone] = useState("");
+  const [smEmail, setSmEmail] = useState("");
   const [ticketPinLat, setTicketPinLat] = useState(job?.pinLat || job?.pin_lat || null);
   const [ticketPinLng, setTicketPinLng] = useState(job?.pinLng || job?.pin_lng || null);
   const [ticketPinResolving, setTicketPinResolving] = useState(false);
@@ -4150,6 +4213,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
       signedBy: null, signedAt: null,
       lineItems, notes,
       assignedWells: assignedWells ?? jobWells,
+      siteMgrFirst: smFirst, siteMgrLast: smLast, siteMgrPhone: smPhone, siteMgrEmail: smEmail,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
       ...(isRental ? { startDate, endDate, cycleDays: parseInt(cycleDays) || 28, isRecurring } : {}),
       ...(!isRental ? {
@@ -4310,6 +4374,32 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Site Manager */}
+              <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>SITE MANAGER</div>
+                  {job && (job.contactFirst || job.contactLast) && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer" }}>
+                      <input type="checkbox" checked={false} onChange={(e) => {
+                        if (e.target.checked) {
+                          setSmFirst(job.contactFirst || "");
+                          setSmLast(job.contactLast || "");
+                          setSmPhone(job.pocPhone || job.poc_phone || "");
+                          setSmEmail(job.pocEmail || job.poc_email || "");
+                        }
+                      }} style={{ accentColor: C.blue }} />
+                      Copy Point of Contact Info
+                    </label>
+                  )}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                  <div><label style={labelStyle}>FIRST NAME</label><input style={inputStyle} value={smFirst} onChange={e => setSmFirst(e.target.value)} placeholder="First" /></div>
+                  <div><label style={labelStyle}>LAST NAME</label><input style={inputStyle} value={smLast} onChange={e => setSmLast(e.target.value)} placeholder="Last" /></div>
+                  <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={smPhone} onChange={e => setSmPhone(e.target.value)} placeholder="555-555-5555" /></div>
+                  <div><label style={labelStyle}>EMAIL</label><input style={inputStyle} value={smEmail} onChange={e => setSmEmail(e.target.value)} placeholder="email@company.com" /></div>
+                </div>
               </div>
 
               {/* Google Pin — before Time & Mileage so drive info populates first */}
@@ -4528,6 +4618,10 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       google_pin: ticketData.googlePin || null,
       pin_lat: ticketData.pinLat || null,
       pin_lng: ticketData.pinLng || null,
+      site_mgr_first: ticketData.siteMgrFirst || null,
+      site_mgr_last: ticketData.siteMgrLast || null,
+      site_mgr_phone: ticketData.siteMgrPhone || null,
+      site_mgr_email: ticketData.siteMgrEmail || null,
       lineItems: (ticketData.lineItems || []).map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
       })),
@@ -4572,6 +4666,10 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     if (updates.googlePin !== undefined) payload.google_pin = updates.googlePin;
     if (updates.pinLat !== undefined) payload.pin_lat = updates.pinLat;
     if (updates.pinLng !== undefined) payload.pin_lng = updates.pinLng;
+    if (updates.siteMgrFirst !== undefined) payload.site_mgr_first = updates.siteMgrFirst;
+    if (updates.siteMgrLast !== undefined) payload.site_mgr_last = updates.siteMgrLast;
+    if (updates.siteMgrPhone !== undefined) payload.site_mgr_phone = updates.siteMgrPhone;
+    if (updates.siteMgrEmail !== undefined) payload.site_mgr_email = updates.siteMgrEmail;
     if (updates.lineItems) {
       payload.lineItems = updates.lineItems.map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
@@ -7452,7 +7550,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.71</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.72</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
