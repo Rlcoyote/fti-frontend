@@ -1031,8 +1031,8 @@ function TimePicker({ value, onChange, startHour = 6, startPeriod = "AM" }) {
 
 // ─── EDIT LOCK HOOK ──────────────────────────────────────────────────────────
 function useEditLock(type, id, currentUser, onAutoSave) {
-  const [lockState, setLockState] = useState({ isLocked: false, lockedBy: null, lockedByName: null, requestedByName: null, hasLock: false });
-  const lockAcquired = useRef(false);
+  const [lockState, setLockState] = useState({ isLocked: false, lockedBy: null, lockedByName: null, requestedByName: null, hasLock: true });
+  const lockAcquired = useRef(true);
   const inactivityTimer = useRef(null);
   const pollTimer = useRef(null);
   const TIMEOUT = 5 * 60 * 1000; // 5 min
@@ -1064,7 +1064,11 @@ function useEditLock(type, id, currentUser, onAutoSave) {
         lockAcquired.current = false;
         setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name, requestedByName: null, hasLock: false });
       }
-    } catch { lockAcquired.current = false; }
+    } catch {
+      // Fail-open: if lock endpoint unreachable, allow editing
+      lockAcquired.current = true;
+      setLockState(prev => ({ ...prev, hasLock: true }));
+    }
   };
 
   const releaseLock = async () => {
@@ -2487,11 +2491,11 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const [wellName, setWellName] = useState(jsa?.wellName || jsa?.well_name || wellsList[0] || "");
   const [time, setTime] = useState(jsa?.time || "");
   const [designatedDriver, setDesignatedDriver] = useState(jsa?.designatedDriver || "");
-  const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || "");
-  const [lng, setLng] = useState(jsa?.lng || jsa?.longitude || "");
+  const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat || "");
+  const [lng, setLng] = useState(jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng || "");
   const [mapLink, setMapLink] = useState(() => {
-    const la = jsa?.lat || jsa?.latitude;
-    const ln = jsa?.lng || jsa?.longitude;
+    const la = jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat;
+    const ln = jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng;
     return (la && ln) ? `${la}, ${ln}` : "";
   });
   const [mapResolving, setMapResolving] = useState(false);
@@ -7906,7 +7910,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.75</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.76</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
