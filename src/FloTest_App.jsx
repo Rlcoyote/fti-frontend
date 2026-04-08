@@ -720,6 +720,15 @@ const buildTicketPayload = (updates) => {
   return p;
 };
 
+// Shared helper: sends ticket update to backend and updates local state
+const updateTicketApi = async (id, updates, setTickets) => {
+  const payload = buildTicketPayload(updates);
+  try {
+    await fetch(`${API_URL}/tickets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  } catch (err) { console.error("Ticket update failed:", err); }
+  setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+};
+
 // Rental cycle countdown helper
 function RentalCountdown({ ticket }) {
   const endDate = ticket.endDate || ticket.end_date;
@@ -4392,7 +4401,7 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
 }
 
 // ─── ADD TICKET MODAL ─────────────────────────────────────────────────────────
-function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], existingTickets = [] }) {
+function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] }) {
   const [type, setType] = useState(null);
   const [assignedWells, setAssignedWells] = useState([]);
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
@@ -4461,11 +4470,18 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
     if (jobWells.length <= 1) setWellsConfirmed(true);
     else setWellsConfirmed(false);
     if (t === "Rig Down") {
-      const ruTicket = existingTickets.find(tk => tk.type === "Rig Up" && tk.jobId === jobId);
-      if (ruTicket) {
-        if (ruTicket.assignedWells?.length) setAssignedWells([...ruTicket.assignedWells]);
-        if (ruTicket.notes) setNotes(ruTicket.notes);
-      }
+      fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+          const ru = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
+            .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
+          if (ru) {
+            const wells = ru.assigned_wells || [];
+            if (wells.length) setAssignedWells([...wells]);
+            if (ru.notes) setNotes(ru.notes);
+          }
+        })
+        .catch(() => {});
     }
     if (t === "Rental") { setStartDate(today()); setCycleDays(28); setIsRecurring(true); }
   };
@@ -4901,13 +4917,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
     setShowAdd(false);
   };
 
-  const handleUpdate = async (id, updates) => {
-    const payload = buildTicketPayload(updates);
-    try {
-      await fetch(`${API_URL}/tickets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    } catch (err) { console.error("Ticket update failed:", err); }
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-  };
+  const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets);
 
   const handleDelete = (id) => {
     const deleted = tickets.find(t => t.id === id);
@@ -5162,7 +5172,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         );
       })}
 
-      {showAdd && <AddTicketModal jobId={jobId} job={jobs.find(j => j.id === jobId)} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} existingTickets={tickets} />}
+      {showAdd && <AddTicketModal jobId={jobId} job={jobs.find(j => j.id === jobId)} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} />}
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
@@ -6399,13 +6409,7 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
 
   const typeKeys = ["All", ...Object.keys(TICKET_TYPES)];
 
-  const handleUpdate = async (id, updates) => {
-    const payload = buildTicketPayload(updates);
-    try {
-      await fetch(`${API_URL}/tickets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    } catch (err) { console.error("Ticket update failed:", err); }
-    setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
-  };
+  const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets);
 
   const selStyle = { border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg };
 
@@ -8089,7 +8093,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.85</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.86</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
