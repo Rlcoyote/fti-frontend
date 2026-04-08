@@ -108,7 +108,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] })
       assignedWells: assignedWells ?? jobWells,
       siteMgrFirst: smFirst, siteMgrLast: smLast, siteMgrPhone: smPhone, siteMgrEmail: smEmail,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
-      ...(isRental ? { startDate, endDate, cycleDays: parseInt(cycleDays) || 28, isRecurring } : {}),
+      ...(isRental ? { startDate, endDate, cycleDays: parseInt(cycleDays) || 28, isRecurring, googlePin: ticketPin.trim() || jobGooglePin, pinLat: ticketPinLat || jobPinLat, pinLng: ticketPinLng || jobPinLng } : {}),
       ...(!isRental ? {
         lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
         mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
@@ -290,7 +290,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] })
               </div>
 
               {/* Google Pin — before Time & Mileage so drive info populates first */}
-              {type !== "Rental" && (
+              {type && (
                 <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                     <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>GOOGLE PIN</div>
@@ -332,7 +332,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] })
               )}
 
               {/* GPS Reference — Recommended Leave Time & Expected Distance */}
-              {type !== "Rental" && (driveLoading || (driveInfo && !driveInfo.error)) && (() => {
+              {(driveLoading || (driveInfo && !driveInfo.error)) && (() => {
                 if (driveLoading) return (
                   <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
                     <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>GPS REFERENCE</div>
