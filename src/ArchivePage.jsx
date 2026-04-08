@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { formatDate } from "./utils.js";
+import { TICKET_TYPES } from "./SharedUI.jsx";
 
 function ArchivePage({ currentUser }) {
   const [items, setItems] = useState([]);

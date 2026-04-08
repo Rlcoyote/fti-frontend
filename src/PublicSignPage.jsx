@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { C, API_URL_PUBLIC } from "./config.js";
+import { PublicPhotoStrip } from "./PhotoStrip.jsx";
 
 // ─── PUBLIC SIGNATURE PAGE (no login required) ───────────────────────────────
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { C } from "./config.js";
-import { Btn } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 
 function SignaturePad({ onSign, onCancel }) {
   const canvasRef = useRef(null);

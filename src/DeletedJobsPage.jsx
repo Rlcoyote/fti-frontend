@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "./config.js";
 import { formatDate } from "./utils.js";
-import { Btn } from "./SharedUI.jsx";
+import { Btn, TICKET_TYPES } from "./SharedUI.jsx";
 
 function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, currentUser, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
   const [showArchiveAllConfirm, setShowArchiveAllConfirm] = useState(false);

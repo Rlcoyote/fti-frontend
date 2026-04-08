@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
+import useEditLock from "./useEditLock.js";
 
 function EditJobModal({ job, onSave, onClose, currentUser }) {
   // Edit lock for concurrent access

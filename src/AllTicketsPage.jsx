@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { C } from "./config.js";
 import { formatDate, updateTicketApi } from "./utils.js";
-import { TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
+import { TicketTypeBadge, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 
 function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, customers }) {

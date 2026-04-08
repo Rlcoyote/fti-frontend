@@ -8,6 +8,7 @@ import { PhotoStrip } from "./PhotoStrip.jsx";
 import SignaturePad from "./SignaturePad.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
+import JSAModal from "./JSAModal.jsx";
 
 function RentalCountdown({ ticket }) {
   const endDate = ticket.endDate || ticket.end_date;

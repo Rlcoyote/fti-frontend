@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { inputStyle } from "./SharedUI.jsx";
 import { C } from "./config.js";
 
 function CrewPage({ users, jobs }) {

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
 import { formatDate } from "./utils.js";
-import { inputStyle } from "./SharedUI.jsx";
+import { inputStyle, labelStyle } from "./SharedUI.jsx";
 
 function JobHistoryPage({ jobs, onNavigateJob }) {
   const [search, setSearch] = useState("");

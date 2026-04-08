@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
-import { Btn, inputStyle, labelStyle, TICKET_TYPES } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 
