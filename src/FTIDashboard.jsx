@@ -1,0 +1,713 @@
+import { useState, useMemo, useEffect } from "react";
+import { C, API_URL, STATUS_CONFIG, STATUS_ORDER, setCurrentUser as setGlobalUser } from "./config.js";
+import { mapTicketFromApi, todoVisible } from "./utils.js";
+import { Btn, NavBadge, PipelineSummary, computeJobStatus } from "./SharedUI.jsx";
+import { TodoPage } from "./TodoPage.jsx";
+import JobCard from "./JobCard.jsx";
+import NewJobModal from "./NewJobModal.jsx";
+import InventoryPage from "./InventoryPage.jsx";
+import ReportsPage from "./ReportsPage.jsx";
+import AllTicketsPage from "./AllTicketsPage.jsx";
+import FinalReviewPage from "./FinalReviewPage.jsx";
+import CrewPage from "./CrewPage.jsx";
+import JobHistoryPage from "./JobHistoryPage.jsx";
+import DeletedJobsPage from "./DeletedJobsPage.jsx";
+import SettingsModal from "./SettingsModal.jsx";
+import PermissionsModal from "./PermissionsModal.jsx";
+import UsersPage from "./UsersPage.jsx";
+import ArchivePage from "./ArchivePage.jsx";
+
+function FTIDashboard({ currentUser, onLogout }) {
+  setGlobalUser(currentUser.name);
+  const userRole = currentUser.role; // owner | admin | manager | lead | salesman | field
+  const isAdmin = ["owner", "admin"].includes(userRole);
+  const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
+  const isField = userRole === "field";
+
+  useEffect(() => {
+    const id = "fti-mobile-css";
+    if (document.getElementById(id)) return;
+    const s = document.createElement("style");
+    s.id = id;
+    s.textContent = `
+      @media (max-width: 900px) {
+        .fti-desktop-nav { display: none !important; }
+        .fti-hamburger { display: flex !important; }
+        .fti-dashboard-pad { padding: 16px 12px !important; }
+        .fti-dashboard-header { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+        .fti-filter-row { overflow-x: auto !important; flex-wrap: nowrap !important; padding-bottom: 4px !important; -webkit-overflow-scrolling: touch; }
+        .fti-job-card-header { grid-template-columns: 80px 1fr auto !important; padding: 10px 12px !important; gap: 8px !important; }
+        .fti-job-card-header > div:nth-child(3),
+        .fti-job-card-header > div:nth-child(4),
+        .fti-job-card-header > div:nth-child(5),
+        .fti-job-card-header > div:nth-child(6) { display: none !important; }
+      }
+      @media (min-width: 901px) {
+        .fti-hamburger { display: none !important; }
+      }
+      .fti-nav-bar {
+        padding-top: max(8px, env(safe-area-inset-top));
+      }
+    `;
+    document.head.appendChild(s);
+  }, []);
+  
+  const [page, setPage] = useState("dashboard");
+  const [showPermissions, setShowPermissions] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [showNewJob, setShowNewJob] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // All state — starts empty, loads from API
+  const [todos, setTodos] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [tickets, setTickets] = useState([]);
+  const [deletedTickets, setDeletedTickets] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [jsas, setJsas] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [qbItems, setQbItems] = useState([]);
+
+  // Load all data from API on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [jobsR, ticketsR, todosR, invR, usersR, custR, qbR, delTicketsR] = await Promise.all([
+          fetch(`${API_URL}/jobs`).then(r => r.json()),
+          fetch(`${API_URL}/tickets?include_voided=true`).then(r => r.json()),
+          fetch(`${API_URL}/todos`).then(r => r.json()),
+          fetch(`${API_URL}/inventory`).then(r => r.json()),
+          fetch(`${API_URL}/users`).then(r => r.json()),
+          fetch(`${API_URL}/customers`).then(r => r.json()),
+          fetch(`${API_URL}/qb-items`).then(r => r.json()),
+          fetch(`${API_URL}/tickets?include_deleted=true`).then(r => r.json()),
+        ]);
+        // Transform jobs from API format to app format
+        const jobsMapped = (jobsR || []).map(j => ({
+          id: j.id,
+          customer: j.customer_name,
+          customerId: j.customer_id,
+          location: j.location || "",
+          wells: (j.wells || []).map(w => ({ well_name: w.well_name || w })),
+          afe: j.afe || null,
+          jobState: j.job_state || "",
+          county: j.county || "",
+          dateStarted: j.date_started,
+          status: j.status,
+          crew: (j.crew || []).map(c => ({ name: c.name, role: c.role })),
+          equipment: (j.equipment || []).map(e => e.description),
+          hoursLogged: Number(j.hours_logged) || 0,
+          estimatedCost: Number(j.estimated_cost) || 0,
+          jsaComplete: j.jsa_complete,
+          notes: j.notes,
+          contactFirst: j.contact_first || "",
+          contactLast: j.contact_last || "",
+          pocPhone: j.poc_phone || "",
+          pocEmail: j.poc_email || "",
+          approver: j.approver_first || "",
+          approverLast: j.approver_last || "",
+          approverPhone: j.approver_phone || "",
+          approverEmail: j.approver_email || "",
+          companyCode: j.company_code || "",
+          costCenter: j.cost_center || "",
+          po: j.po_number || "",
+          salesman: j.salesman || "",
+          googlePin: j.google_pin || "",
+          pinLat: j.pin_lat || null,
+          pinLng: j.pin_lng || null,
+          createdBy: j.created_by_name || null,
+          createdAt: j.created_at || null,
+        }));
+        // Transform tickets
+        const ticketsMapped = (ticketsR || []).map(mapTicketFromApi).filter(t => !t.archivedAt);
+        // Transform todos
+        const todosMapped = (todosR || []).map(t => ({
+          id: t.id,
+          title: t.title,
+          description: t.description,
+          jobId: t.job_id,
+          priority: t.priority,
+          dueDate: t.due_date,
+          createdBy: t.created_by_name || t.created_by,
+          assignedTo: t.assigned_to_name || t.assigned_to,
+          createdById: t.created_by,
+          assignedToId: t.assigned_to,
+          completed: t.completed,
+          completedBy: t.completed_by_name || t.completed_by,
+          completedAt: t.completed_at,
+        }));
+        // Transform inventory
+        const invMapped = (invR || []).map(i => ({
+          id: i.id,
+          size: i.size,
+          category: i.category,
+          item: i.item,
+          psi: i.psi,
+          itemNum: i.item_number,
+          serial: i.serial_number,
+          qtyOwned: i.qty_owned,
+          inYard: i.in_yard,
+          customer: i.customer,
+          fieldTicket: i.field_ticket,
+          notes: i.notes,
+        }));
+        // Transform QB items
+        const qbMapped = (qbR || []).map(q => ({
+          code: q.code,
+          desc: q.description,
+          um: q.unit_measure,
+          price: Number(q.price),
+        }));
+
+        setJobs(jobsMapped);
+        setTickets(ticketsMapped);
+        setDeletedTickets((delTicketsR || []).map(mapTicketFromApi));
+        setTodos(todosMapped);
+        setInventory(invMapped);
+        setUsers(usersR || []);
+        setCustomers(custR || []);
+        setQbItems(qbMapped);
+
+        // Trigger rental cycle check on load
+        fetch(`${API_URL}/tickets/check-cycles`, { method: "POST" }).catch(() => {});
+      } catch (err) {
+        console.error("Failed to load data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Derived user names for dropdowns
+  const userNames = users.map(u => u.name);
+  const userIdByName = {};
+  users.forEach(u => { userIdByName[u.name] = u.id; });
+
+  const myActiveTodos = todos.filter(t => todoVisible(t) && !t.completed);
+
+  const pendingByJob = useMemo(() => {
+    const map = {};
+    todos.filter(t => t.jobId && !t.completed && todoVisible(t)).forEach(t => {
+      map[t.jobId] = (map[t.jobId] || 0) + 1;
+    });
+    return map;
+  }, [todos]);
+
+  const navigateToJob = (jobId) => {
+    setPage("dashboard");
+    setExpandedId(jobId);
+  };
+
+  const handleCreateJob = async (newJob) => {
+    const cust = customers.find(c => c.name === newJob.customer);
+    const payload = {
+      customer_id: cust?.id || null,
+      location: newJob.location,
+      job_state: newJob.jobState || null,
+      county: newJob.county || null,
+      date_started: newJob.dateStarted,
+      status: newJob.status,
+      afe: newJob.afe || null,
+      contact_first: newJob.contactFirst || null,
+      contact_last: newJob.contactLast || null,
+      poc_phone: newJob.phone || null,
+      poc_email: newJob.email || null,
+      approver: newJob.approver || null,
+      approver_last: newJob.approverLast || null,
+      approver_phone: newJob.approverPhone || null,
+      approver_email: newJob.approverEmail || null,
+      company_code: newJob.companyCode || null,
+      cost_center: newJob.costCenter || null,
+      po_number: newJob.po || null,
+      salesman: newJob.salesman || null,
+      google_pin: newJob.googlePin || null,
+      pin_lat: newJob.pinLat || null,
+      pin_lng: newJob.pinLng || null,
+      created_by: currentUser?.id || null,
+      notes: newJob.notes || null,
+      wells: newJob.wells.map(w => ({ well_name: w, afe_number: null })),
+      crew: [],
+      equipment: newJob.equipment || [],
+    };
+    try {
+      const r = await fetch(`${API_URL}/jobs`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (r.ok) {
+        const saved = await r.json();
+        const mappedJob = {
+          ...newJob,
+          id: saved.id,
+          pocEmail: newJob.email || "",
+          poc_email: newJob.email || "",
+          pocPhone: newJob.phone || "",
+          approverEmail: newJob.approverEmail || "",
+          approverPhone: newJob.approverPhone || "",
+          customer_name: cust?.name || newJob.customer,
+          wells: (newJob.wells || []).map((w, i) => ({ well_name: w, sort_order: i })),
+          createdBy: currentUser?.name || null,
+          createdAt: new Date().toISOString(),
+        };
+        setJobs(prev => [mappedJob, ...prev]);
+        setShowNewJob(false);
+        setExpandedId(saved.id);
+      }
+    } catch (err) { console.error("Create job failed:", err); }
+  };
+
+  // Helper to log audit events
+  const logAudit = async (action, entityType, entityId, oldValue, newValue, notes) => {
+    try {
+      await fetch(`${API_URL}/audit`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name, action, entity_type: entityType, entity_id: String(entityId), old_value: oldValue, new_value: newValue, notes }),
+      });
+    } catch (err) { console.error("Audit log failed:", err); }
+  };
+
+  const handleDeleteJob = async (jobId) => {
+    if (!["owner", "admin", "manager"].includes(currentUser.role)) return;
+    const job = jobs.find(j => j.id === jobId);
+    try {
+      await fetch(`${API_URL}/jobs/${jobId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Deleted" }),
+      });
+      await logAudit("job_delete", "job", jobId, { status: job?.status, customer: job?.customer }, { status: "Deleted" }, `Job #${jobId} deleted by ${currentUser.name}`);
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "Deleted" } : j));
+      setExpandedId(null);
+    } catch (err) { console.error("Delete job failed:", err); }
+  };
+
+  const handleRestoreJob = async (jobId) => {
+    try {
+      await fetch(`${API_URL}/jobs/${jobId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Scheduled" }),
+      });
+      await logAudit("job_restore", "job", jobId, { status: "Deleted" }, { status: "Scheduled" }, `Job #${jobId} restored by ${currentUser.name}`);
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "Scheduled" } : j));
+    } catch (err) { console.error("Restore job failed:", err); }
+  };
+
+  const handleArchiveJob = async (jobId) => {
+    if (!["owner", "admin"].includes(currentUser.role)) return;
+    try {
+      await fetch(`${API_URL}/archive`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "deleted" }),
+      });
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+    } catch (err) { console.error("Archive job failed:", err); }
+  };
+
+  const handleRestoreTicket = async (ticketId) => {
+    try {
+      await fetch(`${API_URL}/tickets/${ticketId}/restore`, { method: "POST" });
+      const restored = deletedTickets.find(t => t.id === ticketId);
+      setDeletedTickets(prev => prev.filter(t => t.id !== ticketId));
+      if (restored) setTickets(prev => [...prev, restored]);
+    } catch (err) { console.error("Restore ticket failed:", err); }
+  };
+
+  const handleArchiveTicket = async (ticketId, reason = "deleted") => {
+    if (!["owner", "admin"].includes(currentUser.role)) return;
+    try {
+      await fetch(`${API_URL}/archive`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entity_type: "ticket", entity_id: ticketId, archived_by: currentUser.id, archive_reason: reason }),
+      });
+      setDeletedTickets(prev => prev.filter(t => t.id !== ticketId));
+      setTickets(prev => prev.filter(t => t.id !== ticketId));
+    } catch (err) { console.error("Archive ticket failed:", err); }
+  };
+
+  const handleFlagCancel = async (jobId) => {
+    const job = jobs.find(j => j.id === jobId);
+    try {
+      await fetch(`${API_URL}/jobs/${jobId}`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "flaggedCancel" }),
+      });
+      await logAudit("job_flag_cancel", "job", jobId, { status: job?.status }, { status: "flaggedCancel" }, `Job #${jobId} flagged for cancellation by ${currentUser.name}`);
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "flaggedCancel" } : j));
+    } catch (err) { console.error("Flag cancel failed:", err); }
+  };
+
+  const activeJobs = jobs.filter(j => j.status !== "Deleted");
+  const deletedJobs = jobs.filter(j => j.status === "Deleted");
+  const jobWithComputedStatus = activeJobs.map(j => ({ ...j, _computedStatus: computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) }));
+  const filteredJobs = filterStatus === "All" ? jobWithComputedStatus : jobWithComputedStatus.filter(j => j._computedStatus === filterStatus);
+  const sortedJobs = [...filteredJobs].sort((a, b) => STATUS_ORDER.indexOf(a._computedStatus) - STATUS_ORDER.indexOf(b._computedStatus));
+
+  const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
+
+  const ALL_NAV_ITEMS = ["All Tickets", "Job History", "Action Items", "Inventory", "Crew", "Final Review", "Reports", "Deleted", "Archive", "Users"];
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
+    if (i === "Inventory" && isField) return false;
+    if (i === "Users" && !isManager) return false;
+    if (i === "Job History" && isField) return false;
+    if (i === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return false;
+    if (i === "Archive" && !isAdmin) return false;
+    if (i === "Final Review" && !["owner", "admin", "manager"].includes(currentUser.role) && !currentUser?.permissions?.approve_tickets) return false;
+    return true;
+  });
+
+  if (loading) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.pageBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: C.blue, marginBottom: 8 }}>FLO-TEST INC.</div>
+          <div style={{ fontSize: 13, color: C.muted }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
+      {/* MOBILE HAMBURGER */}
+      <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
+        position: "fixed", bottom: 24, right: 20, zIndex: 1000,
+        width: 52, height: 52, borderRadius: "50%", background: C.red,
+        boxShadow: "0 4px 16px #00000044", cursor: "pointer",
+        flexDirection: "column", gap: 5, alignItems: "center", justifyContent: "center",
+      }}>
+        <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
+        <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
+        <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
+      </div>
+
+      {/* MOBILE DRAWER BACKDROP */}
+      {drawerOpen && <div onClick={() => setDrawerOpen(false)} style={{ position: "fixed", inset: 0, background: "#00000066", zIndex: 1001 }} />}
+
+      {/* MOBILE DRAWER */}
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1002,
+        background: C.darkBlue, borderTop: `3px solid ${C.red}`,
+        borderRadius: "16px 16px 0 0",
+        transform: drawerOpen ? "translateY(0)" : "translateY(100%)",
+        transition: "transform 0.3s ease",
+        padding: "20px 0 40px", maxHeight: "80vh", overflowY: "auto",
+      }}>
+        <div style={{ width: 40, height: 4, background: "#ffffff33", borderRadius: 2, margin: "0 auto 20px" }} />
+        <div style={{ padding: "0 20px 16px", borderBottom: `1px solid #ffffff22`, marginBottom: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: C.white }}>
+              {currentUser.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.white }}>{currentUser.name}</div>
+              <div style={{ fontSize: 11, color: "#a0aec8", textTransform: "uppercase", letterSpacing: "0.08em" }}>{currentUser.role}</div>
+            </div>
+          </div>
+        </div>
+        <div onClick={() => { setPage("dashboard"); setDrawerOpen(false); }} style={{
+          display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
+          background: page === "dashboard" ? "#ffffff11" : "transparent",
+          borderLeft: page === "dashboard" ? `3px solid ${C.red}` : "3px solid transparent",
+          cursor: "pointer",
+        }}>
+          <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⌂</span>
+          <span style={{ fontSize: 15, fontWeight: page === "dashboard" ? 700 : 400, color: page === "dashboard" ? C.white : "#b0bdd4" }}>Dashboard</span>
+        </div>
+        {NAV_ITEMS.map(item => {
+          const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+          const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
+          if (item === "Users" && !isManager) return null;
+          if (item === "Job History" && isField) return null;
+          if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
+          const active = pageMap[item] === page;
+          return (
+            <div key={item} onClick={() => { setPage(pageMap[item]); setDrawerOpen(false); }} style={{
+              display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
+              background: active ? "#ffffff11" : "transparent",
+              borderLeft: active ? `3px solid ${C.red}` : "3px solid transparent",
+              cursor: "pointer",
+            }}>
+              <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{navIcons[item]}</span>
+              <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.white : "#b0bdd4" }}>
+                {item}
+                {item === "Action Items" && myActiveTodos.length > 0 && <span style={{ marginLeft: 8, background: C.red, color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 800 }}>{myActiveTodos.length}</span>}
+                {item === "Deleted" && (deletedJobs.length + deletedTickets.length) > 0 && <span style={{ marginLeft: 8, background: "#ffffff33", color: C.white, borderRadius: 10, padding: "1px 7px", fontSize: 11 }}>{deletedJobs.length + deletedTickets.length}</span>}
+              </span>
+            </div>
+          );
+        })}
+        {["owner", "admin", "manager"].includes(currentUser.role) && (
+          <div onClick={() => { setDrawerOpen(false); setShowPermissions(true); }} style={{
+            display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
+          }}>
+            <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⚙</span>
+            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Permissions</span>
+          </div>
+        )}
+        {currentUser.role === "owner" && (
+          <div onClick={() => { setDrawerOpen(false); setShowSettings(true); }} style={{
+            display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
+          }}>
+            <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⚙</span>
+            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Settings</span>
+          </div>
+        )}
+        <div onClick={() => { setDrawerOpen(false); onLogout(); }} style={{
+          display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
+          borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
+        }}>
+          <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⏻</span>
+          <span style={{ fontSize: 15, color: C.red, fontWeight: 700 }}>Sign Out</span>
+        </div>
+      </div>
+
+      {/* NAV — desktop */}
+      <div className="fti-nav-bar" style={{
+        background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
+        padding: "0 28px", display: "flex", alignItems: "center",
+        justifyContent: "space-between", minHeight: 56,
+      }}>
+        <div
+          onClick={() => setPage("dashboard")}
+          onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
+          style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "opacity 0.15s", userSelect: "none" }}
+          title="Go to Dashboard"
+        >
+          <div style={{
+            width: 36, height: 36, border: `2px solid ${C.red}`, borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: C.blue, fontSize: 13, fontWeight: 900, color: C.white,
+            boxShadow: `0 0 12px ${C.red}44`,
+          }}>FTI</div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.87</span></div>
+          </div>
+        </div>
+        <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
+          {NAV_ITEMS.map(item => {
+            const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+            const active = pageMap[item] === page;
+            const clickable = !!pageMap[item];
+            return (
+              <span key={item} onClick={() => { if (clickable) setPage(pageMap[item]); }} style={{
+                fontSize: 13, color: active ? C.white : clickable ? "#b0bdd4" : "#6b7a99",
+                letterSpacing: "0.08em", cursor: clickable ? "pointer" : "default",
+                borderBottom: active ? `2px solid ${C.red}` : "2px solid transparent",
+                paddingBottom: 4, fontWeight: active ? 700 : 600,
+                display: "flex", alignItems: "center",
+              }}>
+                {item}
+                {item === "Action Items" && <NavBadge count={myActiveTodos.length} />}
+                {item === "Inventory" && totalOut > 0 && <NavBadge count={totalOut} />}
+                {item === "Deleted" && (deletedJobs.length + deletedTickets.length) > 0 && <NavBadge count={deletedJobs.length + deletedTickets.length} />}
+              </span>
+            );
+          })}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {["owner", "admin", "manager"].includes(currentUser.role) && (
+              <div style={{ position: "relative" }}>
+                <span onClick={() => setShowSettingsMenu(v => !v)}
+                  style={{ fontSize: 18, color: showSettingsMenu ? C.white : "#a0aec8", cursor: "pointer", lineHeight: 1, userSelect: "none" }}
+                  title="Settings">⚙</span>
+                {showSettingsMenu && (
+                  <div style={{
+                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 300,
+                    background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
+                    boxShadow: "0 4px 16px #00000033", minWidth: 160, overflow: "hidden",
+                  }} onClick={() => setShowSettingsMenu(false)}>
+                    <div onClick={() => setShowPermissions(true)}
+                      style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      Permissions
+                    </div>
+                    {currentUser.role === "owner" && (
+                      <div onClick={() => setShowSettings(true)}
+                        style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        Settings
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            <span onClick={onLogout} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
+            <div onClick={onLogout} style={{
+              width: 30, height: 30, borderRadius: "50%", background: C.red,
+              border: `2px solid #ffffff55`, display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", color: C.white,
+            }}>{currentUser.name.charAt(0).toUpperCase()}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* PAGES */}
+      {page === "allTickets" && (
+        <AllTicketsPage tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} />
+      )}
+
+      {page === "todos" && (
+        <TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />
+      )}
+
+      {page === "jobHistory" && !isField && (
+        <JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />
+      )}
+
+      {page === "crew" && (
+        <CrewPage users={users} jobs={jobs} />
+      )}
+
+      {page === "finalReview" && (
+        <FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} currentUser={currentUser} qbItems={qbItems} />
+      )}
+
+      {page === "reports" && (
+        <ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} currentUser={currentUser} users={users} />
+      )}
+
+      {page === "inventory" && !isField && (
+        <InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />
+      )}
+
+      {page === "deleted" && ["owner", "admin", "manager"].includes(currentUser.role) && (
+        <DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />
+      )}
+
+      {page === "archive" && isAdmin && (
+        <ArchivePage currentUser={currentUser} />
+      )}
+
+      {page === "users" && isManager && (
+        <UsersPage users={users} setUsers={setUsers} currentUser={currentUser} isAdmin={isAdmin} />
+      )}
+
+      {page === "dashboard" && (
+        <div className="fti-dashboard-pad" style={{ padding: "32px 28px" }}>
+          <div className="fti-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Jobs</h1>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
+                {activeJobs.length} total · {activeJobs.filter(j => computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) === "In Progress").length} active · Updated just now
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Btn onClick={() => setPage("todos")} variant="ghost">
+                ☐ Tasks {myActiveTodos.length > 0 ? `(${myActiveTodos.length})` : ""}
+              </Btn>
+              <Btn onClick={() => setShowNewJob(true)}>+ Job Card</Btn>
+            </div>
+          </div>
+
+          <PipelineSummary jobs={jobs} tickets={tickets} />
+
+          <div className="fti-filter-row" style={{ display: "flex", gap: 0, marginBottom: 16, alignItems: "center", borderBottom: `1px solid ${C.border}` }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 10 }}>FILTER:</span>
+            {["All", ...STATUS_ORDER].map(s => {
+              const active = filterStatus === s;
+              const cfg = s === "All" ? null : STATUS_CONFIG[s];
+              return (
+                <button key={s} onClick={() => setFilterStatus(s)} style={{
+                  background: active ? C.cardBg : "transparent",
+                  border: active ? `1px solid ${C.border}` : "1px solid transparent",
+                  borderBottom: active ? `1px solid ${C.cardBg}` : "1px solid transparent",
+                  borderTopLeftRadius: 4, borderTopRightRadius: 4,
+                  borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+                  marginBottom: active ? -1 : 0,
+                  color: active ? (s === "All" ? C.blue : cfg?.color) : C.muted,
+                  padding: "8px 14px", fontSize: 11,
+                  fontWeight: 700, cursor: "pointer", fontFamily: "'Arial', sans-serif",
+                }}>{s === "All" ? "ALL" : cfg.label}</button>
+              );
+            })}
+          </div>
+
+          {sortedJobs.map(job => (
+            <JobCard
+              key={job.id} job={job}
+              isExpanded={expandedId === job.id}
+              onToggle={() => setExpandedId(expandedId === job.id ? null : job.id)}
+              pendingTodos={pendingByJob[job.id] || 0}
+              todos={todos} setTodos={setTodos}
+              tickets={tickets} setTickets={setTickets}
+              jobs={jobs} onNavigateJob={navigateToJob}
+              onUpdateJob={async (id, updates) => {
+                const oldJob = jobs.find(j => j.id === id);
+                try {
+                  const payload = {
+                    location: updates.location,
+                    status: updates.status,
+                    job_state: updates.job_state,
+                    county: updates.county,
+                    afe: updates.afe,
+                    contact_first: updates.contact_first,
+                    contact_last: updates.contact_last,
+                    poc_phone: updates.poc_phone,
+                    poc_email: updates.poc_email,
+                    approver: updates.approver,
+                    approver_last: updates.approver_last,
+                    approver_phone: updates.approver_phone,
+                    approver_email: updates.approver_email,
+                    company_code: updates.company_code,
+                    cost_center: updates.cost_center,
+                    po_number: updates.po_number,
+                    google_pin: updates.google_pin,
+                    pin_lat: updates.pin_lat,
+                    pin_lng: updates.pin_lng,
+                  };
+                  if (updates.customer) {
+                    payload.customer = updates.customer;
+                    const cust = customers.find(c => c.name === updates.customer);
+                    if (cust) payload.customer_id = cust.id;
+                  }
+                  if (updates.wells) {
+                    payload.wells = updates.wells.map(w =>
+                      typeof w === "string" ? { well_name: w } : w
+                    );
+                  }
+                  if (updates.crew) payload.crew = updates.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
+                  await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                  await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Job #${id} edited by ${currentUser.name}`);
+                } catch (err) { console.error("Job update failed:", err); }
+                setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j));
+              }}
+              jsas={jsas} setJsas={setJsas}
+              userNames={userNames}
+              qbItems={qbItems}
+              userIdByName={userIdByName}
+              currentUser={currentUser}
+              customers={customers}
+              onDeleteJob={handleDeleteJob}
+              onFlagCancel={handleFlagCancel}
+              onTicketDeleted={(ticket) => setDeletedTickets(prev => [...prev, ticket])}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* NEW JOB MODAL */}
+      {showNewJob && (
+        <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} customers={customers} users={users} />
+      )}
+      {showPermissions && (
+        <PermissionsModal onClose={() => setShowPermissions(false)} currentUser={currentUser} />
+      )}
+      {showSettings && (
+        <SettingsModal onClose={() => setShowSettings(false)} currentUser={currentUser} />
+      )}
+    </div>
+  );
+}
+
+// ─── APP WRAPPER (auth routing) ────────────────────────────────────────────
+
+export default FTIDashboard;
