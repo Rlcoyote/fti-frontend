@@ -3587,13 +3587,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
         {/* Time & Mileage band — below job info, all types except Rental */}
         {!["Rental"].includes(ticket.type) && (() => {
-          const ALL_TIMES = Array.from({ length: 48 }, (_, i) => {
-            const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
-            const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
-            const period = h24 < 12 ? "AM" : "PM";
-            return `${h12}:${m} ${period}`;
-          });
-          const timeOpts = (startIdx) => [""].concat(ALL_TIMES.slice(startIdx).concat(ALL_TIMES.slice(0, startIdx)));
           const parseT = (s) => {
             if (!s) return null;
             const match = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -3759,7 +3752,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                         </span>
                       )}
                       {jobPin && !ticketPin && (
-                        <span style={{ fontSize: 10, color: C.muted }}>MJC: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
+                        <span style={{ fontSize: 10, color: C.muted }}>Job Card: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
                       )}
                     </div>
                     {editable ? (
@@ -3768,7 +3761,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                           style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
                           value={ticketPin}
                           onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }}
-                          placeholder={jobPin ? "Override MJC pin or leave blank to use MJC pin" : "Paste Google Maps link..."}
+                          placeholder={jobPin ? "Override Job Card pin or leave blank to use Job Card pin" : "Paste Google Maps link..."}
                         />
                         {ticketPin && (
                           <button type="button" onClick={() => resolveTicketPin(ticketPin)} disabled={ticketPinResolving}
@@ -3778,7 +3771,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                         )}
                       </div>
                     ) : (
-                      <div style={roStyle}>{ticketPin || (jobPin ? `Using MJC pin` : "—")}</div>
+                      <div style={roStyle}>{ticketPin || (jobPin ? `Using Job Card pin` : "—")}</div>
                     )}
                     {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
                     {(ticketPinLat || ticketPinLng) && (
@@ -4452,13 +4445,6 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
       .finally(() => setDriveLoading(false));
   }, [ticketPinLat, ticketPinLng]);
 
-  const ALL_TIMES = Array.from({ length: 48 }, (_, i) => {
-    const h24 = Math.floor(i / 2), m = i % 2 === 0 ? "00" : "30";
-    const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24;
-    return `${h12}:${m} ${h24 < 12 ? "AM" : "PM"}`;
-  });
-  const timeOpts = (startIdx) => [""].concat(ALL_TIMES.slice(startIdx).concat(ALL_TIMES.slice(0, startIdx)));
-
   const endDate = useMemo(() => {
     if (!startDate || !cycleDays) return "";
     const d = new Date(startDate + "T00:00:00");
@@ -4696,7 +4682,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
                   </div>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <input style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11, padding: "6px 8px" }}
-                      placeholder={jobGooglePin ? "Override MJC pin or leave blank to use MJC pin" : "Paste Google Maps link..."}
+                      placeholder={jobGooglePin ? "Override Job Card pin or leave blank to use Job Card pin" : "Paste Google Maps link..."}
                       value={ticketPin} onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }} />
                     {ticketPin && (
                       <button type="button" onClick={async () => {
@@ -8103,7 +8089,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.84</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.85</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
