@@ -233,7 +233,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
       signedBy, signedAt, signatureImage,
       siteMgrFirst, siteMgrLast, siteMgrPhone, siteMgrEmail,
-      ...(ticket.type === "Rental" ? { startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: parseInt(rentalCycleDays) || 28, isRecurring: rentalRecurring } : {}),
+      ...(ticket.type === "Rental" ? { startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: parseInt(rentalCycleDays) || 28, isRecurring: rentalRecurring, googlePin: ticketPin || null, pinLat: ticketPinLat || null, pinLng: ticketPinLng || null } : {}),
       ...(!["Rental", "JSA"].includes(ticket.type) ? {
         lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
         mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
@@ -755,6 +755,101 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             )}
           </div>
         )}
+
+        {/* Google Pin for Rental tickets (pin + resolve + drive distance, no time/mileage) */}
+        {ticket.type === "Rental" && (() => {
+          const lblStyle = { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 };
+          const roStyle = { fontSize: 13, color: C.text, padding: "6px 0" };
+          const jobPin = job?.googlePin || job?.google_pin || "";
+          const pinMismatch = jobPin && ticketPin && ticketPin.trim() !== jobPin.trim();
+          const resolveTicketPin = async (url) => {
+            if (!url.trim()) return;
+            setTicketPinResolving(true); setTicketPinError("");
+            try {
+              const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: url.trim() }),
+              });
+              if (!r.ok) { setTicketPinError("Could not resolve pin."); setTicketPinResolving(false); return; }
+              const { lat, lng } = await r.json();
+              setTicketPinLat(lat); setTicketPinLng(lng);
+            } catch { setTicketPinError("Network error."); }
+            setTicketPinResolving(false);
+          };
+          return (
+            <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <div style={lblStyle}>GOOGLE PIN</div>
+                {pinMismatch && (
+                  <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
+                    ALT PIN — differs from Master Job Card
+                  </span>
+                )}
+                {jobPin && !ticketPin && (
+                  <span style={{ fontSize: 10, color: C.muted }}>Job Card: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
+                )}
+              </div>
+              {editable ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
+                    value={ticketPin}
+                    onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }}
+                    placeholder={jobPin ? "Override Job Card pin or leave blank to use Job Card pin" : "Paste Google Maps link..."}
+                  />
+                  {ticketPin && (
+                    <button type="button" onClick={() => resolveTicketPin(ticketPin)} disabled={ticketPinResolving}
+                      style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
+                      {ticketPinResolving ? "..." : "RESOLVE"}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div style={roStyle}>{ticketPin || (jobPin ? "Using Job Card pin" : "—")}</div>
+              )}
+              {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
+              {(ticketPinLat || ticketPinLng) && (
+                <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4 }}>
+                  {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}
+                </div>
+              )}
+              {(ticketPinLat && ticketPinLng) && (
+                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
+                  {!driveInfo && !driveLoading && (
+                    <button type="button" onClick={async () => {
+                      setDriveLoading(true);
+                      try {
+                        const r = await fetch(`${API_URL}/jobs/drive-distance`, {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng }),
+                        });
+                        if (r.ok) { const d = await r.json(); setDriveInfo(d); }
+                        else setDriveInfo({ error: "Could not calculate — check yard location in Settings" });
+                      } catch { setDriveInfo({ error: "Network error" }); }
+                      setDriveLoading(false);
+                    }} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "3px 10px", fontSize: 10, fontWeight: 700, color: C.text, cursor: "pointer" }}>
+                      CALC DRIVE
+                    </button>
+                  )}
+                  {driveLoading && <span style={{ fontSize: 11, color: C.muted }}>Calculating...</span>}
+                  {driveInfo && !driveInfo.error && (
+                    <div style={{ display: "flex", gap: 16 }}>
+                      <div>
+                        <div style={lblStyle}>DRIVE DISTANCE</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{driveInfo.distance}</div>
+                      </div>
+                      <div>
+                        <div style={lblStyle}>EST. DRIVE TIME</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{driveInfo.duration}</div>
+                      </div>
+                    </div>
+                  )}
+                  {driveInfo?.error && <div style={{ fontSize: 11, color: C.red }}>⚠ {driveInfo.error}</div>}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
