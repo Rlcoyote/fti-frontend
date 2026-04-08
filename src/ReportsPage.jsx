@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
 import { inputStyle, labelStyle, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 

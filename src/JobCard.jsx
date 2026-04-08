@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { C, STATUS_CONFIG } from "./config.js";
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
 import { Btn, TicketDot, StatusBadge, TodoBadge, computeJobStatus } from "./SharedUI.jsx";

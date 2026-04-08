@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 

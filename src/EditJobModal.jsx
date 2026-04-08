@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 
