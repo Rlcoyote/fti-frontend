@@ -1,29 +1,33 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { ROLE_OPTIONS, canModifyUser } from "./utils.js";
-import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 
 function UsersPage({ users, setUsers, currentUser, isAdmin }) {
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState("field");
-  const [newPassword, setNewPassword] = useState("");
   const [msg, setMsg] = useState("");
   const [editId, setEditId] = useState(null);
   const [editName, setEditName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editRole, setEditRole] = useState("");
+  const [resetPwUser, setResetPwUser] = useState(null);
+  const [resetPwVal, setResetPwVal] = useState("");
+  const [resetPwConfirm, setResetPwConfirm] = useState("");
+  const [resetPwMsg, setResetPwMsg] = useState("");
   const [usrW, setUsrW] = useState(window.innerWidth);
   useEffect(() => { const h = () => setUsrW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const usrMob = usrW < 900;
 
   const roleBg = r => r === "owner" ? "#fdecea" : r === "admin" ? "#e8f0fb" : r === "manager" ? "#e6f5ec" : r === "lead" ? "#fdf5d8" : r === "salesman" ? "#f3eafa" : "#f0f3f8";
   const roleColor = r => r === "owner" ? C.red : r === "admin" ? C.blue : r === "manager" ? C.green : r === "lead" ? "#8a6500" : r === "salesman" ? "#7a3ca0" : C.muted;
+  const isOwner = currentUser?.role === "owner";
 
+  // Create user + send invite (no password required)
   const handleAddUser = async () => {
-    if (!newName.trim() || !newEmail.trim() || !newPassword) { setMsg("All fields required"); return; }
-    if (newPassword.length < 6) { setMsg("Password must be at least 6 characters"); return; }
+    if (!newName.trim() || !newEmail.trim()) { setMsg("Name and email required"); return; }
     try {
       const r = await fetch(`${API_URL}/users`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -40,13 +44,27 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         return;
       }
       const created = await r.json();
-      await fetch(`${API_URL}/auth/set-password`, {
+      // Send invite email
+      await fetch(`${API_URL}/auth/invite`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: created.id, password: newPassword }),
+        body: JSON.stringify({ user_id: created.id }),
       });
       setUsers(prev => [...prev, { ...created, is_active: true }]);
-      setNewName(""); setNewEmail(""); setNewRole("field"); setNewPassword(""); setShowAdd(false); setMsg("");
+      setNewName(""); setNewEmail(""); setNewRole("field"); setShowAdd(false);
+      setMsg("User created — invite email sent.");
+      setTimeout(() => setMsg(""), 5000);
     } catch { setMsg("Error creating user"); }
+  };
+
+  const handleResendInvite = async (userId) => {
+    try {
+      await fetch(`${API_URL}/auth/invite`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+      setMsg("Invite re-sent.");
+      setTimeout(() => setMsg(""), 3000);
+    } catch { setMsg("Failed to resend invite"); }
   };
 
   const startEdit = (u) => {
@@ -80,16 +98,24 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
     } catch { console.error("Deactivate failed"); }
   };
 
-  const handleResetPassword = async (userId) => {
+  // Owner-level password reset modal
+  const handleAdminResetPassword = async () => {
+    if (!resetPwVal || resetPwVal.length < 6) { setResetPwMsg("Password must be at least 6 characters"); return; }
+    if (resetPwVal !== resetPwConfirm) { setResetPwMsg("Passwords don't match"); return; }
     try {
-      await fetch(`${API_URL}/auth/set-password`, {
+      const r = await fetch(`${API_URL}/auth/admin-reset-password`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, password: "fti2026" }),
+        body: JSON.stringify({ user_id: resetPwUser.id, password: resetPwVal, requester_role: currentUser.role }),
       });
-      setMsg("Password reset to default.");
+      if (!r.ok) { const d = await r.json().catch(() => null); setResetPwMsg(d?.error || "Failed"); return; }
+      setResetPwUser(null); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg("");
+      setMsg(`Password reset for ${resetPwUser.name}.`);
       setTimeout(() => setMsg(""), 3000);
-    } catch { setMsg("Reset failed"); }
+    } catch { setResetPwMsg("Error resetting password"); }
   };
+
+  const actionBtnStyle = { background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" };
+  const actionBtnStyleMob = { ...actionBtnStyle, fontSize: 11, padding: "5px 12px", borderRadius: 4 };
 
   return (
     <div style={{ padding: usrMob ? "16px 12px" : "24px 28px" }}>
@@ -101,11 +127,12 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         <Btn onClick={() => { setShowAdd(s => !s); setEditId(null); }}>{showAdd ? "CANCEL" : "+ ADD USER"}</Btn>
       </div>
 
-      {msg && <div style={{ padding: "8px 14px", background: msg.includes("fail") || msg.includes("Error") || msg.includes("required") ? "#fdecea" : "#e6f5ec", borderRadius: 4, fontSize: 12, fontWeight: 700, color: msg.includes("fail") || msg.includes("Error") || msg.includes("required") ? C.red : C.green, marginBottom: 16 }}>{msg}</div>}
+      {msg && <div style={{ padding: "8px 14px", background: msg.includes("fail") || msg.includes("Error") || msg.includes("required") || msg.includes("exists") ? "#fdecea" : "#e6f5ec", borderRadius: 4, fontSize: 12, fontWeight: 700, color: msg.includes("fail") || msg.includes("Error") || msg.includes("required") || msg.includes("exists") ? C.red : C.green, marginBottom: 16 }}>{msg}</div>}
 
       {showAdd && (
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginBottom: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: usrMob ? "1fr" : "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>An invite email will be sent — the user sets their own password.</div>
+          <div style={{ display: "grid", gridTemplateColumns: usrMob ? "1fr" : "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
             <div><label style={labelStyle}>NAME *</label><input style={inputStyle} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Full name" /></div>
             <div><label style={labelStyle}>EMAIL *</label><input style={inputStyle} value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@flotest.com" /></div>
             <div><label style={labelStyle}>ROLE</label>
@@ -113,16 +140,15 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
                 {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
-            <div><label style={labelStyle}>PASSWORD *</label><input style={inputStyle} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 6 chars" /></div>
           </div>
-          <Btn onClick={handleAddUser}>CREATE USER</Btn>
+          <Btn onClick={handleAddUser}>CREATE &amp; SEND INVITE</Btn>
         </div>
       )}
 
       {/* ── DESKTOP: grid table ── */}
       {!usrMob && (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 160px", background: C.darkBlue, padding: "10px 16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 220px", background: C.darkBlue, padding: "10px 16px" }}>
             {["NAME", "EMAIL", "ROLE", "ACTIONS"].map(h => (
               <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{h}</div>
             ))}
@@ -134,7 +160,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
             return (
               <div key={u.id} style={{ borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
                 {isEditing ? (
-                  <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr 120px 160px", gap: 8, alignItems: "center" }}>
+                  <div style={{ padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr 120px 220px", gap: 8, alignItems: "center" }}>
                     <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editName} onChange={e => setEditName(e.target.value)} />
                     <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
                     <select style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={!canModify}>
@@ -146,14 +172,15 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 160px", padding: "10px 16px", alignItems: "center" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 120px 220px", padding: "10px 16px", alignItems: "center" }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{u.name}</div>
                     <div style={{ fontSize: 12, color: C.muted }}>{u.email}</div>
                     <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: roleBg(u.role), color: roleColor(u.role), letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {(canModify || isSelf) && <button onClick={() => startEdit(u)} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>EDIT</button>}
-                      {canModify && <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>REMOVE</button>}
-                      {canModify && <button onClick={() => handleResetPassword(u.id)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" }}>RESET PW</button>}
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {(canModify || isSelf) && <button onClick={() => startEdit(u)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>EDIT</button>}
+                      {canModify && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
+                      {isOwner && canModify && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyle}>RESET PW</button>}
+                      {canModify && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyle}>RESEND INVITE</button>}
                       {!canModify && !isSelf && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                     </div>
                   </div>
@@ -195,9 +222,10 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
                 </div>
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{u.email}</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {(canModify || isSelf) && <button onClick={() => startEdit(u)} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 4, cursor: "pointer" }}>EDIT</button>}
-                  {canModify && <button onClick={() => handleDeactivate(u.id)} style={{ background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 4, cursor: "pointer" }}>REMOVE</button>}
-                  {canModify && <button onClick={() => handleResetPassword(u.id)} style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 4, cursor: "pointer" }}>RESET PW</button>}
+                  {(canModify || isSelf) && <button onClick={() => startEdit(u)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.blue}44`, color: C.blue }}>EDIT</button>}
+                  {canModify && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
+                  {isOwner && canModify && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyleMob}>RESET PW</button>}
+                  {canModify && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyleMob}>RESEND INVITE</button>}
                   {!canModify && !isSelf && <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                 </div>
               </div>
@@ -205,9 +233,28 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
           </div>
         );
       })}
+
+      {/* ── RESET PASSWORD MODAL (owner only) ── */}
+      {resetPwUser && (
+        <ModalWrap title={`Reset Password — ${resetPwUser.name}`} onClose={() => setResetPwUser(null)} width={380}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>NEW PASSWORD</label>
+            <input style={inputStyle} type="password" value={resetPwVal} onChange={e => setResetPwVal(e.target.value)} placeholder="Min 6 characters" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>CONFIRM PASSWORD</label>
+            <input style={inputStyle} type="password" value={resetPwConfirm} onChange={e => setResetPwConfirm(e.target.value)} placeholder="Re-enter password"
+              onKeyDown={e => e.key === "Enter" && handleAdminResetPassword()} />
+          </div>
+          {resetPwMsg && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{resetPwMsg}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn onClick={handleAdminResetPassword}>SET PASSWORD</Btn>
+            <Btn onClick={() => setResetPwUser(null)} variant="ghost">CANCEL</Btn>
+          </div>
+        </ModalWrap>
+      )}
     </div>
   );
 }
-
 
 export default UsersPage;
