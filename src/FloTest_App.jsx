@@ -2859,15 +2859,46 @@ function TicketStatusBadge({ status }) {
 }
 
 // ─── TICKET LINE ITEM EDITOR ──────────────────────────────────────────────────
-function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onSigWipe, rigUpLineItems = [] }) {
+function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onSigWipe, jobId }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [hasRigUp, setHasRigUp] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(false);
   const isRental = ticketType === "Rental";
 
-  const copyFromRigUp = () => {
-    if (!rigUpLineItems.length) return;
-    setLineItems([...rigUpLineItems.map(li => ({ ...li }))]);
-    onSigWipe?.();
+  // Check if a non-voided Rig Up exists on this job (lightweight — just checks existence)
+  useEffect(() => {
+    if (!jobId || ticketType === "Rig Up") { setHasRigUp(false); return; }
+    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const ru = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
+          .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
+        setHasRigUp(!!(ru && (ru.lineItems || ru.line_items || []).length > 0));
+      })
+      .catch(() => setHasRigUp(false));
+  }, [jobId, ticketType]);
+
+  const copyFromRigUp = async () => {
+    if (!jobId || copyLoading) return;
+    setCopyLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`);
+      if (!r.ok) { setCopyLoading(false); return; }
+      const data = await r.json();
+      const ru = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
+      const items = (ru?.lineItems || ru?.line_items || []).map(li => ({
+        qbCode: li.qb_code || li.qbCode || "", desc: li.description || li.desc || "",
+        rate: Number(li.rate) || 0, qty: Number(li.qty) || 0,
+        um: li.unit_measure || li.um || "DAY", days: Number(li.days) || 1,
+      }));
+      if (items.length) {
+        setLineItems([...items]);
+        onSigWipe?.();
+      }
+    } catch (err) { console.error("Copy from Rig Up failed:", err); }
+    setCopyLoading(false);
   };
 
   const filteredQB = searchTerm.length > 0 ? qbItems.filter(q =>
@@ -2965,8 +2996,8 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onS
       <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", position: "relative", flexWrap: "wrap" }}>
         <Btn small onClick={() => setShowSearch(s => !s)}>+ FROM RATE SHEET</Btn>
         <Btn small variant="ghost" onClick={addBlank}>+ BLANK LINE</Btn>
-        {rigUpLineItems.length > 0 && (
-          <Btn small variant="ghost" onClick={copyFromRigUp}>📋 COPY ITEMS FROM RIG UP</Btn>
+        {hasRigUp && (
+          <Btn small variant="ghost" onClick={copyFromRigUp} disabled={copyLoading}>{copyLoading ? "COPYING..." : "📋 COPY ITEMS FROM RIG UP"}</Btn>
         )}
         {showSearch && (
           <div style={{
@@ -3109,7 +3140,7 @@ function SignaturePad({ onSign, onCancel }) {
 }
 
 // ─── TICKET DETAIL VIEW ───────────────────────────────────────────────────────
-function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, qbItems, currentUser, openToSign = false, rigUpLineItems = [] }) {
+function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, qbItems, currentUser, openToSign = false }) {
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
   const [ticketDate, setTicketDate] = useState(() => ticket.date ? ticket.date.slice(0, 10) : "");
@@ -3915,7 +3946,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Line items */}
           <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
           {!isLocked ? (
-            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={handleSigWipe} rigUpLineItems={rigUpLineItems} />
+            <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={handleSigWipe} jobId={ticket.jobId} />
           ) : (
             <ReadOnlyLineItems lineItems={lineItems} ticketType={ticket.type} total={total} />
           )}
@@ -4791,7 +4822,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [], e
               )}
 
               <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
-              <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} rigUpLineItems={(() => { const ru = (existingTickets || []).filter(tk => tk.type === "Rig Up" && !tk.voidedAt).sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0]; return ru?.lineItems || []; })()} />
+              <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} jobId={jobId} />
               <div style={{ marginTop: 16, marginBottom: 16 }}>
                 <label style={labelStyle}>NOTES</label>
                 <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={e => setNotes(e.target.value)} />
@@ -5149,7 +5180,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
-          rigUpLineItems={(() => { const ru = tickets.filter(tk => tk.type === "Rig Up" && tk.jobId === viewTicket.jobId && !tk.voidedAt && tk.id !== viewTicket.id).sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0]; return ru?.lineItems || []; })()}
           openToSign={viewTicketMode === "sign"}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
@@ -6473,7 +6503,6 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
           onClose={() => setViewTicket(null)}
           onDelete={(id) => { setTickets(prev => prev.filter(t => t.id !== id)); setViewTicket(null); }}
           jobs={jobs} qbItems={qbItems} currentUser={currentUser}
-          rigUpLineItems={(() => { const ru = tickets.filter(tk => tk.type === "Rig Up" && tk.jobId === viewTicket.jobId && !tk.voidedAt && tk.id !== viewTicket.id).sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0]; return ru?.lineItems || []; })()}
         />
       )}
     </div>
@@ -8074,7 +8103,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.83</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.84</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
