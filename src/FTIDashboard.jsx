@@ -16,6 +16,7 @@ import SettingsModal from "./SettingsModal.jsx";
 import PermissionsModal from "./PermissionsModal.jsx";
 import UsersPage from "./UsersPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
+import AssetsPage from "./AssetsPage.jsx";
 
 function FTIDashboard({ currentUser, onLogout }) {
   setGlobalUser(currentUser.name);
@@ -72,12 +73,13 @@ function FTIDashboard({ currentUser, onLogout }) {
   const [users, setUsers] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [qbItems, setQbItems] = useState([]);
+  const [assets, setAssets] = useState([]);
 
   // Load all data from API on mount
   useEffect(() => {
     const load = async () => {
       try {
-        const [jobsR, ticketsR, todosR, invR, usersR, custR, qbR, delTicketsR] = await Promise.all([
+        const [jobsR, ticketsR, todosR, invR, usersR, custR, qbR, delTicketsR, assetsR] = await Promise.all([
           fetch(`${API_URL}/jobs`).then(r => r.json()),
           fetch(`${API_URL}/tickets?include_voided=true`).then(r => r.json()),
           fetch(`${API_URL}/todos`).then(r => r.json()),
@@ -86,6 +88,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           fetch(`${API_URL}/customers`).then(r => r.json()),
           fetch(`${API_URL}/qb-items`).then(r => r.json()),
           fetch(`${API_URL}/tickets?include_deleted=true`).then(r => r.json()),
+          fetch(`${API_URL}/assets`).then(r => r.json()).catch(() => []),
         ]);
         // Transform jobs from API format to app format
         const jobsMapped = (jobsR || []).map(j => ({
@@ -172,6 +175,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         setUsers(usersR || []);
         setCustomers(custR || []);
         setQbItems(qbMapped);
+        setAssets(assetsR || []);
 
         // Trigger rental cycle check on load
         fetch(`${API_URL}/tickets/check-cycles`, { method: "POST" }).catch(() => {});
@@ -349,9 +353,10 @@ function FTIDashboard({ currentUser, onLogout }) {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["All Tickets", "Job History", "Action Items", "Inventory", "Crew", "Final Review", "Reports", "Deleted", "Archive", "Users"];
+  const ALL_NAV_ITEMS = ["All Tickets", "Job History", "Action Items", "Inventory", "Assets", "Crew", "Final Review", "Reports", "Deleted", "Archive", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && isField) return false;
+    if (i === "Assets" && isField) return false;
     if (i === "Users" && !isManager) return false;
     if (i === "Job History" && isField) return false;
     if (i === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return false;
@@ -419,8 +424,8 @@ function FTIDashboard({ currentUser, onLogout }) {
           <span style={{ fontSize: 15, fontWeight: page === "dashboard" ? 700 : 400, color: page === "dashboard" ? C.white : "#b0bdd4" }}>Dashboard</span>
         </div>
         {NAV_ITEMS.map(item => {
-          const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
-          const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
+          const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+          const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Assets: "🚛", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
           if (item === "Users" && !isManager) return null;
           if (item === "Job History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
@@ -487,12 +492,12 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.89</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.90</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
-            const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+            const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
@@ -577,6 +582,10 @@ function FTIDashboard({ currentUser, onLogout }) {
 
       {page === "inventory" && !isField && (
         <InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />
+      )}
+
+      {page === "assets" && !isField && (
+        <AssetsPage assets={assets} setAssets={setAssets} jobs={jobs} />
       )}
 
       {page === "deleted" && ["owner", "admin", "manager"].includes(currentUser.role) && (
@@ -689,6 +698,7 @@ function FTIDashboard({ currentUser, onLogout }) {
               onDeleteJob={handleDeleteJob}
               onFlagCancel={handleFlagCancel}
               onTicketDeleted={(ticket) => setDeletedTickets(prev => [...prev, ticket])}
+              assets={assets}
             />
           ))}
         </div>

@@ -7,7 +7,7 @@ import JobTicketsTab from "./JobTicketsTab.jsx";
 import EditJobModal from "./EditJobModal.jsx";
 import FlowbackModal from "./FlowbackModal.jsx";
 
-function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onTicketDeleted, jsas, setJsas, userNames, qbItems, userIdByName, currentUser, customers }) {
+function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onTicketDeleted, jsas, setJsas, userNames, qbItems, userIdByName, currentUser, customers, assets }) {
   const jobTickets = tickets.filter(t => t.jobId === job.id);
   const computedStatus = computeJobStatus(job, jobTickets);
   const cfg = STATUS_CONFIG[computedStatus] || STATUS_CONFIG["Scheduled"];
@@ -176,12 +176,16 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>EQUIPMENT</div>
-                {job.equipment.map((eq, i) => (
-                  <div key={i} style={{ fontSize: 12, color: C.text, marginBottom: 5, display: "flex", gap: 6 }}>
-                    <span style={{ color: C.red, fontSize: 8, marginTop: 4 }}>◆</span>{eq}
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ASSETS</div>
+                {(assets || []).filter(a => a.assigned_job_id === job.id).map(a => (
+                  <div key={a.id} style={{ fontSize: 12, color: C.text, marginBottom: 5, display: "flex", gap: 6 }}>
+                    <span style={{ color: "#8a6500", fontSize: 8, marginTop: 4 }}>◆</span>
+                    <span>{a.name}{a.unit_number ? ` (${a.unit_number})` : ""}</span>
                   </div>
                 ))}
+                {(assets || []).filter(a => a.assigned_job_id === job.id).length === 0 && (
+                  <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>None deployed</div>
+                )}
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
