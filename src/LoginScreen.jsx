@@ -93,12 +93,12 @@ function LoginScreen({ onLogin }) {
           <>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)}
+              <input style={inputStyle} type="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="you@flotest.com" onKeyDown={e => e.key === "Enter" && handleLogin()} />
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>PASSWORD</label>
-              <input style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)}
+              <input style={inputStyle} type="password" autoComplete="off" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••" onKeyDown={e => e.key === "Enter" && handleLogin()} />
             </div>
             <div style={{ textAlign: "right", marginBottom: 16 }}>
