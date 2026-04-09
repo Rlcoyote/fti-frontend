@@ -17,6 +17,11 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
   const [resetPwVal, setResetPwVal] = useState("");
   const [resetPwConfirm, setResetPwConfirm] = useState("");
   const [resetPwMsg, setResetPwMsg] = useState("");
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [changePwCurrent, setChangePwCurrent] = useState("");
+  const [changePwNew, setChangePwNew] = useState("");
+  const [changePwConfirm, setChangePwConfirm] = useState("");
+  const [changePwMsg, setChangePwMsg] = useState("");
   const [usrW, setUsrW] = useState(window.innerWidth);
   useEffect(() => { const h = () => setUsrW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const usrMob = usrW < 900;
@@ -114,6 +119,23 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
     } catch { setResetPwMsg("Error resetting password"); }
   };
 
+  const handleChangePw = async () => {
+    if (!changePwCurrent) { setChangePwMsg("Enter your current password"); return; }
+    if (!changePwNew || changePwNew.length < 6) { setChangePwMsg("New password must be at least 6 characters"); return; }
+    if (changePwNew !== changePwConfirm) { setChangePwMsg("Passwords don't match"); return; }
+    try {
+      const r = await fetch(`${API_URL}/auth/change-password`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id, current_password: changePwCurrent, new_password: changePwNew }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setChangePwMsg(d?.error || "Failed"); return; }
+      setShowChangePw(false); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg("");
+      setMsg("Password changed.");
+      setTimeout(() => setMsg(""), 3000);
+    } catch { setChangePwMsg("Error changing password"); }
+  };
+
   const actionBtnStyle = { background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer" };
   const actionBtnStyleMob = { ...actionBtnStyle, fontSize: 11, padding: "5px 12px", borderRadius: 4 };
 
@@ -178,9 +200,10 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
                     <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: roleBg(u.role), color: roleColor(u.role), letterSpacing: "0.06em" }}>{ROLE_OPTIONS.find(r => r.value === u.role)?.label || u.role}</span></div>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {(canModify || isSelf) && <button onClick={() => startEdit(u)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>EDIT</button>}
-                      {canModify && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
-                      {isOwner && canModify && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyle}>RESET PW</button>}
-                      {canModify && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyle}>RESEND INVITE</button>}
+                      {canModify && !isSelf && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
+                      {canModify && !isSelf && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyle}>RESET PW</button>}
+                      {isSelf && <button onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyle}>CHANGE PW</button>}
+                      {canModify && !isSelf && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyle}>RESEND INVITE</button>}
                       {!canModify && !isSelf && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                     </div>
                   </div>
@@ -223,9 +246,10 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
                 <div style={{ fontSize: 12, color: C.muted, marginBottom: 10 }}>{u.email}</div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {(canModify || isSelf) && <button onClick={() => startEdit(u)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.blue}44`, color: C.blue }}>EDIT</button>}
-                  {canModify && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
-                  {isOwner && canModify && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyleMob}>RESET PW</button>}
-                  {canModify && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyleMob}>RESEND INVITE</button>}
+                  {canModify && !isSelf && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
+                  {canModify && !isSelf && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyleMob}>RESET PW</button>}
+                  {isSelf && <button onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyleMob}>CHANGE PW</button>}
+                  {canModify && !isSelf && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyleMob}>RESEND INVITE</button>}
                   {!canModify && !isSelf && <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                 </div>
               </div>
@@ -234,7 +258,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         );
       })}
 
-      {/* ── RESET PASSWORD MODAL (owner only) ── */}
+      {/* ── RESET PASSWORD MODAL (owner/admin for others) ── */}
       {resetPwUser && (
         <ModalWrap title={`Reset Password — ${resetPwUser.name}`} onClose={() => setResetPwUser(null)} width={380}>
           <div style={{ marginBottom: 14 }}>
@@ -250,6 +274,30 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={handleAdminResetPassword}>SET PASSWORD</Btn>
             <Btn onClick={() => setResetPwUser(null)} variant="ghost">CANCEL</Btn>
+          </div>
+        </ModalWrap>
+      )}
+
+      {/* ── CHANGE OWN PASSWORD MODAL ── */}
+      {showChangePw && (
+        <ModalWrap title="Change Your Password" onClose={() => setShowChangePw(false)} width={380}>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>CURRENT PASSWORD</label>
+            <input style={inputStyle} type="password" value={changePwCurrent} onChange={e => setChangePwCurrent(e.target.value)} placeholder="Enter current password" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>NEW PASSWORD</label>
+            <input style={inputStyle} type="password" value={changePwNew} onChange={e => setChangePwNew(e.target.value)} placeholder="Min 6 characters" />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>CONFIRM NEW PASSWORD</label>
+            <input style={inputStyle} type="password" value={changePwConfirm} onChange={e => setChangePwConfirm(e.target.value)} placeholder="Re-enter new password"
+              onKeyDown={e => e.key === "Enter" && handleChangePw()} />
+          </div>
+          {changePwMsg && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{changePwMsg}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn onClick={handleChangePw}>CHANGE PASSWORD</Btn>
+            <Btn onClick={() => setShowChangePw(false)} variant="ghost">CANCEL</Btn>
           </div>
         </ModalWrap>
       )}
