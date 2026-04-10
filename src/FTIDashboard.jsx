@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
+import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { C, API_URL, STATUS_CONFIG, STATUS_ORDER, setCurrentUser as setGlobalUser } from "./config.js";
 import { mapTicketFromApi, todoVisible } from "./utils.js";
 import { Btn, NavBadge, PipelineSummary, computeJobStatus } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
 import JobCard from "./JobCard.jsx";
+import DashboardHome from "./DashboardHome.jsx";
 import NewJobModal from "./NewJobModal.jsx";
 import InventoryPage from "./InventoryPage.jsx";
 import ReportsPage from "./ReportsPage.jsx";
@@ -53,7 +55,27 @@ function FTIDashboard({ currentUser, onLogout }) {
     document.head.appendChild(s);
   }, []);
   
-  const [page, setPage] = useState("dashboard");
+  const navigate = useNavigate();
+  const location = useLocation();
+  // Derive current page from URL path for nav highlighting
+  const page = (() => {
+    const p = location.pathname;
+    if (p === "/" || p === "") return "dashboard";
+    if (p.startsWith("/all-tickets")) return "allTickets";
+    if (p.startsWith("/job-history")) return "jobHistory";
+    if (p.startsWith("/todos")) return "todos";
+    if (p.startsWith("/inventory")) return "inventory";
+    if (p.startsWith("/assets")) return "assets";
+    if (p.startsWith("/crew")) return "crew";
+    if (p.startsWith("/final-review")) return "finalReview";
+    if (p.startsWith("/reports")) return "reports";
+    if (p.startsWith("/deleted")) return "deleted";
+    if (p.startsWith("/archive")) return "archive";
+    if (p.startsWith("/users")) return "users";
+    return "dashboard";
+  })();
+  // Helper: navigate to a named page (used by nav clicks)
+  const navigateToPage = (path) => navigate(path);
   const [showPermissions, setShowPermissions] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -204,7 +226,7 @@ function FTIDashboard({ currentUser, onLogout }) {
   }, [todos]);
 
   const navigateToJob = (jobId) => {
-    setPage("dashboard");
+    navigate("/");
     setExpandedId(jobId);
   };
 
@@ -345,6 +367,47 @@ function FTIDashboard({ currentUser, onLogout }) {
     } catch (err) { console.error("Flag cancel failed:", err); }
   };
 
+  const handleUpdateJob = async (id, updates) => {
+    const oldJob = jobs.find(j => j.id === id);
+    try {
+      const payload = {
+        location: updates.location,
+        status: updates.status,
+        job_state: updates.job_state,
+        county: updates.county,
+        afe: updates.afe,
+        contact_first: updates.contact_first,
+        contact_last: updates.contact_last,
+        poc_phone: updates.poc_phone,
+        poc_email: updates.poc_email,
+        approver: updates.approver,
+        approver_last: updates.approver_last,
+        approver_phone: updates.approver_phone,
+        approver_email: updates.approver_email,
+        company_code: updates.company_code,
+        cost_center: updates.cost_center,
+        po_number: updates.po_number,
+        google_pin: updates.google_pin,
+        pin_lat: updates.pin_lat,
+        pin_lng: updates.pin_lng,
+      };
+      if (updates.customer) {
+        payload.customer = updates.customer;
+        const cust = customers.find(c => c.name === updates.customer);
+        if (cust) payload.customer_id = cust.id;
+      }
+      if (updates.wells) {
+        payload.wells = updates.wells.map(w =>
+          typeof w === "string" ? { well_name: w } : w
+        );
+      }
+      if (updates.crew) payload.crew = updates.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
+      await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Job #${id} edited by ${currentUser.name}`);
+    } catch (err) { console.error("Job update failed:", err); }
+    setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j));
+  };
+
   const activeJobs = jobs.filter(j => j.status !== "Deleted");
   const deletedJobs = jobs.filter(j => j.status === "Deleted");
   const jobWithComputedStatus = activeJobs.map(j => ({ ...j, _computedStatus: computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) }));
@@ -414,7 +477,7 @@ function FTIDashboard({ currentUser, onLogout }) {
             </div>
           </div>
         </div>
-        <div onClick={() => { setPage("dashboard"); setDrawerOpen(false); }} style={{
+        <div onClick={() => { navigate("/"); setDrawerOpen(false); }} style={{
           display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
           background: page === "dashboard" ? "#ffffff11" : "transparent",
           borderLeft: page === "dashboard" ? `3px solid ${C.red}` : "3px solid transparent",
@@ -425,13 +488,14 @@ function FTIDashboard({ currentUser, onLogout }) {
         </div>
         {NAV_ITEMS.map(item => {
           const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+          const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Job History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
           const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Assets: "🚛", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
           if (item === "Users" && !isManager) return null;
           if (item === "Job History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
           const active = pageMap[item] === page;
           return (
-            <div key={item} onClick={() => { setPage(pageMap[item]); setDrawerOpen(false); }} style={{
+            <div key={item} onClick={() => { navigate(routeMap[item]); setDrawerOpen(false); }} style={{
               display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
               background: active ? "#ffffff11" : "transparent",
               borderLeft: active ? `3px solid ${C.red}` : "3px solid transparent",
@@ -478,7 +542,7 @@ function FTIDashboard({ currentUser, onLogout }) {
         justifyContent: "space-between", minHeight: 56,
       }}>
         <div
-          onClick={() => setPage("dashboard")}
+          onClick={() => navigate("/")}
           onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; }}
           onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
           style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "opacity 0.15s", userSelect: "none" }}
@@ -492,16 +556,17 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.90</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.91</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
             const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+            const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Job History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
-              <span key={item} onClick={() => { if (clickable) setPage(pageMap[item]); }} style={{
+              <span key={item} onClick={() => { if (clickable) navigate(routeMap[item]); }} style={{
                 fontSize: 13, color: active ? C.white : clickable ? "#b0bdd4" : "#6b7a99",
                 letterSpacing: "0.08em", cursor: clickable ? "pointer" : "default",
                 borderBottom: active ? `2px solid ${C.red}` : "2px solid transparent",
@@ -555,154 +620,54 @@ function FTIDashboard({ currentUser, onLogout }) {
         </div>
       </div>
 
-      {/* PAGES */}
-      {page === "allTickets" && (
-        <AllTicketsPage tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} />
-      )}
-
-      {page === "todos" && (
-        <TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />
-      )}
-
-      {page === "jobHistory" && !isField && (
-        <JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />
-      )}
-
-      {page === "crew" && (
-        <CrewPage users={users} jobs={jobs} />
-      )}
-
-      {page === "finalReview" && (
-        <FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} currentUser={currentUser} qbItems={qbItems} />
-      )}
-
-      {page === "reports" && (
-        <ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} currentUser={currentUser} users={users} />
-      )}
-
-      {page === "inventory" && !isField && (
-        <InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />
-      )}
-
-      {page === "assets" && !isField && (
-        <AssetsPage assets={assets} setAssets={setAssets} jobs={jobs} />
-      )}
-
-      {page === "deleted" && ["owner", "admin", "manager"].includes(currentUser.role) && (
-        <DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />
-      )}
-
-      {page === "archive" && isAdmin && (
-        <ArchivePage currentUser={currentUser} />
-      )}
-
-      {page === "users" && isManager && (
-        <UsersPage users={users} setUsers={setUsers} currentUser={currentUser} isAdmin={isAdmin} />
-      )}
-
-      {page === "dashboard" && (
-        <div className="fti-dashboard-pad" style={{ padding: "32px 28px" }}>
-          <div className="fti-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Jobs</h1>
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-                {activeJobs.length} total · {activeJobs.filter(j => computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) === "In Progress").length} active · Updated just now
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <Btn onClick={() => setPage("todos")} variant="ghost">
-                ☐ Tasks {myActiveTodos.length > 0 ? `(${myActiveTodos.length})` : ""}
-              </Btn>
-              <Btn onClick={() => setShowNewJob(true)}>+ Job Card</Btn>
-            </div>
-          </div>
-
-          <PipelineSummary jobs={jobs} tickets={tickets} />
-
-          <div className="fti-filter-row" style={{ display: "flex", gap: 0, marginBottom: 16, alignItems: "center", borderBottom: `1px solid ${C.border}` }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 10 }}>FILTER:</span>
-            {["All", ...STATUS_ORDER].map(s => {
-              const active = filterStatus === s;
-              const cfg = s === "All" ? null : STATUS_CONFIG[s];
-              return (
-                <button key={s} onClick={() => setFilterStatus(s)} style={{
-                  background: active ? C.cardBg : "transparent",
-                  border: active ? `1px solid ${C.border}` : "1px solid transparent",
-                  borderBottom: active ? `1px solid ${C.cardBg}` : "1px solid transparent",
-                  borderTopLeftRadius: 4, borderTopRightRadius: 4,
-                  borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
-                  marginBottom: active ? -1 : 0,
-                  color: active ? (s === "All" ? C.blue : cfg?.color) : C.muted,
-                  padding: "8px 14px", fontSize: 11,
-                  fontWeight: 700, cursor: "pointer", fontFamily: "'Arial', sans-serif",
-                }}>{s === "All" ? "ALL" : cfg.label}</button>
-              );
-            })}
-          </div>
-
-          {sortedJobs.map(job => (
-            <JobCard
-              key={job.id} job={job}
-              isExpanded={expandedId === job.id}
-              onToggle={() => setExpandedId(expandedId === job.id ? null : job.id)}
-              pendingTodos={pendingByJob[job.id] || 0}
-              todos={todos} setTodos={setTodos}
-              tickets={tickets} setTickets={setTickets}
-              jobs={jobs} onNavigateJob={navigateToJob}
-              onUpdateJob={async (id, updates) => {
-                const oldJob = jobs.find(j => j.id === id);
-                try {
-                  const payload = {
-                    location: updates.location,
-                    status: updates.status,
-                    job_state: updates.job_state,
-                    county: updates.county,
-                    afe: updates.afe,
-                    contact_first: updates.contact_first,
-                    contact_last: updates.contact_last,
-                    poc_phone: updates.poc_phone,
-                    poc_email: updates.poc_email,
-                    approver: updates.approver,
-                    approver_last: updates.approver_last,
-                    approver_phone: updates.approver_phone,
-                    approver_email: updates.approver_email,
-                    company_code: updates.company_code,
-                    cost_center: updates.cost_center,
-                    po_number: updates.po_number,
-                    google_pin: updates.google_pin,
-                    pin_lat: updates.pin_lat,
-                    pin_lng: updates.pin_lng,
-                  };
-                  if (updates.customer) {
-                    payload.customer = updates.customer;
-                    const cust = customers.find(c => c.name === updates.customer);
-                    if (cust) payload.customer_id = cust.id;
-                  }
-                  if (updates.wells) {
-                    payload.wells = updates.wells.map(w =>
-                      typeof w === "string" ? { well_name: w } : w
-                    );
-                  }
-                  if (updates.crew) payload.crew = updates.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
-                  await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                  await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Job #${id} edited by ${currentUser.name}`);
-                } catch (err) { console.error("Job update failed:", err); }
-                setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j));
-              }}
-              jsas={jsas} setJsas={setJsas}
-              userNames={userNames}
-              qbItems={qbItems}
-              userIdByName={userIdByName}
-              currentUser={currentUser}
-              customers={customers}
-              onDeleteJob={handleDeleteJob}
-              onFlagCancel={handleFlagCancel}
-              onTicketDeleted={(ticket) => setDeletedTickets(prev => [...prev, ticket])}
-              assets={assets}
-            />
-          ))}
-        </div>
-      )}
+      {/* PAGES — routed */}
+      <Routes>
+        <Route path="/" element={
+          <DashboardHome
+            jobs={jobs}
+            activeJobs={activeJobs}
+            sortedJobs={sortedJobs}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+            myActiveTodos={myActiveTodos}
+            tickets={tickets}
+            setTickets={setTickets}
+            todos={todos}
+            setTodos={setTodos}
+            expandedId={expandedId}
+            setExpandedId={setExpandedId}
+            pendingByJob={pendingByJob}
+            navigateToJob={navigateToJob}
+            navigateToPage={navigateToPage}
+            setShowNewJob={setShowNewJob}
+            handleUpdateJob={handleUpdateJob}
+            handleDeleteJob={handleDeleteJob}
+            handleFlagCancel={handleFlagCancel}
+            setDeletedTickets={setDeletedTickets}
+            jsas={jsas}
+            setJsas={setJsas}
+            userNames={userNames}
+            qbItems={qbItems}
+            userIdByName={userIdByName}
+            currentUser={currentUser}
+            customers={customers}
+            assets={assets}
+          />
+        } />
+        <Route path="/all-tickets" element={<AllTicketsPage tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} />} />
+        <Route path="/todos" element={<TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />} />
+        {!isField && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
+        <Route path="/crew" element={<CrewPage users={users} jobs={jobs} />} />
+        <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} currentUser={currentUser} qbItems={qbItems} />} />
+        <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} currentUser={currentUser} users={users} />} />
+        {!isField && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
+        {!isField && <Route path="/assets" element={<AssetsPage assets={assets} setAssets={setAssets} jobs={jobs} />} />}
+        {["owner", "admin", "manager"].includes(currentUser.role) && <Route path="/deleted" element={<DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />} />}
+        {isAdmin && <Route path="/archive" element={<ArchivePage currentUser={currentUser} />} />}
+        {isManager && <Route path="/users" element={<UsersPage users={users} setUsers={setUsers} currentUser={currentUser} isAdmin={isAdmin} />} />}
+        {/* Catch-all — redirect to dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
 
       {/* NEW JOB MODAL */}
       {showNewJob && (
