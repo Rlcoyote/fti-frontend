@@ -4,7 +4,7 @@ import { formatDate, updateTicketApi } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 
-function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, customers }) {
+function AllTicketsPage({ tickets, setTickets, jobs }) {
   const [viewTicket, setViewTicket] = useState(null);
   const [filterType, setFilterType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -151,7 +151,7 @@ function AllTicketsPage({ tickets, setTickets, jobs, qbItems, currentUser, custo
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
           onDelete={(id) => { setTickets(prev => prev.filter(t => t.id !== id)); setViewTicket(null); }}
-          jobs={jobs} qbItems={qbItems} currentUser={currentUser}
+          jobs={jobs}
         />
       )}
     </div>

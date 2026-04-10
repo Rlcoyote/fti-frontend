@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
-import { C, API_URL, STATUS_CONFIG, STATUS_ORDER, setCurrentUser as setGlobalUser } from "./config.js";
+import { C, API_URL, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
+import { useApp } from "./AppContext.jsx";
+import BrandedSplash from "./BrandedSplash.jsx";
 import { mapTicketFromApi, todoVisible } from "./utils.js";
 import { Btn, NavBadge, PipelineSummary, computeJobStatus } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
@@ -20,8 +22,8 @@ import UsersPage from "./UsersPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
 
-function FTIDashboard({ currentUser, onLogout }) {
-  setGlobalUser(currentUser.name);
+function FTIDashboard() {
+  const { currentUser, logout, customers, userNames, userIdByName } = useApp();
   const userRole = currentUser.role; // owner | admin | manager | lead | salesman | field
   const isAdmin = ["owner", "admin"].includes(userRole);
   const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
@@ -85,32 +87,25 @@ function FTIDashboard({ currentUser, onLogout }) {
   const [showNewJob, setShowNewJob] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // All state — starts empty, loads from API
+  // Page-level state — starts empty, loads from API on mount.
+  // App-wide state (users, customers, qbItems, assets, settings) lives in AppContext.
   const [todos, setTodos] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [deletedTickets, setDeletedTickets] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [jsas, setJsas] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [qbItems, setQbItems] = useState([]);
-  const [assets, setAssets] = useState([]);
 
-  // Load all data from API on mount
+  // Load page-level data from API on mount. App-wide data is loaded by AppContext.
   useEffect(() => {
     const load = async () => {
       try {
-        const [jobsR, ticketsR, todosR, invR, usersR, custR, qbR, delTicketsR, assetsR] = await Promise.all([
+        const [jobsR, ticketsR, todosR, invR, delTicketsR] = await Promise.all([
           fetch(`${API_URL}/jobs`).then(r => r.json()),
           fetch(`${API_URL}/tickets?include_voided=true`).then(r => r.json()),
           fetch(`${API_URL}/todos`).then(r => r.json()),
           fetch(`${API_URL}/inventory`).then(r => r.json()),
-          fetch(`${API_URL}/users`).then(r => r.json()),
-          fetch(`${API_URL}/customers`).then(r => r.json()),
-          fetch(`${API_URL}/qb-items`).then(r => r.json()),
           fetch(`${API_URL}/tickets?include_deleted=true`).then(r => r.json()),
-          fetch(`${API_URL}/assets`).then(r => r.json()).catch(() => []),
         ]);
         // Transform jobs from API format to app format
         const jobsMapped = (jobsR || []).map(j => ({
@@ -181,23 +176,11 @@ function FTIDashboard({ currentUser, onLogout }) {
           fieldTicket: i.field_ticket,
           notes: i.notes,
         }));
-        // Transform QB items
-        const qbMapped = (qbR || []).map(q => ({
-          code: q.code,
-          desc: q.description,
-          um: q.unit_measure,
-          price: Number(q.price),
-        }));
-
         setJobs(jobsMapped);
         setTickets(ticketsMapped);
         setDeletedTickets((delTicketsR || []).map(mapTicketFromApi));
         setTodos(todosMapped);
         setInventory(invMapped);
-        setUsers(usersR || []);
-        setCustomers(custR || []);
-        setQbItems(qbMapped);
-        setAssets(assetsR || []);
 
         // Trigger rental cycle check on load
         fetch(`${API_URL}/tickets/check-cycles`, { method: "POST" }).catch(() => {});
@@ -209,11 +192,6 @@ function FTIDashboard({ currentUser, onLogout }) {
     };
     load();
   }, []);
-
-  // Derived user names for dropdowns
-  const userNames = users.map(u => u.name);
-  const userIdByName = {};
-  users.forEach(u => { userIdByName[u.name] = u.id; });
 
   const myActiveTodos = todos.filter(t => todoVisible(t) && !t.completed);
 
@@ -428,16 +406,7 @@ function FTIDashboard({ currentUser, onLogout }) {
     return true;
   });
 
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: C.pageBg, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: C.blue, marginBottom: 8 }}>FLO-TEST INC.</div>
-          <div style={{ fontSize: 13, color: C.muted }}>Loading...</div>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <BrandedSplash />;
 
   return (
     <div style={{ minHeight: "100vh", background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
@@ -526,7 +495,7 @@ function FTIDashboard({ currentUser, onLogout }) {
             <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Settings</span>
           </div>
         )}
-        <div onClick={() => { setDrawerOpen(false); onLogout(); }} style={{
+        <div onClick={() => { setDrawerOpen(false); logout(); }} style={{
           display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
           borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
         }}>
@@ -556,7 +525,7 @@ function FTIDashboard({ currentUser, onLogout }) {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.91</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.92</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -610,8 +579,8 @@ function FTIDashboard({ currentUser, onLogout }) {
                 )}
               </div>
             )}
-            <span onClick={onLogout} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
-            <div onClick={onLogout} style={{
+            <span onClick={logout} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
+            <div onClick={logout} style={{
               width: 30, height: 30, borderRadius: "50%", background: C.red,
               border: `2px solid #ffffff55`, display: "flex", alignItems: "center",
               justifyContent: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", color: C.white,
@@ -646,38 +615,32 @@ function FTIDashboard({ currentUser, onLogout }) {
             setDeletedTickets={setDeletedTickets}
             jsas={jsas}
             setJsas={setJsas}
-            userNames={userNames}
-            qbItems={qbItems}
-            userIdByName={userIdByName}
-            currentUser={currentUser}
-            customers={customers}
-            assets={assets}
           />
         } />
-        <Route path="/all-tickets" element={<AllTicketsPage tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} />} />
+        <Route path="/all-tickets" element={<AllTicketsPage tickets={tickets} setTickets={setTickets} jobs={jobs} />} />
         <Route path="/todos" element={<TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />} />
         {!isField && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
-        <Route path="/crew" element={<CrewPage users={users} jobs={jobs} />} />
-        <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} currentUser={currentUser} qbItems={qbItems} />} />
-        <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} currentUser={currentUser} users={users} />} />
+        <Route path="/crew" element={<CrewPage jobs={jobs} />} />
+        <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
+        <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />
         {!isField && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
-        {!isField && <Route path="/assets" element={<AssetsPage assets={assets} setAssets={setAssets} jobs={jobs} />} />}
-        {["owner", "admin", "manager"].includes(currentUser.role) && <Route path="/deleted" element={<DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} currentUser={currentUser} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />} />}
-        {isAdmin && <Route path="/archive" element={<ArchivePage currentUser={currentUser} />} />}
-        {isManager && <Route path="/users" element={<UsersPage users={users} setUsers={setUsers} currentUser={currentUser} isAdmin={isAdmin} />} />}
+        {!isField && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
+        {["owner", "admin", "manager"].includes(currentUser.role) && <Route path="/deleted" element={<DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />} />}
+        {isAdmin && <Route path="/archive" element={<ArchivePage />} />}
+        {isManager && <Route path="/users" element={<UsersPage isAdmin={isAdmin} />} />}
         {/* Catch-all — redirect to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       {/* NEW JOB MODAL */}
       {showNewJob && (
-        <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} customers={customers} users={users} />
+        <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} />
       )}
       {showPermissions && (
-        <PermissionsModal onClose={() => setShowPermissions(false)} currentUser={currentUser} />
+        <PermissionsModal onClose={() => setShowPermissions(false)} />
       )}
       {showSettings && (
-        <SettingsModal onClose={() => setShowSettings(false)} currentUser={currentUser} />
+        <SettingsModal onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

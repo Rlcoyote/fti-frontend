@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { ROLE_OPTIONS, canModifyUser } from "./utils.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function UsersPage({ users, setUsers, currentUser, isAdmin }) {
+function UsersPage({ isAdmin }) {
+  const { users, currentUser, refreshUsers } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -54,7 +56,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: created.id }),
       });
-      setUsers(prev => [...prev, { ...created, is_active: true }]);
+      await refreshUsers();
       setNewName(""); setNewEmail(""); setNewRole("field"); setShowAdd(false);
       setMsg("User created — invite email sent.");
       setTimeout(() => setMsg(""), 5000);
@@ -85,7 +87,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         body: JSON.stringify({ name: editName.trim(), email: editEmail.trim().toLowerCase(), role: editRole }),
       });
       if (!r.ok) { setMsg("Failed to save"); return; }
-      setUsers(prev => prev.map(u => u.id === editId ? { ...u, name: editName.trim(), email: editEmail.trim().toLowerCase(), role: editRole } : u));
+      await refreshUsers();
       setEditId(null); setMsg("Saved.");
       setTimeout(() => setMsg(""), 3000);
     } catch { setMsg("Error saving user"); }
@@ -99,7 +101,7 @@ function UsersPage({ users, setUsers, currentUser, isAdmin }) {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: false }),
       });
-      setUsers(prev => prev.filter(u => u.id !== userId));
+      await refreshUsers();
     } catch { console.error("Deactivate failed"); }
   };
 

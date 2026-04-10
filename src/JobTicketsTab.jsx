@@ -5,8 +5,10 @@ import { Btn, TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 import AddTicketModal from "./AddTicketModal.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser, customers, onTicketDeleted }) {
+function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
+  const { currentUser } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
@@ -67,6 +69,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
       site_mgr_last: ticketData.siteMgrLast || null,
       site_mgr_phone: ticketData.siteMgrPhone || null,
       site_mgr_email: ticketData.siteMgrEmail || null,
+      yard_location_index: ticketData.yardLocationIndex || 1,
       lineItems: (ticketData.lineItems || []).map(li => ({
         qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
       })),
@@ -336,10 +339,10 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, qbItems, currentUser,
         );
       })}
 
-      {showAdd && <AddTicketModal jobId={jobId} job={jobs.find(j => j.id === jobId)} onSave={handleAdd} onClose={() => setShowAdd(false)} qbItems={qbItems} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} />}
+      {showAdd && <AddTicketModal jobId={jobId} job={jobs.find(j => j.id === jobId)} onSave={handleAdd} onClose={() => setShowAdd(false)} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} />}
       {viewTicket && (
         <TicketDetail
-          ticket={viewTicket} jobs={jobs} qbItems={qbItems} currentUser={currentUser}
+          ticket={viewTicket} jobs={jobs}
           openToSign={viewTicketMode === "sign"}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}

@@ -1,11 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
-import { today } from "./utils.js";
+import { today, parseYards } from "./utils.js";
 import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] }) {
+function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
+  const { qbItems, settings } = useApp();
+  const yardsList = useMemo(() => parseYards(settings), [settings]);
+  const [yardLocationIndex, setYardLocationIndex] = useState(1);
   const [type, setType] = useState(null);
   const [assignedWells, setAssignedWells] = useState([]);
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
@@ -42,7 +46,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] })
   const [driveLoading, setDriveLoading] = useState(false);
   const pinMismatch = jobGooglePin && ticketPin && ticketPin.trim() !== jobGooglePin.trim();
 
-  // Auto-fetch drive distance when coords become available
+  // Auto-fetch drive distance when coords become available or yard changes
   useEffect(() => {
     const lat = ticketPinLat;
     const lng = ticketPinLng;
@@ -50,13 +54,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] })
     setDriveLoading(true);
     fetch(`${API_URL}/jobs/drive-distance`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ destLat: lat, destLng: lng }),
+      body: JSON.stringify({ destLat: lat, destLng: lng, yard_index: yardLocationIndex }),
     })
       .then(r => r.ok ? r.json() : { error: "Could not calculate" })
       .then(d => setDriveInfo(d))
       .catch(() => setDriveInfo({ error: "Network error" }))
       .finally(() => setDriveLoading(false));
-  }, [ticketPinLat, ticketPinLng]);
+  }, [ticketPinLat, ticketPinLng, yardLocationIndex]);
 
   const endDate = useMemo(() => {
     if (!startDate || !cycleDays) return "";
@@ -107,6 +111,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] })
       lineItems, notes,
       assignedWells: assignedWells ?? jobWells,
       siteMgrFirst: smFirst, siteMgrLast: smLast, siteMgrPhone: smPhone, siteMgrEmail: smEmail,
+      yardLocationIndex,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
       ...(isRental ? { startDate, endDate, cycleDays: parseInt(cycleDays) || 28, isRecurring, googlePin: ticketPin.trim() || jobGooglePin, pinLat: ticketPinLat || jobPinLat, pinLng: ticketPinLng || jobPinLng } : {}),
       ...(!isRental ? {
@@ -262,6 +267,20 @@ function AddTicketModal({ jobId, job, onSave, onClose, qbItems, jobWells = [] })
                       <label style={labelStyle}>LOCATION TIME</label>
                       <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
                     </div>
+                    {yardsList.length > 1 && (
+                      <div>
+                        <label style={labelStyle}>YARD</label>
+                        <select
+                          value={yardLocationIndex}
+                          onChange={e => setYardLocationIndex(parseInt(e.target.value, 10))}
+                          style={{ ...inputStyle, width: 180 }}
+                        >
+                          {yardsList.map((y, i) => (
+                            <option key={i} value={i + 1}>{y.name || `Yard #${i + 1}`}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

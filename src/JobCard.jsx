@@ -6,8 +6,10 @@ import { JobTodoTab } from "./TodoPage.jsx";
 import JobTicketsTab from "./JobTicketsTab.jsx";
 import EditJobModal from "./EditJobModal.jsx";
 import FlowbackModal from "./FlowbackModal.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onTicketDeleted, jsas, setJsas, userNames, qbItems, userIdByName, currentUser, customers, assets }) {
+function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onTicketDeleted, jsas, setJsas }) {
+  const { currentUser, assets, userNames, userIdByName } = useApp();
   const jobTickets = tickets.filter(t => t.jobId === job.id);
   const computedStatus = computeJobStatus(job, jobTickets);
   const cfg = STATUS_CONFIG[computedStatus] || STATUS_CONFIG["Scheduled"];
@@ -239,7 +241,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
-              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} qbItems={qbItems} currentUser={currentUser} customers={customers} onTicketDeleted={onTicketDeleted} />
+              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} onTicketDeleted={onTicketDeleted} />
             </div>
           )}
 
@@ -250,7 +252,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           )}
         </div>
       )}
-      {showEditJob && <EditJobModal job={job} currentUser={currentUser} onSave={(updates) => { onUpdateJob(job.id, updates); setShowEditJob(false); }} onClose={() => setShowEditJob(false)} />}
+      {showEditJob && <EditJobModal job={job} onSave={(updates) => { onUpdateJob(job.id, updates); setShowEditJob(false); }} onClose={() => setShowEditJob(false)} />}
       {showFlowback && <FlowbackModal job={job} onClose={() => setShowFlowback(false)} />}
       {showDeleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowDeleteConfirm(false)}>

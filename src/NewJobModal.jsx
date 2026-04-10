@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function NewJobModal({ onClose, onCreateJob, customers, users = [] }) {
+function NewJobModal({ onClose, onCreateJob }) {
+  const { customers, users } = useApp();
   const [custSearch, setCustSearch] = useState("");
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);

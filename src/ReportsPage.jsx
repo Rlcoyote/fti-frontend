@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
 import { inputStyle, labelStyle, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function ReportsPage({ jobs, tickets, inventory, currentUser, users }) {
+function ReportsPage({ jobs, tickets, inventory }) {
+  const { currentUser, users } = useApp();
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const [dateFrom, setDateFrom] = useState(monthStart);

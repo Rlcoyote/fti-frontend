@@ -26,11 +26,33 @@ export const mapTicketFromApi = (t) => ({
   siteMgrFirst: t.site_mgr_first || "", siteMgrLast: t.site_mgr_last || "",
   siteMgrPhone: t.site_mgr_phone || "", siteMgrEmail: t.site_mgr_email || "",
   archivedAt: t.archived_at || null,
+  yardLocationIndex: t.yard_location_index || 1,
   lineItems: (t.lineItems || t.line_items || []).map(li => ({
     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
     qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
   })),
 });
+
+// Parse the yards[] array from an app_settings row. The `yards` column is a
+// JSON string; fall back to the legacy single-yard columns when it's absent
+// or empty. Always returns at least one yard.
+const BLANK_YARD = { name: "", address: "", lat: "", lng: "" };
+export const parseYards = (settings) => {
+  if (!settings) return [{ ...BLANK_YARD }];
+  let arr = [];
+  if (settings.yards) {
+    try { arr = JSON.parse(settings.yards); } catch { arr = []; }
+  }
+  if (!Array.isArray(arr) || arr.length === 0) {
+    arr = [{
+      name: "Yard #1",
+      address: settings.yard_address || "",
+      lat: settings.yard_lat || "",
+      lng: settings.yard_lng || "",
+    }];
+  }
+  return arr;
+};
 
 export const formatShortStamp = (d) => {
   if (!d) return "";
@@ -88,6 +110,7 @@ export const buildTicketPayload = (updates) => {
   if (updates.siteMgrLast !== undefined) p.site_mgr_last = updates.siteMgrLast;
   if (updates.siteMgrPhone !== undefined) p.site_mgr_phone = updates.siteMgrPhone;
   if (updates.siteMgrEmail !== undefined) p.site_mgr_email = updates.siteMgrEmail;
+  if (updates.yardLocationIndex !== undefined) p.yard_location_index = updates.yardLocationIndex;
   if (updates.lineItems) {
     p.lineItems = updates.lineItems.map(li => ({
       qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,

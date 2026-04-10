@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function LoginScreen({ onLogin }) {
+function LoginScreen() {
+  const { setCurrentUser } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -37,7 +39,7 @@ function LoginScreen({ onLogin }) {
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
       const data = await r.json();
-      if (r.ok) { onLogin(data); } else { setError(data.error || "Login failed"); }
+      if (r.ok) { setCurrentUser(data); } else { setError(data.error || "Login failed"); }
     } catch (err) { setError("Connection error — check internet"); }
     finally { setLoading(false); }
   };

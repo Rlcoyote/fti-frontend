@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, FilterBtn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
 const ASSET_TYPES = ["Truck", "Trailer", "Separator", "Tank", "Generator", "Pump Unit", "Other"];
 const STATUS_COLORS = {
@@ -9,7 +10,8 @@ const STATUS_COLORS = {
   maintenance: { color: C.red, bg: "#fdecea", label: "MAINTENANCE" },
 };
 
-function AssetsPage({ assets, setAssets, jobs }) {
+function AssetsPage({ jobs }) {
+  const { assets, refreshAssets } = useApp();
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -64,8 +66,8 @@ function AssetsPage({ assets, setAssets, jobs }) {
         body: JSON.stringify({ name: newName.trim(), type: newType || null, unit_number: newUnit.trim() || null, serial_vin: newSerial.trim() || null, notes: newNotes.trim() || null }),
       });
       if (!r.ok) { setMsg("Failed to create"); return; }
-      const created = await r.json();
-      setAssets(prev => [...prev, created]);
+      await r.json();
+      await refreshAssets();
       setNewName(""); setNewType(""); setNewUnit(""); setNewSerial(""); setNewNotes(""); setShowAdd(false);
       setMsg("Asset added.");
       setTimeout(() => setMsg(""), 3000);
@@ -80,8 +82,8 @@ function AssetsPage({ assets, setAssets, jobs }) {
         body: JSON.stringify({ name: eName.trim(), type: eType || null, unit_number: eUnit.trim() || null, serial_vin: eSerial.trim() || null, notes: eNotes.trim() || null, status: eStatus }),
       });
       if (!r.ok) { setMsg("Failed to save"); return; }
-      const updated = await r.json();
-      setAssets(prev => prev.map(a => a.id === updated.id ? updated : a));
+      await r.json();
+      await refreshAssets();
       setEditAsset(null);
       setMsg("Saved.");
       setTimeout(() => setMsg(""), 3000);
@@ -91,7 +93,7 @@ function AssetsPage({ assets, setAssets, jobs }) {
   const handleDelete = async (id) => {
     try {
       await fetch(`${API_URL}/assets/${id}`, { method: "DELETE" });
-      setAssets(prev => prev.filter(a => a.id !== id));
+      await refreshAssets();
       setEditAsset(null);
     } catch { setMsg("Delete failed"); }
   };
@@ -104,8 +106,8 @@ function AssetsPage({ assets, setAssets, jobs }) {
         body: JSON.stringify({ job_id: parseInt(assignJobId) }),
       });
       if (!r.ok) { setMsg("Assign failed"); return; }
-      const updated = await r.json();
-      setAssets(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a));
+      await r.json();
+      await refreshAssets();
       setAssignAsset(null); setAssignJobId("");
       setMsg("Asset deployed.");
       setTimeout(() => setMsg(""), 3000);
@@ -116,8 +118,8 @@ function AssetsPage({ assets, setAssets, jobs }) {
     try {
       const r = await fetch(`${API_URL}/assets/${id}/unassign`, { method: "POST" });
       if (!r.ok) { setMsg("Unassign failed"); return; }
-      const updated = await r.json();
-      setAssets(prev => prev.map(a => a.id === updated.id ? { ...a, ...updated } : a));
+      await r.json();
+      await refreshAssets();
       setMsg("Asset returned.");
       setTimeout(() => setMsg(""), 3000);
     } catch { setMsg("Error"); }

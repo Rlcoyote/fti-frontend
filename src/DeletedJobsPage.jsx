@@ -2,8 +2,10 @@ import { useState } from "react";
 import { C } from "./config.js";
 import { formatDate } from "./utils.js";
 import { Btn, TICKET_TYPES } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, currentUser, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
+function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
+  const { currentUser } = useApp();
   const [showArchiveAllConfirm, setShowArchiveAllConfirm] = useState(false);
   const canArchive = ["owner", "admin"].includes(currentUser.role);
   const totalDeleted = deletedJobs.length + deletedTickets.length;

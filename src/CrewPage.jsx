@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
 import { inputStyle } from "./SharedUI.jsx";
 import { C } from "./config.js";
+import { useApp } from "./AppContext.jsx";
 
-function CrewPage({ users, jobs }) {
+function CrewPage({ jobs }) {
+  const { users } = useApp();
   const [search, setSearch] = useState("");
 
   // Determine each user's current job assignment

@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function FinalReviewPage({ jobs, tickets, setTickets, currentUser, qbItems }) {
+function FinalReviewPage({ jobs, tickets, setTickets }) {
+  const { currentUser, qbItems } = useApp();
   const [expandedId, setExpandedId] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);

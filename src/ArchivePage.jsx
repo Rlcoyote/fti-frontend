@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { formatDate } from "./utils.js";
 import { TICKET_TYPES } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function ArchivePage({ currentUser }) {
+function ArchivePage() {
+  const { currentUser } = useApp();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("All");

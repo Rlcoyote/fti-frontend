@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { canModifyUser } from "./utils.js";
+import { useApp } from "./AppContext.jsx";
 
-function PermissionsModal({ onClose, currentUser }) {
+function PermissionsModal({ onClose }) {
+  const { currentUser } = useApp();
   const [permUsers, setPermUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});

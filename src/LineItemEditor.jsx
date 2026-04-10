@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal } from "./utils.js";
 import { Btn, inputStyle } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
 
-function LineItemEditor({ lineItems, setLineItems, ticketType, qbItems = [], onSigWipe, jobId }) {
+function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId }) {
+  const { qbItems } = useApp();
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [hasRigUp, setHasRigUp] = useState(false);

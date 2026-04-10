@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { C, API_URL, getCurrentUser } from "./config.js";
-import { today, formatDate, formatShortStamp, shortName, calcLineTotal, buildTicketPayload, mapTicketFromApi } from "./utils.js";
+import { C, API_URL } from "./config.js";
+import { today, formatDate, formatShortStamp, shortName, calcLineTotal, buildTicketPayload, mapTicketFromApi, parseYards } from "./utils.js";
 import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import TimePicker from "./TimePicker.jsx";
@@ -9,6 +9,7 @@ import SignaturePad from "./SignaturePad.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
 import JSAModal from "./JSAModal.jsx";
+import { useApp } from "./AppContext.jsx";
 
 function RentalCountdown({ ticket }) {
   const endDate = ticket.endDate || ticket.end_date;
@@ -31,7 +32,9 @@ function RentalCountdown({ ticket }) {
   );
 }
 
-function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, qbItems, currentUser, openToSign = false }) {
+function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, openToSign = false }) {
+  const { qbItems, currentUser, settings } = useApp();
+  const yardsList = useMemo(() => parseYards(settings), [settings]);
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
   const [ticketDate, setTicketDate] = useState(() => ticket.date ? ticket.date.slice(0, 10) : "");
@@ -67,6 +70,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [siteMgrLast, setSiteMgrLast] = useState(() => ticket.siteMgrLast || "");
   const [siteMgrPhone, setSiteMgrPhone] = useState(() => ticket.siteMgrPhone || "");
   const [siteMgrEmail, setSiteMgrEmail] = useState(() => ticket.siteMgrEmail || "");
+  // Yard location — 1-indexed, matches backend yard_location_index / yard_index
+  const [yardLocationIndex, setYardLocationIndex] = useState(() => ticket.yardLocationIndex || ticket.yard_location_index || 1);
   const [showDupModal, setShowDupModal] = useState(false);
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
@@ -153,7 +158,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   }, [ticket.id]);
 
   // Load comments when ticket opens + poll every 30s
-  // Auto-fetch drive distance from yard if pin coords available
+  // Auto-fetch drive distance from yard if pin coords available.
+  // Re-runs when the selected yard changes so the distance/time follow the dropdown.
   useEffect(() => {
     const lat = ticketPinLat || job?.pinLat || job?.pin_lat;
     const lng = ticketPinLng || job?.pinLng || job?.pin_lng;
@@ -161,13 +167,13 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     setDriveLoading(true);
     fetch(`${API_URL}/jobs/drive-distance`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ destLat: lat, destLng: lng }),
+      body: JSON.stringify({ destLat: lat, destLng: lng, yard_index: yardLocationIndex }),
     })
       .then(r => r.ok ? r.json() : { error: "Could not calculate" })
       .then(d => setDriveInfo(d))
       .catch(() => setDriveInfo({ error: "Network error" }))
       .finally(() => setDriveLoading(false));
-  }, [ticket.id]);
+  }, [ticket.id, yardLocationIndex]);
 
   useEffect(() => {
     if (!ticket.id) return;
@@ -233,6 +239,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
       signedBy, signedAt, signatureImage,
       siteMgrFirst, siteMgrLast, siteMgrPhone, siteMgrEmail,
+      yardLocationIndex,
       ...(ticket.type === "Rental" ? { startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: parseInt(rentalCycleDays) || 28, isRecurring: rentalRecurring, googlePin: ticketPin || null, pinLat: ticketPinLat || null, pinLng: ticketPinLng || null } : {}),
       ...(!["Rental", "JSA"].includes(ticket.type) ? {
         lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
@@ -332,7 +339,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       await save({ emailTo: emailToStr, emailCc });
       const r = await fetch(`${API_URL}/signature/send/${ticket.id}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ performed_by: getCurrentUser() }),
+        body: JSON.stringify({ performed_by: currentUser?.name }),
       });
       if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
       setStatus("emailed");
@@ -391,6 +398,20 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                       ? <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
                       : <span style={{ fontWeight: 600 }}>{dueOnLoc || "—"}</span>
                     }
+                  </span>
+                )}
+                {yardsList.length > 1 && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>YARD:</span>
+                    <select
+                      value={yardLocationIndex}
+                      onChange={e => setYardLocationIndex(parseInt(e.target.value, 10))}
+                      style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg, fontWeight: 600 }}
+                    >
+                      {yardsList.map((y, i) => (
+                        <option key={i} value={i + 1}>{y.name || `Yard #${i + 1}`}</option>
+                      ))}
+                    </select>
                   </span>
                 )}
               </div>
@@ -679,7 +700,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                             try {
                               const r = await fetch(`${API_URL}/jobs/drive-distance`, {
                                 method: "POST", headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng }),
+                                body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng, yard_index: yardLocationIndex }),
                               });
                               if (r.ok) { const d = await r.json(); setDriveInfo(d); }
                               else setDriveInfo({ error: "Could not calculate — check yard location in Settings" });
@@ -821,7 +842,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                       try {
                         const r = await fetch(`${API_URL}/jobs/drive-distance`, {
                           method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng }),
+                          body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng, yard_index: yardLocationIndex }),
                         });
                         if (r.ok) { const d = await r.json(); setDriveInfo(d); }
                         else setDriveInfo({ error: "Could not calculate — check yard location in Settings" });

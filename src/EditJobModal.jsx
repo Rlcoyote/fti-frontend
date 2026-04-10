@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
+import { useApp } from "./AppContext.jsx";
 
-function EditJobModal({ job, onSave, onClose, currentUser }) {
+function EditJobModal({ job, onSave, onClose }) {
+  const { currentUser } = useApp();
   // Edit lock for concurrent access
   const editLock = useEditLock("jobs", job.id, currentUser, () => {
     // Auto-save on timeout — save current state

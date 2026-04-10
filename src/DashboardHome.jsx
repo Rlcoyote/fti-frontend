@@ -25,12 +25,6 @@ function DashboardHome({
   setDeletedTickets,
   jsas,
   setJsas,
-  userNames,
-  qbItems,
-  userIdByName,
-  currentUser,
-  customers,
-  assets,
 }) {
   return (
     <div className="fti-dashboard-pad" style={{ padding: "32px 28px" }}>
@@ -83,15 +77,9 @@ function DashboardHome({
           jobs={jobs} onNavigateJob={navigateToJob}
           onUpdateJob={handleUpdateJob}
           jsas={jsas} setJsas={setJsas}
-          userNames={userNames}
-          qbItems={qbItems}
-          userIdByName={userIdByName}
-          currentUser={currentUser}
-          customers={customers}
           onDeleteJob={handleDeleteJob}
           onFlagCancel={handleFlagCancel}
           onTicketDeleted={(ticket) => setDeletedTickets(prev => [...prev, ticket])}
-          assets={assets}
         />
       ))}
     </div>
