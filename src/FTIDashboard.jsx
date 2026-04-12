@@ -22,6 +22,7 @@ import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import UsersPage from "./UsersPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
+import SafetyPage from "./SafetyPage.jsx";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -70,6 +71,7 @@ function FTIDashboard() {
     if (p.startsWith("/inventory")) return "inventory";
     if (p.startsWith("/assets")) return "assets";
     if (p.startsWith("/crew")) return "crew";
+    if (p.startsWith("/safety")) return "safety";
     if (p.startsWith("/final-review")) return "finalReview";
     if (p.startsWith("/reports")) return "reports";
     if (p.startsWith("/deleted")) return "deleted";
@@ -400,7 +402,7 @@ function FTIDashboard() {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Assets", "Crew", "Final Review", "Reports", "Deleted", "Archive", "Users"];
+  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Assets", "Crew", "Safety", "Final Review", "Reports", "Deleted", "Archive", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && isField) return false;
     if (i === "Assets" && isField) return false;
@@ -462,9 +464,9 @@ function FTIDashboard() {
           <span style={{ fontSize: 15, fontWeight: page === "dashboard" ? 700 : 400, color: page === "dashboard" ? C.white : "#b0bdd4" }}>Dashboard</span>
         </div>
         {NAV_ITEMS.map(item => {
-          const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Work Order History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
-          const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Work Order History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
-          const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Work Order History": "📋", "Action Items": "✓", Inventory: "📦", Assets: "🚛", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
+          const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Work Order History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", Safety: "safety", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+          const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Work Order History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", Safety: "/safety", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
+          const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Work Order History": "📋", "Action Items": "✓", Inventory: "📦", Assets: "🚛", Crew: "👷", Safety: "🛡", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
           if (item === "Users" && !isManager) return null;
           if (item === "Work Order History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
@@ -539,13 +541,13 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.02</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.03</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
-            const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Work Order History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
-            const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Work Order History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
+            const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Work Order History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", Safety: "safety", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+            const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Work Order History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", Safety: "/safety", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
@@ -643,6 +645,7 @@ function FTIDashboard() {
         <Route path="/todos" element={<TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />} />
         {!isField && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
+        <Route path="/safety" element={<SafetyPage />} />
         <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />
         {!isField && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
