@@ -24,6 +24,7 @@ import UsersPage from "./UsersPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
 import SafetyPage from "./SafetyPage.jsx";
+import ActivityLogPage from "./ActivityLogPage.jsx";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -73,6 +74,7 @@ function FTIDashboard() {
     if (p.startsWith("/assets")) return "assets";
     if (p.startsWith("/crew")) return "crew";
     if (p.startsWith("/safety")) return "safety";
+    if (p.startsWith("/activity")) return "activity";
     if (p.startsWith("/final-review")) return "finalReview";
     if (p.startsWith("/reports")) return "reports";
     if (p.startsWith("/deleted")) return "deleted";
@@ -543,7 +545,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.08</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.09</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -607,6 +609,14 @@ function FTIDashboard() {
                       onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                       Field Resources
                     </div>
+                    {isAdmin && (
+                      <div onClick={() => { setShowSettingsMenu(false); navigate("/activity"); }}
+                        style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        Activity Log
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -654,6 +664,7 @@ function FTIDashboard() {
         {!isField && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
+        {isAdmin && <Route path="/activity" element={<ActivityLogPage />} />}
         <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />
         {!isField && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}

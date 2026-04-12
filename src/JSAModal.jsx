@@ -44,6 +44,21 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   }, [lat, lng]);
 
   const [weather, setWeather] = useState(jsa?.weather || []);
+  const [weatherData, setWeatherData] = useState(null);
+
+  // Auto-fetch weather conditions when coordinates are available (new JSAs only)
+  useEffect(() => {
+    if (!lat || !lng || jsa?.weather?.length > 0) return; // don't overwrite existing JSA weather
+    fetch(`${API_URL}/safety/weather?lat=${lat}&lng=${lng}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.tags?.length > 0) {
+          setWeather(d.tags);
+          setWeatherData(d);
+        }
+      })
+      .catch(() => {});
+  }, [lat, lng]);
   const [ppe, setPpe] = useState(jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false });
   const [signatures, setSignatures] = useState(jsa?.signatures || [""]);
   const [presenterReview, setPresenterReview] = useState(jsa?.presenterReview ||
@@ -196,6 +211,14 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             </div>
             <div>
               <label style={labelStyle}>WEATHER CONDITIONS</label>
+              {weatherData && (
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
+                  {weatherData.temperature != null && <span style={{ fontWeight: 700, color: C.text }}>{Math.round(weatherData.temperature)}°F</span>}
+                  {weatherData.wind_speed > 0 && <span style={{ marginLeft: 10 }}>Wind: {Math.round(weatherData.wind_speed)} mph</span>}
+                  {weatherData.wind_gusts > 0 && <span style={{ marginLeft: 6 }}>Gusts: {Math.round(weatherData.wind_gusts)} mph</span>}
+                  <span style={{ marginLeft: 10, fontSize: 9, color: C.blue }}>auto-detected from pin</span>
+                </div>
+              )}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 {weatherOpts.map(w => (
                   <button key={w} onClick={() => toggleWeather(w)} style={{

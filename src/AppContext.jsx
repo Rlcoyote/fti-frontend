@@ -133,10 +133,33 @@ export function AppProvider({ children }) {
     return () => { cancelled = true; };
   }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets]);
 
+  // ── Activity logging ──
+  const logActivity = useCallback((action, entityType, entityId, details) => {
+    // Fire-and-forget — don't block UI for logging
+    fetch(`${API_URL}/activity`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: currentUser?.id || null,
+        user_name: currentUser?.name || null,
+        action,
+        entity_type: entityType || null,
+        entity_id: entityId ? String(entityId) : null,
+        details: details || null,
+      }),
+    }).catch(() => {}); // silent fail — logging should never break the app
+  }, [currentUser]);
+
   // ── Auth mutations ──
   const setCurrentUser = useCallback((user) => {
     if (user) {
       sessionStorage.setItem("fti_user", JSON.stringify(user));
+      // Log login
+      fetch(`${API_URL}/activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.id, user_name: user.name, action: "login" }),
+      }).catch(() => {});
     } else {
       sessionStorage.removeItem("fti_user");
     }
@@ -144,11 +167,17 @@ export function AppProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Log logout before clearing user
+    if (currentUser) {
+      fetch(`${API_URL}/activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name, action: "logout" }),
+      }).catch(() => {});
+    }
     setCurrentUser(null);
-    // Force navigation to root so next login lands on the dashboard,
-    // not the last visited page (BrowserRouter preserves the URL path).
     window.location.href = '/';
-  }, [setCurrentUser]);
+  }, [setCurrentUser, currentUser]);
 
   // ── Derived ──
   const { userNames, userIdByName } = useMemo(() => {
@@ -159,13 +188,13 @@ export function AppProvider({ children }) {
   }, [users]);
 
   const value = useMemo(() => ({
-    currentUser, setCurrentUser, logout,
+    currentUser, setCurrentUser, logout, logActivity,
     settings, users, customers, qbItems, assets,
     userNames, userIdByName,
     loading,
     refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets,
   }), [
-    currentUser, setCurrentUser, logout,
+    currentUser, setCurrentUser, logout, logActivity,
     settings, users, customers, qbItems, assets,
     userNames, userIdByName, loading,
     refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets,
