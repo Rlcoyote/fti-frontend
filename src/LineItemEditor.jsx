@@ -10,8 +10,10 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   const [showSearch, setShowSearch] = useState(false);
   const [hasRigUp, setHasRigUp] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
-  const [warnItem, setWarnItem] = useState(null); // Rig Down validation: pending item needing approval
-  const [allowedCodes, setAllowedCodes] = useState(null); // Set of QB codes from Rig Up + Rental
+  const [warnItem, setWarnItem] = useState(null);
+  const [allowedCodes, setAllowedCodes] = useState(null);
+  const [editingIdx, setEditingIdx] = useState(null); // Mobile: which card is expanded for editing
+  const [isMob] = useState(() => window.innerWidth <= 900);
   const isRental = ticketType === "Rental";
   const isRigDown = ticketType === "Rig Down";
 
@@ -108,73 +110,153 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
 
   return (
     <div>
-      {/* Scrollable container for the grid — prevents line items from overflowing
-          the viewport on mobile, which was causing whole-page horizontal scroll */}
-      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-      <div style={{ minWidth: 520 }}>
-      {/* Header */}
-      <div style={{
-        display: "grid", gridTemplateColumns: cols,
-        gap: 4, padding: "6px 0", borderBottom: `1px solid ${C.border}`, marginBottom: 4,
-      }}>
-        {headers.map(h => (
-          <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>{h}</div>
-        ))}
-      </div>
-      {/* Rows */}
-      {lineItems.map((li, idx) => (
-        <div key={idx} style={{
+      {/* ── MOBILE: card layout — tap to edit ── */}
+      {isMob ? (
+        <div>
+          {lineItems.map((li, idx) => {
+            const liTotal = calcLineTotal(li);
+            const isEditing = editingIdx === idx;
+            const hasWarning = isRigDown && allowedCodes && allowedCodes.size > 0 && li.qbCode && !allowedCodes.has(li.qbCode);
+            return (
+              <div key={idx} style={{
+                background: C.cardBg, border: `1px solid ${isEditing ? C.blue : C.border}`,
+                borderRadius: 6, padding: "10px 12px", marginBottom: 6,
+                boxShadow: isEditing ? `0 2px 8px ${C.blue}22` : "none",
+              }}>
+                {/* Read row — always visible */}
+                <div onClick={() => setEditingIdx(isEditing ? null : idx)} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 10, color: C.muted, fontWeight: 700 }}>{idx + 1}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>{li.qbCode || "—"}</span>
+                      <span style={{ fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{li.desc || ""}</span>
+                      {hasWarning && <span style={{ color: "#8a6500", fontSize: 10 }}>⚠</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                      ${Number(li.rate || 0).toLocaleString()} × {li.qty || 0} {li.um || ""}{isRental && li.days > 1 ? ` × ${li.days}d` : ""} = <strong style={{ color: C.text }}>${liTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
+                    </div>
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); removeItem(idx); }} style={{
+                    background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 16, padding: "0 4px",
+                  }} onTouchStart={e => { e.currentTarget.style.color = C.red; }} onTouchEnd={e => { e.currentTarget.style.color = "#ccc"; }}>×</button>
+                </div>
+                {/* Edit fields — visible when tapped */}
+                {isEditing && (
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
+                      <div>
+                        <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>CODE</label>
+                        <input style={{ ...inputStyle, fontSize: 12 }} value={li.qbCode} onChange={e => updateItem(idx, "qbCode", e.target.value)} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>U/M</label>
+                        <select style={{ ...inputStyle, fontSize: 12 }} value={li.um} onChange={e => updateItem(idx, "um", e.target.value)}>
+                          {["HR", "DAY", "EA", "GAL", "MILE"].map(u => <option key={u}>{u}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>DESCRIPTION</label>
+                      <input style={{ ...inputStyle, fontSize: 12 }} value={li.desc} onChange={e => updateItem(idx, "desc", e.target.value)} />
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: isRental ? "1fr 1fr 1fr" : "1fr 1fr", gap: 6 }}>
+                      <div>
+                        <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>RATE</label>
+                        <input inputMode="decimal" style={{ ...inputStyle, fontSize: 12, textAlign: "right" }}
+                          value={li.rate} onChange={e => updateItem(idx, "rate", e.target.value === "" ? "" : Number(e.target.value))}
+                          onBlur={e => { if (e.target.value === "") updateItem(idx, "rate", 0); }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>QTY</label>
+                        <input inputMode="numeric" style={{ ...inputStyle, fontSize: 12, textAlign: "right" }}
+                          value={li.qty} onChange={e => updateItem(idx, "qty", e.target.value === "" ? "" : Math.max(1, Number(e.target.value) || 1))}
+                          onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "qty", 1); }} />
+                      </div>
+                      {isRental && (
+                        <div>
+                          <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>DAYS</label>
+                          <input inputMode="numeric" style={{ ...inputStyle, fontSize: 12, textAlign: "right" }}
+                            value={li.days || 1} onChange={e => updateItem(idx, "days", e.target.value === "" ? "" : Number(e.target.value))}
+                            onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "days", 1); }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {/* Total */}
+          <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginRight: 8 }}>TOTAL</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+      ) : (
+        /* ── DESKTOP: grid layout (unchanged) ── */
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <div style={{ minWidth: 520 }}>
+        <div style={{
           display: "grid", gridTemplateColumns: cols,
-          gap: 4, padding: "4px 0", borderBottom: `1px solid ${C.border}22`, alignItems: "center",
+          gap: 4, padding: "6px 0", borderBottom: `1px solid ${C.border}`, marginBottom: 4,
         }}>
-          <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>
-            {idx + 1}
-            {isRigDown && allowedCodes && allowedCodes.size > 0 && li.qbCode && !allowedCodes.has(li.qbCode) && (
-              <span title="Not on Rig Up or Rental ticket" style={{ color: "#8a6500", fontSize: 10, display: "block", lineHeight: 1 }}>⚠</span>
-            )}
-          </div>
-          <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.qbCode}
-            onChange={e => updateItem(idx, "qbCode", e.target.value)} />
-          <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.desc}
-            onChange={e => updateItem(idx, "desc", e.target.value)} />
-          <input inputMode="decimal" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
-            value={li.rate} onChange={e => updateItem(idx, "rate", e.target.value === "" ? "" : Number(e.target.value))}
-            onBlur={e => { if (e.target.value === "") updateItem(idx, "rate", 0); }} />
-          <input inputMode="numeric" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
-            value={li.qty} onChange={e => updateItem(idx, "qty", e.target.value === "" ? "" : Math.max(1, Number(e.target.value) || 1))}
-            onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "qty", 1); }} />
-          <select style={{ ...inputStyle, padding: "4px 4px", fontSize: 10 }} value={li.um}
-            onChange={e => updateItem(idx, "um", e.target.value)}>
-            {["HR", "DAY", "EA", "GAL", "MILE"].map(u => <option key={u}>{u}</option>)}
-          </select>
-          {isRental && (
+          {headers.map(h => (
+            <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>{h}</div>
+          ))}
+        </div>
+        {lineItems.map((li, idx) => (
+          <div key={idx} style={{
+            display: "grid", gridTemplateColumns: cols,
+            gap: 4, padding: "4px 0", borderBottom: `1px solid ${C.border}22`, alignItems: "center",
+          }}>
+            <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>
+              {idx + 1}
+              {isRigDown && allowedCodes && allowedCodes.size > 0 && li.qbCode && !allowedCodes.has(li.qbCode) && (
+                <span title="Not on Rig Up or Rental ticket" style={{ color: "#8a6500", fontSize: 10, display: "block", lineHeight: 1 }}>⚠</span>
+              )}
+            </div>
+            <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.qbCode}
+              onChange={e => updateItem(idx, "qbCode", e.target.value)} />
+            <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.desc}
+              onChange={e => updateItem(idx, "desc", e.target.value)} />
+            <input inputMode="decimal" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
+              value={li.rate} onChange={e => updateItem(idx, "rate", e.target.value === "" ? "" : Number(e.target.value))}
+              onBlur={e => { if (e.target.value === "") updateItem(idx, "rate", 0); }} />
             <input inputMode="numeric" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
-              value={li.days || 1} onChange={e => updateItem(idx, "days", e.target.value === "" ? "" : Number(e.target.value))}
-              onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "days", 1); }} />
-          )}
-          <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: C.text }}>
-            {'$'}{calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              value={li.qty} onChange={e => updateItem(idx, "qty", e.target.value === "" ? "" : Math.max(1, Number(e.target.value) || 1))}
+              onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "qty", 1); }} />
+            <select style={{ ...inputStyle, padding: "4px 4px", fontSize: 10 }} value={li.um}
+              onChange={e => updateItem(idx, "um", e.target.value)}>
+              {["HR", "DAY", "EA", "GAL", "MILE"].map(u => <option key={u}>{u}</option>)}
+            </select>
+            {isRental && (
+              <input inputMode="numeric" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
+                value={li.days || 1} onChange={e => updateItem(idx, "days", e.target.value === "" ? "" : Number(e.target.value))}
+                onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "days", 1); }} />
+            )}
+            <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: C.text }}>
+              {'$'}{calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <button onClick={() => removeItem(idx)} style={{
+              background: "transparent", border: "none", color: C.red, cursor: "pointer",
+              fontSize: 14, fontWeight: 700, padding: 0,
+            }}>×</button>
           </div>
-          <button onClick={() => removeItem(idx)} style={{
-            background: "transparent", border: "none", color: C.red, cursor: "pointer",
-            fontSize: 14, fontWeight: 700, padding: 0,
-          }}>×</button>
+        ))}
+        <div style={{
+          display: "grid", gridTemplateColumns: cols,
+          gap: 4, padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4,
+        }}>
+          {headers.slice(0, -2).map((_, i) => <div key={i} />)}
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, textAlign: "right", letterSpacing: "0.1em" }}>TOTAL</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: "right" }}>
+            {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+          <div />
         </div>
-      ))}
-      {/* Total */}
-      <div style={{
-        display: "grid", gridTemplateColumns: cols,
-        gap: 4, padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4,
-      }}>
-        {headers.slice(0, -2).map((_, i) => <div key={i} />)}
-        <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, textAlign: "right", letterSpacing: "0.1em" }}>TOTAL</div>
-        <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: "right" }}>
-          {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
-        <div />
-      </div>
-      </div>{/* end minWidth */}
-      </div>{/* end overflowX scroll wrapper */}
+        </div>
+      )}
       {/* Add buttons */}
       <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", position: "relative", flexWrap: "wrap" }}>
         <Btn small onClick={() => setShowSearch(s => !s)}>+ FROM RATE SHEET</Btn>
