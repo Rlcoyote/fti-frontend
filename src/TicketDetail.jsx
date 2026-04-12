@@ -400,6 +400,22 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                     }
                   </span>
                 )}
+                {ticket.type !== "Rental" && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>TIME ZONE:</span>
+                    {editable
+                      ? <span style={{ display: "flex", gap: 8 }}>
+                          {["TX", "NM"].map(tz => (
+                            <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
+                              <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
+                              {tz}
+                            </span>
+                          ))}
+                        </span>
+                      : <span style={{ fontWeight: 600 }}>{timeZone || "—"}</span>
+                    }
+                  </span>
+                )}
                 {yardsList.length > 1 && (
                   <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>YARD:</span>
@@ -552,16 +568,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 ))}
                 <div>
                   <div style={lblStyle}>TIME ZONE</div>
-                  {editable
-                    ? <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-                        {["TX", "NM"].map(tz => (
-                          <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
-                            <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
-                            {tz}
-                          </span>
-                        ))}
-                      </div>
-                    : <div style={roStyle}>{timeZone || "—"}</div>}
+                  <div style={roStyle}>{timeZone || "—"}</div>
                 </div>
               </div>
               {/* Totals */}

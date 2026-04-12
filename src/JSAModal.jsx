@@ -11,7 +11,8 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
     : (job.wells || []).map(w => typeof w === "string" ? w : w.well_name || w);
   const [date, setDate] = useState(jsa?.date || ticket?.date?.slice(0, 10) || today());
   const [operator, setOperator] = useState(jsa?.operator || job.customer);
-  const [wellName, setWellName] = useState(jsa?.wellName || jsa?.well_name || wellsList[0] || "");
+  // Auto-populate all wells from the ticket's assigned wells (not editable — Article X).
+  const wellName = jsa?.wellName || jsa?.well_name || wellsList.join(", ") || "—";
   const [time, setTime] = useState(jsa?.time || "");
   const [designatedDriver, setDesignatedDriver] = useState(jsa?.designatedDriver || "");
   const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat || "");
@@ -61,7 +62,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             <div><label style={labelStyle}>DATE</label><input type="date" style={inputStyle} value={date} onChange={e => setDate(e.target.value)} /></div>
             <div><label style={labelStyle}>TIME</label><input style={inputStyle} value={time} onChange={e => setTime(e.target.value)} placeholder="07:00" /></div>
             <div><label style={labelStyle}>OPERATOR</label><input style={inputStyle} value={operator} onChange={e => setOperator(e.target.value)} /></div>
-            <div><label style={labelStyle}>WELL NAME & #</label><input style={inputStyle} value={wellName} onChange={e => setWellName(e.target.value)} /></div>
+            <div><label style={labelStyle}>WELL NAME & #</label><div style={{ ...inputStyle, background: C.steel, minHeight: 36, display: "flex", alignItems: "center" }}>{wellName}</div></div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>

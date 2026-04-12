@@ -267,6 +267,17 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                       <label style={labelStyle}>LOCATION TIME</label>
                       <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
                     </div>
+                    <div>
+                      <label style={labelStyle}>TIME ZONE</label>
+                      <div style={{ display: "flex", gap: 10, paddingTop: 6 }}>
+                        {["TX", "NM"].map(tz => (
+                          <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
+                            <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
+                            {tz}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                     {yardsList.length > 1 && (
                       <div>
                         <label style={labelStyle}>YARD</label>
@@ -415,14 +426,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                     ))}
                     <div>
                       <div style={lblSm}>TIME ZONE</div>
-                      <div style={{ display: "flex", gap: 10, paddingTop: 4 }}>
-                        {["TX", "NM"].map(tz => (
-                          <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 5, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
-                            <span style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
-                            {tz}
-                          </span>
-                        ))}
-                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: timeZone ? C.text : C.muted, paddingTop: 4 }}>{timeZone || "—"}</div>
                     </div>
                   </div>
                   <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, display: "flex", gap: "8px 14px", flexWrap: "wrap", alignItems: "flex-end" }}>

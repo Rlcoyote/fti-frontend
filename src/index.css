@@ -17,6 +17,9 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Prevent iOS Safari rubber-banding at scroll boundaries, which can cause
+     unexpected scroll resets on pages with dynamic content (Final Review). */
+  overscroll-behavior: none;
 }
 
 #root {
