@@ -393,14 +393,14 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
                 <TicketTypeBadge type={ticket.type} />
                 <TicketStatusBadge status={status} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} — {ticket.type}</span>
                 {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
                 {ticket.createdBy && <span style={{ fontSize: 9, color: "#a0aec8", marginLeft: "auto" }}>{shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}</span>}
               </div>
-              <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span>{job?.customer || "Unknown"} · {isLocked
                   ? formatDate(ticketDate)
                   : <input type="date" value={ticketDate} onChange={e => handleDateChange(e.target.value)}
@@ -496,7 +496,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               </span>
             )}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
             <div>
               <label style={labelStyle}>FIRST NAME</label>
               {editable
