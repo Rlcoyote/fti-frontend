@@ -4,9 +4,11 @@ import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { useApp } from "./AppContext.jsx";
+import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 
 function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
-  const { settings } = useApp();
+  const { settings, currentUser } = useApp();
+  const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
   const emergencyContacts = useMemo(() => {
     try { const c = JSON.parse(settings?.emergency_contacts || "[]"); return Array.isArray(c) ? c : []; }
     catch { return []; }
@@ -60,13 +62,19 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em" }}>FLO-TEST, INC. — JSA</div>
             <div style={{ fontSize: 11, color: C.muted }}>#{ticketNum} — Tailgate Safety Meeting · {job.customer}{ticket ? ` · ${ticket.type}` : ""}</div>
           </div>
-          <div style={{ fontSize: 11, color: C.muted }}>
+          <div style={{ fontSize: 11, color: C.muted, textAlign: "right" }}>
             {emergencyContacts.length > 0
               ? emergencyContacts.map((c, i) => (
-                  <div key={i}>{c.label}: {c.phone}</div>
+                  <div key={i} style={{ fontWeight: 700 }}>{c.label}: {c.phone}</div>
                 ))
-              : "AIRLIFE: 800-627-2376"
+              : <div style={{ fontWeight: 700 }}>AIRLIFE: 800-627-2376</div>
             }
+            {currentUser?.role === "owner" && (
+              <div onClick={(e) => { e.stopPropagation(); setShowEmergencyEdit(true); }}
+                style={{ fontSize: 10, color: C.blue, cursor: "pointer", marginTop: 4, fontWeight: 600 }}>
+                Edit Contacts
+              </div>
+            )}
           </div>
         </div>
 
@@ -216,6 +224,9 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
           <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
         </div>
       </div>
+      {showEmergencyEdit && (
+        <EmergencyContactsModal onClose={() => setShowEmergencyEdit(false)} />
+      )}
     </div>
   );
 }

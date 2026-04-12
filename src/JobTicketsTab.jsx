@@ -238,11 +238,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
               )}
               <RentalCountdown ticket={t} />
-              <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
             </div>
 
-            {/* Right: action buttons + total */}
+            {/* Right: action buttons + total — JSA badge is here as part of the
+                workflow progression (required before ticket closure) */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
 
             {t.voidedAt ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
