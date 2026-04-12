@@ -73,9 +73,46 @@ function NewJobModal({ onClose, onCreateJob }) {
   const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter(c => c.toLowerCase().startsWith(county.toLowerCase())) : [];
   const filteredCust = custSearch.length > 0 ? customers.filter(c => c.name.toLowerCase().includes(custSearch.toLowerCase())) : customers;
 
+  const [knownContacts, setKnownContacts] = useState([]);
+
   const selectCustomer = (cust) => {
     setSelectedCust(cust); setCustSearch(cust.name); setShowCustDrop(false);
     setErrors(prev => ({ ...prev, customer: null }));
+    // Fetch known contacts for this customer
+    fetch(`${API_URL}/customers/${cust.id}/contacts`)
+      .then(r => r.ok ? r.json() : [])
+      .then(contacts => setKnownContacts(contacts))
+      .catch(() => setKnownContacts([]));
+  };
+
+  const applyContact = (c) => {
+    if (c.role_tag === "poc" || c.role_tag === "site_manager") {
+      setContactFirst(c.name.split(" ")[0] || "");
+      setContactLast(c.name.split(" ").slice(1).join(" ") || "");
+      setPhone(c.phone || "");
+      setEmail(c.email || "");
+    }
+    if (c.role_tag === "approver" || c.role_tag === "company_man") {
+      setApprover(c.name.split(" ")[0] || "");
+      setApproverLast(c.name.split(" ").slice(1).join(" ") || "");
+      setApproverPhone(c.phone || "");
+      setApproverEmail(c.email || "");
+    }
+  };
+
+  // Save POC as a customer contact after work order creation
+  const savePocAsContact = async (custId) => {
+    const fullName = [contactFirst, contactLast].filter(Boolean).join(" ").trim();
+    if (!fullName || !custId) return;
+    // Check if this contact already exists
+    const existing = knownContacts.find(c => c.name.toLowerCase() === fullName.toLowerCase() && c.role_tag === "poc");
+    if (existing) return; // Already saved
+    try {
+      await fetch(`${API_URL}/customers/${custId}/contacts`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, phone: phone || null, email: email || null, role_tag: "poc" }),
+      });
+    } catch { /* silent — contact save is a convenience, not critical */ }
   };
 
   const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
@@ -142,6 +179,9 @@ function NewJobModal({ onClose, onCreateJob }) {
     }
     setErrors({});
     const cleanWells = wellTBD ? ["TBD"] : wellList.map(w => w.trim()).filter(Boolean);
+    // Auto-save POC as customer contact for future use
+    if (selectedCust?.id) savePocAsContact(selectedCust.id);
+
     onCreateJob({
       id: null,
       customer: custSearch.trim(),
@@ -273,7 +313,26 @@ function NewJobModal({ onClose, onCreateJob }) {
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>CONTACT INFORMATION</div>
 
-          {/* Site Manager */}
+          {/* Known contacts for this customer */}
+          {knownContacts.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: C.blue, letterSpacing: "0.08em", marginBottom: 4 }}>KNOWN CONTACTS FOR THIS CUSTOMER</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {knownContacts.map(c => (
+                  <button key={c.id} type="button" onClick={() => applyContact(c)} style={{
+                    background: "transparent", border: `1px solid ${C.blue}44`, borderRadius: 4,
+                    padding: "4px 10px", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer",
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+                    {c.name} <span style={{ color: C.muted, fontSize: 9, marginLeft: 4 }}>{c.role_tag?.toUpperCase()}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Point of Contact */}
           <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>POINT OF CONTACT</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 12 }}>
             <div>

@@ -51,11 +51,32 @@ export function AppProvider({ children }) {
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Keep the config.js mutable singleton in sync with currentUser. This is
-  // a compatibility shim for getCurrentUser() callers (TodoPage, TodoComponents,
-  // utils.todoVisible, TicketDetail) that were not migrated in v26.92.
+  // Keep the config.js mutable singleton in sync with currentUser.
   useEffect(() => {
     setGlobalUser(currentUser?.name || "");
+  }, [currentUser]);
+
+  // ── 30-minute idle auto-logout ──
+  useEffect(() => {
+    if (!currentUser) return;
+    let timer;
+    const IDLE_MS = 30 * 60 * 1000; // 30 minutes
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        sessionStorage.removeItem("fti_user");
+        setCurrentUserState(null);
+        setGlobalUser("");
+        window.location.href = '/';
+      }, IDLE_MS);
+    };
+    const events = ["mousedown", "keydown", "touchstart", "scroll"];
+    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+    resetTimer(); // start the timer
+    return () => {
+      clearTimeout(timer);
+      events.forEach(e => window.removeEventListener(e, resetTimer));
+    };
   }, [currentUser]);
 
   // ── Fetch functions (also used as refresh handles) ──

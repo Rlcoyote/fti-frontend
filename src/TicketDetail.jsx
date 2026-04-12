@@ -73,6 +73,16 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [siteMgrEmail, setSiteMgrEmail] = useState(() => ticket.siteMgrEmail || "");
   // Yard location — 1-indexed, matches backend yard_location_index / yard_index
   const [yardLocationIndex, setYardLocationIndex] = useState(() => ticket.yardLocationIndex || ticket.yard_location_index || 1);
+  // Known contacts for this customer (for site manager quick-fill)
+  const [knownContacts, setKnownContacts] = useState([]);
+  useEffect(() => {
+    const custId = job?.customerId || job?.customer_id;
+    if (!custId) return;
+    fetch(`${API_URL}/customers/${custId}/contacts`)
+      .then(r => r.ok ? r.json() : [])
+      .then(c => setKnownContacts(c))
+      .catch(() => {});
+  }, [job?.customerId, job?.customer_id]);
   const [showDupModal, setShowDupModal] = useState(false);
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
@@ -234,7 +244,21 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const editable = !isFullyLocked && !isVoided && editLock.hasLock;
   const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
 
+  // Auto-save site manager as customer contact (silent, non-blocking)
+  const saveSiteMgrAsContact = () => {
+    const custId = job?.customerId || job?.customer_id;
+    const fullName = [siteMgrFirst, siteMgrLast].filter(Boolean).join(" ").trim();
+    if (!fullName || !custId) return;
+    const existing = knownContacts.find(c => c.name.toLowerCase() === fullName.toLowerCase());
+    if (existing) return;
+    fetch(`${API_URL}/customers/${custId}/contacts`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: fullName, phone: siteMgrPhone || null, email: siteMgrEmail || null, role_tag: "site_manager" }),
+    }).catch(() => {});
+  };
+
   const save = (overrides = {}) => {
+    saveSiteMgrAsContact();
     const updates = {
       lineItems, notes, status, missingPieces, date: ticketDate,
       sigNotReqReason, sigNotReqNote, emailTo: emailTo.filter(e => e.trim()).join(", "), emailCc,
@@ -493,6 +517,29 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               </span>
             )}
           </div>
+          {editable && knownContacts.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: C.blue, letterSpacing: "0.08em", marginBottom: 4 }}>KNOWN CONTACTS</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {knownContacts.filter(c => c.role_tag === "site_manager" || c.role_tag === "poc").map(c => (
+                  <button key={c.id} type="button" onClick={() => {
+                    const parts = c.name.split(" ");
+                    setSiteMgrFirst(parts[0] || "");
+                    setSiteMgrLast(parts.slice(1).join(" ") || "");
+                    setSiteMgrPhone(c.phone || "");
+                    setSiteMgrEmail(c.email || "");
+                  }} style={{
+                    background: "transparent", border: `1px solid ${C.blue}44`, borderRadius: 4,
+                    padding: "3px 8px", fontSize: 10, fontWeight: 600, color: C.text, cursor: "pointer",
+                  }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+                    {c.name} <span style={{ color: C.muted, fontSize: 8 }}>{c.role_tag?.toUpperCase()}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
             <div>
               <label style={labelStyle}>FIRST NAME</label>
