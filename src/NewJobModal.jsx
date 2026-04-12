@@ -5,7 +5,7 @@ import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function NewJobModal({ onClose, onCreateJob }) {
-  const { customers, users } = useApp();
+  const { customers, users, refreshCustomers } = useApp();
   const [isMobile] = useState(() => window.innerWidth <= 900);
 
   useEffect(() => {
@@ -18,6 +18,9 @@ function NewJobModal({ onClose, onCreateJob }) {
   const [custSearch, setCustSearch] = useState("");
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
+  const [showAddCust, setShowAddCust] = useState(false);
+  const [newCustName, setNewCustName] = useState("");
+  const [newCustMsg, setNewCustMsg] = useState("");
   const [jobState, setJobState] = useState("");
   const [county, setCounty] = useState("");
   const [showCountyDrop, setShowCountyDrop] = useState(false);
@@ -219,7 +222,49 @@ function NewJobModal({ onClose, onCreateJob }) {
                   <span style={{ color: C.muted, fontSize: 11 }}>{[c.city, c.state].filter(Boolean).join(", ")}</span>
                 </div>
               ))}
-              {filteredCust.length === 0 && <div style={{ padding: 10, color: C.muted, fontSize: 12, textAlign: "center" }}>No matches</div>}
+              {filteredCust.length === 0 && custSearch.trim() && (
+                <div style={{ padding: 10, color: C.muted, fontSize: 12, textAlign: "center" }}>No matches</div>
+              )}
+              <div onClick={() => { setShowCustDrop(false); setNewCustName(custSearch.trim()); setShowAddCust(true); }}
+                style={{ padding: "10px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700, color: C.blue, borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 6 }}
+                onMouseEnter={e => e.currentTarget.style.background = "#e8f0fb"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                + Add New Customer
+              </div>
+            </div>
+          )}
+          {showAddCust && (
+            <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowAddCust(false)}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 24, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>ADD NEW CUSTOMER</div>
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 16 }}>This customer will be created in FTI and flagged for QuickBooks sync.</div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={labelStyle}>CUSTOMER NAME *</label>
+                  <input style={inputStyle} value={newCustName} onChange={e => setNewCustName(e.target.value)} placeholder="Company name" autoFocus />
+                </div>
+                {newCustMsg && <div style={{ fontSize: 11, color: newCustMsg.includes("fail") ? C.red : C.green, marginBottom: 8, fontWeight: 700 }}>{newCustMsg}</div>}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Btn onClick={async () => {
+                    if (!newCustName.trim()) { setNewCustMsg("Name is required."); return; }
+                    try {
+                      const r = await fetch(`${API_URL}/customers`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: newCustName.trim() }),
+                      });
+                      if (r.ok) {
+                        const created = await r.json();
+                        await refreshCustomers();
+                        selectCustomer(created);
+                        setShowAddCust(false); setNewCustName(""); setNewCustMsg("");
+                      } else {
+                        const d = await r.json().catch(() => null);
+                        setNewCustMsg(d?.error || "Failed to create customer.");
+                      }
+                    } catch { setNewCustMsg("Error creating customer."); }
+                  }}>CREATE CUSTOMER</Btn>
+                  <Btn variant="ghost" onClick={() => { setShowAddCust(false); setNewCustMsg(""); }}>CANCEL</Btn>
+                </div>
+              </div>
             </div>
           )}
         </div>
