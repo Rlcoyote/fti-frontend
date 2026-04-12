@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
+import TimePicker from "./TimePicker.jsx";
 
 function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const jsa = existingJSA;
@@ -60,7 +61,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
           {/* Top fields */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
             <div><label style={labelStyle}>DATE</label><input type="date" style={inputStyle} value={date} onChange={e => setDate(e.target.value)} /></div>
-            <div><label style={labelStyle}>TIME</label><input style={inputStyle} value={time} onChange={e => setTime(e.target.value)} placeholder="07:00" /></div>
+            <div><label style={labelStyle}>TIME</label><TimePicker value={time} onChange={setTime} startHour={6} startPeriod="AM" /></div>
             <div><label style={labelStyle}>OPERATOR</label><input style={inputStyle} value={operator} onChange={e => setOperator(e.target.value)} /></div>
             <div><label style={labelStyle}>WELL NAME & #</label><div style={{ fontSize: 13, fontWeight: 600, color: C.text, paddingTop: 4, lineHeight: 1.5 }}>{wellName}</div></div>
           </div>

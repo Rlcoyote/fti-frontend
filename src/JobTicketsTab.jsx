@@ -164,7 +164,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
                 )}
                 <RentalCountdown ticket={t} />
-                {t.hasJSA && <span style={{ background: "#e6f5ec", color: C.green, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${C.green}44` }}>✓ JSA</span>}
+                <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
                 {/* Sig button */}
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
@@ -234,7 +234,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
               )}
               <RentalCountdown ticket={t} />
-              {t.hasJSA && <span style={{ background: "#e6f5ec", color: C.green, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${C.green}44` }}>✓ JSA</span>}
+              <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
             </div>
 
             {/* Right: action buttons + total */}
