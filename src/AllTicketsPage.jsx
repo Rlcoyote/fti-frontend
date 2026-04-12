@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { C } from "./config.js";
+import { C, API_URL } from "./config.js";
 import { formatDate, updateTicketApi } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import TicketDetail from "./TicketDetail.jsx";
@@ -150,7 +150,10 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
           ticket={viewTicket}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
-          onDelete={(id) => { setTickets(prev => prev.filter(t => t.id !== id)); setViewTicket(null); }}
+          onDelete={async (id) => {
+            try { await fetch(`${API_URL}/tickets/${id}`, { method: "DELETE" }); } catch (err) { console.error("Delete failed:", err); }
+            setTickets(prev => prev.filter(t => t.id !== id)); setViewTicket(null);
+          }}
           jobs={jobs}
         />
       )}

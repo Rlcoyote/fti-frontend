@@ -86,7 +86,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
   const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets);
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    try {
+      const r = await fetch(`${API_URL}/tickets/${id}`, { method: "DELETE" });
+      if (!r.ok) { console.error("Delete ticket failed:", await r.text()); return; }
+    } catch (err) { console.error("Delete ticket failed:", err); return; }
     const deleted = tickets.find(t => t.id === id);
     if (deleted && onTicketDeleted) onTicketDeleted(deleted);
     setTickets(prev => prev.filter(t => t.id !== id));
