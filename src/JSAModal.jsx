@@ -1,10 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
+import { useApp } from "./AppContext.jsx";
 
 function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
+  const { settings } = useApp();
+  const emergencyContacts = useMemo(() => {
+    try { const c = JSON.parse(settings?.emergency_contacts || "[]"); return Array.isArray(c) ? c : []; }
+    catch { return []; }
+  }, [settings]);
   const jsa = existingJSA;
   const ticketNum = ticket ? `${job.id}${ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}` : job.id;
   const wellsList = ticket?.assignedWells?.length > 0
@@ -54,7 +60,14 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em" }}>FLO-TEST, INC. — JSA</div>
             <div style={{ fontSize: 11, color: C.muted }}>#{ticketNum} — Tailgate Safety Meeting · {job.customer}{ticket ? ` · ${ticket.type}` : ""}</div>
           </div>
-          <div style={{ fontSize: 11, color: C.muted }}>AIRLIFE: 800-627-2376</div>
+          <div style={{ fontSize: 11, color: C.muted }}>
+            {emergencyContacts.length > 0
+              ? emergencyContacts.map((c, i) => (
+                  <div key={i}>{c.label}: {c.phone}</div>
+                ))
+              : "AIRLIFE: 800-627-2376"
+            }
+          </div>
         </div>
 
         <div style={{ padding: "16px 24px" }}>

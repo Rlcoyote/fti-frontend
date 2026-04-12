@@ -18,6 +18,7 @@ import JobHistoryPage from "./JobHistoryPage.jsx";
 import DeletedJobsPage from "./DeletedJobsPage.jsx";
 import SettingsModal from "./SettingsModal.jsx";
 import PermissionsModal from "./PermissionsModal.jsx";
+import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import UsersPage from "./UsersPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
@@ -80,6 +81,7 @@ function FTIDashboard() {
   const navigateToPage = (path) => navigate(path);
   const [showPermissions, setShowPermissions] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -499,6 +501,14 @@ function FTIDashboard() {
             <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Yard Locations</span>
           </div>
         )}
+        {currentUser.role === "owner" && (
+          <div onClick={() => { setDrawerOpen(false); setShowEmergencyContacts(true); }} style={{
+            display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
+          }}>
+            <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>🚨</span>
+            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Emergency Contacts</span>
+          </div>
+        )}
         <div onClick={() => { setDrawerOpen(false); setShowLogoutConfirm(true); }} style={{
           display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
           borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
@@ -529,7 +539,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.01</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.02</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -577,6 +587,14 @@ function FTIDashboard() {
                         onMouseEnter={e => e.currentTarget.style.background = C.steel}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                         Yard Locations
+                      </div>
+                    )}
+                    {currentUser.role === "owner" && (
+                      <div onClick={() => setShowEmergencyContacts(true)}
+                        style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                        Emergency Contacts
                       </div>
                     )}
                   </div>
@@ -645,6 +663,9 @@ function FTIDashboard() {
       )}
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />
+      )}
+      {showEmergencyContacts && (
+        <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />
       )}
       {showLogoutConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setShowLogoutConfirm(false)}>
