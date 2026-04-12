@@ -10,20 +10,35 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   const [showSearch, setShowSearch] = useState(false);
   const [hasRigUp, setHasRigUp] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
+  const [warnItem, setWarnItem] = useState(null); // Rig Down validation: pending item needing approval
+  const [allowedCodes, setAllowedCodes] = useState(null); // Set of QB codes from Rig Up + Rental
   const isRental = ticketType === "Rental";
+  const isRigDown = ticketType === "Rig Down";
 
-  // Check if a non-voided Rig Up exists on this job (lightweight — just checks existence)
+  // Check if a non-voided Rig Up exists on this job AND (for Rig Down) collect allowed QB codes
   useEffect(() => {
-    if (!jobId || ticketType === "Rig Up") { setHasRigUp(false); return; }
+    if (!jobId || ticketType === "Rig Up") { setHasRigUp(false); setAllowedCodes(null); return; }
     fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
       .then(r => r.ok ? r.json() : [])
       .then(data => {
         const ru = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
           .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
         setHasRigUp(!!(ru && (ru.lineItems || ru.line_items || []).length > 0));
+        // For Rig Down tickets: collect QB codes from all Rig Up + Rental tickets
+        if (isRigDown) {
+          const codes = new Set();
+          data.filter(tk => (tk.type === "Rig Up" || tk.type === "Rental") && !tk.voided_at)
+            .forEach(tk => {
+              (tk.lineItems || tk.line_items || []).forEach(li => {
+                const code = (li.qb_code || li.qbCode || "").trim();
+                if (code) codes.add(code);
+              });
+            });
+          setAllowedCodes(codes);
+        }
       })
-      .catch(() => setHasRigUp(false));
-  }, [jobId, ticketType]);
+      .catch(() => { setHasRigUp(false); if (isRigDown) setAllowedCodes(new Set()); });
+  }, [jobId, ticketType, isRigDown]);
 
   const copyFromRigUp = async () => {
     if (!jobId || copyLoading) return;
@@ -53,7 +68,15 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   ) : qbItems;
 
   const addItem = (qb) => {
-    setLineItems(prev => [...prev, { qbCode: qb.code, desc: qb.desc, rate: qb.price, qty: 1, um: qb.um, ...(isRental ? { days: 1 } : {}) }]);
+    const item = { qbCode: qb.code, desc: qb.desc, rate: qb.price, qty: 1, um: qb.um, ...(isRental ? { days: 1 } : {}) };
+    // Rig Down validation: warn if item is not on any Rig Up or Rental ticket
+    if (isRigDown && allowedCodes && allowedCodes.size > 0 && !allowedCodes.has(qb.code)) {
+      setWarnItem(item);
+      setShowSearch(false);
+      setSearchTerm("");
+      return;
+    }
+    setLineItems(prev => [...prev, item]);
     setSearchTerm("");
     setShowSearch(false);
     onSigWipe?.();
@@ -100,7 +123,12 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
           display: "grid", gridTemplateColumns: cols,
           gap: 4, padding: "4px 0", borderBottom: `1px solid ${C.border}22`, alignItems: "center",
         }}>
-          <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>{idx + 1}</div>
+          <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>
+            {idx + 1}
+            {isRigDown && allowedCodes && allowedCodes.size > 0 && li.qbCode && !allowedCodes.has(li.qbCode) && (
+              <span title="Not on Rig Up or Rental ticket" style={{ color: "#8a6500", fontSize: 10, display: "block", lineHeight: 1 }}>⚠</span>
+            )}
+          </div>
           <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.qbCode}
             onChange={e => updateItem(idx, "qbCode", e.target.value)} />
           <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.desc}
@@ -191,6 +219,25 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
           </div>
         )}
       </div>
+
+      {/* Rig Down validation warning — item not on Rig Up or Rental */}
+      {warnItem && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setWarnItem(null)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid #8a6500`, borderRadius: 8, padding: 24, width: 440, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#8a6500", marginBottom: 10 }}>Item Not on Rig Up or Rental</div>
+            <div style={{ fontSize: 13, color: C.text, marginBottom: 8, lineHeight: 1.6 }}>
+              <strong>{warnItem.qbCode}</strong> — {warnItem.desc}
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+              This item does not appear on any Rig Up or Rental ticket for this work order. Adding it may indicate an error. Do you want to add it anyway?
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={() => { setLineItems(prev => [...prev, warnItem]); onSigWipe?.(); setWarnItem(null); }}>YES, ADD ITEM</Btn>
+              <Btn variant="ghost" onClick={() => setWarnItem(null)}>CANCEL</Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
