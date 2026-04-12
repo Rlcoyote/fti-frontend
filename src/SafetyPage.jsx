@@ -25,6 +25,10 @@ function SafetyPage() {
   const [formCertNum, setFormCertNum] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [msg, setMsg] = useState("");
+  const [showImport, setShowImport] = useState(false);
+  const [importPreview, setImportPreview] = useState(null);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   const [winW, setWinW] = useState(window.innerWidth);
   useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
@@ -125,7 +129,15 @@ function SafetyPage() {
             {expired.length > 0 && <span style={{ color: C.red, fontWeight: 700, marginLeft: 12 }}>✕ {expired.length} expired</span>}
           </div>
         </div>
-        {isAdmin && <Btn onClick={openAdd}>+ ADD CERTIFICATION</Btn>}
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Btn onClick={openAdd}>+ ADD CERTIFICATION</Btn>
+            <Btn variant="ghost" onClick={() => setShowImport(true)}>IMPORT FROM EXCEL</Btn>
+            <a href="/Safety_Cert_Import_Template.xlsx" download style={{ textDecoration: "none" }}>
+              <Btn variant="ghost">DOWNLOAD TEMPLATE</Btn>
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -262,6 +274,96 @@ function SafetyPage() {
             <Btn onClick={handleSave}>{editCert ? "SAVE CHANGES" : "ADD CERTIFICATION"}</Btn>
             <Btn variant="ghost" onClick={() => { setShowAdd(false); resetForm(); setEditCert(null); }}>CANCEL</Btn>
           </div>
+        </ModalWrap>
+      )}
+
+      {/* Import from Excel modal */}
+      {showImport && (
+        <ModalWrap title="IMPORT CERTIFICATIONS FROM EXCEL" onClose={() => { setShowImport(false); setImportPreview(null); setImportFile(null); }} width={580}>
+          {!importPreview ? (
+            <>
+              <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
+                Upload an Excel file using the standard template. Employee names must exactly match
+                users in the system. Download the template first if you don't have it.
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>SELECT EXCEL FILE (.xlsx)</label>
+                <input type="file" accept=".xlsx,.xls" onChange={e => setImportFile(e.target.files[0])}
+                  style={{ fontSize: 13, color: C.text }} />
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn disabled={!importFile || importing} onClick={async () => {
+                  if (!importFile) return;
+                  setImporting(true);
+                  try {
+                    const formData = new FormData();
+                    formData.append("file", importFile);
+                    const r = await fetch(`${API_URL}/safety/import?dry_run=true`, { method: "POST", body: formData });
+                    if (r.ok) { setImportPreview(await r.json()); }
+                    else { const d = await r.json(); setMsg(d.error || "Upload failed."); }
+                  } catch { setMsg("Upload failed."); }
+                  setImporting(false);
+                }}>{importing ? "ANALYZING..." : "PREVIEW IMPORT"}</Btn>
+                <a href="/Safety_Cert_Import_Template.xlsx" download style={{ textDecoration: "none" }}>
+                  <Btn variant="ghost">DOWNLOAD TEMPLATE</Btn>
+                </a>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 13, color: C.text, marginBottom: 12, lineHeight: 1.6 }}>
+                <strong>{importPreview.valid}</strong> certifications ready to import.
+                {importPreview.errors > 0 && (
+                  <span style={{ color: C.red, marginLeft: 8 }}>
+                    <strong>{importPreview.errors}</strong> row{importPreview.errors !== 1 ? "s" : ""} with errors (will be skipped).
+                  </span>
+                )}
+              </div>
+
+              {importPreview.error_details?.length > 0 && (
+                <div style={{ background: "#fdf0f0", border: `1px solid ${C.red}33`, borderRadius: 6, padding: 12, marginBottom: 12, maxHeight: 150, overflowY: "auto" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.red, marginBottom: 6 }}>ERRORS</div>
+                  {importPreview.error_details.map((e, i) => (
+                    <div key={i} style={{ fontSize: 11, color: C.text, marginBottom: 4 }}>
+                      Row {e.row}: {e.error}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {importPreview.sample?.length > 0 && (
+                <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 12, marginBottom: 16, maxHeight: 200, overflowY: "auto" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, marginBottom: 6 }}>PREVIEW (first {importPreview.sample.length})</div>
+                  {importPreview.sample.map((s, i) => (
+                    <div key={i} style={{ fontSize: 11, color: C.text, marginBottom: 4, borderBottom: `1px solid ${C.border}22`, paddingBottom: 4 }}>
+                      <strong>{s.employee_name}</strong> — {s.cert_type}: {s.cert_name}
+                      {s.expiration_date && <span style={{ color: C.muted, marginLeft: 8 }}>exp {s.expiration_date}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn disabled={importPreview.valid === 0 || importing} onClick={async () => {
+                  setImporting(true);
+                  try {
+                    const formData = new FormData();
+                    formData.append("file", importFile);
+                    const r = await fetch(`${API_URL}/safety/import`, { method: "POST", body: formData });
+                    if (r.ok) {
+                      const d = await r.json();
+                      await fetchCerts();
+                      setShowImport(false); setImportPreview(null); setImportFile(null);
+                      setMsg(`Imported ${d.imported} certification${d.imported !== 1 ? "s" : ""}.`);
+                      setTimeout(() => setMsg(""), 5000);
+                    } else { setMsg("Import failed."); }
+                  } catch { setMsg("Import failed."); }
+                  setImporting(false);
+                }}>{importing ? "IMPORTING..." : `IMPORT ${importPreview.valid} CERTIFICATIONS`}</Btn>
+                <Btn variant="ghost" onClick={() => { setImportPreview(null); setImportFile(null); }}>BACK</Btn>
+              </div>
+            </>
+          )}
         </ModalWrap>
       )}
     </div>
