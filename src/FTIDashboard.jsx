@@ -19,6 +19,7 @@ import DeletedJobsPage from "./DeletedJobsPage.jsx";
 import SettingsModal from "./SettingsModal.jsx";
 import PermissionsModal from "./PermissionsModal.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
+import CompanyDocumentsModal from "./CompanyDocumentsModal.jsx";
 import UsersPage from "./UsersPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
@@ -84,6 +85,7 @@ function FTIDashboard() {
   const [showPermissions, setShowPermissions] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
+  const [showCompanyDocs, setShowCompanyDocs] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -541,7 +543,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.05</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.06</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -599,6 +601,12 @@ function FTIDashboard() {
                         Emergency Contacts
                       </div>
                     )}
+                    <div onClick={() => setShowCompanyDocs(true)}
+                      style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      Company Documents
+                    </div>
                   </div>
                 )}
               </div>
@@ -669,6 +677,9 @@ function FTIDashboard() {
       )}
       {showEmergencyContacts && (
         <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />
+      )}
+      {showCompanyDocs && (
+        <CompanyDocumentsModal onClose={() => setShowCompanyDocs(false)} />
       )}
       {showLogoutConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setShowLogoutConfirm(false)}>

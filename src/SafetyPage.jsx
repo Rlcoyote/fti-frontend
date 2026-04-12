@@ -24,6 +24,7 @@ function SafetyPage() {
   const [formExpDate, setFormExpDate] = useState("");
   const [formCertNum, setFormCertNum] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formPhoto, setFormPhoto] = useState(null); // base64 string
   const [msg, setMsg] = useState("");
   const [showImport, setShowImport] = useState(false);
   const [importPreview, setImportPreview] = useState(null);
@@ -65,6 +66,30 @@ function SafetyPage() {
   const resetForm = () => {
     setFormUserId(""); setFormType(""); setFormName(""); setFormIssuer("");
     setFormIssueDate(""); setFormExpDate(""); setFormCertNum(""); setFormNotes("");
+    setFormPhoto(null);
+  };
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        setFormPhoto(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const openAdd = () => { resetForm(); setEditCert(null); setShowAdd(true); };
@@ -73,7 +98,8 @@ function SafetyPage() {
     setFormUserId(c.user_id); setFormType(c.cert_type); setFormName(c.cert_name);
     setFormIssuer(c.issuer || ""); setFormIssueDate((c.issue_date || "").slice(0, 10));
     setFormExpDate((c.expiration_date || "").slice(0, 10)); setFormCertNum(c.cert_number || "");
-    setFormNotes(c.notes || ""); setEditCert(c); setShowAdd(true);
+    setFormNotes(c.notes || ""); setFormPhoto(c.photo_url || null);
+    setEditCert(c); setShowAdd(true);
   };
 
   const handleSave = async () => {
@@ -82,6 +108,7 @@ function SafetyPage() {
       user_id: formUserId, cert_type: formType, cert_name: formName,
       issuer: formIssuer || null, issue_date: formIssueDate || null,
       expiration_date: formExpDate || null, cert_number: formCertNum || null, notes: formNotes || null,
+      photo_url: formPhoto || null,
     };
     try {
       const url = editCert ? `${API_URL}/safety/certs/${editCert.id}` : `${API_URL}/safety/certs`;
@@ -187,7 +214,7 @@ function SafetyPage() {
                         onMouseLeave={e => { e.currentTarget.style.background = i % 2 === 0 ? C.cardBg : C.steel; }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.user_name}</div>
                         <div style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>{c.cert_type}</div>
-                        <div style={{ fontSize: 12, color: C.text }}>{c.cert_name}{c.cert_number ? ` (#${c.cert_number})` : ""}</div>
+                        <div style={{ fontSize: 12, color: C.text }}>{c.cert_name}{c.cert_number ? ` (#${c.cert_number})` : ""}{c.photo_url && <span style={{ color: C.green, marginLeft: 6, fontSize: 10 }} title="Photo attached">📷</span>}</div>
                         <div style={{ fontSize: 12, color: C.muted }}>{c.issue_date ? new Date(c.issue_date).toLocaleDateString() : "—"}</div>
                         <div style={{ fontSize: 12, color: C.muted }}>{c.expiration_date ? new Date(c.expiration_date).toLocaleDateString() : "—"}</div>
                         <div><span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: st.bg, color: st.color, letterSpacing: "0.04em" }}>{st.label}</span></div>
@@ -266,9 +293,26 @@ function SafetyPage() {
               <input type="date" style={inputStyle} value={formExpDate} onChange={e => setFormExpDate(e.target.value)} />
             </div>
           </div>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>NOTES</label>
             <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Optional notes..." />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>CERTIFICATION PHOTO</label>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+              {formPhoto && (
+                <div style={{ position: "relative" }}>
+                  <img src={formPhoto} alt="Cert" style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 4, border: `1px solid ${C.border}` }} />
+                  <button type="button" onClick={() => setFormPhoto(null)}
+                    style={{ position: "absolute", top: -6, right: -6, background: C.red, color: C.white, border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 10, cursor: "pointer", fontWeight: 700, lineHeight: 1 }}>×</button>
+                </div>
+              )}
+              <div>
+                <input type="file" accept="image/*" capture="environment" onChange={handlePhotoSelect}
+                  style={{ fontSize: 11, color: C.text }} />
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>Take a photo of the cert card or upload an image. Max 5MB.</div>
+              </div>
+            </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={handleSave}>{editCert ? "SAVE CHANGES" : "ADD CERTIFICATION"}</Btn>

@@ -32,6 +32,17 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
     return (la && ln) ? `${la}, ${ln}` : "";
   });
   const [mapResolving, setMapResolving] = useState(false);
+  const [nearbyHospitals, setNearbyHospitals] = useState([]);
+
+  // Auto-fetch nearest hospitals when coordinates are available
+  useEffect(() => {
+    if (!lat || !lng) { setNearbyHospitals([]); return; }
+    fetch(`${API_URL}/safety/nearest-hospital?lat=${lat}&lng=${lng}`)
+      .then(r => r.ok ? r.json() : { hospitals: [] })
+      .then(d => setNearbyHospitals(d.hospitals || []))
+      .catch(() => setNearbyHospitals([]));
+  }, [lat, lng]);
+
   const [weather, setWeather] = useState(jsa?.weather || []);
   const [ppe, setPpe] = useState(jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false });
   const [signatures, setSignatures] = useState(jsa?.signatures || [""]);
@@ -130,6 +141,23 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
                     style={{ color: C.blue, fontWeight: 600, textDecoration: "none" }}>
                     View on Google Maps ↗
                   </a>
+                </div>
+              )}
+              {nearbyHospitals.length > 0 && (
+                <div style={{ marginTop: 10, background: "#fdf0f0", border: `1px solid ${C.red}33`, borderRadius: 6, padding: 10 }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: C.red, letterSpacing: "0.08em", marginBottom: 6 }}>NEAREST HOSPITALS</div>
+                  {nearbyHospitals.map((h, i) => (
+                    <div key={i} style={{ fontSize: 12, color: C.text, marginBottom: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <span style={{ fontWeight: 700 }}>{h.name}</span>
+                        <span style={{ color: C.muted, marginLeft: 8 }}>{h.address}</span>
+                      </div>
+                      <a href={`https://www.google.com/maps/dir/${lat},${lng}/${h.lat},${h.lng}`} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", marginLeft: 8 }}>
+                        Directions ↗
+                      </a>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
