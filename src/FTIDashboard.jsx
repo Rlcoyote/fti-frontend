@@ -143,15 +143,19 @@ function FTIDashboard() {
           createdBy: j.created_by_name || null,
           createdAt: j.created_at || null,
         }));
-        // Transform tickets — only include tickets whose parent work order is in the
-        // current API response AND is not soft-deleted. This excludes:
-        //  • tickets from archived jobs (parent not in API response)
-        //  • tickets from deleted jobs (parent has status "Deleted")
-        //  • archived tickets (archivedAt set on the ticket itself)
+        // Transform tickets
         const activeJobIds = new Set(jobsMapped.filter(j => j.status !== "Deleted").map(j => j.id));
-        const ticketsMapped = (ticketsR || []).map(mapTicketFromApi)
+        const allMapped = (ticketsR || []).map(mapTicketFromApi);
+        const ticketsMapped = allMapped
           .filter(t => !t.archivedAt)
           .filter(t => activeJobIds.has(t.jobId));
+        // DIAGNOSTIC — remove after bug is resolved
+        console.log(`[FTI DEBUG] API returned ${(ticketsR||[]).length} tickets, mapped ${allMapped.length}, after filter ${ticketsMapped.length}, activeJobIds: [${[...activeJobIds]}]`);
+        if ((ticketsR||[]).length !== ticketsMapped.length) {
+          console.log(`[FTI DEBUG] Filtered out ${(ticketsR||[]).length - ticketsMapped.length} tickets. Sample rejected:`,
+            allMapped.filter(t => !activeJobIds.has(t.jobId) || t.archivedAt).slice(0,3).map(t => ({id:t.id, jobId:t.jobId, archivedAt:!!t.archivedAt}))
+          );
+        }
         // Transform todos
         const todosMapped = (todosR || []).map(t => ({
           id: t.id,
@@ -532,7 +536,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.99</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.00</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
