@@ -25,6 +25,7 @@ import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
+import ContactsPage from "./ContactsPage.jsx";
 import TicketPage from "./TicketPage.jsx";
 
 function FTIDashboard() {
@@ -76,6 +77,7 @@ function FTIDashboard() {
     if (p.startsWith("/crew")) return "crew";
     if (p.startsWith("/safety")) return "safety";
     if (p.startsWith("/activity")) return "activity";
+    if (p.startsWith("/contacts")) return "contacts";
     if (p.startsWith("/final-review")) return "finalReview";
     if (p.startsWith("/reports")) return "reports";
     if (p.startsWith("/deleted")) return "deleted";
@@ -516,6 +518,12 @@ function FTIDashboard() {
             <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Emergency Information</span>
           </div>
         )}
+        <div onClick={() => { setDrawerOpen(false); navigate("/contacts"); }} style={{
+          display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
+        }}>
+          <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>👤</span>
+          <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Contacts</span>
+        </div>
         <div onClick={() => { setDrawerOpen(false); setShowCompanyDocs(true); }} style={{
           display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
         }}>
@@ -560,7 +568,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.24</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.25</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -618,6 +626,12 @@ function FTIDashboard() {
                         Emergency Information
                       </div>
                     )}
+                    <div onClick={() => { setShowSettingsMenu(false); navigate("/contacts"); }}
+                      style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                      Contacts
+                    </div>
                     <div onClick={() => setShowCompanyDocs(true)}
                       style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
                       onMouseEnter={e => e.currentTarget.style.background = C.steel}
@@ -706,6 +720,7 @@ function FTIDashboard() {
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/ticket/:id" element={<TicketPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         {isAdmin && <Route path="/activity" element={<ActivityLogPage />} />}
+        <Route path="/contacts" element={<ContactsPage />} />
         <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />
         {!isField && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
