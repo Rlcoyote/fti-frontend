@@ -34,6 +34,17 @@ function RentalCountdown({ ticket }) {
 
 function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, openToSign = false }) {
   const { qbItems, currentUser, settings } = useApp();
+  const [isMobile] = useState(() => window.innerWidth <= 900);
+
+  // On mobile, push a history entry so the back button closes the ticket
+  // instead of navigating away from the page entirely.
+  useEffect(() => {
+    if (!isMobile) return;
+    window.history.pushState({ ticketOpen: true }, "");
+    const handlePop = () => { onClose(); };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [isMobile, onClose]);
   const yardsList = useMemo(() => parseYards(settings), [settings]);
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
@@ -349,12 +360,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
-      onClick={handleClose}
+      style={isMobile
+        ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+        : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+      }
+      onClick={isMobile ? undefined : handleClose}
     >
       <div
-        style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${tcfg.color}`, borderRadius: 8, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
-        onClick={e => e.stopPropagation()}
+        style={isMobile
+          ? { background: C.cardBg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100%" }
+          : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${tcfg.color}`, borderRadius: 8, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
+        }
+        onClick={isMobile ? undefined : e => e.stopPropagation()}
       >
         {/* Edit Lock Banner */}
         {editLock.isLocked && !editLock.hasLock && (

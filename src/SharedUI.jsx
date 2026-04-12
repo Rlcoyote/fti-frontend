@@ -179,17 +179,19 @@ export function TicketStatusBadge({ status }) {
 }
 
 // ─── MODAL WRAPPER ────────────────────────────────────────────────────────────
+// On mobile (≤900px): renders as full-screen page with native scroll.
+// On desktop: centered modal overlay with max-height scroll.
 export function ModalWrap({ title, onClose, children, width = 440 }) {
+  const isMob = window.innerWidth <= 900;
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "#00000088",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-    }} onClick={onClose}>
-      <div style={{
-        background: C.cardBg, border: `1px solid ${C.border}`,
-        borderTop: `3px solid ${C.red}`, borderRadius: 8,
-        padding: 24, width, maxWidth: "92vw", maxHeight: "85vh", overflowY: "auto",
-      }} onClick={e => e.stopPropagation()}>
+    <div style={isMob
+      ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+      : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+    } onClick={isMob ? undefined : onClose}>
+      <div style={isMob
+        ? { background: C.cardBg, borderTop: `3px solid ${C.red}`, padding: 24, minHeight: "100%" }
+        : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.red}`, borderRadius: 8, padding: 24, width, maxWidth: "92vw", maxHeight: "85vh", overflowY: "auto" }
+      } onClick={isMob ? undefined : e => e.stopPropagation()}>
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>{title}</div>
         {children}
       </div>

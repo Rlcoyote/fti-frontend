@@ -6,6 +6,15 @@ import { useApp } from "./AppContext.jsx";
 
 function EditJobModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
+  const [isMobile] = useState(() => window.innerWidth <= 900);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    window.history.pushState({ editJobOpen: true }, "");
+    const handlePop = () => { onClose(); };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [isMobile, onClose]);
   // Edit lock for concurrent access
   const editLock = useEditLock("jobs", job.id, currentUser, () => {
     // Auto-save on timeout — save current state

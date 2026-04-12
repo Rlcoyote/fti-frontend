@@ -7,6 +7,16 @@ import LineItemEditor from "./LineItemEditor.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
+  const [isMobile] = useState(() => window.innerWidth <= 900);
+
+  // On mobile, push history entry so back button closes instead of navigating away
+  useEffect(() => {
+    if (!isMobile) return;
+    window.history.pushState({ addTicketOpen: true }, "");
+    const handlePop = () => { onClose(); };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [isMobile, onClose]);
   const { qbItems, settings } = useApp();
   const yardsList = useMemo(() => parseYards(settings), [settings]);
   const [yardLocationIndex, setYardLocationIndex] = useState(1);
@@ -129,15 +139,14 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const lblSm = { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "#00000088",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-    }} onClick={handleClose}>
-      <div style={{
-        background: C.cardBg, border: `1px solid ${C.border}`,
-        borderTop: `3px solid ${C.red}`, borderRadius: 8,
-        width: type ? 820 : 480, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
-      }} onClick={e => e.stopPropagation()}>
+    <div style={isMobile
+      ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+      : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+    } onClick={isMobile ? undefined : handleClose}>
+      <div style={isMobile
+        ? { background: C.cardBg, borderTop: `3px solid ${C.red}`, minHeight: "100%", padding: "0 0 40px" }
+        : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.red}`, borderRadius: 8, width: type ? 820 : 480, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
+      } onClick={isMobile ? undefined : e => e.stopPropagation()}>
         {showUnsaved && (
           <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
             <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>

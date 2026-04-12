@@ -6,6 +6,15 @@ import { useApp } from "./AppContext.jsx";
 
 function NewJobModal({ onClose, onCreateJob }) {
   const { customers, users } = useApp();
+  const [isMobile] = useState(() => window.innerWidth <= 900);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    window.history.pushState({ newJobOpen: true }, "");
+    const handlePop = () => { onClose(); };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [isMobile, onClose]);
   const [custSearch, setCustSearch] = useState("");
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
@@ -154,16 +163,14 @@ function NewJobModal({ onClose, onCreateJob }) {
   };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "#00000088",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100,
-    }} onClick={handleClose}>
-      <div style={{
-        background: C.cardBg, border: `1px solid ${C.border}`,
-        borderTop: `3px solid ${C.red}`, borderRadius: 8,
-        padding: 28, width: 640, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto",
-        margin: "20px 0",
-      }} onClick={e => e.stopPropagation()}>
+    <div style={isMobile
+      ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+      : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+    } onClick={isMobile ? undefined : handleClose}>
+      <div style={isMobile
+        ? { background: C.cardBg, borderTop: `3px solid ${C.red}`, padding: 28, minHeight: "100%" }
+        : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.red}`, borderRadius: 8, padding: 28, width: 640, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto", margin: "20px 0" }
+      } onClick={isMobile ? undefined : e => e.stopPropagation()}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW WORK ORDER</div>
 
         {/* Scheduled Date + Salesman — TOP */}

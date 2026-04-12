@@ -9,6 +9,15 @@ import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const { settings, currentUser } = useApp();
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
+  const [isMobile] = useState(() => window.innerWidth <= 900);
+
+  useEffect(() => {
+    if (!isMobile) return;
+    window.history.pushState({ jsaOpen: true }, "");
+    const handlePop = () => { onClose(); };
+    window.addEventListener("popstate", handlePop);
+    return () => window.removeEventListener("popstate", handlePop);
+  }, [isMobile, onClose]);
   const emergencyContacts = useMemo(() => {
     try { const c = JSON.parse(settings?.emergency_contacts || "[]"); return Array.isArray(c) ? c : []; }
     catch { return []; }
@@ -80,8 +89,14 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const toggleWeather = (w) => setWeather(prev => prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w]);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={onClose}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.text}`, borderRadius: 8, padding: 0, width: 900, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+    <div style={isMobile
+      ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+      : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+    } onClick={isMobile ? undefined : onClose}>
+      <div style={isMobile
+        ? { background: C.cardBg, borderTop: `4px solid ${C.text}`, minHeight: "100%" }
+        : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.text}`, borderRadius: 8, padding: 0, width: 900, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
+      } onClick={isMobile ? undefined : e => e.stopPropagation()}>
         {/* Header */}
         <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
