@@ -145,6 +145,9 @@ export function AppProvider({ children }) {
 
   const logout = useCallback(() => {
     setCurrentUser(null);
+    // Force navigation to root so next login lands on the dashboard,
+    // not the last visited page (BrowserRouter preserves the URL path).
+    window.location.href = '/';
   }, [setCurrentUser]);
 
   // ── Derived ──

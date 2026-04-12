@@ -81,6 +81,7 @@ function FTIDashboard() {
   const [showPermissions, setShowPermissions] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
@@ -143,19 +144,11 @@ function FTIDashboard() {
           createdBy: j.created_by_name || null,
           createdAt: j.created_at || null,
         }));
-        // Transform tickets
+        // Transform tickets — only include tickets whose parent work order is active
         const activeJobIds = new Set(jobsMapped.filter(j => j.status !== "Deleted").map(j => j.id));
-        const allMapped = (ticketsR || []).map(mapTicketFromApi);
-        const ticketsMapped = allMapped
+        const ticketsMapped = (ticketsR || []).map(mapTicketFromApi)
           .filter(t => !t.archivedAt)
           .filter(t => activeJobIds.has(t.jobId));
-        // DIAGNOSTIC — remove after bug is resolved
-        console.log(`[FTI DEBUG] API returned ${(ticketsR||[]).length} tickets, mapped ${allMapped.length}, after filter ${ticketsMapped.length}, activeJobIds: [${[...activeJobIds]}]`);
-        if ((ticketsR||[]).length !== ticketsMapped.length) {
-          console.log(`[FTI DEBUG] Filtered out ${(ticketsR||[]).length - ticketsMapped.length} tickets. Sample rejected:`,
-            allMapped.filter(t => !activeJobIds.has(t.jobId) || t.archivedAt).slice(0,3).map(t => ({id:t.id, jobId:t.jobId, archivedAt:!!t.archivedAt}))
-          );
-        }
         // Transform todos
         const todosMapped = (todosR || []).map(t => ({
           id: t.id,
@@ -506,7 +499,7 @@ function FTIDashboard() {
             <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Yard Locations</span>
           </div>
         )}
-        <div onClick={() => { setDrawerOpen(false); logout(); }} style={{
+        <div onClick={() => { setDrawerOpen(false); setShowLogoutConfirm(true); }} style={{
           display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
           borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
         }}>
@@ -536,7 +529,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.00</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.01</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -590,8 +583,8 @@ function FTIDashboard() {
                 )}
               </div>
             )}
-            <span onClick={logout} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
-            <div onClick={logout} style={{
+            <span onClick={() => setShowLogoutConfirm(true)} style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}>SIGN OUT</span>
+            <div onClick={() => setShowLogoutConfirm(true)} style={{
               width: 30, height: 30, borderRadius: "50%", background: C.red,
               border: `2px solid #ffffff55`, display: "flex", alignItems: "center",
               justifyContent: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", color: C.white,
@@ -652,6 +645,20 @@ function FTIDashboard() {
       )}
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />
+      )}
+      {showLogoutConfirm && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setShowLogoutConfirm(false)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 380, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Sign Out?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
+              You will be signed out and returned to the login screen.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={logout}>SIGN OUT</Btn>
+              <Btn variant="ghost" onClick={() => setShowLogoutConfirm(false)}>CANCEL</Btn>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
