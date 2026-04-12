@@ -106,14 +106,17 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
 
         <div style={{ padding: "16px 24px" }}>
           {/* Top fields */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
             <div><label style={labelStyle}>DATE</label><input type="date" style={inputStyle} value={date} onChange={e => setDate(e.target.value)} /></div>
             <div><label style={labelStyle}>TIME</label><TimePicker value={time} onChange={setTime} startHour={6} startPeriod="AM" /></div>
             <div><label style={labelStyle}>OPERATOR</label><input style={inputStyle} value={operator} onChange={e => setOperator(e.target.value)} /></div>
-            <div><label style={labelStyle}>WELL NAME & #</label><div style={{ fontSize: 13, fontWeight: 600, color: C.text, paddingTop: 4, lineHeight: 1.5 }}>{wellName}</div></div>
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>WELLS</label>
+            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{wellName}</div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 14 }}>
             <div><label style={labelStyle}>DESIGNATED DRIVER</label><input style={inputStyle} value={designatedDriver} onChange={e => setDesignatedDriver(e.target.value)} /></div>
             <div>
               <label style={labelStyle}>LOCATION PIN (Paste Google Maps link or coordinates)</label>
@@ -159,19 +162,15 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
                 </div>
               )}
               {nearbyHospitals.length > 0 && (
-                <div style={{ marginTop: 10, background: "#fdf0f0", border: `1px solid ${C.red}33`, borderRadius: 6, padding: 10 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: C.red, letterSpacing: "0.08em", marginBottom: 6 }}>NEAREST HOSPITALS</div>
+                <div style={{ marginTop: 8, background: "#fdf0f0", border: `1px solid ${C.red}22`, borderRadius: 4, padding: "6px 10px" }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, color: C.red, letterSpacing: "0.08em", marginBottom: 4 }}>NEAREST HOSPITALS</div>
                   {nearbyHospitals.map((h, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: i < nearbyHospitals.length - 1 ? `1px solid ${C.red}15` : "none" }}>
-                      <div style={{ minWidth: 0 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{h.name}</span>
-                        {h.phone && <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>{h.phone}</span>}
-                        {h.miles != null && <span style={{ fontSize: 10, color: C.red, fontWeight: 700, marginLeft: 8 }}>{h.miles} mi</span>}
-                      </div>
+                    <div key={i} style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "2px 0", borderBottom: i < nearbyHospitals.length - 1 ? `1px solid ${C.red}10` : "none" }}>
+                      <span style={{ fontWeight: 700, color: C.text }}>{h.name}</span>
+                      {h.phone && <span style={{ color: C.muted }}>{h.phone}</span>}
+                      {h.miles != null && <span style={{ color: C.red, fontWeight: 700 }}>{h.miles} mi</span>}
                       <a href={`https://www.google.com/maps/dir/${lat},${lng}/${h.lat},${h.lng}`} target="_blank" rel="noopener noreferrer"
-                        style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", marginLeft: 8 }}>
-                        Directions ↗
-                      </a>
+                        style={{ color: C.blue, fontWeight: 600, textDecoration: "none", fontSize: 10 }}>Directions ↗</a>
                     </div>
                   ))}
                 </div>
