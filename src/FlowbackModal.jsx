@@ -90,7 +90,7 @@ function FlowbackModal({ job, onClose }) {
         <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800 }}>Flowback Data — Day {dayNum}</div>
-            <div style={{ fontSize: 11, color: C.muted }}>Job #{job.id} — {job.customer} · {job.wells[0]}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>Work Order #{job.id} — {job.customer} · {job.wells[0]}</div>
           </div>
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>DAY:</span>

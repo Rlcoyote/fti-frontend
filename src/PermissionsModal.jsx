@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { canModifyUser } from "./utils.js";
+import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 
 function PermissionsModal({ onClose }) {

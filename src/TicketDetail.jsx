@@ -423,7 +423,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {/* Job / Customer Info — read only */}
         {job && (
           <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "12px 24px" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>JOB INFO — <span style={{ color: C.muted, fontWeight: 400 }}>To update, go to Active Jobs → Details → Edit Job</span></div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>WORK ORDER INFO — <span style={{ color: C.muted, fontWeight: 400 }}>To update, go to Active Work Orders → Details → Edit Work Order</span></div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 24px", fontSize: 12 }}>
               <span><span style={{ color: C.muted }}>Customer: </span><strong>{job.customer}</strong></span>
               {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
@@ -660,11 +660,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                       <div style={lblStyle}>GOOGLE PIN</div>
                       {pinMismatch && (
                         <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
-                          ALT PIN — differs from Master Job Card
+                          ALT PIN — differs from Work Order
                         </span>
                       )}
                       {jobPin && !ticketPin && (
-                        <span style={{ fontSize: 10, color: C.muted }}>Job Card: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
+                        <span style={{ fontSize: 10, color: C.muted }}>Work Order: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
                       )}
                     </div>
                     {editable ? (
@@ -673,7 +673,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                           style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
                           value={ticketPin}
                           onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }}
-                          placeholder={jobPin ? "Override Job Card pin or leave blank to use Job Card pin" : "Paste Google Maps link..."}
+                          placeholder={jobPin ? "Override Work Order pin or leave blank to use Work Order pin" : "Paste Google Maps link..."}
                         />
                         {ticketPin && (
                           <button type="button" onClick={() => resolveTicketPin(ticketPin)} disabled={ticketPinResolving}
@@ -683,7 +683,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                         )}
                       </div>
                     ) : (
-                      <div style={roStyle}>{ticketPin || (jobPin ? `Using Job Card pin` : "—")}</div>
+                      <div style={roStyle}>{ticketPin || (jobPin ? `Using Work Order pin` : "—")}</div>
                     )}
                     {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
                     {(ticketPinLat || ticketPinLng) && (
@@ -803,11 +803,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 <div style={lblStyle}>GOOGLE PIN</div>
                 {pinMismatch && (
                   <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
-                    ALT PIN — differs from Master Job Card
+                    ALT PIN — differs from Work Order
                   </span>
                 )}
                 {jobPin && !ticketPin && (
-                  <span style={{ fontSize: 10, color: C.muted }}>Job Card: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
+                  <span style={{ fontSize: 10, color: C.muted }}>Work Order: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
                 )}
               </div>
               {editable ? (
@@ -816,7 +816,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                     style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
                     value={ticketPin}
                     onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }}
-                    placeholder={jobPin ? "Override Job Card pin or leave blank to use Job Card pin" : "Paste Google Maps link..."}
+                    placeholder={jobPin ? "Override Work Order pin or leave blank to use Work Order pin" : "Paste Google Maps link..."}
                   />
                   {ticketPin && (
                     <button type="button" onClick={() => resolveTicketPin(ticketPin)} disabled={ticketPinResolving}
@@ -826,7 +826,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   )}
                 </div>
               ) : (
-                <div style={roStyle}>{ticketPin || (jobPin ? "Using Job Card pin" : "—")}</div>
+                <div style={roStyle}>{ticketPin || (jobPin ? "Using Work Order pin" : "—")}</div>
               )}
               {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
               {(ticketPinLat || ticketPinLng) && (

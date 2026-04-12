@@ -211,15 +211,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               padding: "10px 14px",
               display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
             }}>
-            {/* Left: type badge (clickable = open ticket) + info */}
-            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-              <div
-                onClick={() => openTicket(t, "edit")}
-                style={{ cursor: "pointer" }}
-                title="Open ticket"
-              >
-                <TicketTypeBadge type={t.type} />
-              </div>
+            {/* Left: full region is clickable = open ticket (matches mobile parity, Article XI).
+                Any interactive element added here in the future must call e.stopPropagation(). */}
+            <div
+              onClick={() => openTicket(t, "edit")}
+              style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, cursor: "pointer" }}
+              title="Open ticket"
+            >
+              <TicketTypeBadge type={t.type} />
               <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)}</span>
               <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
               {hasPendingComment && (

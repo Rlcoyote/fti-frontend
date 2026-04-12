@@ -284,7 +284,7 @@ function FTIDashboard() {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Deleted" }),
       });
-      await logAudit("job_delete", "job", jobId, { status: job?.status, customer: job?.customer }, { status: "Deleted" }, `Job #${jobId} deleted by ${currentUser.name}`);
+      await logAudit("job_delete", "job", jobId, { status: job?.status, customer: job?.customer }, { status: "Deleted" }, `Work Order #${jobId} deleted by ${currentUser.name}`);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "Deleted" } : j));
       setExpandedId(null);
     } catch (err) { console.error("Delete job failed:", err); }
@@ -296,7 +296,7 @@ function FTIDashboard() {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "Scheduled" }),
       });
-      await logAudit("job_restore", "job", jobId, { status: "Deleted" }, { status: "Scheduled" }, `Job #${jobId} restored by ${currentUser.name}`);
+      await logAudit("job_restore", "job", jobId, { status: "Deleted" }, { status: "Scheduled" }, `Work Order #${jobId} restored by ${currentUser.name}`);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "Scheduled" } : j));
     } catch (err) { console.error("Restore job failed:", err); }
   };
@@ -340,7 +340,7 @@ function FTIDashboard() {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "flaggedCancel" }),
       });
-      await logAudit("job_flag_cancel", "job", jobId, { status: job?.status }, { status: "flaggedCancel" }, `Job #${jobId} flagged for cancellation by ${currentUser.name}`);
+      await logAudit("job_flag_cancel", "job", jobId, { status: job?.status }, { status: "flaggedCancel" }, `Work Order #${jobId} flagged for cancellation by ${currentUser.name}`);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "flaggedCancel" } : j));
     } catch (err) { console.error("Flag cancel failed:", err); }
   };
@@ -381,7 +381,7 @@ function FTIDashboard() {
       }
       if (updates.crew) payload.crew = updates.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
       await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Job #${id} edited by ${currentUser.name}`);
+      await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Work Order #${id} edited by ${currentUser.name}`);
     } catch (err) { console.error("Job update failed:", err); }
     setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j));
   };
@@ -394,12 +394,12 @@ function FTIDashboard() {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["All Tickets", "Job History", "Action Items", "Inventory", "Assets", "Crew", "Final Review", "Reports", "Deleted", "Archive", "Users"];
+  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Assets", "Crew", "Final Review", "Reports", "Deleted", "Archive", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && isField) return false;
     if (i === "Assets" && isField) return false;
     if (i === "Users" && !isManager) return false;
-    if (i === "Job History" && isField) return false;
+    if (i === "Work Order History" && isField) return false;
     if (i === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return false;
     if (i === "Archive" && !isAdmin) return false;
     if (i === "Final Review" && !["owner", "admin", "manager"].includes(currentUser.role) && !currentUser?.permissions?.approve_tickets) return false;
@@ -456,11 +456,11 @@ function FTIDashboard() {
           <span style={{ fontSize: 15, fontWeight: page === "dashboard" ? 700 : 400, color: page === "dashboard" ? C.white : "#b0bdd4" }}>Dashboard</span>
         </div>
         {NAV_ITEMS.map(item => {
-          const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
-          const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Job History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
-          const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Job History": "📋", "Action Items": "✓", Inventory: "📦", Assets: "🚛", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
+          const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Work Order History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+          const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Work Order History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
+          const navIcons = { Dashboard: "⌂", "All Tickets": "🎫", "Work Order History": "📋", "Action Items": "✓", Inventory: "📦", Assets: "🚛", Crew: "👷", "Final Review": "✅", Reports: "📊", Deleted: "🗑", Archive: "📁", Users: "👤" };
           if (item === "Users" && !isManager) return null;
-          if (item === "Job History" && isField) return null;
+          if (item === "Work Order History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
           const active = pageMap[item] === page;
           return (
@@ -492,7 +492,7 @@ function FTIDashboard() {
             display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
           }}>
             <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⚙</span>
-            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Settings</span>
+            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Yard Locations</span>
           </div>
         )}
         <div onClick={() => { setDrawerOpen(false); logout(); }} style={{
@@ -525,13 +525,13 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.92</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.93</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
           {NAV_ITEMS.map(item => {
-            const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Job History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
-            const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Job History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
+            const pageMap = { Dashboard: "dashboard", "All Tickets": "allTickets", "Work Order History": "jobHistory", "Action Items": "todos", Inventory: "inventory", Assets: "assets", Crew: "crew", "Final Review": "finalReview", Reports: "reports", Deleted: "deleted", Archive: "archive", Users: "users" };
+            const routeMap = { Dashboard: "/", "All Tickets": "/all-tickets", "Work Order History": "/job-history", "Action Items": "/todos", Inventory: "/inventory", Assets: "/assets", Crew: "/crew", "Final Review": "/final-review", Reports: "/reports", Deleted: "/deleted", Archive: "/archive", Users: "/users" };
             const active = pageMap[item] === page;
             const clickable = !!pageMap[item];
             return (
@@ -572,7 +572,7 @@ function FTIDashboard() {
                         style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
                         onMouseEnter={e => e.currentTarget.style.background = C.steel}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        Settings
+                        Yard Locations
                       </div>
                     )}
                   </div>
@@ -632,7 +632,7 @@ function FTIDashboard() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* NEW JOB MODAL */}
+      {/* NEW WORK ORDER MODAL */}
       {showNewJob && (
         <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} />
       )}

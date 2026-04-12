@@ -40,13 +40,13 @@ function ArchivePage() {
         <select value={filterType} onChange={e => setFilterType(e.target.value)} style={selStyle}>
           <option value="All">All Types</option>
           <option value="ticket">Tickets</option>
-          <option value="job">Jobs</option>
+          <option value="job">Work Orders</option>
         </select>
         <select value={filterReason} onChange={e => setFilterReason(e.target.value)} style={selStyle}>
           <option value="All">All Reasons</option>
           <option value="voided">Voided</option>
           <option value="deleted">Deleted</option>
-          <option value="job_closed">Job Closed</option>
+          <option value="job_closed">Work Order Closed</option>
           <option value="manual">Manual</option>
         </select>
         <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)}

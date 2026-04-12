@@ -78,7 +78,7 @@ function SettingsModal({ onClose }) {
       onClick={onClose}>
       <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 560, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>SETTINGS</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>YARD LOCATIONS</div>
 
         <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>
           Yard locations are used to calculate drive distance and time. Yard #1 is the default for new tickets. Owner-only.
@@ -134,37 +134,12 @@ function SettingsModal({ onClose }) {
         )}
 
         <div style={{ display: "flex", gap: 8 }}>
-          {isOwner && <Btn onClick={handleSave}>{saved ? "SAVED ✓" : "SAVE SETTINGS"}</Btn>}
+          {isOwner && <Btn onClick={handleSave}>{saved ? "SAVED ✓" : "SAVE"}</Btn>}
           <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
         </div>
       </div>
     </div>
   );
 }
-
-// ─── PERMISSIONS MODAL ────────────────────────────────────────────────────────
-const PERMISSION_CATEGORIES = [
-  { key: "view_jobs", label: "View Jobs", group: "Jobs & Tickets" },
-  { key: "edit_jobs", label: "Create/Edit Jobs", group: "Jobs & Tickets" },
-  { key: "delete_jobs", label: "Delete Jobs", group: "Jobs & Tickets" },
-  { key: "edit_tickets", label: "Create/Edit Tickets", group: "Jobs & Tickets" },
-  { key: "sign_tickets", label: "Sign Tickets", group: "Ticket Workflow" },
-  { key: "approve_tickets", label: "Approve Tickets", group: "Ticket Workflow" },
-  { key: "send_to_qb", label: "Send to Accounting", group: "Ticket Workflow" },
-  { key: "void_tickets", label: "Void Tickets", group: "Ticket Workflow" },
-  { key: "manage_users", label: "Manage Users", group: "Admin & Inventory" },
-  { key: "view_inventory", label: "View Inventory", group: "Admin & Inventory" },
-  { key: "edit_inventory", label: "Edit Inventory", group: "Admin & Inventory" },
-];
-
-const DEFAULT_PERMS = {
-  owner: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
-  admin: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
-  manager: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, p.key !== "manage_users"])),
-  lead: { view_jobs: true, edit_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
-  salesman: { view_jobs: true, edit_jobs: false, edit_tickets: false, sign_tickets: false, view_inventory: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
-  field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
-};
-
 
 export default SettingsModal;

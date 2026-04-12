@@ -164,7 +164,7 @@ function NewJobModal({ onClose, onCreateJob }) {
         padding: 28, width: 640, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto",
         margin: "20px 0",
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW JOB CARD</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW WORK ORDER</div>
 
         {/* Scheduled Date + Salesman — TOP */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
@@ -398,7 +398,7 @@ function NewJobModal({ onClose, onCreateJob }) {
             </div>
           </div>
           {wellTBD ? (
-            <div style={{ padding: "10px 0", fontSize: 12, color: C.muted, fontStyle: "italic" }}>Well name will be set to TBD — update via Edit Job when known.</div>
+            <div style={{ padding: "10px 0", fontSize: 12, color: C.muted, fontStyle: "italic" }}>Well name will be set to TBD — update via Edit Work Order when known.</div>
           ) : (
           <>
           {wellList.map((w, idx) => (
@@ -431,14 +431,14 @@ function NewJobModal({ onClose, onCreateJob }) {
             style={{ ...inputStyle, minHeight: 60, resize: "vertical", width: "100%", boxSizing: "border-box" }}
             value={jobNotes}
             onChange={e => setJobNotes(e.target.value)}
-            placeholder="Internal notes — visible on job card only, not on field tickets"
+            placeholder="Internal notes — visible on work order only, not on field tickets"
           />
         </div>
 
         {/* Scheduling */}
 
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-          <Btn onClick={validateAndCreate}>CREATE JOB CARD</Btn>
+          <Btn onClick={validateAndCreate}>CREATE WORK ORDER</Btn>
           <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
         </div>
 

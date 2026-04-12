@@ -223,7 +223,7 @@ function AssetsPage({ jobs }) {
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 4 }}>
               {[a.type, a.unit_number ? `Unit: ${a.unit_number}` : null].filter(Boolean).join(" · ") || "—"}
             </div>
-            {job && <div style={{ fontSize: 12, color: C.text, marginBottom: 6 }}>Job #{job.id} — {job.customer}</div>}
+            {job && <div style={{ fontSize: 12, color: C.text, marginBottom: 6 }}>Work Order #{job.id} — {job.customer}</div>}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button onClick={() => openEdit(a)} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 4, cursor: "pointer" }}>EDIT</button>
               {a.status === "available" && <button onClick={() => { setAssignAsset(a); setAssignJobId(""); }} style={{ background: "transparent", border: `1px solid ${C.green}44`, color: C.green, fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 4, cursor: "pointer" }}>DEPLOY</button>}
@@ -272,7 +272,7 @@ function AssetsPage({ jobs }) {
       {assignAsset && (
         <ModalWrap title={`Deploy — ${assignAsset.name}`} onClose={() => setAssignAsset(null)} width={380}>
           <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle}>ASSIGN TO JOB</label>
+            <label style={labelStyle}>ASSIGN TO WORK ORDER</label>
             <select style={inputStyle} value={assignJobId} onChange={e => setAssignJobId(e.target.value)}>
               <option value="">Select job...</option>
               {activeJobs.map(j => <option key={j.id} value={j.id}>#{j.id} — {j.customer} ({j.wells?.map(w => w.well_name || w).join(", ")})</option>)}

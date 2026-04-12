@@ -264,9 +264,9 @@ function CheckOutModal({ item, jobs, onCheckOut, onClose }) {
         Available: <strong style={{ color: C.green }}>{item.inYard}</strong> in yard
       </div>
       <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>LINK TO JOB</label>
+        <label style={labelStyle}>LINK TO WORK ORDER</label>
         <select style={inputStyle} value={jobLink} onChange={e => handleJobSelect(e.target.value)}>
-          <option value="">— No Job / Manual Entry —</option>
+          <option value="">— No Work Order / Manual Entry —</option>
           {activeJobs.map(j => <option key={j.id} value={j.id}>#{j.id} {j.customer}</option>)}
         </select>
       </div>

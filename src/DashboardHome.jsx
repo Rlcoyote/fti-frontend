@@ -30,7 +30,7 @@ function DashboardHome({
     <div className="fti-dashboard-pad" style={{ padding: "32px 28px" }}>
       <div className="fti-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Jobs</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Work Orders</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
             {activeJobs.length} total · {activeJobs.filter(j => computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) === "In Progress").length} active · Updated just now
           </div>
@@ -39,7 +39,7 @@ function DashboardHome({
           <Btn onClick={() => navigateToPage("/todos")} variant="ghost">
             ☐ Tasks {myActiveTodos.length > 0 ? `(${myActiveTodos.length})` : ""}
           </Btn>
-          <Btn onClick={() => setShowNewJob(true)}>+ Job Card</Btn>
+          <Btn onClick={() => setShowNewJob(true)}>+ NEW WORK ORDER</Btn>
         </div>
       </div>
 

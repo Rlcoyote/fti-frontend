@@ -220,7 +220,7 @@ function ReportsPage({ jobs, tickets, inventory }) {
       <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         {/* Jobs by Status */}
         <div style={cardStyle}>
-          <div style={headerStyle}>JOBS BY STATUS</div>
+          <div style={headerStyle}>WORK ORDERS BY STATUS</div>
           {STATUS_ORDER.map(s => {
             const cfg = STATUS_CONFIG[s] || { color: C.muted, label: s };
             const count = jobsByStatus[s] || 0;

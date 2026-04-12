@@ -84,7 +84,7 @@ function EditJobModal({ job, onSave, onClose }) {
   );
 
   return (
-    <ModalWrap title={`Edit Job #${job.id}`} onClose={handleClose} width={600}>
+    <ModalWrap title={`Edit Work Order #${job.id}`} onClose={handleClose} width={600}>
       {/* Edit Lock Banner */}
       {editLock.isLocked && !editLock.hasLock && (
         <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 16px", marginBottom: 8, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -106,7 +106,7 @@ function EditJobModal({ job, onSave, onClose }) {
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This job card has unsaved changes. Are you sure you want to close?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This work order has unsaved changes. Are you sure you want to close?</div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={() => { editLock.releaseLock(); onClose(); }}>YES, DISCARD</Btn>
               <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>KEEP EDITING</Btn>
@@ -258,7 +258,7 @@ function EditJobModal({ job, onSave, onClose }) {
           style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 12, color: C.text, background: C.cardBg, minHeight: 60, resize: "vertical", boxSizing: "border-box", fontFamily: "'Arial', sans-serif" }}
           value={jobNotes}
           onChange={e => setJobNotes(e.target.value)}
-          placeholder="Internal notes — visible on job card only, not on field tickets"
+          placeholder="Internal notes — visible on work order only, not on field tickets"
         />
       </div>
 

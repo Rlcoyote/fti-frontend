@@ -154,7 +154,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         {/* Job info banner — always visible once type selected */}
         {type && job && (
           <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 20px" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>JOB INFO</div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>WORK ORDER INFO</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 12 }}>
               <span><span style={{ color: C.muted }}>Customer: </span><strong>{job.customer}</strong></span>
               {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
@@ -207,7 +207,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELLS ON THIS JOB</label>
+                  <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
                   <button type="button" onClick={selectAllWells} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer" }}>SELECT ALL</button>
                 </div>
                 {jobWells.map((well, idx) => {
@@ -315,13 +315,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                     <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>GOOGLE PIN</div>
                     {pinMismatch && (
                       <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
-                        ALT PIN — differs from Master Job Card
+                        ALT PIN — differs from Work Order
                       </span>
                     )}
                   </div>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <input style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11, padding: "6px 8px" }}
-                      placeholder={jobGooglePin ? "Override Job Card pin or leave blank to use Job Card pin" : "Paste Google Maps link..."}
+                      placeholder={jobGooglePin ? "Override Work Order pin or leave blank to use Work Order pin" : "Paste Google Maps link..."}
                       value={ticketPin} onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }} />
                     {ticketPin && (
                       <button type="button" onClick={async () => {

@@ -27,7 +27,7 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [] 
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
-          <label style={labelStyle}>LINK TO JOB</label>
+          <label style={labelStyle}>LINK TO WORK ORDER</label>
           <select style={inputStyle} value={form.jobId ?? ""} onChange={e => set("jobId", e.target.value || null)}>
             <option value="">— General Task —</option>
             {jobs.map(j => <option key={j.id} value={j.id}>#{j.id} {j.customer}</option>)}

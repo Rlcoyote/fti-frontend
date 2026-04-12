@@ -30,15 +30,15 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
 
   return (
     <div style={{ padding: "24px 28px" }}>
-      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Job History</h1>
-      <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>{allJobs.length} total jobs · {filtered.length} shown</div>
+      <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>Work Order History</h1>
+      <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>{allJobs.length} total · {filtered.length} shown</div>
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <div style={{ flex: 1, minWidth: 200 }}>
           <label style={labelStyle}>SEARCH</label>
           <input style={inputStyle} value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Job #, customer, well, location..." />
+            placeholder="Work order #, customer, well, location..." />
         </div>
         <div>
           <label style={labelStyle}>STATUS</label>
@@ -62,34 +62,38 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
         )}
       </div>
 
-      {/* Results table */}
+      {/* Results table — horizontal-scrollable when narrower than the grid's minimum */}
       <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 120px 100px 90px", background: C.darkBlue, padding: "10px 16px" }}>
-          {["JOB #", "CUSTOMER", "LOCATION", "DATE", "WELLS", "STATUS"].map(h => (
-            <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{h}</div>
-          ))}
-        </div>
-        {sorted.length === 0 && (
-          <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>No jobs match your search.</div>
-        )}
-        {sorted.map((j, i) => {
-          const cfg = STATUS_CONFIG[j.status] || { color: C.muted, bg: C.steel, label: j.status?.toUpperCase() || "—" };
-          return (
-            <div key={j.id} onClick={() => onNavigateJob(j.id)}
-              style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 120px 100px 90px", padding: "10px 16px",
-                borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel,
-                cursor: "pointer" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#e8f0fb"}
-              onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? C.cardBg : C.steel}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{j.id}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{j.customer}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>{j.location}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>{formatDate(j.dateStarted) || "—"}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>{j.wells?.length || 0} well{(j.wells?.length || 0) !== 1 ? "s" : ""}</div>
-              <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: cfg.bg, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</span></div>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <div style={{ minWidth: 720 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 120px 100px 90px", background: C.darkBlue, padding: "10px 16px" }}>
+              {["WORK ORDER #", "CUSTOMER", "LOCATION", "DATE", "WELLS", "STATUS"].map(h => (
+                <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{h}</div>
+              ))}
             </div>
-          );
-        })}
+            {sorted.length === 0 && (
+              <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>No jobs match your search.</div>
+            )}
+            {sorted.map((j, i) => {
+              const cfg = STATUS_CONFIG[j.status] || { color: C.muted, bg: C.steel, label: j.status?.toUpperCase() || "—" };
+              return (
+                <div key={j.id} onClick={() => onNavigateJob(j.id)}
+                  style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 120px 100px 90px", padding: "10px 16px",
+                    borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel,
+                    cursor: "pointer" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#e8f0fb"}
+                  onMouseLeave={e => e.currentTarget.style.background = i % 2 === 0 ? C.cardBg : C.steel}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{j.id}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{j.customer}</div>
+                  <div style={{ fontSize: 12, color: C.muted }}>{j.location}</div>
+                  <div style={{ fontSize: 12, color: C.muted }}>{formatDate(j.dateStarted) || "—"}</div>
+                  <div style={{ fontSize: 12, color: C.muted }}>{j.wells?.length || 0} well{(j.wells?.length || 0) !== 1 ? "s" : ""}</div>
+                  <div><span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: cfg.bg, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</span></div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

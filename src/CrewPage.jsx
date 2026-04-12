@@ -74,7 +74,7 @@ function CrewPage({ jobs }) {
             {c.currentJob ? (
               <div style={{ background: C.steel, borderRadius: 4, padding: "8px 12px" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>CURRENT ASSIGNMENT</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Job #{c.currentJob.id} — {c.currentJob.customer}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Work Order #{c.currentJob.id} — {c.currentJob.customer}</div>
                 <div style={{ fontSize: 11, color: C.muted }}>{c.currentJob.location}</div>
                 {c.daysOnJob !== null && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Day {c.daysOnJob + 1} on job</div>}
                 {c.activeJobs.length > 1 && <div style={{ fontSize: 10, color: C.orange, marginTop: 4, fontWeight: 700 }}>+ {c.activeJobs.length - 1} more job{c.activeJobs.length - 1 > 1 ? "s" : ""}</div>}

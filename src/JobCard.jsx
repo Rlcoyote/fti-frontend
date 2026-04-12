@@ -56,7 +56,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>JOB #{job.id}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #{job.id}</div>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{job.customer}</div>
               <div style={{ fontSize: 11, color: C.muted }}>{job.location}</div>
               {job.createdBy && <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 1 }}>{shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}</div>}
@@ -81,7 +81,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           cursor: "pointer", gap: 12, userSelect: "none", overflow: "hidden",
         }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>JOB #</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #</div>
           <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{job.id}</div>
           {job.createdBy && <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 2 }}>{shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}</div>}
         </div>
@@ -135,7 +135,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
+          <div style={{ display: "flex", justifyContent: "center", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
             {[["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["details", "DETAILS"], ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
               <button key={tab} onClick={() => setActiveTab(tab)} style={{
                 background: activeTab === tab ? C.cardBg : "transparent", border: "none",
@@ -197,20 +197,20 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   const actions = [
                     { label: "Add / View Field Tickets", action: () => setActiveTab("tickets") },
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
-                    { label: "Edit Job", action: () => setShowEditJob(true) },
+                    { label: "Edit Work Order", action: () => setShowEditJob(true) },
                   ];
                   // Close Out — only if all tickets are sentToQB or qbVerified
                   const jTickets = tickets.filter(t => t.jobId === job.id);
                   const allSent = jTickets.length > 0 && jTickets.every(t => ["sentToQB", "qbVerified"].includes(t.status));
                   const hasIncomplete = jTickets.some(t => !["sentToQB", "qbVerified"].includes(t.status));
                   if (allSent && canDelete) {
-                    actions.push({ label: "CLOSE OUT JOB", action: () => { onUpdateJob(job.id, { status: "Completed" }); }, success: true });
+                    actions.push({ label: "CLOSE OUT WORK ORDER", action: () => { onUpdateJob(job.id, { status: "Completed" }); }, success: true });
                   } else if (hasIncomplete && jTickets.length > 0 && canDelete) {
                     const pending = jTickets.filter(t => !["sentToQB", "qbVerified"].includes(t.status)).length;
                     actions.push({ label: `CLOSE OUT — ${pending} ticket${pending !== 1 ? "s" : ""} not sent`, action: null, warn: true });
                   }
                   if (canDelete) {
-                    actions.push({ label: "DELETE JOB", action: () => setShowDeleteConfirm(true), danger: true });
+                    actions.push({ label: "DELETE WORK ORDER", action: () => setShowDeleteConfirm(true), danger: true });
                   } else if (job.status !== "flaggedCancel") {
                     actions.push({ label: "Flag: To Be Cancelled", action: () => setShowDeleteConfirm(true), warn: true });
                   }
@@ -258,15 +258,15 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowDeleteConfirm(false)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.red, marginBottom: 12 }}>
-              {["owner", "admin", "manager"].includes(currentUser?.role) ? "Delete Job?" : "Flag for Cancellation?"}
+              {["owner", "admin", "manager"].includes(currentUser?.role) ? "Delete Work Order?" : "Flag for Cancellation?"}
             </div>
             <div style={{ fontSize: 13, color: C.text, marginBottom: 8 }}>
-              <strong>Job #{job.id}</strong> — {job.customer}
+              <strong>Work Order #{job.id}</strong> — {job.customer}
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>
               {["owner", "admin", "manager"].includes(currentUser?.role)
-                ? "This job will be moved to the Deleted Jobs page. It can be restored later."
-                : "This job will be flagged for review. A manager or admin will need to approve the cancellation."}
+                ? "This work order will be moved to the Deleted Items page. It can be restored later."
+                : "This work order will be flagged for review. A manager or admin will need to approve the cancellation."}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={() => {

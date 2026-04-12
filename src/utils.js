@@ -144,3 +144,32 @@ export const canModifyUser = (currentUserRole, targetUserRole) => {
   const theirRank = ROLE_RANK[targetUserRole] ?? 0;
   return myRank > theirRank;
 };
+
+// Permission categories used by the Permissions modal. Grouped for display.
+// Previously lived at the bottom of SettingsModal.jsx (pre-split leftover)
+// but PermissionsModal.jsx never imported them, crashing its first render.
+// Lifted into utils.js as the shared home for role/permission metadata.
+export const PERMISSION_CATEGORIES = [
+  { key: "view_jobs", label: "View Work Orders", group: "Work Orders & Tickets" },
+  { key: "edit_jobs", label: "Create/Edit Work Orders", group: "Work Orders & Tickets" },
+  { key: "delete_jobs", label: "Delete Work Orders", group: "Work Orders & Tickets" },
+  { key: "edit_tickets", label: "Create/Edit Tickets", group: "Work Orders & Tickets" },
+  { key: "sign_tickets", label: "Sign Tickets", group: "Ticket Workflow" },
+  { key: "approve_tickets", label: "Approve Tickets", group: "Ticket Workflow" },
+  { key: "send_to_qb", label: "Send to Accounting", group: "Ticket Workflow" },
+  { key: "void_tickets", label: "Void Tickets", group: "Ticket Workflow" },
+  { key: "manage_users", label: "Manage Users", group: "Admin & Inventory" },
+  { key: "view_inventory", label: "View Inventory", group: "Admin & Inventory" },
+  { key: "edit_inventory", label: "Edit Inventory", group: "Admin & Inventory" },
+];
+
+// Default permissions by role. Used as the fallback when a user's permissions
+// column is empty or unset (new user, or migration gap).
+export const DEFAULT_PERMS = {
+  owner: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
+  admin: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
+  manager: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, p.key !== "manage_users"])),
+  lead: { view_jobs: true, edit_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  salesman: { view_jobs: true, edit_jobs: false, edit_tickets: false, sign_tickets: false, view_inventory: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+};
