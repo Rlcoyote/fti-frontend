@@ -131,11 +131,17 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
         const isSent = ["sentToQB", "qbVerified"].includes(t.status);
 
+        const isActiveTicket = viewTicket?.id === t.id;
+
         return (
           <div key={t.id} style={{
-            background: isSent ? "#f5f5f5" : C.cardBg, border: `1px solid ${C.border}`,
-            borderLeft: `3px solid ${isSent ? "#ccc" : tcfg.color}`, borderRadius: 5, marginBottom: 6,
-            opacity: isSent ? 0.6 : 1,
+            background: isActiveTicket ? "#e8f0fb" : isSent ? "#f5f5f5" : C.cardBg,
+            border: isActiveTicket ? `2px solid ${C.blue}` : `1px solid ${C.border}`,
+            borderLeft: `3px solid ${isSent ? "#ccc" : tcfg.color}`,
+            borderRadius: 5, marginBottom: 6,
+            opacity: isSent && !isActiveTicket ? 0.6 : 1,
+            boxShadow: isActiveTicket ? `0 2px 12px ${C.blue}33` : "none",
+            transition: "all 0.15s ease",
           }}>
           {isMobile ? (
             // Mobile: stacked layout
