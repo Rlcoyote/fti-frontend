@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
 import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
@@ -9,6 +10,8 @@ import { useApp } from "./AppContext.jsx";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser } = useApp();
+  const navigate = useNavigate();
+  const [isMobileNav] = useState(() => window.innerWidth <= 900);
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
@@ -25,7 +28,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   }, []);
 
   const openTicket = (t, mode = "edit") => {
-    setViewTicketMode(mode);
     // Compute revision display labels
     const enriched = { ...t };
     if (t.replacedBy) {
@@ -36,6 +38,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       const original = tickets.find(tk => tk.id === t.revisionOf);
       enriched._revisionOfLabel = original ? `${t.jobId}-${original.ticketNumber}` : null;
     }
+    // Mobile: navigate to /ticket/:id as a real page
+    if (isMobileNav) {
+      navigate(`/ticket/${t.id}`, { state: { ticket: enriched, openToSign: mode === "sign" } });
+      return;
+    }
+    // Desktop: open as modal overlay
+    setViewTicketMode(mode);
     setViewTicket(enriched);
   };
 

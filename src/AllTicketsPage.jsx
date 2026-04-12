@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
 import { formatDate, updateTicketApi } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 
 function AllTicketsPage({ tickets, setTickets, jobs }) {
+  const navigate = useNavigate();
+  const [isMobileNav] = useState(() => window.innerWidth <= 900);
   const [viewTicket, setViewTicket] = useState(null);
   const [filterType, setFilterType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -127,7 +130,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
                 transition: "transform 0.15s ease, opacity 0.15s ease",
                 transform: isDropTarget ? "translateY(4px)" : "none",
               }}>
-              <div onClick={() => setViewTicket(t)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", flexWrap: "wrap" }}>
+              <div onClick={() => isMobileNav ? navigate(`/ticket/${t.id}`, { state: { ticket: t } }) : setViewTicket(t)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", flexWrap: "wrap" }}>
                 <span style={{ fontSize: 15, color: "#bbb", cursor: "grab" }}>⠿</span>
                 <TicketTypeBadge type={t.type} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>

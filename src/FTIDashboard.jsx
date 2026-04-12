@@ -25,6 +25,7 @@ import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
+import TicketPage from "./TicketPage.jsx";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -559,7 +560,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.15</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.16</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -678,6 +679,7 @@ function FTIDashboard() {
         {!isField && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
+        <Route path="/ticket/:id" element={<TicketPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         {isAdmin && <Route path="/activity" element={<ActivityLogPage />} />}
         <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />

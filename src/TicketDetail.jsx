@@ -32,19 +32,9 @@ function RentalCountdown({ ticket }) {
   );
 }
 
-function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, openToSign = false }) {
+function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, openToSign = false, asPage = false }) {
   const { qbItems, currentUser, settings } = useApp();
   const [isMobile] = useState(() => window.innerWidth <= 900);
-
-  // On mobile, push a history entry so the back button closes the ticket
-  // instead of navigating away from the page entirely.
-  useEffect(() => {
-    if (!isMobile) return;
-    window.history.pushState({ ticketOpen: true }, "");
-    const handlePop = () => { onClose(); };
-    window.addEventListener("popstate", handlePop);
-    return () => window.removeEventListener("popstate", handlePop);
-  }, [isMobile, onClose]);
   const yardsList = useMemo(() => parseYards(settings), [settings]);
   // All state initialized from ticket prop on mount only
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
@@ -358,21 +348,29 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     } catch (err) { alert("Email send failed: " + err.message); }
   };
 
+  const isPageMode = asPage || isMobile;
+
   return (
     <div
-      style={isMobile
-        ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+      style={isPageMode
+        ? { background: C.cardBg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100vh" }
         : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
       }
-      onClick={isMobile ? undefined : handleClose}
+      onClick={isPageMode ? undefined : handleClose}
     >
       <div
-        style={isMobile
-          ? { background: C.cardBg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100%" }
+        style={isPageMode
+          ? { maxWidth: 820, margin: "0 auto" }
           : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${tcfg.color}`, borderRadius: 8, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
         }
-        onClick={isMobile ? undefined : e => e.stopPropagation()}
+        onClick={isPageMode ? undefined : e => e.stopPropagation()}
       >
+        {/* Back button — page mode only */}
+        {isPageMode && (
+          <div style={{ padding: "12px 24px 0", display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, padding: "6px 14px", fontSize: 12, fontWeight: 700, color: C.muted, cursor: "pointer" }}>← BACK</button>
+          </div>
+        )}
         {/* Edit Lock Banner */}
         {editLock.isLocked && !editLock.hasLock && (
           <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
