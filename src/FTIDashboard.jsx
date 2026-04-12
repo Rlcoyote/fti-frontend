@@ -143,13 +143,15 @@ function FTIDashboard() {
           createdBy: j.created_by_name || null,
           createdAt: j.created_at || null,
         }));
-        // Transform tickets — exclude archived and tickets whose parent work order is deleted.
-        // Jobs with status "Deleted" are in the Deleted Items page, not active — their tickets
-        // should not appear in All Tickets, Final Review, or any ticket-driven views.
-        const deletedJobIds = new Set(jobsMapped.filter(j => j.status === "Deleted").map(j => j.id));
+        // Transform tickets — only include tickets whose parent work order is in the
+        // current API response AND is not soft-deleted. This excludes:
+        //  • tickets from archived jobs (parent not in API response)
+        //  • tickets from deleted jobs (parent has status "Deleted")
+        //  • archived tickets (archivedAt set on the ticket itself)
+        const activeJobIds = new Set(jobsMapped.filter(j => j.status !== "Deleted").map(j => j.id));
         const ticketsMapped = (ticketsR || []).map(mapTicketFromApi)
           .filter(t => !t.archivedAt)
-          .filter(t => !deletedJobIds.has(t.jobId));
+          .filter(t => activeJobIds.has(t.jobId));
         // Transform todos
         const todosMapped = (todosR || []).map(t => ({
           id: t.id,
@@ -530,7 +532,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.95</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v26.96</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>

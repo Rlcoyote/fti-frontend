@@ -62,7 +62,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             <div><label style={labelStyle}>DATE</label><input type="date" style={inputStyle} value={date} onChange={e => setDate(e.target.value)} /></div>
             <div><label style={labelStyle}>TIME</label><input style={inputStyle} value={time} onChange={e => setTime(e.target.value)} placeholder="07:00" /></div>
             <div><label style={labelStyle}>OPERATOR</label><input style={inputStyle} value={operator} onChange={e => setOperator(e.target.value)} /></div>
-            <div><label style={labelStyle}>WELL NAME & #</label><div style={{ ...inputStyle, background: C.steel, minHeight: 36, display: "flex", alignItems: "center" }}>{wellName}</div></div>
+            <div><label style={labelStyle}>WELL NAME & #</label><div style={{ fontSize: 13, fontWeight: 600, color: C.text, paddingTop: 4, lineHeight: 1.5 }}>{wellName}</div></div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
