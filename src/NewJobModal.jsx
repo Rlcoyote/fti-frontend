@@ -175,7 +175,7 @@ function NewJobModal({ onClose, onCreateJob }) {
 
         {/* Scheduled Date + Salesman — TOP */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ flex: 1, minWidth: 140 }}>
             <label style={labelStyle}>SCHEDULED DATE</label>
             <input type="date" style={inputStyle} value={schedDate} onChange={e => setSchedDate(e.target.value)} />
           </div>

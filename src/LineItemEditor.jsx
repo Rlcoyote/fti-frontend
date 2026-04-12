@@ -137,17 +137,20 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
             onChange={e => updateItem(idx, "qbCode", e.target.value)} />
           <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.desc}
             onChange={e => updateItem(idx, "desc", e.target.value)} />
-          <input type="number" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
-            value={li.rate} onChange={e => updateItem(idx, "rate", Number(e.target.value))} />
-          <input type="number" min="1" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
-            value={li.qty} onChange={e => updateItem(idx, "qty", Math.max(1, Number(e.target.value) || 1))} />
+          <input inputMode="decimal" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
+            value={li.rate} onChange={e => updateItem(idx, "rate", e.target.value === "" ? "" : Number(e.target.value))}
+            onBlur={e => { if (e.target.value === "") updateItem(idx, "rate", 0); }} />
+          <input inputMode="numeric" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
+            value={li.qty} onChange={e => updateItem(idx, "qty", e.target.value === "" ? "" : Math.max(1, Number(e.target.value) || 1))}
+            onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "qty", 1); }} />
           <select style={{ ...inputStyle, padding: "4px 4px", fontSize: 10 }} value={li.um}
             onChange={e => updateItem(idx, "um", e.target.value)}>
             {["HR", "DAY", "EA", "GAL", "MILE"].map(u => <option key={u}>{u}</option>)}
           </select>
           {isRental && (
-            <input type="number" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
-              value={li.days || 1} onChange={e => updateItem(idx, "days", Number(e.target.value))} />
+            <input inputMode="numeric" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
+              value={li.days || 1} onChange={e => updateItem(idx, "days", e.target.value === "" ? "" : Number(e.target.value))}
+              onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "days", 1); }} />
           )}
           <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: C.text }}>
             {'$'}{calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
