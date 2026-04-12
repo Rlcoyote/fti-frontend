@@ -356,7 +356,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                   </div>
                   {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {ticketPinError}</div>}
                   {ticketPinLat && ticketPinLng && (
-                    <div style={{ fontSize: 11, color: C.green, fontWeight: 700, fontFamily: "monospace", marginTop: 4 }}>✓ {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</div>
+                    <div style={{ fontSize: 11, color: C.green, fontWeight: 700, fontFamily: "monospace", marginTop: 4, display: "flex", gap: 12, alignItems: "center" }}>
+                      <span>✓ {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</span>
+                      <a href={`https://www.google.com/maps?q=${ticketPinLat},${ticketPinLng}`} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", fontFamily: "'Arial', sans-serif" }}>
+                        View on Google Maps ↗
+                      </a>
+                    </div>
                   )}
                 </div>
               )}

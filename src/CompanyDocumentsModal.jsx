@@ -95,8 +95,8 @@ function CompanyDocumentsModal({ onClose }) {
       <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 600, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>COMPANY DOCUMENTS</div>
-            <div style={{ fontSize: 11, color: C.muted }}>Reference files: tank charts, bucket counts, SOPs, equipment specs</div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>FIELD RESOURCES</div>
+            <div style={{ fontSize: 11, color: C.muted }}>Tank charts, bucket counts, SOPs, equipment specs — reference files your crew uses in the field</div>
           </div>
           {isAdmin && !showUpload && <Btn small onClick={() => setShowUpload(true)}>+ UPLOAD</Btn>}
         </div>

@@ -694,8 +694,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                     )}
                     {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
                     {(ticketPinLat || ticketPinLng) && (
-                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4 }}>
-                        {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4, display: "flex", gap: 12, alignItems: "center" }}>
+                        <span>{parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</span>
+                        <a href={`https://www.google.com/maps?q=${ticketPinLat},${ticketPinLng}`} target="_blank" rel="noopener noreferrer"
+                          style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", fontFamily: "'Arial', sans-serif" }}>
+                          View on Google Maps ↗
+                        </a>
                       </div>
                     )}
                     {/* Drive distance from yard */}
@@ -837,8 +841,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               )}
               {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
               {(ticketPinLat || ticketPinLng) && (
-                <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4 }}>
-                  {parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}
+                <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4, display: "flex", gap: 12, alignItems: "center" }}>
+                  <span>{parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</span>
+                  <a href={`https://www.google.com/maps?q=${ticketPinLat},${ticketPinLng}`} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", fontFamily: "'Arial', sans-serif" }}>
+                    View on Google Maps ↗
+                  </a>
                 </div>
               )}
               {(ticketPinLat && ticketPinLng) && (
