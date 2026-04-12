@@ -162,10 +162,11 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
                 <div style={{ marginTop: 10, background: "#fdf0f0", border: `1px solid ${C.red}33`, borderRadius: 6, padding: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 800, color: C.red, letterSpacing: "0.08em", marginBottom: 6 }}>NEAREST HOSPITALS</div>
                   {nearbyHospitals.map((h, i) => (
-                    <div key={i} style={{ fontSize: 12, color: C.text, marginBottom: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div>
-                        <span style={{ fontWeight: 700 }}>{h.name}</span>
-                        <span style={{ color: C.muted, marginLeft: 8 }}>{h.address}</span>
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0", borderBottom: i < nearbyHospitals.length - 1 ? `1px solid ${C.red}15` : "none" }}>
+                      <div style={{ minWidth: 0 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{h.name}</span>
+                        {h.phone && <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>{h.phone}</span>}
+                        {h.miles != null && <span style={{ fontSize: 10, color: C.red, fontWeight: 700, marginLeft: 8 }}>{h.miles} mi</span>}
                       </div>
                       <a href={`https://www.google.com/maps/dir/${lat},${lng}/${h.lat},${h.lng}`} target="_blank" rel="noopener noreferrer"
                         style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap", marginLeft: 8 }}>
