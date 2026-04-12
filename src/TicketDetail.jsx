@@ -389,66 +389,63 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <button onClick={editLock.dismissRequest} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>THE CURRENT USER WILL BE FINISHED SHORTLY</button>
           </div>
         )}
-        {/* Header */}
-        <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-                <TicketTypeBadge type={ticket.type} />
-                <TicketStatusBadge status={status} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} — {ticket.type}</span>
-                {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
-                {ticket.createdBy && <span style={{ fontSize: 9, color: "#a0aec8", marginLeft: "auto" }}>{shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}</span>}
-              </div>
-              <div style={{ fontSize: 12, color: C.muted, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <span>{job?.customer || "Unknown"} · {isLocked
-                  ? formatDate(ticketDate)
-                  : <input type="date" value={ticketDate} onChange={e => handleDateChange(e.target.value)}
-                      style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
-                }</span>
-                {ticket.type !== "Rental" && (
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>LOCATION TIME:</span>
-                    {editable
-                      ? <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
-                      : <span style={{ fontWeight: 600 }}>{dueOnLoc || "—"}</span>
-                    }
-                  </span>
-                )}
-                {ticket.type !== "Rental" && (
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>TIME ZONE:</span>
-                    {editable
-                      ? <span style={{ display: "flex", gap: 8 }}>
-                          {["TX", "NM"].map(tz => (
-                            <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 4, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
-                              <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
-                              {tz}
-                            </span>
-                          ))}
-                        </span>
-                      : <span style={{ fontWeight: 600 }}>{timeZone || "—"}</span>
-                    }
-                  </span>
-                )}
-                {yardsList.length > 1 && (
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>YARD:</span>
-                    <select
-                      value={yardLocationIndex}
-                      onChange={e => setYardLocationIndex(parseInt(e.target.value, 10))}
-                      style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg, fontWeight: 600 }}
-                    >
-                      {yardsList.map((y, i) => (
-                        <option key={i} value={i + 1}>{y.name || `Yard #${i + 1}`}</option>
-                      ))}
-                    </select>
-                  </span>
-                )}
-              </div>
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        {/* Header — mobile: single-column vertical stack. Desktop: side-by-side with total right-aligned */}
+        <div style={{ padding: isPageMode ? "14px 16px 12px" : "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
+          {/* Row 1: badges + ticket number */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+            <TicketTypeBadge type={ticket.type} />
+            <TicketStatusBadge status={status} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}</span>
+            {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
           </div>
+          {/* Row 2: total + created by */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: C.text }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            {ticket.createdBy && <span style={{ fontSize: 9, color: "#a0aec8" }}>{shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}</span>}
+          </div>
+          {/* Row 3: customer + date */}
+          <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>
+            <span>{job?.customer || "Unknown"} · {isLocked
+              ? formatDate(ticketDate)
+              : <input type="date" value={ticketDate} onChange={e => handleDateChange(e.target.value)}
+                  style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
+            }</span>
+          </div>
+          {/* Row 4: Location Time + Time Zone + Yard — each on own line on mobile */}
+          {ticket.type !== "Rental" && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12, color: C.muted }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>LOCATION TIME:</span>
+                {editable
+                  ? <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
+                  : <span style={{ fontWeight: 600 }}>{dueOnLoc || "—"}</span>
+                }
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>TIME ZONE:</span>
+                {editable
+                  ? <span style={{ display: "flex", gap: 6 }}>
+                      {["TX", "NM"].map(tz => (
+                        <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
+                          <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
+                          {tz}
+                        </span>
+                      ))}
+                    </span>
+                  : <span style={{ fontWeight: 600 }}>{timeZone || "—"}</span>
+                }
+              </span>
+              {yardsList.length > 1 && (
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>YARD:</span>
+                  <select value={yardLocationIndex} onChange={e => setYardLocationIndex(parseInt(e.target.value, 10))}
+                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg, fontWeight: 600, maxWidth: isPageMode ? 200 : "none" }}>
+                    {yardsList.map((y, i) => <option key={i} value={i + 1}>{y.name || `Yard #${i + 1}`}</option>)}
+                  </select>
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Job / Customer Info — read only */}
