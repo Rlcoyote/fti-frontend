@@ -223,7 +223,7 @@ function NewJobModal({ onClose, onCreateJob }) {
 
           {/* Site Manager */}
           <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>POINT OF CONTACT</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 12 }}>
             <div>
               <label style={labelStyle}>FIRST NAME *</label>
               <input style={{ ...inputStyle, borderColor: errors.contactFirst ? C.red : C.border }} value={contactFirst} onChange={e => { setContactFirst(e.target.value); setErrors(prev => ({...prev, contactFirst: null})); }} placeholder="First" />
@@ -248,7 +248,7 @@ function NewJobModal({ onClose, onCreateJob }) {
 
           {/* Approver */}
           <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>APPROVER</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
             <div>
               <label style={labelStyle}>FIRST NAME</label>
               <input style={inputStyle} value={approver} onChange={e => setApprover(e.target.value)} placeholder="First" />
@@ -272,7 +272,7 @@ function NewJobModal({ onClose, onCreateJob }) {
         {/* Billing codes */}
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>BILLING INFORMATION</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
             <div>
               <label style={labelStyle}>COMPANY CODE</label>
               <input style={inputStyle} value={companyCode} onChange={e => setCompanyCode(e.target.value)} placeholder="e.g. 0064" />

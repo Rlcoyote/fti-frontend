@@ -108,6 +108,10 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
 
   return (
     <div>
+      {/* Scrollable container for the grid — prevents line items from overflowing
+          the viewport on mobile, which was causing whole-page horizontal scroll */}
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <div style={{ minWidth: 520 }}>
       {/* Header */}
       <div style={{
         display: "grid", gridTemplateColumns: cols,
@@ -166,6 +170,8 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
         </div>
         <div />
       </div>
+      </div>{/* end minWidth */}
+      </div>{/* end overflowX scroll wrapper */}
       {/* Add buttons */}
       <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center", position: "relative", flexWrap: "wrap" }}>
         <Btn small onClick={() => setShowSearch(s => !s)}>+ FROM RATE SHEET</Btn>
