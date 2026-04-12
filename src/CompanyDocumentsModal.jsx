@@ -115,7 +115,15 @@ function CompanyDocumentsModal({ onClose }) {
             </div>
             <div style={{ marginBottom: 10 }}>
               <label style={labelStyle}>FILE (PDF, Image, Excel, Word)</label>
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx" onChange={e => setFile(e.target.files[0])} style={{ fontSize: 11 }} />
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx" onChange={e => {
+                const f = e.target.files[0];
+                setFile(f);
+                if (f && !name.trim()) {
+                  // Auto-fill name from filename (strip extension)
+                  const n = f.name.replace(/\.[^/.]+$/, "");
+                  setName(n);
+                }
+              }} style={{ fontSize: 11 }} />
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn small disabled={uploading} onClick={handleUpload}>{uploading ? "UPLOADING..." : "UPLOAD"}</Btn>

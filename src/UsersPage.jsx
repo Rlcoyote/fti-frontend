@@ -207,6 +207,24 @@ function UsersPage({ isAdmin }) {
                       {isSelf && <button onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyle}>CHANGE PW</button>}
                       {canModify && !isSelf && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyle}>RESEND INVITE</button>}
                       {!canModify && !isSelf && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
+                      {canModify && (
+                        <select value={u.session_timeout_minutes ?? 30} onChange={async (e) => {
+                          const val = parseInt(e.target.value);
+                          try {
+                            await fetch(`${API_URL}/users/${u.id}`, {
+                              method: "PUT", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ session_timeout_minutes: val }),
+                            });
+                            await refreshUsers();
+                          } catch { /* silent */ }
+                        }} style={{ border: `1px solid ${C.border}`, borderRadius: 3, padding: "3px 6px", fontSize: 10, color: C.muted, background: C.cardBg }}
+                          title="Session timeout">
+                          <option value="30">30m timeout</option>
+                          <option value="60">60m timeout</option>
+                          <option value="120">2h timeout</option>
+                          <option value="0">No timeout</option>
+                        </select>
+                      )}
                     </div>
                   </div>
                 )}

@@ -56,11 +56,11 @@ export function AppProvider({ children }) {
     setGlobalUser(currentUser?.name || "");
   }, [currentUser]);
 
-  // ── Idle auto-logout (configurable via app_settings.session_timeout_minutes) ──
+  // ── Idle auto-logout (per-user, set by owner/admin on Users page) ──
   useEffect(() => {
     if (!currentUser) return;
-    const timeoutMin = parseInt(settings?.session_timeout_minutes) || 30;
-    if (timeoutMin <= 0) return; // 0 or "Never" = disabled
+    const timeoutMin = parseInt(currentUser.session_timeout_minutes) || 30;
+    if (timeoutMin <= 0) return; // 0 = "Never" = disabled
     const IDLE_MS = timeoutMin * 60 * 1000;
     let timer;
     const resetTimer = () => {
@@ -79,7 +79,7 @@ export function AppProvider({ children }) {
       clearTimeout(timer);
       events.forEach(e => window.removeEventListener(e, resetTimer));
     };
-  }, [currentUser, settings?.session_timeout_minutes]);
+  }, [currentUser]);
 
   // ── Fetch functions (also used as refresh handles) ──
   const refreshSettings = useCallback(async () => {

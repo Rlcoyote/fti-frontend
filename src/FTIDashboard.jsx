@@ -568,7 +568,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.25</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.26</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -644,31 +644,6 @@ function FTIDashboard() {
                         onMouseEnter={e => e.currentTarget.style.background = C.steel}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                         Activity Log
-                      </div>
-                    )}
-                    {currentUser.role === "owner" && (
-                      <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}
-                        onClick={e => e.stopPropagation()}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Session Timeout</span>
-                        <select
-                          value={settings?.session_timeout_minutes || "30"}
-                          onChange={async (e) => {
-                            const val = e.target.value;
-                            try {
-                              await fetch(`${API_URL}/settings`, {
-                                method: "PUT", headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({ session_timeout_minutes: val }),
-                              });
-                              refreshSettings();
-                            } catch { /* silent */ }
-                          }}
-                          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 8px", fontSize: 12, color: C.text, background: C.cardBg }}
-                        >
-                          <option value="30">30 min</option>
-                          <option value="60">60 min</option>
-                          <option value="120">2 hours</option>
-                          <option value="0">Never</option>
-                        </select>
                       </div>
                     )}
                   </div>
