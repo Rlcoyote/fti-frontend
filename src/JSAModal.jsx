@@ -98,7 +98,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             {currentUser?.role === "owner" && (
               <div onClick={(e) => { e.stopPropagation(); setShowEmergencyEdit(true); }}
                 style={{ fontSize: 10, color: C.blue, cursor: "pointer", marginTop: 4, fontWeight: 600 }}>
-                Edit Contacts
+                Edit Emergency Info
               </div>
             )}
           </div>

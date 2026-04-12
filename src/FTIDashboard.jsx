@@ -512,7 +512,21 @@ function FTIDashboard() {
             display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
           }}>
             <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>🚨</span>
-            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Emergency Contacts</span>
+            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Emergency Information</span>
+          </div>
+        )}
+        <div onClick={() => { setDrawerOpen(false); setShowCompanyDocs(true); }} style={{
+          display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
+        }}>
+          <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>📁</span>
+          <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Field Resources</span>
+        </div>
+        {isAdmin && (
+          <div onClick={() => { setDrawerOpen(false); navigate("/activity"); }} style={{
+            display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
+          }}>
+            <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>📋</span>
+            <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Activity Log</span>
           </div>
         )}
         <div onClick={() => { setDrawerOpen(false); setShowLogoutConfirm(true); }} style={{
@@ -545,7 +559,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.11</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.12</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -600,7 +614,7 @@ function FTIDashboard() {
                         style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
                         onMouseEnter={e => e.currentTarget.style.background = C.steel}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        Emergency Contacts
+                        Emergency Information
                       </div>
                     )}
                     <div onClick={() => setShowCompanyDocs(true)}

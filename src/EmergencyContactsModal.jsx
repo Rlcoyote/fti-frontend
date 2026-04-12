@@ -59,7 +59,7 @@ function EmergencyContactsModal({ onClose }) {
       onClick={onClose}>
       <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 520, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
         onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>EMERGENCY CONTACTS</div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>EMERGENCY INFORMATION</div>
         <div style={{ fontSize: 11, color: C.muted, marginBottom: 16 }}>
           Displayed on JSA forms. Add emergency phone numbers for air life, life flight, local hospitals, or any custom contact. Owner-only.
         </div>
