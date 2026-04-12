@@ -107,8 +107,8 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
             onChange={e => updateItem(idx, "desc", e.target.value)} />
           <input type="number" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
             value={li.rate} onChange={e => updateItem(idx, "rate", Number(e.target.value))} />
-          <input type="number" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
-            value={li.qty} onChange={e => updateItem(idx, "qty", Number(e.target.value))} />
+          <input type="number" min="1" style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}
+            value={li.qty} onChange={e => updateItem(idx, "qty", Math.max(1, Number(e.target.value) || 1))} />
           <select style={{ ...inputStyle, padding: "4px 4px", fontSize: 10 }} value={li.um}
             onChange={e => updateItem(idx, "um", e.target.value)}>
             {["HR", "DAY", "EA", "GAL", "MILE"].map(u => <option key={u}>{u}</option>)}
