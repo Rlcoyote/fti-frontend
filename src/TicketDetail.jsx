@@ -244,13 +244,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const editable = !isFullyLocked && !isVoided && editLock.hasLock;
   const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
 
-  // Auto-save site manager as customer contact (silent, non-blocking)
+  // Auto-save site manager as customer contact (upsert — backend deduplicates)
   const saveSiteMgrAsContact = () => {
     const custId = job?.customerId || job?.customer_id;
     const fullName = [siteMgrFirst, siteMgrLast].filter(Boolean).join(" ").trim();
     if (!fullName || !custId) return;
-    const existing = knownContacts.find(c => c.name.toLowerCase() === fullName.toLowerCase());
-    if (existing) return;
     fetch(`${API_URL}/customers/${custId}/contacts`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: fullName, phone: siteMgrPhone || null, email: siteMgrEmail || null, role_tag: "site_manager" }),

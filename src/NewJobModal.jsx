@@ -100,19 +100,25 @@ function NewJobModal({ onClose, onCreateJob }) {
     }
   };
 
-  // Save POC as a customer contact after work order creation
-  const savePocAsContact = async (custId) => {
-    const fullName = [contactFirst, contactLast].filter(Boolean).join(" ").trim();
-    if (!fullName || !custId) return;
-    // Check if this contact already exists
-    const existing = knownContacts.find(c => c.name.toLowerCase() === fullName.toLowerCase() && c.role_tag === "poc");
-    if (existing) return; // Already saved
-    try {
-      await fetch(`${API_URL}/customers/${custId}/contacts`, {
+  // Save contacts after work order creation (upsert — backend handles dedup)
+  const saveContactsForCustomer = async (custId) => {
+    if (!custId) return;
+    const pocName = [contactFirst, contactLast].filter(Boolean).join(" ").trim();
+    const approverName = [approver, approverLast].filter(Boolean).join(" ").trim();
+    const saves = [];
+    if (pocName) {
+      saves.push(fetch(`${API_URL}/customers/${custId}/contacts`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName, phone: phone || null, email: email || null, role_tag: "poc" }),
-      });
-    } catch { /* silent — contact save is a convenience, not critical */ }
+        body: JSON.stringify({ name: pocName, phone: phone || null, email: email || null, role_tag: "poc" }),
+      }));
+    }
+    if (approverName) {
+      saves.push(fetch(`${API_URL}/customers/${custId}/contacts`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: approverName, phone: approverPhone || null, email: approverEmail || null, role_tag: "approver" }),
+      }));
+    }
+    await Promise.allSettled(saves);
   };
 
   const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
@@ -179,8 +185,8 @@ function NewJobModal({ onClose, onCreateJob }) {
     }
     setErrors({});
     const cleanWells = wellTBD ? ["TBD"] : wellList.map(w => w.trim()).filter(Boolean);
-    // Auto-save POC as customer contact for future use
-    if (selectedCust?.id) savePocAsContact(selectedCust.id);
+    // Auto-save POC + Approver as customer contacts (dedup handled by backend)
+    if (selectedCust?.id) saveContactsForCustomer(selectedCust.id);
 
     onCreateJob({
       id: null,
@@ -359,6 +365,20 @@ function NewJobModal({ onClose, onCreateJob }) {
 
           {/* Approver */}
           <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>APPROVER</div>
+          {knownContacts.filter(c => c.role_tag === "approver" || c.role_tag === "company_man").length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
+              {knownContacts.filter(c => c.role_tag === "approver" || c.role_tag === "company_man").map(c => (
+                <button key={c.id} type="button" onClick={() => applyContact(c)} style={{
+                  background: "transparent", border: `1px solid ${C.blue}44`, borderRadius: 4,
+                  padding: "4px 10px", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer",
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+                  {c.name} <span style={{ color: C.muted, fontSize: 9, marginLeft: 4 }}>{c.role_tag?.toUpperCase()}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
             <div>
               <label style={labelStyle}>FIRST NAME</label>
