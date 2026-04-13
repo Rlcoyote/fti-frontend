@@ -85,6 +85,14 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       .catch(() => {});
   }, [_contactCustId]);
   const [showDupModal, setShowDupModal] = useState(false);
+  const [dupType, setDupType] = useState(ticket.type);
+  const [dupDate, setDupDate] = useState(() => today());
+  const [dupJobId, setDupJobId] = useState(ticket.jobId);
+  const [incLineItems, setIncLineItems] = useState(true);
+  const [incNotes, setIncNotes] = useState(false);
+  const [incPin, setIncPin] = useState(true);
+  const [incWells, setIncWells] = useState(true);
+  const [dupSubmitting, setDupSubmitting] = useState(false);
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
     const job = jobs?.find(j => j.id === ticket.jobId);
@@ -1205,7 +1213,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
           {/* Duplicate */}
           {onDuplicate && !isFullyLocked && (
-            <Btn variant="ghost" onClick={() => setShowDupModal(true)}>DUPLICATE</Btn>
+            <Btn variant="ghost" onClick={() => { setDupType(ticket.type); setDupDate(today()); setDupJobId(ticket.jobId); setIncLineItems(true); setIncNotes(false); setIncPin(true); setIncWells(true); setDupSubmitting(false); setShowDupModal(true); }}>DUPLICATE</Btn>
           )}
 
           {/* Delete — not on locked/QB tickets */}
@@ -1330,98 +1338,87 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
         {/* Duplicate Options Modal */}
         {showDupModal && (() => {
-          const TYPES = ["Rig Up", "Tester", "Pumper", "Rental", "Rig Down"];
-          const DupModal = () => {
-            const [dupType, setDupType] = useState(ticket.type);
-            const [dupDate, setDupDate] = useState(today());
-            const [dupJobId, setDupJobId] = useState(ticket.jobId);
-            const [incLineItems, setIncLineItems] = useState(true);
-            const [incNotes, setIncNotes] = useState(false);
-            const [incPin, setIncPin] = useState(true);
-            const [incWells, setIncWells] = useState(true);
-            const [submitting, setSubmitting] = useState(false);
-            const targetJob = jobs?.find(j => j.id === dupJobId);
-            const sourceJob = jobs?.find(j => j.id === ticket.jobId);
-            const customerChanged = targetJob && sourceJob && targetJob.customer !== sourceJob.customer;
-            const activeJobs = (jobs || []).filter(j => j.status !== "Deleted");
-            const chk = { width: 16, height: 16, cursor: "pointer", accentColor: C.blue };
-            const lbl = { fontSize: 13, cursor: "pointer", userSelect: "none" };
-            return (
-              <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setShowDupModal(false)}>
-                <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 500, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 4 }}>Duplicate Ticket</div>
-                  <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>
-                    #{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} — {ticket.type}
-                  </div>
+          const DUP_TYPES = ["Rig Up", "Tester", "Pumper", "Rental", "Rig Down"];
+          const dupTargetJob = (jobs || []).find(j => j.id === dupJobId);
+          const dupSourceJob = (jobs || []).find(j => j.id === ticket.jobId);
+          const dupCustChanged = dupTargetJob && dupSourceJob && dupTargetJob.customer !== dupSourceJob.customer;
+          const dupActiveJobs = (jobs || []).filter(j => j.status !== "Deleted");
+          const chk = { width: 16, height: 16, cursor: "pointer", accentColor: C.blue };
+          const lbl = { fontSize: 13, cursor: "pointer", userSelect: "none" };
+          return (
+            <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setShowDupModal(false)}>
+              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 500, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 4 }}>Duplicate Ticket</div>
+                <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>
+                  #{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} — {ticket.type}
+                </div>
 
-                  {/* Type */}
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TICKET TYPE</div>
-                    <select value={dupType} onChange={e => setDupType(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}>
-                      {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
+                {/* Type */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TICKET TYPE</div>
+                  <select value={dupType} onChange={e => setDupType(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}>
+                    {DUP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
 
-                  {/* Date */}
-                  <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TICKET DATE</div>
-                    <input type="date" value={dupDate} onChange={e => setDupDate(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, boxSizing: "border-box" }} />
-                  </div>
+                {/* Date */}
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TICKET DATE</div>
+                  <input type="date" value={dupDate} onChange={e => setDupDate(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, boxSizing: "border-box" }} />
+                </div>
 
-                  {/* Target Job */}
-                  <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>ASSIGN TO JOB</div>
-                    <select value={dupJobId} onChange={e => setDupJobId(Number(e.target.value))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}>
-                      {activeJobs.map(j => <option key={j.id} value={j.id}>#{j.id} — {j.customer} ({j.location})</option>)}
-                    </select>
-                    {dupJobId !== ticket.jobId && targetJob && (
-                      <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Customer: {targetJob.customer}</div>
-                    )}
-                  </div>
+                {/* Target Job */}
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>ASSIGN TO WORK ORDER</div>
+                  <select value={dupJobId} onChange={e => setDupJobId(Number(e.target.value))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}>
+                    {dupActiveJobs.map(j => <option key={j.id} value={j.id}>#{j.id} — {j.customer} ({j.location})</option>)}
+                  </select>
+                  {dupJobId !== ticket.jobId && dupTargetJob && (
+                    <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Customer: {dupTargetJob.customer}</div>
+                  )}
+                </div>
 
-                  {/* Carry Over Options */}
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>CARRY OVER</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20, padding: "12px 14px", background: C.steel, borderRadius: 6 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-                      <input type="checkbox" checked={incLineItems} onChange={e => setIncLineItems(e.target.checked)} style={chk} />
-                      Line Items ({ticket.lineItems?.length || 0} items)
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-                      <input type="checkbox" checked={incNotes} onChange={e => setIncNotes(e.target.checked)} style={chk} />
-                      Notes
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl, opacity: customerChanged ? 0.5 : 1 }}>
-                      <input type="checkbox" checked={customerChanged ? false : incPin} onChange={e => setIncPin(e.target.checked)} disabled={customerChanged} style={{ ...chk, cursor: customerChanged ? "not-allowed" : "pointer" }} />
-                      Google Pin {customerChanged && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>(different customer)</span>}
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-                      <input type="checkbox" checked={incWells} onChange={e => setIncWells(e.target.checked)} style={chk} />
-                      Assigned Wells
-                    </label>
-                  </div>
+                {/* Carry Over Options */}
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>CARRY OVER</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20, padding: "12px 14px", background: C.steel, borderRadius: 6 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
+                    <input type="checkbox" checked={incLineItems} onChange={e => setIncLineItems(e.target.checked)} style={chk} />
+                    Line Items ({ticket.lineItems?.length || 0} items)
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
+                    <input type="checkbox" checked={incNotes} onChange={e => setIncNotes(e.target.checked)} style={chk} />
+                    Notes
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl, opacity: dupCustChanged ? 0.5 : 1 }}>
+                    <input type="checkbox" checked={dupCustChanged ? false : incPin} onChange={e => setIncPin(e.target.checked)} disabled={dupCustChanged} style={{ ...chk, cursor: dupCustChanged ? "not-allowed" : "pointer" }} />
+                    Google Pin {dupCustChanged && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>(different customer)</span>}
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
+                    <input type="checkbox" checked={incWells} onChange={e => setIncWells(e.target.checked)} style={chk} />
+                    Assigned Wells
+                  </label>
+                </div>
 
-                  <div style={{ display: "flex", gap: 10 }}>
-                    <Btn variant="blue" onClick={async () => {
-                      setSubmitting(true);
-                      await onDuplicate(ticket, {
-                        new_date: dupDate,
-                        new_job_id: dupJobId !== ticket.jobId ? dupJobId : undefined,
-                        new_type: dupType !== ticket.type ? dupType : undefined,
-                        assigned_wells: incWells ? ticket.assignedWells : [],
-                        include_notes: incNotes,
-                        include_line_items: incLineItems,
-                        include_pin: customerChanged ? false : incPin,
-                      });
-                      setShowDupModal(false);
-                      setSubmitting(false);
-                    }} disabled={submitting}>{submitting ? "DUPLICATING..." : "DUPLICATE"}</Btn>
-                    <Btn variant="ghost" onClick={() => setShowDupModal(false)}>CANCEL</Btn>
-                  </div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <Btn variant="blue" onClick={async () => {
+                    setDupSubmitting(true);
+                    await onDuplicate(ticket, {
+                      new_date: dupDate,
+                      new_job_id: dupJobId !== ticket.jobId ? dupJobId : undefined,
+                      new_type: dupType !== ticket.type ? dupType : undefined,
+                      assigned_wells: incWells ? ticket.assignedWells : [],
+                      include_notes: incNotes,
+                      include_line_items: incLineItems,
+                      include_pin: dupCustChanged ? false : incPin,
+                    });
+                    setShowDupModal(false);
+                    setDupSubmitting(false);
+                  }} disabled={dupSubmitting}>{dupSubmitting ? "DUPLICATING..." : "DUPLICATE"}</Btn>
+                  <Btn variant="ghost" onClick={() => setShowDupModal(false)}>CANCEL</Btn>
                 </div>
               </div>
-            );
-          };
-          return <DupModal />;
+            </div>
+          );
         })()}
 
       </div>
