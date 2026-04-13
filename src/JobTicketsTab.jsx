@@ -399,14 +399,19 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   }
                   return [...otherJobs, ...mapped];
                 });
-                // Open the new ticket — close first to force remount
-                const newTicket = mapped.find(tk => tk.id === saved.id);
-                if (newTicket) {
+                if (targetJobId === t.jobId) {
+                  // Same job — open the new ticket inline
+                  const newTicket = mapped.find(tk => tk.id === saved.id);
+                  if (newTicket) {
+                    setViewTicket(null);
+                    setTimeout(() => {
+                      setViewTicketMode("edit");
+                      setViewTicket({ ...newTicket, _duplicateReminder: true });
+                    }, 50);
+                  }
+                } else {
+                  // Different job — close modal, navigate to target job
                   setViewTicket(null);
-                  setTimeout(() => {
-                    setViewTicketMode("edit");
-                    setViewTicket({ ...newTicket, _duplicateReminder: true });
-                  }, 50);
                 }
               }
             } catch (err) { alert("Duplicate failed: " + err.message); }
