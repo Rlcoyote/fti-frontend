@@ -379,6 +379,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   include_notes: opts.include_notes ?? true,
                   include_line_items: opts.include_line_items ?? true,
                   include_pin: opts.include_pin ?? true,
+                  include_site_mgr: opts.include_site_mgr ?? true,
                   created_by: currentUser?.id || null,
                 }),
               });

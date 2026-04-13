@@ -236,7 +236,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   const handleClose = () => {
     if (isFullyLocked || ticket.voidedAt) { editLock.releaseLock(); onClose(); return; }
-    if (isDirty()) { setShowUnsavedClose(true); return; }
+    // Auto-save any changes, then close
+    if (isDirty()) save();
     editLock.releaseLock();
     onClose();
   };
@@ -1410,6 +1411,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                       include_notes: incNotes,
                       include_line_items: incLineItems,
                       include_pin: dupCustChanged ? false : incPin,
+                      include_site_mgr: !dupCustChanged,
                     });
                     setShowDupModal(false);
                     setDupSubmitting(false);
