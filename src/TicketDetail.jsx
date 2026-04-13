@@ -1341,6 +1341,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             const [incWells, setIncWells] = useState(true);
             const [submitting, setSubmitting] = useState(false);
             const targetJob = jobs?.find(j => j.id === dupJobId);
+            const sourceJob = jobs?.find(j => j.id === ticket.jobId);
+            const customerChanged = targetJob && sourceJob && targetJob.customer !== sourceJob.customer;
             const activeJobs = (jobs || []).filter(j => j.status !== "Deleted");
             const chk = { width: 16, height: 16, cursor: "pointer", accentColor: C.blue };
             const lbl = { fontSize: 13, cursor: "pointer", userSelect: "none" };
@@ -1388,9 +1390,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                       <input type="checkbox" checked={incNotes} onChange={e => setIncNotes(e.target.checked)} style={chk} />
                       Notes
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-                      <input type="checkbox" checked={incPin} onChange={e => setIncPin(e.target.checked)} style={chk} />
-                      Google Pin
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl, opacity: customerChanged ? 0.5 : 1 }}>
+                      <input type="checkbox" checked={customerChanged ? false : incPin} onChange={e => setIncPin(e.target.checked)} disabled={customerChanged} style={{ ...chk, cursor: customerChanged ? "not-allowed" : "pointer" }} />
+                      Google Pin {customerChanged && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>(different customer)</span>}
                     </label>
                     <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
                       <input type="checkbox" checked={incWells} onChange={e => setIncWells(e.target.checked)} style={chk} />
@@ -1408,7 +1410,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                         assigned_wells: incWells ? ticket.assignedWells : [],
                         include_notes: incNotes,
                         include_line_items: incLineItems,
-                        include_pin: incPin,
+                        include_pin: customerChanged ? false : incPin,
                       });
                       setShowDupModal(false);
                       setSubmitting(false);
