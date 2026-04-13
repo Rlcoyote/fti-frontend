@@ -75,14 +75,15 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [yardLocationIndex, setYardLocationIndex] = useState(() => ticket.yardLocationIndex || ticket.yard_location_index || 1);
   // Known contacts for this customer (for site manager quick-fill)
   const [knownContacts, setKnownContacts] = useState([]);
+  const _contactJob = (jobs || []).find(j => j.id === ticket.jobId);
+  const _contactCustId = _contactJob?.customerId || _contactJob?.customer_id;
   useEffect(() => {
-    const custId = job?.customerId || job?.customer_id;
-    if (!custId) return;
-    fetch(`${API_URL}/customers/${custId}/contacts`)
+    if (!_contactCustId) return;
+    fetch(`${API_URL}/customers/${_contactCustId}/contacts`)
       .then(r => r.ok ? r.json() : [])
       .then(c => setKnownContacts(c))
       .catch(() => {});
-  }, [job?.customerId, job?.customer_id]);
+  }, [_contactCustId]);
   const [showDupModal, setShowDupModal] = useState(false);
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
