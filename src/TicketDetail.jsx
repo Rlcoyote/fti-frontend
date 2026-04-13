@@ -232,7 +232,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     onClose();
   };
 
-  const job = jobs.find(j => j.id === ticket.jobId);
+  const job = (jobs || []).find(j => j.id === ticket.jobId);
   const tcfg = TICKET_TYPES[ticket.type] || { color: C.muted, label: ticket.type || "Unknown" };
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
   const isLocked = !isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified", "voided"].includes(status);

@@ -3,9 +3,6 @@ import { C, API_URL } from "./config.js";
 import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS, ROLE_OPTIONS, getRoleTemplates } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 
-// Editable roles — owner is immutable and excluded from template editing
-const EDITABLE_ROLES = ROLE_OPTIONS.filter(r => r.value !== "owner");
-
 // Check if a user's permissions match a role template exactly.
 function detectEffectiveRole(permissions, templates) {
   for (const [role, template] of Object.entries(templates)) {
@@ -18,6 +15,8 @@ function detectEffectiveRole(permissions, templates) {
 function PermissionsModal({ onClose }) {
   const { currentUser, settings, refreshSettings } = useApp();
   const isOwnerOrAdmin = ["owner", "admin"].includes(currentUser?.role);
+  // Editable roles — owner is immutable and excluded from template editing
+  const EDITABLE_ROLES = useMemo(() => ROLE_OPTIONS.filter(r => r.value !== "owner"), []);
   const [permUsers, setPermUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
