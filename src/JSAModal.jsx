@@ -54,6 +54,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
 
   const [weather, setWeather] = useState(jsa?.weather || []);
   const [weatherData, setWeatherData] = useState(null);
+  const [weatherAutoTags, setWeatherAutoTags] = useState([]);
 
   // Auto-fetch weather conditions when coordinates are available (new JSAs only)
   useEffect(() => {
@@ -63,6 +64,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
       .then(d => {
         if (d?.tags?.length > 0) {
           setWeather(d.tags);
+          setWeatherAutoTags(d.tags);
           setWeatherData(d);
         }
       })
@@ -231,18 +233,23 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
                   {weatherData.temperature != null && <span style={{ fontWeight: 700, color: C.text }}>{Math.round(weatherData.temperature)}°F</span>}
                   {weatherData.wind_speed > 0 && <span style={{ marginLeft: 10 }}>Wind: {Math.round(weatherData.wind_speed)} mph</span>}
                   {weatherData.wind_gusts > 0 && <span style={{ marginLeft: 6 }}>Gusts: {Math.round(weatherData.wind_gusts)} mph</span>}
-                  <span style={{ marginLeft: 10, fontSize: 9, color: C.blue }}>auto-detected from pin</span>
+                  <span style={{ marginLeft: 10, fontSize: 9, color: C.blue, fontWeight: 700 }}>auto-detected from pin — tap to override</span>
                 </div>
               )}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {weatherOpts.map(w => (
+                {weatherOpts.map(w => {
+                  const isSelected = weather.includes(w);
+                  const isAuto = isSelected && weatherAutoTags.includes(w);
+                  return (
                   <button key={w} onClick={() => toggleWeather(w)} style={{
-                    background: weather.includes(w) ? C.blue : "transparent",
-                    color: weather.includes(w) ? C.white : C.muted,
-                    border: `1px solid ${weather.includes(w) ? C.blue : C.border}`,
+                    background: isSelected ? C.blue : "transparent",
+                    color: isSelected ? C.white : C.muted,
+                    border: `1px solid ${isSelected ? C.blue : C.border}`,
+                    borderStyle: isAuto ? "dashed" : "solid",
                     borderRadius: 4, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
                   }}>{w}</button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
