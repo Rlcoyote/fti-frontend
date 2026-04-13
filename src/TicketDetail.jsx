@@ -1308,7 +1308,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {showJSA && job && (
           <JSAModal
             job={job}
-            ticket={ticket}
+            ticket={{ ...ticket, date: ticketDate }}
             existingJSA={existingJSA}
             onClose={() => setShowJSA(false)}
             onSave={async (jsaData) => {
