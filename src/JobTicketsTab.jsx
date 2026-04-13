@@ -469,6 +469,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   try {
                     const r = await fetch(`${API_URL}/tickets/${deleteConfirmId}`, { method: "DELETE" });
                     if (r.ok) {
+                      const deleted = tickets.find(tk => tk.id === deleteConfirmId);
+                      if (deleted && onTicketDeleted) onTicketDeleted(deleted);
                       setTickets(prev => prev.filter(tk => tk.id !== deleteConfirmId));
                       setDeleteConfirmId(null);
                     } else {
