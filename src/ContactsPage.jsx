@@ -20,7 +20,8 @@ function ContactsPage() {
   const [msg, setMsg] = useState("");
 
   // Edit form
-  const [eName, setEName] = useState("");
+  const [eFirst, setEFirst] = useState("");
+  const [eLast, setELast] = useState("");
   const [ePhone, setEPhone] = useState("");
   const [eEmail, setEEmail] = useState("");
   const [eRole, setERole] = useState("poc");
@@ -65,16 +66,19 @@ function ContactsPage() {
   const uniqueRoles = [...new Set(contacts.map(c => c.role_tag))].sort();
 
   const openEdit = (c) => {
-    setEName(c.name); setEPhone(c.phone || ""); setEEmail(c.email || ""); setERole(c.role_tag || "poc");
+    const parts = (c.name || "").split(" ");
+    setEFirst(parts[0] || ""); setELast(parts.slice(1).join(" ") || "");
+    setEPhone(c.phone || ""); setEEmail(c.email || ""); setERole(c.role_tag || "poc");
     setEditContact(c);
   };
 
   const handleSaveEdit = async () => {
-    if (!eName.trim()) return;
+    if (!eFirst.trim()) return;
+    const fullName = [eFirst.trim(), eLast.trim()].filter(Boolean).join(" ");
     try {
       await fetch(`${API_URL}/customers/contacts/${editContact.id}`, {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: eName.trim(), phone: ePhone || null, email: eEmail || null, role_tag: eRole }),
+        body: JSON.stringify({ name: fullName, phone: ePhone || null, email: eEmail || null, role_tag: eRole }),
       });
       await fetchAll();
       setEditContact(null);
@@ -167,18 +171,23 @@ function ContactsPage() {
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 600 }}>
-              <div style={{ display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 120px 140px 160px 80px 50px" : "1fr 120px 140px 160px 80px 50px", background: C.darkBlue, padding: "10px 14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 1.2fr 90px 40px" : "1fr 1fr 1.2fr 130px 1.2fr 90px 40px", background: C.darkBlue, padding: "10px 14px" }}>
                 {selectMode && <div />}
-                {["NAME", "CUSTOMER", "PHONE", "EMAIL", "ROLE", ""].map(h => (
+                {["FIRST NAME", "LAST NAME", "CUSTOMER", "PHONE", "EMAIL", "ROLE", ""].map(h => (
                   <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>{h}</div>
                 ))}
               </div>
-              {filtered.map((c, i) => (
+              {filtered.map((c, i) => {
+                const nameParts = (c.name || "").split(" ");
+                const firstName = nameParts[0] || "";
+                const lastName = nameParts.slice(1).join(" ") || "";
+                return (
                 <div key={c.id} style={{
-                  display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 120px 140px 160px 80px 50px" : "1fr 120px 140px 160px 80px 50px",
+                  display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 1.2fr 90px 40px" : "1fr 1fr 1.2fr 130px 1.2fr 90px 40px",
                   padding: "8px 14px", borderBottom: `1px solid ${C.border}22`,
                   background: selected.has(c.id) ? "#e8f0fb" : i % 2 === 0 ? C.cardBg : C.steel,
                   cursor: isAdmin ? "pointer" : "default",
+                  alignItems: "center",
                 }}
                   onClick={() => selectMode ? toggleSelect(c.id) : isAdmin && openEdit(c)}
                   onMouseEnter={e => { if (!selectMode) e.currentTarget.style.background = "#e8f0fb"; }}
@@ -186,7 +195,8 @@ function ContactsPage() {
                   {selectMode && (
                     <div><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} style={{ width: 15, height: 15, accentColor: C.blue }} /></div>
                   )}
-                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.name}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{firstName}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lastName}</div>
                   <div style={{ fontSize: 12, color: C.muted }}>{c.customer_name}</div>
                   <div style={{ fontSize: 12, color: C.muted }}>{c.phone || "—"}</div>
                   <div style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis" }}>{c.email || "—"}</div>
@@ -200,7 +210,8 @@ function ContactsPage() {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -209,9 +220,9 @@ function ContactsPage() {
       {/* Edit modal */}
       {editContact && (
         <ModalWrap title="EDIT CONTACT" onClose={() => setEditContact(null)} width={420}>
-          <div style={{ marginBottom: 10 }}>
-            <label style={labelStyle}>NAME</label>
-            <input style={inputStyle} value={eName} onChange={e => setEName(e.target.value)} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+            <div><label style={labelStyle}>FIRST NAME</label><input style={inputStyle} value={eFirst} onChange={e => setEFirst(e.target.value)} autoFocus /></div>
+            <div><label style={labelStyle}>LAST NAME</label><input style={inputStyle} value={eLast} onChange={e => setELast(e.target.value)} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
             <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={ePhone} onChange={e => setEPhone(e.target.value)} /></div>

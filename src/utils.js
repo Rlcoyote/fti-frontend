@@ -173,3 +173,21 @@ export const DEFAULT_PERMS = {
   salesman: { view_jobs: true, edit_jobs: false, edit_tickets: false, sign_tickets: false, view_inventory: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
   field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
 };
+
+// Returns role templates from app_settings if customized, otherwise falls back to DEFAULT_PERMS.
+// Owner is ALWAYS hardcoded — all permissions true, not editable by anyone.
+export function getRoleTemplates(settings) {
+  const base = { ...DEFAULT_PERMS };
+  if (settings?.role_templates) {
+    try {
+      const custom = typeof settings.role_templates === "string" ? JSON.parse(settings.role_templates) : settings.role_templates;
+      for (const role of Object.keys(custom)) {
+        if (role === "owner") continue; // owner is immutable
+        base[role] = custom[role];
+      }
+    } catch { /* parse error — fall back to defaults */ }
+  }
+  // Owner is always all-true
+  base.owner = Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true]));
+  return base;
+}

@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
-import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS, ROLE_OPTIONS } from "./utils.js";
+import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS, ROLE_OPTIONS, getRoleTemplates } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 
-// Check if a user's permissions match a standard role template exactly.
-// Returns the matching role name, or "custom" if no match.
-function detectEffectiveRole(permissions) {
-  for (const [role, template] of Object.entries(DEFAULT_PERMS)) {
+// Editable roles — owner is immutable and excluded from template editing
+const EDITABLE_ROLES = ROLE_OPTIONS.filter(r => r.value !== "owner");
+
+// Check if a user's permissions match a role template exactly.
+function detectEffectiveRole(permissions, templates) {
+  for (const [role, template] of Object.entries(templates)) {
     const match = PERMISSION_CATEGORIES.every(p => !!(permissions?.[p.key]) === !!(template[p.key]));
     if (match) return role;
   }
@@ -14,10 +16,27 @@ function detectEffectiveRole(permissions) {
 }
 
 function PermissionsModal({ onClose }) {
-  const { currentUser } = useApp();
+  const { currentUser, settings, refreshSettings } = useApp();
+  const isOwnerOrAdmin = ["owner", "admin"].includes(currentUser?.role);
   const [permUsers, setPermUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
+
+  // Build active templates from DB settings (with hardcoded fallback)
+  const templates = useMemo(() => getRoleTemplates(settings), [settings]);
+
+  // Local copy of templates for editing
+  const [editTemplates, setEditTemplates] = useState({});
+  useEffect(() => {
+    // Deep copy templates for local editing (exclude owner)
+    const copy = {};
+    for (const role of EDITABLE_ROLES.map(r => r.value)) {
+      copy[role] = { ...(templates[role] || DEFAULT_PERMS[role] || {}) };
+    }
+    setEditTemplates(copy);
+  }, [templates]);
 
   useEffect(() => {
     fetch(`${API_URL}/permissions`).then(r => r.json()).then(data => {
@@ -25,12 +44,13 @@ function PermissionsModal({ onClose }) {
         ...u,
         permissions: Object.keys(u.permissions || {}).length > 0
           ? u.permissions
-          : DEFAULT_PERMS[u.role] || DEFAULT_PERMS.field,
+          : templates[u.role] || DEFAULT_PERMS.field,
       })));
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, []);
+  }, [templates]);
 
+  // Save a single user's permissions
   const savePerm = async (userId, perms) => {
     setSaving(prev => ({ ...prev, [userId]: true }));
     try {
@@ -53,11 +73,44 @@ function PermissionsModal({ onClose }) {
   const applyRoleTemplate = (userId, role) => {
     const user = permUsers.find(u => u.id === userId);
     if (!user || !canModifyUser(currentUser?.role, user.role)) return;
-    const template = DEFAULT_PERMS[role];
+    const template = templates[role];
     if (!template) return;
     setPermUsers(prev => prev.map(u => u.id === userId ? { ...u, permissions: { ...template } } : u));
     savePerm(userId, { ...template });
   };
+
+  // Toggle a permission in a role template (local state)
+  const toggleTemplatePerm = (role, permKey) => {
+    setEditTemplates(prev => ({
+      ...prev,
+      [role]: { ...prev[role], [permKey]: !prev[role]?.[permKey] },
+    }));
+  };
+
+  // Save all templates to app_settings
+  const saveTemplates = async () => {
+    setTemplateSaving(true);
+    try {
+      await fetch(`${API_URL}/settings`, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role_templates: JSON.stringify(editTemplates) }),
+      });
+      await refreshSettings();
+    } catch (err) { console.error("Save templates failed:", err); }
+    setTemplateSaving(false);
+  };
+
+  // Check if local edits differ from saved templates
+  const templatesDirty = useMemo(() => {
+    for (const role of EDITABLE_ROLES.map(r => r.value)) {
+      for (const p of PERMISSION_CATEGORIES) {
+        if (!!(editTemplates[role]?.[p.key]) !== !!(templates[role]?.[p.key])) return true;
+      }
+    }
+    return false;
+  }, [editTemplates, templates]);
+
+  const thStyle = { position: "sticky", top: 0, background: C.cardBg, padding: "10px 4px", textAlign: "center", borderBottom: `2px solid ${C.border}`, fontWeight: 600, color: C.muted, minWidth: 55, fontSize: 10, lineHeight: 1.3, zIndex: 2 };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={onClose}>
@@ -72,18 +125,75 @@ function PermissionsModal({ onClose }) {
           </div>
         </div>
         <div style={{ overflowX: "auto", overflowY: "auto", flex: 1, padding: "0 0 16px" }}>
+
+          {/* ── Role Template Editor (Owner/Admin only) ── */}
+          {isOwnerOrAdmin && (
+            <div style={{ borderBottom: `2px solid ${C.border}`, padding: "12px 0" }}>
+              <div
+                onClick={() => setShowTemplates(!showTemplates)}
+                style={{ padding: "0 24px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.blue, letterSpacing: "0.06em" }}>ROLE TEMPLATES</span>
+                <span style={{ fontSize: 10, color: C.muted, transform: showTemplates ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▼</span>
+                <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic", marginLeft: 4 }}>
+                  Define default permissions for each role
+                </span>
+              </div>
+              {showTemplates && (
+                <div style={{ padding: "12px 0 0", overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...thStyle, textAlign: "left", padding: "10px 12px", minWidth: 100, fontWeight: 800, color: C.text }}>Role</th>
+                        {PERMISSION_CATEGORIES.map(p => (
+                          <th key={p.key} style={thStyle}>{p.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {EDITABLE_ROLES.map(r => (
+                        <tr key={r.value} style={{ borderBottom: `1px solid ${C.border}` }}>
+                          <td style={{ padding: "8px 12px", fontWeight: 700, color: C.text, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.04em" }}>
+                            {r.label}
+                          </td>
+                          {PERMISSION_CATEGORIES.map(p => (
+                            <td key={p.key} style={{ padding: "8px 4px", textAlign: "center" }}>
+                              <input type="checkbox"
+                                checked={!!(editTemplates[r.value]?.[p.key])}
+                                onChange={() => toggleTemplatePerm(r.value, p.key)}
+                                style={{ width: 16, height: 16, cursor: "pointer", accentColor: C.blue }} />
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div style={{ padding: "10px 24px", display: "flex", gap: 10, alignItems: "center" }}>
+                    <button onClick={saveTemplates} disabled={!templatesDirty || templateSaving}
+                      style={{
+                        background: templatesDirty ? C.blue : C.steel, color: templatesDirty ? C.white : C.muted,
+                        border: "none", borderRadius: 4, padding: "6px 16px", fontSize: 11, fontWeight: 800, cursor: templatesDirty ? "pointer" : "not-allowed",
+                      }}>
+                      {templateSaving ? "SAVING..." : "SAVE TEMPLATES"}
+                    </button>
+                    {!templatesDirty && <span style={{ fontSize: 10, color: C.muted }}>No unsaved changes</span>}
+                    {templatesDirty && <span style={{ fontSize: 10, color: "#8a6500", fontWeight: 600 }}>Unsaved changes</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── User Permissions Grid ── */}
           {loading ? (
             <div style={{ padding: 40, textAlign: "center", color: C.muted }}>Loading...</div>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr>
-                  <th style={{ position: "sticky", top: 0, background: C.cardBg, padding: "10px 12px", textAlign: "left", borderBottom: `2px solid ${C.border}`, fontWeight: 800, color: C.text, minWidth: 140, zIndex: 2 }}>User</th>
-                  <th style={{ position: "sticky", top: 0, background: C.cardBg, padding: "10px 6px", borderBottom: `2px solid ${C.border}`, fontWeight: 700, color: C.muted, minWidth: 100, zIndex: 2 }}>Role Template</th>
+                  <th style={{ ...thStyle, textAlign: "left", padding: "10px 12px", minWidth: 140, fontWeight: 800, color: C.text }}>User</th>
+                  <th style={{ ...thStyle, minWidth: 100, fontWeight: 700 }}>Role Template</th>
                   {PERMISSION_CATEGORIES.map(p => (
-                    <th key={p.key} style={{ position: "sticky", top: 0, background: C.cardBg, padding: "10px 4px", textAlign: "center", borderBottom: `2px solid ${C.border}`, fontWeight: 600, color: C.muted, minWidth: 55, fontSize: 10, lineHeight: 1.3, zIndex: 2 }}>
-                      {p.label}
-                    </th>
+                    <th key={p.key} style={thStyle}>{p.label}</th>
                   ))}
                 </tr>
               </thead>
@@ -91,7 +201,7 @@ function PermissionsModal({ onClose }) {
                 {permUsers.filter(u => u.is_active).map(u => {
                   const isOwner = u.role === "owner";
                   const canModify = canModifyUser(currentUser?.role, u.role);
-                  const effectiveRole = detectEffectiveRole(u.permissions);
+                  const effectiveRole = detectEffectiveRole(u.permissions, templates);
                   const isCustom = effectiveRole === "custom";
                   return (
                     <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: isOwner ? "#f0f3f8" : "transparent" }}>
@@ -106,7 +216,7 @@ function PermissionsModal({ onClose }) {
                             onChange={e => { if (e.target.value !== "custom") applyRoleTemplate(u.id, e.target.value); }}
                             style={{ border: `1px solid ${isCustom ? "#8a6500" : C.border}`, borderRadius: 4, padding: "3px 6px", fontSize: 10, fontWeight: 700, color: isCustom ? "#8a6500" : C.text, background: isCustom ? "#fdf5d8" : C.cardBg, letterSpacing: "0.04em", textTransform: "uppercase" }}
                           >
-                            {ROLE_OPTIONS.filter(r => r.value !== "owner").map(r => (
+                            {EDITABLE_ROLES.map(r => (
                               <option key={r.value} value={r.value}>{r.label}</option>
                             ))}
                             {isCustom && <option value="custom">Custom</option>}
@@ -139,6 +249,5 @@ function PermissionsModal({ onClose }) {
     </div>
   );
 }
-
 
 export default PermissionsModal;
