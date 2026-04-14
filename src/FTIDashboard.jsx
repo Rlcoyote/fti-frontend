@@ -3,7 +3,7 @@ import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-
 import { C, API_URL, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
 import { useApp } from "./AppContext.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
-import { mapTicketFromApi, todoVisible } from "./utils.js";
+import { mapTicketFromApi, todoVisible, DEFAULT_PERMS } from "./utils.js";
 import { Btn, NavBadge, PipelineSummary, computeJobStatus } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
 import JobCard from "./JobCard.jsx";
@@ -34,8 +34,13 @@ function FTIDashboard() {
   const isAdmin = ["owner", "admin"].includes(userRole);
   const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
   const isField = userRole === "field";
-  // Permission-based access — reads from user's permissions object with fallback to role defaults
-  const perms = currentUser.permissions || {};
+  // Permission-based access — reads from user's permissions, falls back to role defaults
+  // Owner ALWAYS gets everything regardless of what's in the DB
+  const perms = userRole === "owner"
+    ? DEFAULT_PERMS.owner
+    : (Object.keys(currentUser.permissions || {}).length > 0
+        ? currentUser.permissions
+        : DEFAULT_PERMS[userRole] || {});
   const can = (key) => !!(perms[key]);
 
   useEffect(() => {
