@@ -31,12 +31,18 @@ function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) { setError("Email and password required"); return; }
+    // Read directly from DOM as fallback in case Chrome autofill bypassed onChange
+    const emailVal = email.trim() || document.querySelector('input[type="email"]')?.value?.trim() || "";
+    const pwVal = password || document.querySelector('input[type="password"]')?.value || "";
+    if (!emailVal || !pwVal) { setError("Email and password required"); return; }
+    // Sync state if DOM had values that React missed
+    if (!email.trim() && emailVal) setEmail(emailVal);
+    if (!password && pwVal) setPassword(pwVal);
     setLoading(true); setError("");
     try {
       const r = await fetch(`${API_URL}/auth/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+        body: JSON.stringify({ email: emailVal.toLowerCase(), password: pwVal }),
       });
       const data = await r.json();
       if (r.ok) { setCurrentUser(data); } else { setError(data.error || "Login failed"); }
@@ -95,12 +101,12 @@ function LoginScreen() {
           <>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} type="email" autoComplete="off" value={email} onChange={e => setEmail(e.target.value)}
+              <input style={inputStyle} type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="you@flotest.com" onKeyDown={e => e.key === "Enter" && handleLogin()} />
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>PASSWORD</label>
-              <input style={inputStyle} type="password" autoComplete="off" value={password} onChange={e => setPassword(e.target.value)}
+              <input style={inputStyle} type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)}
                 placeholder="••••••" onKeyDown={e => e.key === "Enter" && handleLogin()} />
             </div>
             <div style={{ textAlign: "right", marginBottom: 16 }}>
