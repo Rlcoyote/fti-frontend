@@ -281,13 +281,15 @@ function UsersPage({ isAdmin }) {
       {/* ── RESET PASSWORD MODAL (owner/admin for others) ── */}
       {resetPwUser && (
         <ModalWrap title={`Reset Password — ${resetPwUser.name}`} onClose={() => setResetPwUser(null)} width={380}>
+          {/* Hidden username field to prevent Chrome from associating this with the admin's own credentials */}
+          <input type="text" name="username" value={resetPwUser.email} readOnly style={{ display: "none" }} autoComplete="username" />
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>NEW PASSWORD</label>
-            <input style={inputStyle} type="password" value={resetPwVal} onChange={e => setResetPwVal(e.target.value)} placeholder="Min 6 characters" />
+            <input style={inputStyle} type="password" value={resetPwVal} onChange={e => setResetPwVal(e.target.value)} placeholder="Min 6 characters" autoComplete="new-password" />
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>CONFIRM PASSWORD</label>
-            <input style={inputStyle} type="password" value={resetPwConfirm} onChange={e => setResetPwConfirm(e.target.value)} placeholder="Re-enter password"
+            <input style={inputStyle} type="password" value={resetPwConfirm} onChange={e => setResetPwConfirm(e.target.value)} placeholder="Re-enter password" autoComplete="new-password"
               onKeyDown={e => e.key === "Enter" && handleAdminResetPassword()} />
           </div>
           {resetPwMsg && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{resetPwMsg}</div>}
