@@ -107,7 +107,7 @@ export function NavBadge({ count }) {
 
 // ─── TICKET DOTS & STATUS ─────────────────────────────────────────────────────
 export function TicketDot({ label, state }) {
-  const colors = { signed: C.green, inField: "#1a5fa8", draft: C.yellow, none: "#d0d8e8" };
+  const colors = { signed: C.green, inField: "#1a5fa8", incomplete: "#8a6500", draft: "#8a6500", none: "#d0d8e8" };
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
       <div style={{ width: 10, height: 10, borderRadius: "50%", background: colors[state] || colors.none }} />
