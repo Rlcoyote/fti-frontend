@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
-import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi } from "./utils.js";
+import { today, formatDate, formatShortStamp, shortName, calcTicketTotal, mapTicketFromApi, updateTicketApi } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
@@ -163,7 +163,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <TicketTypeBadge type={t.type} />
                   <div>
-                    <div style={{ fontSize: 11, color: C.muted }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)}</div>
+                    <div style={{ fontSize: 11, color: C.muted }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)} · {t.lineItems.length} items</div>
+                    {t.createdBy && <div style={{ fontSize: 9, color: "#a0aec8" }}>{shortName(t.createdBy)} · {formatShortStamp(t.createdAt)}</div>}
                     {hasPendingComment && (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044", marginTop: 3 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -245,6 +246,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               <TicketTypeBadge type={t.type} />
               <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)}</span>
               <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
+              {t.createdBy && <span style={{ fontSize: 9, color: "#a0aec8", whiteSpace: "nowrap" }}>{shortName(t.createdBy)} · {formatShortStamp(t.createdAt)}</span>}
               {hasPendingComment && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />

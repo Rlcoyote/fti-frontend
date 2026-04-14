@@ -26,6 +26,8 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   }, []);
   const ticketTotal = jobTickets.reduce((s, t) => s + calcTicketTotal(t), 0);
   const hasJobPendingComment = jobTickets.some(t => t.hasPendingComment || t.has_pending_comment);
+  const FINAL_STATES = ["sentToQB", "qbVerified", "voided"];
+  const readyToClose = jobTickets.length > 0 && jobTickets.every(t => FINAL_STATES.includes(t.status)) && computedStatus !== "Completed";
 
   // Derive dot states from actual tickets
   const dotState = (type) => {
@@ -64,6 +66,9 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             <div style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}44`, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em" }}>{cfg.label}</div>
+            {readyToClose && (
+              <span style={{ background: "#e6f5ec", color: "#1a7a3c", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #1a7a3c44" }}>READY TO CLOSE</span>
+            )}
             {hasJobPendingComment && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -117,6 +122,11 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
           <StatusBadge status={computedStatus} />
+          {readyToClose && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#e6f5ec", color: "#1a7a3c", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #1a7a3c44" }}>
+              READY TO CLOSE
+            </span>
+          )}
           {computedStatus === "In Progress" && jobTickets.some(t => t.status === "incomplete") && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>
               {jobTickets.filter(t => t.status === "incomplete").length} INCOMPLETE
