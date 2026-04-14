@@ -33,7 +33,7 @@ function EditJobModal({ job, onSave, onClose }) {
   const [contactLast, setContactLast] = useState(job.contactLast || job.contact_last || "");
   const [pocPhone, setPocPhone] = useState(job.pocPhone || job.poc_phone || "");
   const [pocEmail, setPocEmail] = useState(job.pocEmail || job.poc_email || "");
-  const [approver, setApprover] = useState(job.approver || job.approver_first || "");
+  const [approver, setApprover] = useState(job.approver || "");
   const [approverLast, setApproverLast] = useState(job.approverLast || job.approver_last || "");
   const [approverPhone, setApproverPhone] = useState(job.approverPhone || job.approver_phone || "");
   const [approverEmail, setApproverEmail] = useState(job.approverEmail || job.approver_email || "");
@@ -56,7 +56,7 @@ function EditJobModal({ job, onSave, onClose }) {
     afe: job.afe || "", contactFirst: job.contactFirst || job.contact_first || "",
     contactLast: job.contactLast || job.contact_last || "",
     pocPhone: job.pocPhone || job.poc_phone || "", pocEmail: job.pocEmail || job.poc_email || "",
-    approver: job.approver || job.approver_first || "", approverLast: job.approverLast || job.approver_last || "",
+    approver: job.approver || "", approverLast: job.approverLast || job.approver_last || "",
     approverPhone: job.approverPhone || job.approver_phone || "", approverEmail: job.approverEmail || job.approver_email || "",
     companyCode: job.companyCode || job.company_code || "", costCenter: job.costCenter || job.cost_center || "",
     po: job.po || job.po_number || "", status: job.status || "Scheduled",

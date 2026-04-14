@@ -148,7 +148,7 @@ function FTIDashboard() {
           contactLast: j.contact_last || "",
           pocPhone: j.poc_phone || "",
           pocEmail: j.poc_email || "",
-          approver: j.approver_first || "",
+          approver: j.approver || "",
           approverLast: j.approver_last || "",
           approverPhone: j.approver_phone || "",
           approverEmail: j.approver_email || "",
