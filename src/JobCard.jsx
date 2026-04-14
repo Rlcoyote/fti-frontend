@@ -199,15 +199,17 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
                     { label: "Edit Work Order", action: () => setShowEditJob(true) },
                   ];
-                  // Close Out — only if all tickets are sentToQB or qbVerified
+                  // Close Out — only if all tickets are in final state (sent to accounting or voided)
                   const jTickets = tickets.filter(t => t.jobId === job.id);
-                  const allSent = jTickets.length > 0 && jTickets.every(t => ["sentToQB", "qbVerified"].includes(t.status));
-                  const hasIncomplete = jTickets.some(t => !["sentToQB", "qbVerified"].includes(t.status));
-                  if (allSent && canDelete) {
+                  const FINAL_STATES = ["sentToQB", "qbVerified", "voided"];
+                  const allFinal = jTickets.length > 0 && jTickets.every(t => FINAL_STATES.includes(t.status));
+                  const pendingTickets = jTickets.filter(t => !FINAL_STATES.includes(t.status));
+                  if (allFinal && canDelete) {
                     actions.push({ label: "CLOSE OUT WORK ORDER", action: () => { onUpdateJob(job.id, { status: "Completed" }); }, success: true });
-                  } else if (hasIncomplete && jTickets.length > 0 && canDelete) {
-                    const pending = jTickets.filter(t => !["sentToQB", "qbVerified"].includes(t.status)).length;
-                    actions.push({ label: `CLOSE OUT — ${pending} ticket${pending !== 1 ? "s" : ""} not sent`, action: null, warn: true });
+                  } else if (jTickets.length === 0 && canDelete) {
+                    actions.push({ label: "CLOSE OUT — no tickets", action: null, warn: true });
+                  } else if (pendingTickets.length > 0 && canDelete) {
+                    actions.push({ label: `CLOSE OUT — ${pendingTickets.length} ticket${pendingTickets.length !== 1 ? "s" : ""} not finalized`, action: null, warn: true });
                   }
                   if (canDelete) {
                     actions.push({ label: "DELETE WORK ORDER", action: () => setShowDeleteConfirm(true), danger: true });

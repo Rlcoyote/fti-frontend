@@ -130,6 +130,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         const hasPendingComment = !!t.hasPendingComment || !!t.has_pending_comment;
         const cycleEnded = !!t.cycleEnded || !!t.cycle_ended;
         const canSendToQB = isSigned && isApproved;
+        const needsJSA = !t.hasJSA && !t.voidedAt; // JSA required before signature/email/approval
 
         // Button styles
         const btnBase = { borderRadius: 4, padding: "4px 10px", fontSize: 10, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em", border: "none", whiteSpace: "nowrap" };
@@ -184,14 +185,18 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 )}
                 <RentalCountdown ticket={t} />
                 <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
+                {/* JSA required gate */}
+                {needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
+                  <span style={{ ...btnDisabled, fontSize: 9 }} title="Complete JSA before proceeding">JSA REQUIRED</span>
+                )}
                 {/* Sig button */}
-                {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
+                {!needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
                 {t.status === "sigNotReq" && <span style={{ ...btnDone, color: C.blue }}>SIG NOT REQ</span>}
                 {(t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified") && <span style={btnDone}>✓ SIGNED</span>}
                 {/* Email */}
                 {!custEmail && <span style={btnDisabled}>NO EMAIL ON FILE</span>}
-                {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
+                {custEmail && !needsJSA && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                   <button type="button"
                     style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
                     onClick={() => {
@@ -203,7 +208,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   </button>
                 )}
                 {/* Approval */}
-                {isSigned && !isApproved && <button type="button" style={btnAction} onClick={async () => { await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>}
+                {!needsJSA && isSigned && !isApproved && <button type="button" style={btnAction} onClick={async () => { await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>}
                 {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && <span style={btnDone}>✓ APPROVED</span>}
                 {/* Send to Accounting */}
                 {t.status !== "sentToQB" && t.status !== "qbVerified" && (
@@ -277,8 +282,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 )}
               </div>
             ) : (<>
-              {/* Col 2: Signature */}
-              {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
+              {/* Col 2: Signature — blocked if no JSA */}
+              {needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
+                <span style={{ ...btnDisabled, fontSize: 9 }} title="Complete JSA before proceeding">JSA REQUIRED</span>
+              )}
+              {!needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
                 <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIGNATURE REQUEST</button>
               )}
               {t.status === "signed" && (
@@ -291,11 +299,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <span style={btnDone}>✓ SIGNED</span>
               )}
 
-              {/* Col 3: Email */}
+              {/* Col 3: Email — blocked if no JSA */}
               {!custEmail && (
                 <span style={btnDisabled}>NO EMAIL ON FILE</span>
               )}
-              {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
+              {custEmail && !needsJSA && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                 <button type="button"
                   style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
                   onClick={() => {
@@ -310,11 +318,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <span style={isEmailed ? btnDone : btnDisabled}>{isEmailed ? "✓ CUSTOMER EMAILED" : "NO EMAIL ON FILE"}</span>
               )}
 
-              {/* Col 4: Approval */}
-              {!isSigned && !isApproved && (
+              {/* Col 4: Approval — blocked if no JSA */}
+              {needsJSA && !isSigned && !isApproved && (
                 <span style={btnDisabled}>APPROVAL NEEDED</span>
               )}
-              {isSigned && !isApproved && (
+              {!needsJSA && !isSigned && !isApproved && (
+                <span style={btnDisabled}>APPROVAL NEEDED</span>
+              )}
+              {!needsJSA && isSigned && !isApproved && (
                 <button type="button" style={btnAction} onClick={async () => {
                   await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
                 }}>APPROVAL NEEDED</button>
@@ -417,10 +428,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               }
             } catch (err) { alert("Duplicate failed: " + err.message); }
           }}
-          onRevise={async (t) => {
+          onRevise={async (t, reason) => {
             try {
               const r = await fetch(`${API_URL}/tickets/${t.id}/revise`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ voided_reason: reason || null }),
               });
               if (!r.ok) { const d = await r.json(); alert(d.error || "Revise failed"); return; }
               const saved = await r.json();

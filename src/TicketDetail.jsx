@@ -150,6 +150,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [tdLoading, setTdLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
+  const [voidReason, setVoidReason] = useState("");
+  const [voidReasonNote, setVoidReasonNote] = useState("");
   const [showJSA, setShowJSA] = useState(false);
   const [existingJSA, setExistingJSA] = useState(null);
   const [jsaLoaded, setJsaLoaded] = useState(false);
@@ -1088,8 +1090,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {!isLocked && !showSigPad && !showSigOptions && (
             <>
               <Btn onClick={handleSave}>SAVE & CLOSE</Btn>
-              {!sigWiped && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
-              {!sigWiped && !signedBy && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
+              {!sigWiped && existingJSA && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
+              {!sigWiped && !existingJSA && jsaLoaded && <Btn variant="ghost" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>JSA REQUIRED</Btn>}
+              {!sigWiped && !signedBy && existingJSA && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
             </>
           )}
 
@@ -1184,25 +1187,62 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </div>
         )}
 
-        {/* Void confirmation */}
+        {/* Void confirmation with reason */}
         {showVoidConfirm && (
           <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowVoidConfirm(false)}>
             <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.red, marginBottom: 10 }}>Void This Ticket?</div>
               <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.7 }}>
-                Ticket <strong>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}</strong> is signed and permanent. Proceeding will:
+                Ticket <strong>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}</strong> is signed and permanent.
               </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>REASON FOR VOIDING *</div>
+                <select value={voidReason} onChange={e => setVoidReason(e.target.value)}
+                  style={{ width: "100%", padding: "8px 10px", border: `1px solid ${voidReason ? C.border : C.red}`, borderRadius: 4, fontSize: 13 }}>
+                  <option value="">Select a reason...</option>
+                  <option value="Job Cancelled">Job Cancelled</option>
+                  <option value="Duplicate Ticket">Duplicate Ticket</option>
+                  <option value="Incorrect Information">Incorrect Information</option>
+                  <option value="Billing Error">Billing Error</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {voidReason === "Other" && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>DETAILS</div>
+                  <textarea value={voidReasonNote} onChange={e => setVoidReasonNote(e.target.value)}
+                    style={{ ...inputStyle, width: "100%", minHeight: 60, resize: "vertical", boxSizing: "border-box" }}
+                    placeholder="Describe the reason..." />
+                </div>
+              )}
+
               <div style={{ fontSize: 13, color: C.text, marginBottom: 20, lineHeight: 1.8, paddingLeft: 16 }}>
-                <div>1. Void this ticket permanently (cannot be reversed)</div>
-                <div>2. Preserve the existing signature for audit records</div>
-                <div>3. Generate a new draft ticket with the same line items</div>
+                {voidReason === "Incorrect Information" ? (
+                  <>
+                    <div>1. Void this ticket permanently (cannot be reversed)</div>
+                    <div>2. Preserve the existing signature for audit records</div>
+                    <div>3. Generate a new draft ticket with the same line items</div>
+                  </>
+                ) : (
+                  <>
+                    <div>1. Void this ticket permanently (cannot be reversed)</div>
+                    <div>2. Preserve the existing signature for audit records</div>
+                  </>
+                )}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={() => {
+                <Btn disabled={!voidReason || (voidReason === "Other" && !voidReasonNote.trim())} onClick={() => {
+                  const reason = voidReason === "Other" ? `Other: ${voidReasonNote.trim()}` : voidReason;
                   setShowVoidConfirm(false);
-                  if (onRevise) onRevise(ticket);
-                }}>YES, VOID & CREATE NEW</Btn>
-                <Btn variant="ghost" onClick={() => setShowVoidConfirm(false)}>CANCEL</Btn>
+                  if (voidReason === "Incorrect Information" && onRevise) {
+                    onRevise(ticket, reason);
+                  } else if (onRevise) {
+                    onRevise(ticket, reason);
+                  }
+                }}>{voidReason === "Incorrect Information" ? "VOID & CREATE NEW" : "VOID TICKET"}</Btn>
+                <Btn variant="ghost" onClick={() => { setShowVoidConfirm(false); setVoidReason(""); setVoidReasonNote(""); }}>CANCEL</Btn>
               </div>
             </div>
           </div>
