@@ -412,7 +412,13 @@ function FTIDashboard() {
   const deletedJobs = jobs.filter(j => j.status === "Deleted");
   const jobWithComputedStatus = activeJobs.map(j => ({ ...j, _computedStatus: computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) }));
   const filteredJobs = filterStatus === "All" ? jobWithComputedStatus : jobWithComputedStatus.filter(j => j._computedStatus === filterStatus);
-  const sortedJobs = [...filteredJobs].sort((a, b) => STATUS_ORDER.indexOf(a._computedStatus) - STATUS_ORDER.indexOf(b._computedStatus));
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    // Primary: status group (Scheduled → In Progress → Completed)
+    const statusDiff = STATUS_ORDER.indexOf(a._computedStatus) - STATUS_ORDER.indexOf(b._computedStatus);
+    if (statusDiff !== 0) return statusDiff;
+    // Secondary: scheduled date descending (newest first within each group)
+    return (b.dateStarted || "").localeCompare(a.dateStarted || "");
+  });
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
