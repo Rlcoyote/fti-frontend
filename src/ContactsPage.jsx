@@ -47,10 +47,29 @@ function ContactsPage() {
 
   useEffect(() => { if (customers?.length) fetchAll(); else setLoading(false); }, [customers]);
 
+  // Merge contacts with the same name + customer into one row with multiple roles
+  const merged = useMemo(() => {
+    const map = new Map();
+    for (const c of contacts) {
+      const key = `${(c.name || "").toLowerCase().trim()}::${c.customer_id}`;
+      if (map.has(key)) {
+        const existing = map.get(key);
+        existing.roles.push(c.role_tag);
+        existing.ids.push(c.id);
+        // Use phone/email from whichever record has them
+        if (!existing.phone && c.phone) existing.phone = c.phone;
+        if (!existing.email && c.email) existing.email = c.email;
+      } else {
+        map.set(key, { ...c, roles: [c.role_tag], ids: [c.id] });
+      }
+    }
+    return Array.from(map.values());
+  }, [contacts]);
+
   const filtered = useMemo(() => {
-    let list = [...contacts];
+    let list = [...merged];
     if (filterCustomer !== "All") list = list.filter(c => c.customer_id === filterCustomer);
-    if (filterRole !== "All") list = list.filter(c => c.role_tag === filterRole);
+    if (filterRole !== "All") list = list.filter(c => c.roles.includes(filterRole));
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter(c =>
@@ -61,7 +80,7 @@ function ContactsPage() {
       );
     }
     return list.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || "") || (a.name || "").localeCompare(b.name || ""));
-  }, [contacts, filterCustomer, filterRole, search]);
+  }, [merged, filterCustomer, filterRole, search]);
 
   const uniqueRoles = [...new Set(contacts.map(c => c.role_tag))].sort();
 
@@ -87,9 +106,12 @@ function ContactsPage() {
     } catch { setMsg("Update failed."); }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (mergedContact) => {
     try {
-      await fetch(`${API_URL}/customers/contacts/${id}`, { method: "DELETE" });
+      const ids = mergedContact.ids || [mergedContact.id];
+      for (const id of ids) {
+        await fetch(`${API_URL}/customers/contacts/${id}`, { method: "DELETE" });
+      }
       await fetchAll();
     } catch { setMsg("Delete failed."); }
   };
@@ -107,9 +129,18 @@ function ContactsPage() {
     setTimeout(() => setMsg(""), 3000);
   };
 
-  const toggleSelect = (id) => {
-    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  // Toggle selection for a merged contact (may have multiple DB IDs)
+  const toggleSelect = (mergedContact) => {
+    const ids = mergedContact.ids || [mergedContact.id];
+    setSelected(prev => {
+      const n = new Set(prev);
+      const allSelected = ids.every(id => n.has(id));
+      if (allSelected) { ids.forEach(id => n.delete(id)); }
+      else { ids.forEach(id => n.add(id)); }
+      return n;
+    });
   };
+  const isSelected = (mergedContact) => (mergedContact.ids || [mergedContact.id]).every(id => selected.has(id));
 
   return (
     <div style={{ padding: isMob ? "16px 12px" : "24px 28px" }}>
@@ -117,10 +148,10 @@ function ContactsPage() {
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Contacts</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-            {contacts.length} contact{contacts.length !== 1 ? "s" : ""} across {new Set(contacts.map(c => c.customer_id)).size} customer{new Set(contacts.map(c => c.customer_id)).size !== 1 ? "s" : ""}
+            {merged.length} contact{merged.length !== 1 ? "s" : ""} across {new Set(merged.map(c => c.customer_id)).size} customer{new Set(merged.map(c => c.customer_id)).size !== 1 ? "s" : ""}
           </div>
         </div>
-        {isAdmin && contacts.length > 0 && (
+        {isAdmin && merged.length > 0 && (
           <div style={{ display: "flex", gap: 8 }}>
             {!selectMode ? (
               <Btn variant="ghost" small onClick={() => setSelectMode(true)}>SELECT</Btn>
@@ -165,13 +196,13 @@ function ContactsPage() {
         <div style={{ textAlign: "center", padding: 40, color: C.muted }}>Loading...</div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 13 }}>
-          {contacts.length === 0 ? "No contacts saved yet. They're automatically created when you add POC, Site Manager, or Approver info to a work order or ticket." : "No contacts match your filters."}
+          {merged.length === 0 ? "No contacts saved yet. They're automatically created when you add POC, Site Manager, or Approver info to a work order or ticket." : "No contacts match your filters."}
         </div>
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 600 }}>
-              <div style={{ display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 1.2fr 90px 40px" : "1fr 1fr 1.2fr 130px 1.2fr 90px 40px", background: C.darkBlue, padding: "10px 14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 1.2fr 1fr 40px" : "1fr 1fr 1.2fr 130px 1.2fr 1fr 40px", background: C.darkBlue, padding: "10px 14px" }}>
                 {selectMode && <div />}
                 {["FIRST NAME", "LAST NAME", "CUSTOMER", "PHONE", "EMAIL", "ROLE", ""].map(h => (
                   <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>{h}</div>
@@ -181,29 +212,34 @@ function ContactsPage() {
                 const nameParts = (c.name || "").split(" ");
                 const firstName = nameParts[0] || "";
                 const lastName = nameParts.slice(1).join(" ") || "";
+                const sel = isSelected(c);
                 return (
-                <div key={c.id} style={{
-                  display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 1.2fr 90px 40px" : "1fr 1fr 1.2fr 130px 1.2fr 90px 40px",
+                <div key={c.ids ? c.ids.join("-") : c.id} style={{
+                  display: "grid", gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 1.2fr 1fr 40px" : "1fr 1fr 1.2fr 130px 1.2fr 1fr 40px",
                   padding: "8px 14px", borderBottom: `1px solid ${C.border}22`,
-                  background: selected.has(c.id) ? "#e8f0fb" : i % 2 === 0 ? C.cardBg : C.steel,
+                  background: sel ? "#e8f0fb" : i % 2 === 0 ? C.cardBg : C.steel,
                   cursor: isAdmin ? "pointer" : "default",
                   alignItems: "center",
                 }}
-                  onClick={() => selectMode ? toggleSelect(c.id) : isAdmin && openEdit(c)}
+                  onClick={() => selectMode ? toggleSelect(c) : isAdmin && openEdit(c)}
                   onMouseEnter={e => { if (!selectMode) e.currentTarget.style.background = "#e8f0fb"; }}
-                  onMouseLeave={e => { if (!selectMode) e.currentTarget.style.background = selected.has(c.id) ? "#e8f0fb" : i % 2 === 0 ? C.cardBg : C.steel; }}>
+                  onMouseLeave={e => { if (!selectMode) e.currentTarget.style.background = sel ? "#e8f0fb" : i % 2 === 0 ? C.cardBg : C.steel; }}>
                   {selectMode && (
-                    <div><input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} style={{ width: 15, height: 15, accentColor: C.blue }} /></div>
+                    <div><input type="checkbox" checked={sel} onChange={() => toggleSelect(c)} style={{ width: 15, height: 15, accentColor: C.blue }} /></div>
                   )}
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{firstName}</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lastName}</div>
                   <div style={{ fontSize: 12, color: C.muted }}>{c.customer_name}</div>
                   <div style={{ fontSize: 12, color: C.muted }}>{c.phone || "—"}</div>
                   <div style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis" }}>{c.email || "—"}</div>
-                  <div><span style={{ fontSize: 8, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: C.steel, color: C.muted, letterSpacing: "0.04em" }}>{(ROLE_LABELS[c.role_tag] || c.role_tag || "").slice(0, 12)}</span></div>
+                  <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                    {(c.roles || [c.role_tag]).map(r => (
+                      <span key={r} style={{ fontSize: 7, fontWeight: 800, padding: "2px 5px", borderRadius: 3, background: C.steel, color: C.muted, letterSpacing: "0.04em" }}>{(ROLE_LABELS[r] || r || "").slice(0, 12)}</span>
+                    ))}
+                  </div>
                   <div>
                     {isAdmin && !selectMode && (
-                      <button onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }}
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(c); }}
                         style={{ background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 14 }}
                         onMouseEnter={e => { e.currentTarget.style.color = C.red; }}
                         onMouseLeave={e => { e.currentTarget.style.color = "#ccc"; }}>🗑</button>
