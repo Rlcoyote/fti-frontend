@@ -140,12 +140,12 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
 
   return (
     <div style={isMobile
-      ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+      ? { position: "fixed", inset: 0, background: (type && TICKET_TYPES[type]?.bg) || C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
       : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
     } onClick={isMobile ? undefined : handleClose}>
       <div style={isMobile
-        ? { background: C.cardBg, borderTop: `3px solid ${C.red}`, minHeight: "100%", padding: "0 0 40px" }
-        : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.red}`, borderRadius: 8, width: type ? 820 : 480, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
+        ? { background: (type && TICKET_TYPES[type]?.bg) || C.cardBg, borderTop: `3px solid ${(type && TICKET_TYPES[type]?.color) || C.red}`, minHeight: "100%", padding: "0 0 40px" }
+        : { background: (type && TICKET_TYPES[type]?.bg) || C.cardBg, border: `1px solid ${C.border}`, borderTop: `3px solid ${(type && TICKET_TYPES[type]?.color) || C.red}`, borderRadius: 8, width: type ? 820 : 480, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
       } onClick={isMobile ? undefined : e => e.stopPropagation()}>
         {showUnsaved && (
           <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>

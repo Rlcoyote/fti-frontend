@@ -34,6 +34,9 @@ function FTIDashboard() {
   const isAdmin = ["owner", "admin"].includes(userRole);
   const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
   const isField = userRole === "field";
+  // Permission-based access — reads from user's permissions object with fallback to role defaults
+  const perms = currentUser.permissions || {};
+  const can = (key) => !!(perms[key]);
 
   useEffect(() => {
     const id = "fti-mobile-css";
@@ -411,13 +414,14 @@ function FTIDashboard() {
 
   const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Assets", "Crew", "Safety", "Final Review", "Reports", "Deleted", "Archive", "Users"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
-    if (i === "Inventory" && isField) return false;
-    if (i === "Assets" && isField) return false;
-    if (i === "Users" && !isManager) return false;
-    if (i === "Work Order History" && isField) return false;
-    if (i === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return false;
-    if (i === "Archive" && !isAdmin) return false;
-    if (i === "Final Review" && !["owner", "admin", "manager"].includes(currentUser.role) && !currentUser?.permissions?.approve_tickets) return false;
+    if (i === "Inventory" && !can("view_inventory")) return false;
+    if (i === "Assets" && !can("view_inventory")) return false;
+    if (i === "Users" && !can("manage_users")) return false;
+    if (i === "Work Order History" && !can("view_jobs")) return false;
+    if (i === "Deleted" && !can("delete_jobs")) return false;
+    if (i === "Archive" && !can("view_archive")) return false;
+    if (i === "Final Review" && !can("approve_tickets")) return false;
+    if (i === "Reports" && !can("view_reports")) return false;
     return true;
   });
 
@@ -494,7 +498,7 @@ function FTIDashboard() {
             </div>
           );
         })}
-        {["owner", "admin", "manager"].includes(currentUser.role) && (
+        {can("manage_users") && (
           <div onClick={() => { setDrawerOpen(false); setShowPermissions(true); }} style={{
             display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
           }}>
@@ -530,7 +534,7 @@ function FTIDashboard() {
           <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>📁</span>
           <span style={{ fontSize: 15, color: "#a0aec8", fontWeight: 700 }}>Field Resources</span>
         </div>
-        {isAdmin && (
+        {can("view_activity_log") && (
           <div onClick={() => { setDrawerOpen(false); navigate("/activity"); }} style={{
             display: "flex", alignItems: "center", gap: 14, padding: "14px 24px", cursor: "pointer",
           }}>
@@ -568,7 +572,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.30</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.31</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -593,60 +597,66 @@ function FTIDashboard() {
             );
           })}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {["owner", "admin", "manager"].includes(currentUser.role) && (
+            {(can("manage_users") || currentUser.role === "owner") && (
               <div style={{ position: "relative" }}>
                 <span onClick={() => setShowSettingsMenu(v => !v)}
                   style={{ fontSize: 18, color: showSettingsMenu ? C.white : "#a0aec8", cursor: "pointer", lineHeight: 1, userSelect: "none" }}
                   title="Settings">⚙</span>
                 {showSettingsMenu && (
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 300,
-                    background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
-                    boxShadow: "0 4px 16px #00000033", minWidth: 160, overflow: "hidden",
-                  }} onClick={() => setShowSettingsMenu(false)}>
-                    <div onClick={() => setShowPermissions(true)}
-                      style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      Permissions
-                    </div>
-                    {currentUser.role === "owner" && (
-                      <div onClick={() => setShowSettings(true)}
+                  <>
+                    {/* Click-outside backdrop */}
+                    <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setShowSettingsMenu(false)} />
+                    <div style={{
+                      position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 300,
+                      background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
+                      boxShadow: "0 4px 16px #00000033", minWidth: 160, overflow: "hidden",
+                    }}>
+                      {can("manage_users") && (
+                        <div onClick={() => { setShowSettingsMenu(false); setShowPermissions(true); }}
+                          style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          Permissions
+                        </div>
+                      )}
+                      {currentUser.role === "owner" && (
+                        <div onClick={() => { setShowSettingsMenu(false); setShowSettings(true); }}
+                          style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          Yard Locations
+                        </div>
+                      )}
+                      {currentUser.role === "owner" && (
+                        <div onClick={() => { setShowSettingsMenu(false); setShowEmergencyContacts(true); }}
+                          style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          Emergency Information
+                        </div>
+                      )}
+                      <div onClick={() => { setShowSettingsMenu(false); navigate("/contacts"); }}
                         style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
                         onMouseEnter={e => e.currentTarget.style.background = C.steel}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        Yard Locations
+                        Contacts
                       </div>
-                    )}
-                    {currentUser.role === "owner" && (
-                      <div onClick={() => setShowEmergencyContacts(true)}
+                      <div onClick={() => { setShowSettingsMenu(false); setShowCompanyDocs(true); }}
                         style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
                         onMouseEnter={e => e.currentTarget.style.background = C.steel}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        Emergency Information
+                        Field Resources
                       </div>
-                    )}
-                    <div onClick={() => { setShowSettingsMenu(false); navigate("/contacts"); }}
-                      style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      Contacts
+                      {can("view_activity_log") && (
+                        <div onClick={() => { setShowSettingsMenu(false); navigate("/activity"); }}
+                          style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          Activity Log
+                        </div>
+                      )}
                     </div>
-                    <div onClick={() => setShowCompanyDocs(true)}
-                      style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.steel}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                      Field Resources
-                    </div>
-                    {isAdmin && (
-                      <div onClick={() => { setShowSettingsMenu(false); navigate("/activity"); }}
-                        style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
-                        onMouseEnter={e => e.currentTarget.style.background = C.steel}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        Activity Log
-                      </div>
-                    )}
-                  </div>
+                  </>
                 )}
               </div>
             )}
@@ -690,19 +700,19 @@ function FTIDashboard() {
         } />
         <Route path="/all-tickets" element={<AllTicketsPage tickets={tickets} setTickets={setTickets} jobs={jobs} />} />
         <Route path="/todos" element={<TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />} />
-        {!isField && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
+        {can("view_jobs") && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/ticket/:id" element={<TicketPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
-        {isAdmin && <Route path="/activity" element={<ActivityLogPage />} />}
+        {can("view_activity_log") && <Route path="/activity" element={<ActivityLogPage />} />}
         <Route path="/contacts" element={<ContactsPage />} />
-        <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
-        <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />
-        {!isField && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
-        {!isField && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
-        {["owner", "admin", "manager"].includes(currentUser.role) && <Route path="/deleted" element={<DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />} />}
-        {isAdmin && <Route path="/archive" element={<ArchivePage />} />}
-        {isManager && <Route path="/users" element={<UsersPage isAdmin={isAdmin} />} />}
+        {can("approve_tickets") && <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />}
+        {can("view_reports") && <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />}
+        {can("view_inventory") && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
+        {can("view_inventory") && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
+        {can("delete_jobs") && <Route path="/deleted" element={<DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />} />}
+        {can("view_archive") && <Route path="/archive" element={<ArchivePage />} />}
+        {can("manage_users") && <Route path="/users" element={<UsersPage isAdmin={isAdmin} />} />}
         {/* Catch-all — redirect to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

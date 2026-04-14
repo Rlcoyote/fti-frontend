@@ -158,9 +158,12 @@ export const PERMISSION_CATEGORIES = [
   { key: "approve_tickets", label: "Approve Tickets", group: "Ticket Workflow" },
   { key: "send_to_qb", label: "Send to Accounting", group: "Ticket Workflow" },
   { key: "void_tickets", label: "Void Tickets", group: "Ticket Workflow" },
-  { key: "manage_users", label: "Manage Users", group: "Admin & Inventory" },
-  { key: "view_inventory", label: "View Inventory", group: "Admin & Inventory" },
-  { key: "edit_inventory", label: "Edit Inventory", group: "Admin & Inventory" },
+  { key: "manage_users", label: "Manage Users", group: "Admin & Settings" },
+  { key: "view_inventory", label: "View Inventory", group: "Admin & Settings" },
+  { key: "edit_inventory", label: "Edit Inventory", group: "Admin & Settings" },
+  { key: "view_reports", label: "View Reports", group: "Admin & Settings" },
+  { key: "view_archive", label: "View Archive", group: "Admin & Settings" },
+  { key: "view_activity_log", label: "View Activity Log", group: "Admin & Settings" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -168,10 +171,10 @@ export const PERMISSION_CATEGORIES = [
 export const DEFAULT_PERMS = {
   owner: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
   admin: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
-  manager: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, p.key !== "manage_users"])),
-  lead: { view_jobs: true, edit_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
-  salesman: { view_jobs: true, edit_jobs: false, edit_tickets: false, sign_tickets: false, view_inventory: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
-  field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  manager: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, !["manage_users", "view_activity_log"].includes(p.key)])),
+  lead: { view_jobs: true, edit_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, view_reports: true, view_archive: false, view_activity_log: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  salesman: { view_jobs: true, edit_jobs: false, edit_tickets: false, sign_tickets: false, view_inventory: false, view_reports: false, view_archive: false, view_activity_log: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: false, view_reports: false, view_archive: false, view_activity_log: false, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
 };
 
 // Returns role templates from app_settings if customized, otherwise falls back to DEFAULT_PERMS.
