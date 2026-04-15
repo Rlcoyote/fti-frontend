@@ -4,10 +4,14 @@ import { today, parseYards } from "./utils.js";
 import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
+import JSAModal from "./JSAModal.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const [isMobile] = useState(() => window.innerWidth <= 900);
+  const [savedTicketId, setSavedTicketId] = useState(null); // set after auto-save for JSA
+  const [showJSA, setShowJSA] = useState(false);
+  const [existingJSA, setExistingJSA] = useState(null);
 
   // On mobile, push history entry so back button closes instead of navigating away
   useEffect(() => {
@@ -17,7 +21,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, [isMobile, onClose]);
-  const { qbItems, settings } = useApp();
+  const { qbItems, settings, currentUser } = useApp();
   const yardsList = useMemo(() => parseYards(settings), [settings]);
   const [yardLocationIndex, setYardLocationIndex] = useState(1);
   const [type, setType] = useState(null);
@@ -82,6 +86,40 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const isDirty = type || lineItems.length > 0 || notes;
   const handleClose = () => { if (isDirty) { setShowUnsaved(true); } else { onClose(); } };
 
+  // Auto-save ticket silently (for JSA creation before explicit save)
+  const autoSaveForJSA = async () => {
+    if (savedTicketId) { setShowJSA(true); return; } // already saved
+    if (!type) return;
+    const isRental = type === "Rental";
+    const jobGooglePin = job?.googlePin || job?.google_pin || null;
+    const jobPinLat = job?.pinLat || job?.pin_lat || null;
+    const jobPinLng = job?.pinLng || job?.pin_lng || null;
+    const payload = {
+      job_id: jobId, type, status: "incomplete",
+      date: isRental ? startDate : date,
+      notes, created_by: currentUser?.id || null,
+      assigned_wells: assignedWells ?? jobWells,
+      site_mgr_first: smFirst || null, site_mgr_last: smLast || null,
+      site_mgr_phone: smPhone || null, site_mgr_email: smEmail || null,
+      yard_location_index: yardLocationIndex,
+      google_pin: ticketPin.trim() || jobGooglePin,
+      pin_lat: ticketPinLat || jobPinLat, pin_lng: ticketPinLng || jobPinLng,
+      lineItems: (lineItems || []).map(li => ({
+        qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
+      })),
+      ...(isRental ? { start_date: startDate, end_date: endDate, cycle_days: parseInt(cycleDays) || 28, is_recurring: isRecurring } : {}),
+      ...(!isRental ? { lv_yard: lvYard || null, arrival_time: arrivalTime || null, due_on_loc: dueOnLoc || null, job_start_time: jobStartTime || null, job_end_time: jobEndTime || null, ret_yard: retYard || null, time_zone: timeZone || null, mileage_begin: mileageBegin !== "" ? parseFloat(mileageBegin) : null, mileage_end: mileageEnd !== "" ? parseFloat(mileageEnd) : null } : {}),
+    };
+    try {
+      const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (r.ok) {
+        const saved = await r.json();
+        setSavedTicketId(saved.id);
+        setShowJSA(true);
+      } else { alert("Could not save ticket. Please try again."); }
+    } catch { alert("Network error saving ticket."); }
+  };
+
   const handleSelectType = (t) => {
     setType(t);
     setAssignedWells([...jobWells]);
@@ -115,13 +153,14 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     const jobGooglePin = job?.googlePin || job?.google_pin || null;
     const jobPinLat = job?.pinLat || job?.pin_lat || null;
     const jobPinLng = job?.pinLng || job?.pin_lng || null;
-    onSave({
+    const ticketData = {
       jobId, type, status: "incomplete", date: isRental ? startDate : date,
       signedBy: null, signedAt: null,
       lineItems, notes,
       assignedWells: assignedWells ?? jobWells,
       siteMgrFirst: smFirst, siteMgrLast: smLast, siteMgrPhone: smPhone, siteMgrEmail: smEmail,
       yardLocationIndex,
+      hasJSA: !!existingJSA,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
       ...(isRental ? { startDate, endDate, cycleDays: parseInt(cycleDays) || 28, isRecurring, googlePin: ticketPin.trim() || jobGooglePin, pinLat: ticketPinLat || jobPinLat, pinLng: ticketPinLng || jobPinLng } : {}),
       ...(!isRental ? {
@@ -132,7 +171,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         pinLat: ticketPinLat || jobPinLat,
         pinLng: ticketPinLng || jobPinLng,
       } : {}),
-    });
+    };
+    // If ticket was already auto-saved (for JSA), pass the ID so parent knows to update, not create
+    if (savedTicketId) ticketData.id = savedTicketId;
+    onSave(ticketData);
   };
 
   const selStyle = { border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 6px", fontSize: 12, color: C.text, background: C.cardBg, width: 98 };
@@ -172,6 +214,60 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Point of Contact: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
             </div>
           </div>
+        )}
+
+        {/* JSA button — non-Rental only, after type selected */}
+        {type && type !== "Rental" && (
+          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+            {existingJSA ? (
+              <button type="button" onClick={() => setShowJSA(true)}
+                style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
+                ✓ VIEW / EDIT JSA
+              </button>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button type="button" onClick={autoSaveForJSA}
+                  style={{ background: "#fff", color: C.red, border: `2px solid ${C.red}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
+                  CREATE JSA
+                </button>
+                <span style={{ fontSize: 10, color: C.red, fontWeight: 600, fontStyle: "italic" }}>Required before signing</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* JSA Modal */}
+        {showJSA && savedTicketId && (
+          <JSAModal
+            job={job}
+            ticket={{ id: savedTicketId, date: type === "Rental" ? startDate : date, type, pinLat: ticketPinLat, pinLng: ticketPinLng, googlePin: ticketPin, assignedWells }}
+            existingJSA={existingJSA}
+            onClose={() => setShowJSA(false)}
+            onSave={async (jsaData) => {
+              try {
+                await fetch(`${API_URL}/jsas/ticket/${savedTicketId}`, {
+                  method: "PUT", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    job_id: jobId,
+                    date: jsaData.date, time: jsaData.time, operator: jsaData.operator,
+                    well_name: jsaData.wellName, designated_driver: jsaData.designatedDriver,
+                    latitude: jsaData.lat, longitude: jsaData.lng, weather: jsaData.weather,
+                    ppe_fr_clothing: jsaData.ppe?.frClothing || false,
+                    ppe_tools_trained: jsaData.ppe?.toolsTrained || false,
+                    ppe_confined_space: jsaData.ppe?.confinedSpace || false,
+                    presenter_review: jsaData.presenterReview,
+                    signatures: jsaData.signatures,
+                    additional_steps: jsaData.additionalSteps,
+                  }),
+                });
+                setExistingJSA(jsaData);
+              } catch (err) { console.error("JSA save failed:", err); }
+            }}
+          />
         )}
 
         <div style={{ padding: 24 }}>

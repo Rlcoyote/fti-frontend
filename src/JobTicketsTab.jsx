@@ -83,18 +83,23 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       })),
     };
     try {
-      const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (r.ok) {
-        const saved = await r.json();
-        const newTicket = { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() };
-        setTickets(prev => [...prev, newTicket]);
-        setShowAdd(false);
-        // Auto-open the new ticket so user can create JSA immediately
-        setViewTicketMode("edit");
-        setViewTicket(newTicket);
-        return;
+      if (ticketData.id) {
+        // Ticket was auto-saved (for JSA) — update instead of create
+        await fetch(`${API_URL}/tickets/${ticketData.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        setTickets(prev => {
+          const exists = prev.some(t => t.id === ticketData.id);
+          if (exists) return prev.map(t => t.id === ticketData.id ? { ...ticketData, createdBy: currentUser?.name || null, createdAt: t.createdAt } : t);
+          return [...prev, { ...ticketData, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() }];
+        });
+      } else {
+        const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        if (r.ok) {
+          const saved = await r.json();
+          const newTicket = { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() };
+          setTickets(prev => [...prev, newTicket]);
+        }
       }
-    } catch (err) { console.error("Ticket create failed:", err); }
+    } catch (err) { console.error("Ticket save failed:", err); }
     setShowAdd(false);
   };
 
