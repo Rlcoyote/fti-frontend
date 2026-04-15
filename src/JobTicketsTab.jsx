@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
-import { today, formatDate, formatShortStamp, shortName, calcTicketTotal, mapTicketFromApi, updateTicketApi } from "./utils.js";
+import { today, formatDate, formatShortStamp, shortName, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
@@ -444,11 +444,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               const saved = await r.json();
               // Send void notification email for the old ticket
               try {
-                await fetch(`${API_URL}/signature/void-notify/${t.id}`, {
+                const nr = await fetch(`${API_URL}/signature/void-notify/${t.id}`, {
                   method: "POST", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ new_ticket_number: saved.ticket_number, new_ticket_id: saved.id }),
                 });
-              } catch (e) { console.error("Void notify failed:", e); }
+                if (!nr.ok) console.error("Void notify response not ok:", nr.status);
+              } catch (e) { alert("Ticket voided successfully, but the notification email failed to send."); }
               // Reload all tickets for this job (includes voided + new)
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
               if (tr.ok) {
@@ -549,12 +550,19 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 const email = emailConfirmTo.trim();
                 if (!email) { alert("Enter a recipient email."); return; }
                 try {
-                  await handleUpdate(emailConfirm.ticketId, { emailTo: email });
+                  // Save emailTo to backend first
+                  const payload = buildTicketPayload({ emailTo: email });
+                  await fetch(`${API_URL}/tickets/${emailConfirm.ticketId}`, {
+                    method: "PUT", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                  });
+                  // Send the signature request email
                   const r = await fetch(`${API_URL}/signature/send/${emailConfirm.ticketId}`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ performed_by: currentUser?.name }),
                   });
                   if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
+                  // Single state update with all changes
                   setTickets(prev => prev.map(tk => tk.id === emailConfirm.ticketId ? { ...tk, status: "emailed", emailTo: email, emailedAt: new Date().toISOString() } : tk));
                   setEmailConfirm(null);
                 } catch (err) { alert("Email send failed: " + err.message); }
