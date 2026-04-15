@@ -1233,10 +1233,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 <select value={voidReason} onChange={e => setVoidReason(e.target.value)}
                   style={{ width: "100%", padding: "8px 10px", border: `1px solid ${voidReason ? C.border : C.red}`, borderRadius: 4, fontSize: 13 }}>
                   <option value="">Select a reason...</option>
-                  <option value="Job Cancelled">Job Cancelled</option>
-                  <option value="Duplicate Ticket">Duplicate Ticket</option>
-                  <option value="Incorrect Information">Incorrect Information</option>
-                  <option value="Billing Error">Billing Error</option>
+                  <option value="Signed, but Found Discrepancy">Signed, but Found Discrepancy</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
@@ -1251,7 +1248,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               )}
 
               <div style={{ fontSize: 13, color: C.text, marginBottom: 20, lineHeight: 1.8, paddingLeft: 16 }}>
-                {voidReason === "Incorrect Information" ? (
+                {voidReason === "Signed, but Found Discrepancy" ? (
                   <>
                     <div>1. Void this ticket permanently (cannot be reversed)</div>
                     <div>2. Preserve the existing signature for audit records</div>
@@ -1268,12 +1265,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 <Btn disabled={!voidReason || (voidReason === "Other" && !voidReasonNote.trim())} onClick={() => {
                   const reason = voidReason === "Other" ? `Other: ${voidReasonNote.trim()}` : voidReason;
                   setShowVoidConfirm(false);
-                  if (voidReason === "Incorrect Information" && onRevise) {
-                    onRevise(ticket, reason);
-                  } else if (onRevise) {
-                    onRevise(ticket, reason);
-                  }
-                }}>{voidReason === "Incorrect Information" ? "VOID & CREATE NEW" : "VOID TICKET"}</Btn>
+                  if (onRevise) onRevise(ticket, reason);
+                }}>{voidReason === "Signed, but Found Discrepancy" ? "VOID & CREATE NEW" : "VOID TICKET"}</Btn>
                 <Btn variant="ghost" onClick={() => { setShowVoidConfirm(false); setVoidReason(""); setVoidReasonNote(""); }}>CANCEL</Btn>
               </div>
             </div>
