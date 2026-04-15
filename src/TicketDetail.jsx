@@ -438,12 +438,15 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 ✓ VIEW / EDIT JSA
               </button>
             ) : (
-              <button type="button" onClick={() => setShowJSA(true)}
-                style={{ background: "#fff", color: C.red, border: `2px solid ${C.red}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
-                JSA REQUIRED BEFORE SIGNING
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button type="button" onClick={() => setShowJSA(true)}
+                  style={{ background: "#fff", color: C.red, border: `2px solid ${C.red}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
+                  CREATE JSA
+                </button>
+                <span style={{ fontSize: 10, color: C.red, fontWeight: 600, fontStyle: "italic" }}>Required before signing</span>
+              </div>
             )}
           </div>
         )}
