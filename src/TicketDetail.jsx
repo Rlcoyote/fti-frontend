@@ -143,7 +143,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
   const [showSigOptions, setShowSigOptions] = useState(false);
   const [showQBConfirm, setShowQBConfirm] = useState(false);
-  const [showUnsavedClose, setShowUnsavedClose] = useState(false);
   const [tdComments, setTdComments] = useState([]);
   const [tdReply, setTdReply] = useState("");
   const [tdSending, setTdSending] = useState(false);
@@ -237,12 +236,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   }, [ticket.id]);
 
   const handleClose = () => {
-    if (isFullyLocked || ticket.voidedAt) { editLock.releaseLock(); onClose(); return; }
-    // Auto-save any changes, then close
-    if (isDirty()) save();
-    // Release lock and close with a short delay to let save complete
     editLock.releaseLock();
-    setTimeout(() => onClose(), 50);
+    if (isDirty() && !isFullyLocked && !ticket.voidedAt) save();
+    onClose();
   };
 
   const job = (jobs || []).find(j => j.id === ticket.jobId);
@@ -365,22 +361,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const handleSendToQB = () => {
     setStatus("sentToQB");
     save({ status: "sentToQB", sentToQBAt: new Date().toISOString() });
-  };
-
-  const handleEmailTicket = async () => {
-    if (!emailTo.some(e => e.trim())) return;
-    const emailToStr = emailTo.filter(e => e.trim()).join(", ");
-    try {
-      // Save emailTo first
-      await save({ emailTo: emailToStr, emailCc });
-      const r = await fetch(`${API_URL}/signature/send/${ticket.id}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ performed_by: currentUser?.name }),
-      });
-      if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
-      setStatus("emailed");
-      save({ status: "emailed", emailTo: emailToStr, emailCc, emailedAt: new Date().toISOString() });
-    } catch (err) { alert("Email send failed: " + err.message); }
   };
 
   const isPageMode = asPage || isMobile;
@@ -1166,20 +1146,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           )}
 
         </div>
-
-        {/* Unsaved changes confirmation */}
-        {showUnsavedClose && (
-          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsavedClose(false)}>
-            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>You have unsaved changes on this ticket. Are you sure you want to close without saving?</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={onClose}>YES, DISCARD</Btn>
-                <Btn variant="ghost" onClick={() => setShowUnsavedClose(false)}>KEEP EDITING</Btn>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Send to Accounting confirmation */}
         {showQBConfirm && (

@@ -11,7 +11,6 @@ import { useApp } from "./AppContext.jsx";
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser } = useApp();
   const navigate = useNavigate();
-  const [isMobileNav] = useState(() => window.innerWidth <= 900);
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
@@ -39,7 +38,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       enriched._revisionOfLabel = original ? `${t.jobId}-${original.ticketNumber}` : null;
     }
     // Mobile: navigate to /ticket/:id as a real page
-    if (isMobileNav) {
+    if (isMobile) {
       navigate(`/ticket/${t.id}`, { state: { ticket: enriched, openToSign: mode === "sign" } });
       return;
     }
@@ -381,6 +380,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       {showAdd && <AddTicketModal jobId={jobId} job={jobs.find(j => j.id === jobId)} onSave={handleAdd} onClose={() => setShowAdd(false)} jobWells={(jobs.find(j => j.id === jobId)?.wells || []).map(w => w.well_name || w)} />}
       {viewTicket && (
         <TicketDetail
+          key={viewTicket.id}
           ticket={viewTicket} jobs={jobs}
           openToSign={viewTicketMode === "sign"}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
@@ -424,11 +424,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   // Same job — open the new ticket inline
                   const newTicket = mapped.find(tk => tk.id === saved.id);
                   if (newTicket) {
-                    setViewTicket(null);
-                    setTimeout(() => {
-                      setViewTicketMode("edit");
-                      setViewTicket({ ...newTicket, _duplicateReminder: true });
-                    }, 50);
+                    setViewTicketMode("edit");
+                    setViewTicket({ ...newTicket, _duplicateReminder: true });
                   }
                 } else {
                   // Different job — close modal, navigate to target job
@@ -461,14 +458,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
                   return [...otherJobs, ...mapped];
                 });
-              // Open the new revision ticket — close first to force remount
+              // Open the new revision ticket
                 const newTicket = mapped.find(tk => tk.id === saved.id);
                 if (newTicket) {
-                  setViewTicket(null);
-                  setTimeout(() => {
-                    setViewTicketMode("edit");
-                    setViewTicket(newTicket);
-                  }, 50);
+                  setViewTicketMode("edit");
+                  setViewTicket(newTicket);
                 }
               }
             } catch (err) { alert("Revise failed: " + err.message); }
