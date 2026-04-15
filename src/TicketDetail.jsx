@@ -212,11 +212,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         .then(data => {
           const updated = data.find(t => t.id === ticket.id);
           if (updated && updated.signature_img && !signedBy) {
+            // Update local display only — parent state refreshes on close/save
             setSignedBy(updated.signed_by);
             setSignedAt(updated.signed_at);
             setSignatureImage(updated.signature_img);
             setStatus("signed");
-            if (onUpdate) onUpdate(ticket.id, { signedBy: updated.signed_by, signedAt: updated.signed_at, signatureImage: updated.signature_img, status: "signed" });
           }
         })
         .catch(() => {});
@@ -265,6 +265,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   };
 
   const save = (overrides = {}) => {
+    if (!editable && !overrides.status) return; // Don't save if ticket is locked and no status override
     saveSiteMgrAsContact();
     const updates = {
       lineItems, notes, status, missingPieces, date: ticketDate,
@@ -795,11 +796,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ url: url.trim() }),
               });
-              if (!r.ok) { setTicketPinError("Could not resolve pin."); setTicketPinResolving(false); return; }
-              const { lat, lng } = await r.json();
-              setTicketPinLat(lat); setTicketPinLng(lng);
+              if (!r.ok) { setTicketPinError("Could not resolve pin."); }
+              else { const { lat, lng } = await r.json(); setTicketPinLat(lat); setTicketPinLng(lng); }
             } catch { setTicketPinError("Network error."); }
-            setTicketPinResolving(false);
+            finally { setTicketPinResolving(false); }
           };
           return (
             <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
