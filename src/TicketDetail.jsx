@@ -240,8 +240,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     if (isFullyLocked || ticket.voidedAt) { editLock.releaseLock(); onClose(); return; }
     // Auto-save any changes, then close
     if (isDirty()) save();
+    // Release lock and close with a short delay to let save complete
     editLock.releaseLock();
-    onClose();
+    setTimeout(() => onClose(), 50);
   };
 
   const job = (jobs || []).find(j => j.id === ticket.jobId);
@@ -1133,8 +1134,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <Btn variant="ghost" onClick={() => setIsEditing(true)}>EDIT TICKET</Btn>
           )}
 
-          {/* Void button for signed tickets only */}
-          {signedBy && !isFullyLocked && status !== "voided" && !isEditing && onRevise && (
+          {/* Void button for signed or sigNotReq tickets */}
+          {(signedBy || status === "sigNotReq" || status === "approved") && !isFullyLocked && status !== "voided" && !isEditing && onRevise && (
             <Btn variant="ghost" onClick={() => setShowVoidConfirm(true)}>VOID TICKET</Btn>
           )}
 
@@ -1277,7 +1278,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {showJSA && job && (
           <JSAModal
             job={job}
-            ticket={{ ...ticket, date: ticketDate, pinLat: ticketPinLat || ticket.pinLat, pinLng: ticketPinLng || ticket.pinLng }}
+            ticket={{ ...ticket, date: ticketDate, pinLat: ticketPinLat || ticket.pinLat, pinLng: ticketPinLng || ticket.pinLng, googlePin: ticketPin || ticket.googlePin }}
             existingJSA={existingJSA}
             onClose={() => setShowJSA(false)}
             onSave={async (jsaData) => {
