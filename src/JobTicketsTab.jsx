@@ -186,21 +186,24 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 )}
                 <RentalCountdown ticket={t} />
                 <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
-                {/* JSA required gate */}
-                {needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
-                  <span style={{ ...btnDisabled, fontSize: 9 }} title="Complete JSA before proceeding">JSA REQUIRED</span>
+                {/* Sig button — greyed out if no JSA */}
+                {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
+                  <button type="button" style={needsJSA ? btnDisabled : btnAction} disabled={needsJSA}
+                    onClick={() => { if (!needsJSA) openTicket(t, "sign"); }}
+                    title={needsJSA ? "Complete JSA before proceeding" : ""}>{needsJSA ? "JSA REQ'D" : "SIG REQUEST"}</button>
                 )}
-                {/* Sig button */}
-                {!needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIG REQUEST</button>}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
                 {t.status === "sigNotReq" && <span style={{ ...btnDone, color: C.blue }}>SIG NOT REQ</span>}
                 {(t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified") && <span style={btnDone}>✓ SIGNED</span>}
-                {/* Email */}
+                {/* Email — greyed out if no JSA */}
                 {!custEmail && <span style={btnDisabled}>NO EMAIL ON FILE</span>}
-                {custEmail && !needsJSA && t.status !== "sentToQB" && t.status !== "qbVerified" && (
+                {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                   <button type="button"
-                    style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
+                    style={needsJSA ? btnDisabled : (isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue)}
+                    disabled={needsJSA}
+                    title={needsJSA ? "Complete JSA before emailing" : ""}
                     onClick={() => {
+                      if (needsJSA) return;
                       setEmailConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt || null });
                       setEmailConfirmTo(t.emailTo || custEmail);
                       setEmailConfirmCc("");
@@ -208,8 +211,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                     {isEmailed ? "Emailed / Resend" : "EMAIL TICKET"}
                   </button>
                 )}
-                {/* Approval */}
-                {!needsJSA && isSigned && !isApproved && <button type="button" style={btnAction} onClick={async () => { await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>}
+                {/* Approval — greyed out if no JSA */}
+                {isSigned && !isApproved && (
+                  <button type="button" style={needsJSA ? btnDisabled : btnAction} disabled={needsJSA}
+                    title={needsJSA ? "Complete JSA before approving" : ""}
+                    onClick={async () => { if (!needsJSA) await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>
+                )}
                 {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && <span style={btnDone}>✓ APPROVED</span>}
                 {/* Send to Accounting */}
                 {t.status !== "sentToQB" && t.status !== "qbVerified" && (
@@ -284,12 +291,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 )}
               </div>
             ) : (<>
-              {/* Col 2: Signature — blocked if no JSA */}
-              {needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
-                <span style={{ ...btnDisabled, fontSize: 9 }} title="Complete JSA before proceeding">JSA REQUIRED</span>
-              )}
-              {!needsJSA && !isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
-                <button type="button" style={btnAction} onClick={() => openTicket(t, "sign")}>SIGNATURE REQUEST</button>
+              {/* Col 2: Signature — greyed out if no JSA */}
+              {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
+                <button type="button" style={needsJSA ? btnDisabled : btnAction} disabled={needsJSA}
+                  onClick={() => { if (!needsJSA) openTicket(t, "sign"); }}
+                  title={needsJSA ? "Complete JSA before proceeding" : ""}>SIGNATURE REQUEST</button>
               )}
               {t.status === "signed" && (
                 <span style={btnDone}>✓ SIGNED</span>
@@ -301,14 +307,17 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <span style={btnDone}>✓ SIGNED</span>
               )}
 
-              {/* Col 3: Email — blocked if no JSA */}
+              {/* Col 3: Email — greyed out if no JSA */}
               {!custEmail && (
                 <span style={btnDisabled}>NO EMAIL ON FILE</span>
               )}
-              {custEmail && !needsJSA && t.status !== "sentToQB" && t.status !== "qbVerified" && (
+              {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                 <button type="button"
-                  style={isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
+                  style={needsJSA ? btnDisabled : (isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue)}
+                  disabled={needsJSA}
+                  title={needsJSA ? "Complete JSA before emailing" : ""}
                   onClick={() => {
+                    if (needsJSA) return;
                     setEmailConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt || null });
                     setEmailConfirmTo(t.emailTo || custEmail);
                     setEmailConfirmCc("");
@@ -320,16 +329,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <span style={isEmailed ? btnDone : btnDisabled}>{isEmailed ? "✓ CUSTOMER EMAILED" : "NO EMAIL ON FILE"}</span>
               )}
 
-              {/* Col 4: Approval — blocked if no JSA */}
-              {needsJSA && !isSigned && !isApproved && (
+              {/* Col 4: Approval — greyed out if no JSA */}
+              {!isSigned && !isApproved && (
                 <span style={btnDisabled}>APPROVAL NEEDED</span>
               )}
-              {!needsJSA && !isSigned && !isApproved && (
-                <span style={btnDisabled}>APPROVAL NEEDED</span>
-              )}
-              {!needsJSA && isSigned && !isApproved && (
-                <button type="button" style={btnAction} onClick={async () => {
-                  await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
+              {isSigned && !isApproved && (
+                <button type="button" style={needsJSA ? btnDisabled : btnAction} disabled={needsJSA}
+                  title={needsJSA ? "Complete JSA before approving" : ""}
+                  onClick={async () => { if (!needsJSA) await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
                 }}>APPROVAL NEEDED</button>
               )}
               {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && (

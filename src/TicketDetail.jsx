@@ -1091,8 +1091,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <>
               <Btn onClick={handleSave}>SAVE & CLOSE</Btn>
               {!sigWiped && existingJSA && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
-              {!sigWiped && !existingJSA && jsaLoaded && <Btn variant="ghost" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>JSA REQUIRED</Btn>}
+              {!sigWiped && !existingJSA && jsaLoaded && <Btn variant="blue" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA before collecting signature">COLLECT SIGNATURE</Btn>}
               {!sigWiped && !signedBy && existingJSA && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
+              {!sigWiped && !signedBy && !existingJSA && jsaLoaded && <Btn variant="ghost" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA first">SIG NOT REQUIRED</Btn>}
             </>
           )}
 
@@ -1252,7 +1253,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {showJSA && job && (
           <JSAModal
             job={job}
-            ticket={{ ...ticket, date: ticketDate }}
+            ticket={{ ...ticket, date: ticketDate, pinLat: ticketPinLat || ticket.pinLat, pinLng: ticketPinLng || ticket.pinLng }}
             existingJSA={existingJSA}
             onClose={() => setShowJSA(false)}
             onSave={async (jsaData) => {
@@ -1276,6 +1277,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   }),
                 });
                 setExistingJSA(jsaData);
+                // Update parent ticket state so JSA badge on ticket row refreshes
+                if (onUpdate) onUpdate(ticket.id, { hasJSA: true, has_jsa: true });
               } catch (err) { console.error("JSA save failed:", err); }
             }}
           />
