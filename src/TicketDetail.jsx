@@ -399,12 +399,16 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         }
         onClick={isPageMode ? undefined : e => e.stopPropagation()}
       >
-        {/* Back button — page mode only */}
-        {isPageMode && (
-          <div style={{ padding: "12px 24px 0", display: "flex", alignItems: "center", gap: 8 }}>
-            <button onClick={onClose} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4, padding: "6px 14px", fontSize: 12, fontWeight: 700, color: C.muted, cursor: "pointer" }}>← BACK</button>
+        {/* Ticket type header bar */}
+        <div style={{ background: tcfg.color, padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em" }}>TICKET DETAIL</div>
           </div>
-        )}
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}>CLOSE</button>
+        </div>
         {/* Edit Lock Banner */}
         {editLock.isLocked && !editLock.hasLock && (
           <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -423,6 +427,38 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <button onClick={editLock.dismissRequest} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>THE CURRENT USER WILL BE FINISHED SHORTLY</button>
           </div>
         )}
+        {/* JSA Required bar — non-Rental only, before header */}
+        {ticket.type !== "Rental" && jsaLoaded && (
+          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+            {existingJSA ? (
+              <button type="button" onClick={() => setShowJSA(true)}
+                style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
+                ✓ VIEW / EDIT JSA
+              </button>
+            ) : (
+              <button type="button" onClick={() => setShowJSA(true)}
+                style={{ background: "#fff", color: C.red, border: `2px solid ${C.red}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
+                JSA REQUIRED BEFORE SIGNING
+              </button>
+            )}
+          </div>
+        )}
+        {/* Rental — JSA optional, show button only if one exists */}
+        {ticket.type === "Rental" && existingJSA && (
+          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}` }}>
+            <button type="button" onClick={() => setShowJSA(true)}
+              style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
+              ✓ VIEW / EDIT JSA
+            </button>
+          </div>
+        )}
+
         {/* Header — mobile: single-column vertical stack. Desktop: side-by-side with total right-aligned */}
         <div style={{ padding: isPageMode ? "14px 16px 12px" : "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
           {/* Row 1: badges + ticket number */}
@@ -953,15 +989,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Photos */}
           <PhotoStrip ticketId={ticket.id} isLocked={isFullyLocked || !!ticket.voidedAt} />
 
-          {/* JSA */}
-          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
-            <button type="button" onClick={() => setShowJSA(true)}
-              style={{ background: existingJSA ? C.green : C.blue, color: "#fff", border: "none", borderRadius: 4, padding: "6px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
-              {existingJSA ? "VIEW / EDIT JSA" : "CREATE JSA"}
-            </button>
-            {existingJSA && <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>✓ JSA on file</span>}
-            {jsaLoaded && !existingJSA && <span style={{ fontSize: 11, color: "#8a6500", fontWeight: 600 }}>No JSA yet</span>}
-          </div>
+          {/* JSA button moved to header bar */}
 
           {/* Signature display */}
           {["signed", "approved", "sentToQB", "qbVerified", "voided"].includes(status) && signedBy && (
@@ -1090,10 +1118,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {!isLocked && !showSigPad && !showSigOptions && (
             <>
               <Btn onClick={handleSave}>SAVE & CLOSE</Btn>
-              {!sigWiped && existingJSA && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
-              {!sigWiped && !existingJSA && jsaLoaded && <Btn variant="blue" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA before collecting signature">COLLECT SIGNATURE</Btn>}
-              {!sigWiped && !signedBy && existingJSA && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
-              {!sigWiped && !signedBy && !existingJSA && jsaLoaded && <Btn variant="ghost" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA first">SIG NOT REQUIRED</Btn>}
+              {!sigWiped && (existingJSA || ticket.type === "Rental") && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
+              {!sigWiped && !existingJSA && ticket.type !== "Rental" && jsaLoaded && <Btn variant="blue" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA before collecting signature">COLLECT SIGNATURE</Btn>}
+              {!sigWiped && !signedBy && (existingJSA || ticket.type === "Rental") && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
+              {!sigWiped && !signedBy && !existingJSA && ticket.type !== "Rental" && jsaLoaded && <Btn variant="ghost" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA first">SIG NOT REQUIRED</Btn>}
             </>
           )}
 

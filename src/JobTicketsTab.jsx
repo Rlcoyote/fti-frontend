@@ -130,7 +130,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         const hasPendingComment = !!t.hasPendingComment || !!t.has_pending_comment;
         const cycleEnded = !!t.cycleEnded || !!t.cycle_ended;
         const canSendToQB = isSigned && isApproved;
-        const needsJSA = !t.hasJSA && !t.voidedAt; // JSA required before signature/email/approval
+        const needsJSA = !t.hasJSA && !t.voidedAt && t.type !== "Rental"; // JSA required before signature/email/approval (Rental exempt)
 
         // Button styles
         const btnBase = { borderRadius: 4, padding: "4px 10px", fontSize: 10, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em", border: "none", whiteSpace: "nowrap" };

@@ -36,20 +36,28 @@ export const labelStyle = {
 };
 
 // ─── SHARED BUTTONS ───────────────────────────────────────────────────────────
-export function Btn({ onClick, children, variant = "primary", small }) {
+export function Btn({ onClick, children, variant = "primary", small, disabled, style: extraStyle, title }) {
   const styles = {
     primary: { background: C.red, color: C.white, border: "none" },
     ghost:   { background: "transparent", color: C.muted, border: `1px solid ${C.border}` },
     blue:    { background: C.blue, color: C.white, border: "none" },
   };
+  const hoverBg = { primary: "#8a0c18", ghost: C.steel, blue: "#134a85" };
   return (
-    <button type="button" onClick={onClick} style={{
+    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled} title={title} style={{
       ...styles[variant],
       padding: small ? "5px 12px" : "9px 18px",
       borderRadius: 4, fontSize: small ? 12 : 13,
-      fontWeight: 700, cursor: "pointer", fontFamily: "'Arial', sans-serif",
-      letterSpacing: "0.04em",
-    }}>{children}</button>
+      fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", fontFamily: "'Arial', sans-serif",
+      letterSpacing: "0.04em", transition: "background 0.12s, transform 0.1s",
+      opacity: disabled ? 0.4 : 1,
+      ...extraStyle,
+    }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = hoverBg[variant] || ""; }}
+      onMouseLeave={e => { if (!disabled) e.currentTarget.style.background = styles[variant].background; }}
+      onMouseDown={e => { if (!disabled) e.currentTarget.style.transform = "scale(0.97)"; }}
+      onMouseUp={e => { if (!disabled) e.currentTarget.style.transform = "scale(1)"; }}
+    >{children}</button>
   );
 }
 
