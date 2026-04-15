@@ -86,7 +86,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (r.ok) {
         const saved = await r.json();
-        setTickets(prev => [...prev, { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() }]);
+        const newTicket = { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() };
+        setTickets(prev => [...prev, newTicket]);
+        setShowAdd(false);
+        // Auto-open the new ticket so user can create JSA immediately
+        setViewTicketMode("edit");
+        setViewTicket(newTicket);
+        return;
       }
     } catch (err) { console.error("Ticket create failed:", err); }
     setShowAdd(false);
