@@ -13,7 +13,6 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   const jobTickets = tickets.filter(t => t.jobId === job.id);
   const computedStatus = computeJobStatus(job, jobTickets);
   const cfg = STATUS_CONFIG[computedStatus] || STATUS_CONFIG["Scheduled"];
-  const costPerWell = job.wells.length > 1 ? (job.estimatedCost / job.wells.length).toFixed(0) : null;
   const [activeTab, setActiveTab] = useState("tickets");
   const [showEditJob, setShowEditJob] = useState(false);
   const [showFlowback, setShowFlowback] = useState(false);
@@ -174,7 +173,6 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   <div key={i} style={{ marginBottom: 8 }}>
                     <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{well.well_name || well}</div>
                     {i === 0 && job.afe && <div style={{ fontSize: 11, color: "#1a5fa8" }}>AFE: {job.afe}</div>}
-                    {costPerWell && <div style={{ fontSize: 11, color: C.green }}>{'$'}{Number(costPerWell).toLocaleString()} / well</div>}
                   </div>
                 ))}
               </div>
