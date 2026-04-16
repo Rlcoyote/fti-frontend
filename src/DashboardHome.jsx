@@ -49,6 +49,12 @@ function DashboardHome({
 
       <div className="fti-filter-row" style={{ display: "flex", gap: 0, marginBottom: 16, alignItems: "center", borderBottom: `1px solid ${C.border}` }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 10 }}>FILTER:</span>
+        {/* Sort is the first filter control — it's a filter on ordering, which applies before status selection. */}
+        <select value={sortMode} onChange={e => setSortMode(e.target.value)}
+          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg, fontFamily: "'Arial', sans-serif", marginRight: 10, marginBottom: 6 }}>
+          <option value="default">Sort: Status + Date</option>
+          <option value="customer">Sort: Customer (A → Z)</option>
+        </select>
         {["All", ...STATUS_ORDER].map(s => {
           const active = filterStatus === s;
           const cfg = s === "All" ? null : STATUS_CONFIG[s];
@@ -66,16 +72,6 @@ function DashboardHome({
             }}>{s === "All" ? "ALL" : cfg.label}</button>
           );
         })}
-      </div>
-
-      {/* Sort control — separate row so it stays visible on mobile where the filter tabs scroll horizontally */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>SORT:</span>
-        <select value={sortMode} onChange={e => setSortMode(e.target.value)}
-          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg, fontFamily: "'Arial', sans-serif" }}>
-          <option value="default">Status + Date (newest first)</option>
-          <option value="customer">Customer (A → Z)</option>
-        </select>
       </div>
 
       {sortedJobs.map(job => (

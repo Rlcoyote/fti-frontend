@@ -554,29 +554,31 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               </span>
             )}
           </div>
-          {editable && knownContacts.length > 0 && (
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: C.blue, letterSpacing: "0.08em", marginBottom: 4 }}>KNOWN CONTACTS</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {knownContacts.filter(c => c.role_tag === "site_manager" || c.role_tag === "poc").map(c => (
-                  <button key={c.id} type="button" onClick={() => {
+          {editable && (() => {
+            const pocOptions = knownContacts.filter(c => c.role_tag === "site_manager" || c.role_tag === "poc");
+            if (pocOptions.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 8 }}>
+                <label style={labelStyle}>EXISTING SITE MANAGER / POC FOR THIS CUSTOMER</label>
+                <select style={{ ...inputStyle, maxWidth: 360 }} defaultValue="" onChange={e => {
+                  const c = pocOptions.find(o => String(o.id) === e.target.value);
+                  if (c) {
                     const parts = c.name.split(" ");
                     setSiteMgrFirst(parts[0] || "");
                     setSiteMgrLast(parts.slice(1).join(" ") || "");
                     setSiteMgrPhone(c.phone || "");
                     setSiteMgrEmail(c.email || "");
-                  }} style={{
-                    background: "transparent", border: `1px solid ${C.blue}44`, borderRadius: 4,
-                    padding: "3px 8px", fontSize: 10, fontWeight: 600, color: C.text, cursor: "pointer",
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                    {c.name} <span style={{ color: C.muted, fontSize: 8 }}>{c.role_tag?.toUpperCase()}</span>
-                  </button>
-                ))}
+                  }
+                  e.target.value = "";
+                }}>
+                  <option value="">— Choose existing contact or enter new below —</option>
+                  {pocOptions.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}{c.role_tag === "poc" ? " (POC)" : ""}</option>
+                  ))}
+                </select>
               </div>
-            </div>
-          )}
+            );
+          })()}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
             <div>
               <label style={labelStyle}>FIRST NAME</label>

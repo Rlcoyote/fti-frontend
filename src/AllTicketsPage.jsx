@@ -99,20 +99,20 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
         )}
       </div>
 
-      {/* Filters */}
+      {/* Filters — order: Sort (ordering control), Customer (primary entity), Type, Status (last) */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={selStyle} title="Sort">
+          <option value="date">Sort: Date (newest)</option>
+          <option value="customer">Sort: Customer (A → Z)</option>
+        </select>
+        <select value={filterCustomer} onChange={e => setFilterCustomer(e.target.value)} style={selStyle}>
+          {customerList.map(c => <option key={c} value={c}>{c === "All" ? "All Customers" : c}</option>)}
+        </select>
         <select value={filterType} onChange={e => setFilterType(e.target.value)} style={selStyle}>
           {typeKeys.map(k => <option key={k} value={k}>{k === "All" ? "All Types" : (TICKET_TYPES[k]?.label || k)}</option>)}
         </select>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={selStyle}>
           {statusLabels.map(s => <option key={s} value={s}>{s === "All" ? "All Statuses" : s}</option>)}
-        </select>
-        <select value={filterCustomer} onChange={e => setFilterCustomer(e.target.value)} style={selStyle}>
-          {customerList.map(c => <option key={c} value={c}>{c === "All" ? "All Customers" : c}</option>)}
-        </select>
-        <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={selStyle} title="Sort">
-          <option value="date">Sort: Date (newest)</option>
-          <option value="customer">Sort: Customer (A → Z)</option>
         </select>
       </div>
 

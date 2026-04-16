@@ -156,6 +156,30 @@ export function AppProvider({ children }) {
     return () => { cancelled = true; };
   }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets]);
 
+  // ── Heartbeat — keeps the logged-in user visible in /activity/online while the app is open.
+  // Backend "online" window is 15 minutes; we ping every 10 so idle users don't drop off.
+  // Also fire on visibilitychange so mobile browsers (which throttle setInterval on backgrounded tabs)
+  // report "online" immediately when the user returns to the tab. Heartbeat rows are filtered out of
+  // the main activity log query server-side (see GET /api/activity).
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const ping = () => {
+      fetch(`${API_URL}/activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name, action: "heartbeat" }),
+      }).catch(() => {});
+    };
+    ping(); // fire once immediately so session-restored users appear online without waiting 10 min
+    const interval = setInterval(ping, 10 * 60 * 1000);
+    const onVisible = () => { if (document.visibilityState === "visible") ping(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [currentUser?.id, currentUser?.name]);
+
   // ── Activity logging ──
   const logActivity = useCallback((action, entityType, entityId, details) => {
     // Fire-and-forget — don't block UI for logging

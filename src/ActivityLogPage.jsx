@@ -32,11 +32,15 @@ function ActivityLogPage() {
       setLoading(false);
     };
     load();
-    // Poll online status every 30 seconds
+    // Poll both online status AND the main activity list every 30 seconds so the log updates live.
     const interval = setInterval(async () => {
       try {
-        const r = await fetch(`${API_URL}/activity/online`);
-        if (r.ok) setOnline(await r.json());
+        const [actR, onR] = await Promise.all([
+          fetch(`${API_URL}/activity?limit=500`).then(r => r.ok ? r.json() : null),
+          fetch(`${API_URL}/activity/online`).then(r => r.ok ? r.json() : null),
+        ]);
+        if (actR) setActivity(actR);
+        if (onR) setOnline(onR);
       } catch { /* ignore */ }
     }, 30000);
     return () => clearInterval(interval);

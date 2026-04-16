@@ -319,27 +319,27 @@ function NewJobModal({ onClose, onCreateJob }) {
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>CONTACT INFORMATION</div>
 
-          {/* Known contacts for this customer */}
-          {knownContacts.length > 0 && (
-            <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: C.blue, letterSpacing: "0.08em", marginBottom: 4 }}>KNOWN CONTACTS FOR THIS CUSTOMER</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {knownContacts.map(c => (
-                  <button key={c.id} type="button" onClick={() => applyContact(c)} style={{
-                    background: "transparent", border: `1px solid ${C.blue}44`, borderRadius: 4,
-                    padding: "4px 10px", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer",
-                  }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                    {c.name} <span style={{ color: C.muted, fontSize: 9, marginLeft: 4 }}>{c.role_tag?.toUpperCase()}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Point of Contact */}
+          {/* Point of Contact — role-filtered dropdown replaces the legacy mixed-role chip row */}
           <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>POINT OF CONTACT</div>
+          {(() => {
+            const pocOptions = knownContacts.filter(c => c.role_tag === "poc" || c.role_tag === "site_manager");
+            if (pocOptions.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 8 }}>
+                <label style={labelStyle}>EXISTING POC FOR THIS CUSTOMER</label>
+                <select style={{ ...inputStyle, maxWidth: 360 }} defaultValue="" onChange={e => {
+                  const c = pocOptions.find(o => String(o.id) === e.target.value);
+                  if (c) applyContact(c);
+                  e.target.value = ""; // reset so same selection can be chosen again after edits
+                }}>
+                  <option value="">— Choose existing contact or enter new below —</option>
+                  {pocOptions.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}{c.role_tag === "site_manager" ? " (Site Mgr)" : ""}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })()}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 12 }}>
             <div>
               <label style={labelStyle}>FIRST NAME *</label>
@@ -363,22 +363,27 @@ function NewJobModal({ onClose, onCreateJob }) {
             </div>
           </div>
 
-          {/* Approver */}
+          {/* Approver — role-filtered dropdown (approver + company_man). */}
           <div style={{ fontSize: 10, fontWeight: 800, color: C.blue, letterSpacing: "0.1em", marginBottom: 6 }}>APPROVER</div>
-          {knownContacts.filter(c => c.role_tag === "approver" || c.role_tag === "company_man").length > 0 && (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
-              {knownContacts.filter(c => c.role_tag === "approver" || c.role_tag === "company_man").map(c => (
-                <button key={c.id} type="button" onClick={() => applyContact(c)} style={{
-                  background: "transparent", border: `1px solid ${C.blue}44`, borderRadius: 4,
-                  padding: "4px 10px", fontSize: 11, fontWeight: 600, color: C.text, cursor: "pointer",
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
-                  {c.name} <span style={{ color: C.muted, fontSize: 9, marginLeft: 4 }}>{c.role_tag?.toUpperCase()}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          {(() => {
+            const approverOptions = knownContacts.filter(c => c.role_tag === "approver" || c.role_tag === "company_man");
+            if (approverOptions.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 8 }}>
+                <label style={labelStyle}>EXISTING APPROVER FOR THIS CUSTOMER</label>
+                <select style={{ ...inputStyle, maxWidth: 360 }} defaultValue="" onChange={e => {
+                  const c = approverOptions.find(o => String(o.id) === e.target.value);
+                  if (c) applyContact(c);
+                  e.target.value = "";
+                }}>
+                  <option value="">— Choose existing approver or enter new below —</option>
+                  {approverOptions.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}{c.role_tag === "company_man" ? " (Company Man)" : ""}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          })()}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
             <div>
               <label style={labelStyle}>FIRST NAME</label>
