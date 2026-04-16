@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
@@ -9,15 +9,19 @@ import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const { settings, currentUser } = useApp();
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
+  const [showUnsaved, setShowUnsaved] = useState(false);
   const [isMobile] = useState(() => window.innerWidth <= 900);
+
+  // Ref to latest handleClose — lets mobile popstate listener always see current dirty state
+  const handleCloseRef = useRef();
 
   useEffect(() => {
     if (!isMobile) return;
     window.history.pushState({ jsaOpen: true }, "");
-    const handlePop = () => { onClose(); };
+    const handlePop = () => { handleCloseRef.current?.(); };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
-  }, [isMobile, onClose]);
+  }, [isMobile]);
   const emergencyContacts = useMemo(() => {
     try { const c = JSON.parse(settings?.emergency_contacts || "[]"); return Array.isArray(c) ? c : []; }
     catch { return []; }
@@ -90,11 +94,55 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
 
   const toggleWeather = (w) => setWeather(prev => prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w]);
 
+  // Dirty-state detection for close confirmation. Captures the state the JSA opened with.
+  // Weather is clean if it matches either the original OR the auto-populated tags (auto-pop fires after mount).
+  const origRef = useRef({
+    date: jsa?.date || ticket?.date?.slice(0, 10) || today(),
+    operator: jsa?.operator || job.customer,
+    time: jsa?.time || "",
+    designatedDriver: jsa?.designatedDriver || "",
+    lat: String(jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat || ""),
+    lng: String(jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng || ""),
+    weather: jsa?.weather || [],
+    ppe: jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false },
+    signatures: jsa?.signatures || [""],
+    presenterReview: jsa?.presenterReview || "STOP WORK AUTHORITY. Slips Trips Falls. Keep Walkways Clear. Confined Spaces & Pinch Points. Hands Visible at all times. Eye Safety. 100% Tie Off Policy. Location of Emergency First Aid Kit and how to find the nearest hospital. Importance of a good attitude. Good Communication is key!",
+    additionalSteps: jsa?.additionalSteps || [{ step: "", hazard: "", procedure: "" }],
+  });
+
+  const isDirty = () => {
+    const o = origRef.current;
+    const weatherCurrent = JSON.stringify([...weather].sort());
+    const weatherOrig = JSON.stringify([...o.weather].sort());
+    const weatherAuto = JSON.stringify([...weatherAutoTags].sort());
+    const weatherIsDirty = weatherCurrent !== weatherOrig && weatherCurrent !== weatherAuto;
+    return (
+      date !== o.date ||
+      operator !== o.operator ||
+      time !== o.time ||
+      designatedDriver !== o.designatedDriver ||
+      String(lat) !== o.lat ||
+      String(lng) !== o.lng ||
+      weatherIsDirty ||
+      JSON.stringify(ppe) !== JSON.stringify(o.ppe) ||
+      JSON.stringify(signatures) !== JSON.stringify(o.signatures) ||
+      presenterReview !== o.presenterReview ||
+      JSON.stringify(additionalSteps) !== JSON.stringify(o.additionalSteps)
+    );
+  };
+
+  const handleClose = () => {
+    if (isDirty()) setShowUnsaved(true);
+    else onClose();
+  };
+  // Keep ref fresh so mobile popstate always calls the latest closure.
+  handleCloseRef.current = handleClose;
+
   return (
     <div style={isMobile
       ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
       : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
-    } onClick={isMobile ? undefined : onClose}>
+    } onClick={isMobile ? undefined : handleClose}>
       <div style={isMobile
         ? { background: C.cardBg, borderTop: `4px solid ${C.text}`, minHeight: "100%" }
         : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.text}`, borderRadius: 8, padding: 0, width: 900, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
@@ -294,11 +342,23 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             });
             onClose();
           }}>SAVE JSA</Btn>
-          <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
+          <Btn onClick={handleClose} variant="ghost">CLOSE</Btn>
         </div>
       </div>
       {showEmergencyEdit && (
         <EmergencyContactsModal onClose={() => setShowEmergencyEdit(false)} />
+      )}
+      {showUnsaved && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This JSA has unsaved changes. Are you sure you want to close?</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={() => { setShowUnsaved(false); onClose(); }}>YES, DISCARD</Btn>
+              <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>KEEP EDITING</Btn>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
