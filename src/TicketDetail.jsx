@@ -142,7 +142,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   };
   const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
   const [showSigOptions, setShowSigOptions] = useState(false);
-  const [showQBConfirm, setShowQBConfirm] = useState(false);
   const [tdComments, setTdComments] = useState([]);
   const [tdReply, setTdReply] = useState("");
   const [tdSending, setTdSending] = useState(false);
@@ -357,11 +356,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const handleApprove = () => {
     setStatus("approved");
     save({ status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
-  };
-
-  const handleSendToQB = () => {
-    setStatus("sentToQB");
-    save({ status: "sentToQB", sentToQBAt: new Date().toISOString() });
   };
 
   const isPageMode = asPage || isMobile;
@@ -941,16 +935,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             </div>
           )}
 
-          {/* Status selector (unlocked only) */}
-          {!isLocked && status !== "emailed" && (
-            <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4 }}>STATUS:</span>
-              {[["incomplete", "INCOMPLETE"], ["inField", "IN FIELD"]].map(([key, lbl]) => (
-                <FilterBtn key={key} active={status === key} onClick={() => setStatus(key)}>{lbl}</FilterBtn>
-              ))}
-            </div>
-          )}
-
           {/* Line items */}
           <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
           {!isLocked ? (
@@ -1086,9 +1070,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.steel, border: `1px solid ${C.border}`, padding: "6px 14px", borderRadius: 4 }}>AWAITING QB VERIFICATION</span>
           )}
 
-          {/* Approved — send to QB */}
+          {/* Approved tickets are routed to Final Review for accounting handoff */}
           {status === "approved" && !isEditing && (
-            <Btn variant="blue" onClick={() => setShowQBConfirm(true)}>SEND TO ACCOUNTING</Btn>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.steel, border: `1px solid ${C.border}`, padding: "6px 14px", borderRadius: 4 }}>READY FOR FINAL REVIEW</span>
           )}
 
           {/* Signed/SigNotReq — approve */}
@@ -1146,22 +1130,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           )}
 
         </div>
-
-        {/* Send to Accounting confirmation */}
-        {showQBConfirm && (
-          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowQBConfirm(false)}>
-            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to Accounting?</div>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
-                Once submitted, this ticket will be permanently locked. No further edits, signatures, or deletions will be permitted.
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Btn variant="blue" onClick={() => { setShowQBConfirm(false); handleSendToQB(); }}>CONFIRM — SEND TO ACCOUNTING</Btn>
-                <Btn variant="ghost" onClick={() => setShowQBConfirm(false)}>CANCEL</Btn>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Delete confirmation */}
         {showDeleteConfirm && (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
-import { today, formatDate, formatShortStamp, shortName, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload } from "./utils.js";
+import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
@@ -14,7 +14,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
-  const [qbConfirmId, setQbConfirmId] = useState(null);
   const [emailConfirm, setEmailConfirm] = useState(null); // { ticketId, email, emailedAt, cc }
   const [emailConfirmTo, setEmailConfirmTo] = useState("");
   const [emailConfirmCc, setEmailConfirmCc] = useState("");
@@ -139,7 +138,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         const isEmailed = !!t.emailedAt;
         const hasPendingComment = !!t.hasPendingComment || !!t.has_pending_comment;
         const cycleEnded = !!t.cycleEnded || !!t.cycle_ended;
-        const canSendToQB = isSigned && isApproved;
         const needsJSA = !t.hasJSA && !t.voidedAt && t.type !== "Rental"; // JSA required before signature/email/approval (Rental exempt)
 
         // Button styles
@@ -171,10 +169,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 padding: "10px 12px", cursor: "pointer",
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <TicketTypeBadge type={t.type} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                    <TicketTypeBadge type={t.type} />
+                    <span style={{ fontSize: 9, color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
+                  </div>
                   <div>
-                    <div style={{ fontSize: 11, color: C.muted }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)} · {t.lineItems.length} items</div>
-                    {t.createdBy && <div style={{ fontSize: 9, color: "#a0aec8" }}>{shortName(t.createdBy)} · {formatShortStamp(t.createdAt)}</div>}
+                    <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{formatDate(t.date)}{t.createdAt ? ` · ${new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</div>
+                    {t.createdBy && <div style={{ fontSize: 9, color: "#a0aec8" }}>{t.createdBy}</div>}
                     {hasPendingComment && (
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044", marginTop: 3 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -228,11 +229,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                     onClick={async () => { if (!needsJSA) await handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }); }}>APPROVE</button>
                 )}
                 {isApproved && t.status !== "sentToQB" && t.status !== "qbVerified" && <span style={btnDone}>✓ APPROVED</span>}
-                {/* Send to Accounting */}
-                {t.status !== "sentToQB" && t.status !== "qbVerified" && (
-                  <button type="button" style={canSendToQB ? { ...btnBase, background: C.blue, color: C.white, border: "none" } : btnDisabled}
-                    disabled={!canSendToQB} onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO ACCOUNTING</button>
-                )}
                 {(t.status === "sentToQB" || t.status === "qbVerified") && <span style={{ ...btnDone, background: C.green, color: C.white }}>✓ SENT TO ACCOUNTING</span>}
                 </>)}
                 {/* Delete — only if not sent to QB */}
@@ -260,10 +256,22 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, cursor: "pointer" }}
               title="Open ticket"
             >
-              <TicketTypeBadge type={t.type} />
-              <span style={{ fontSize: 11, color: C.muted, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {formatDate(t.date)}</span>
-              <span style={{ fontSize: 11, color: C.muted }}>{t.lineItems.length} items</span>
-              {t.createdBy && <span style={{ fontSize: 9, color: "#a0aec8", whiteSpace: "nowrap" }}>{shortName(t.createdBy)} · {formatShortStamp(t.createdAt)}</span>}
+              {/* Ticket badge + # stacked */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 70 }}>
+                <TicketTypeBadge type={t.type} />
+                <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap", fontWeight: 600 }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
+              </div>
+              {/* Date + created time stacked */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 90 }}>
+                <span style={{ fontSize: 11, color: C.text, fontWeight: 600, whiteSpace: "nowrap" }}>{formatDate(t.date)}</span>
+                {t.createdAt && <span style={{ fontSize: 9, color: "#a0aec8", whiteSpace: "nowrap" }}>{new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>}
+              </div>
+              {/* Created by user */}
+              {t.createdBy && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 100 }}>
+                  <span style={{ fontSize: 10, color: "#a0aec8", whiteSpace: "nowrap" }}>{t.createdBy}</span>
+                </div>
+              )}
               {hasPendingComment && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -356,12 +364,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <span style={btnDone}>✓ APPROVED</span>
               )}
 
-              {/* Col 5: Send to Accounting */}
-              {t.status !== "sentToQB" && t.status !== "qbVerified" && (
-                <button type="button" style={canSendToQB ? { ...btnBase, background: C.blue, color: C.white, border: "none" } : btnDisabled}
-                  disabled={!canSendToQB}
-                  onClick={() => { if (canSendToQB) setQbConfirmId(t.id); }}>SEND TO ACCOUNTING</button>
-              )}
+              {/* Col 5: Accounting status (send action moved to Final Review only) */}
               {(t.status === "sentToQB" || t.status === "qbVerified") && (
                 <span style={{ ...btnDone, background: C.green, color: C.white, border: "none" }}>✓ SENT TO ACCOUNTING</span>
               )}
@@ -512,23 +515,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
           </div>
         );
       })()}
-      {qbConfirmId && (
-        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setQbConfirmId(null)}>
-          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Send to Accounting?</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
-              Once submitted, this ticket will be permanently locked. No further edits, signatures, or deletions will be permitted.
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn variant="blue" onClick={async () => {
-                await handleUpdate(qbConfirmId, { status: "sentToQB", sentToQBAt: new Date().toISOString() });
-                setQbConfirmId(null);
-              }}>CONFIRM — SEND TO ACCOUNTING</Btn>
-              <Btn variant="ghost" onClick={() => setQbConfirmId(null)}>CANCEL</Btn>
-            </div>
-          </div>
-        </div>
-      )}
       {emailConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setEmailConfirm(null)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
