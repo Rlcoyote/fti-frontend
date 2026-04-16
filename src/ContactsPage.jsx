@@ -6,8 +6,9 @@ import { useApp } from "./AppContext.jsx";
 const ROLE_LABELS = { poc: "POINT OF CONTACT", site_manager: "SITE MANAGER", approver: "APPROVER", company_man: "COMPANY MAN", other: "OTHER" };
 
 function ContactsPage() {
-  const { customers, currentUser } = useApp();
+  const { customers, currentUser, logActivity } = useApp();
   const isAdmin = ["owner", "admin"].includes(currentUser?.role);
+  const isOwner = currentUser?.role === "owner";
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -18,6 +19,12 @@ function ContactsPage() {
   const [selected, setSelected] = useState(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // "Clear all contacts" — deployment reset tool, owner-only, two-step confirm.
+  // Step 1: acknowledge the destruction. Step 2: type "DELETE ALL" to arm the red button.
+  const [clearAllStep, setClearAllStep] = useState(null); // null | "warn" | "typeGate"
+  const [clearAllText, setClearAllText] = useState("");
+  const [clearAllBusy, setClearAllBusy] = useState(false);
 
   // Edit form
   const [eFirst, setEFirst] = useState("");
@@ -106,6 +113,29 @@ function ContactsPage() {
     } catch { setMsg("Update failed."); }
   };
 
+  const resetClearAll = () => { setClearAllStep(null); setClearAllText(""); setClearAllBusy(false); };
+
+  const handleClearAll = async () => {
+    if (clearAllText.trim() !== "DELETE ALL") return;
+    setClearAllBusy(true);
+    try {
+      const r = await fetch(`${API_URL}/customers/contacts/all`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE ALL CONTACTS" }),
+      });
+      if (!r.ok) throw new Error("wipe failed");
+      const data = await r.json();
+      logActivity?.("clear_all_contacts", "contact", null, { count: data.deleted });
+      await fetchAll();
+      setMsg(`Cleared ${data.deleted} contact${data.deleted !== 1 ? "s" : ""}.`);
+      setTimeout(() => setMsg(""), 4000);
+    } catch {
+      setMsg("Clear all failed.");
+    }
+    resetClearAll();
+  };
+
   const handleDelete = async (mergedContact) => {
     try {
       const ids = mergedContact.ids || [mergedContact.id];
@@ -152,9 +182,20 @@ function ContactsPage() {
           </div>
         </div>
         {isAdmin && merged.length > 0 && (
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {!selectMode ? (
-              <Btn variant="ghost" small onClick={() => setSelectMode(true)}>SELECT</Btn>
+              <>
+                <Btn variant="ghost" small onClick={() => setSelectMode(true)}>SELECT</Btn>
+                {isOwner && (
+                  <button type="button" onClick={() => setClearAllStep("warn")}
+                    title="Deployment reset — wipe every customer contact"
+                    style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: "6px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "'Arial', sans-serif" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}>
+                    CLEAR ALL CONTACTS
+                  </button>
+                )}
+              </>
             ) : (
               <>
                 <button type="button" disabled={selected.size === 0} onClick={() => setConfirmDelete(true)}
@@ -292,6 +333,63 @@ function ContactsPage() {
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={handleBatchDelete}>DELETE {selected.size}</Btn>
               <Btn variant="ghost" onClick={() => setConfirmDelete(false)}>CANCEL</Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Contacts — step 1: warning */}
+      {clearAllStep === "warn" && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => resetClearAll()}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "92vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.red, letterSpacing: "0.12em", marginBottom: 6 }}>DEPLOYMENT RESET</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 12 }}>Clear ALL Customer Contacts?</div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 8, lineHeight: 1.6 }}>
+              This will permanently delete every contact record across every customer — <strong>{merged.length} contact{merged.length !== 1 ? "s" : ""}</strong> across <strong>{new Set(merged.map(c => c.customer_id)).size} customer{new Set(merged.map(c => c.customer_id)).size !== 1 ? "s" : ""}</strong>.
+            </div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+              Work orders and tickets are not affected. Contacts will re-populate automatically as new POC / Site Manager / Approver info is entered going forward.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn variant="ghost" onClick={resetClearAll}>CANCEL</Btn>
+              <button type="button" onClick={() => setClearAllStep("typeGate")}
+                style={{ background: C.red, color: C.white, border: "none", borderRadius: 4, padding: "8px 18px", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "'Arial', sans-serif" }}>
+                I UNDERSTAND — PROCEED
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Contacts — step 2: type-gated confirmation */}
+      {clearAllStep === "typeGate" && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => { if (!clearAllBusy) resetClearAll(); }}>
+          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "92vw" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.red, letterSpacing: "0.12em", marginBottom: 6 }}>FINAL CONFIRMATION</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 12 }}>Type <span style={{ color: C.red, fontFamily: "monospace" }}>DELETE ALL</span> to confirm</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12, lineHeight: 1.5 }}>
+              This action is logged in the Activity Log and cannot be undone.
+            </div>
+            <input
+              autoFocus
+              style={{ ...inputStyle, marginBottom: 18, fontFamily: "monospace", letterSpacing: "0.08em" }}
+              value={clearAllText}
+              onChange={e => setClearAllText(e.target.value)}
+              placeholder="DELETE ALL"
+              disabled={clearAllBusy}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn variant="ghost" onClick={resetClearAll}>CANCEL</Btn>
+              <button type="button" onClick={handleClearAll} disabled={clearAllBusy || clearAllText.trim() !== "DELETE ALL"}
+                style={{
+                  background: (clearAllBusy || clearAllText.trim() !== "DELETE ALL") ? C.steel : C.red,
+                  color: (clearAllBusy || clearAllText.trim() !== "DELETE ALL") ? C.muted : C.white,
+                  border: "none", borderRadius: 4, padding: "8px 18px", fontSize: 12, fontWeight: 800,
+                  cursor: (clearAllBusy || clearAllText.trim() !== "DELETE ALL") ? "not-allowed" : "pointer",
+                  fontFamily: "'Arial', sans-serif",
+                }}>
+                {clearAllBusy ? "CLEARING..." : "CONFIRM DELETION"}
+              </button>
             </div>
           </div>
         </div>
