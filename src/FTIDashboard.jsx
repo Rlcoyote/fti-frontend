@@ -103,6 +103,7 @@ function FTIDashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
+  const [sortMode, setSortMode] = useState("default"); // "default" = status group + date desc; "customer" = A→Z by customer
   const [showNewJob, setShowNewJob] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -413,10 +414,15 @@ function FTIDashboard() {
   const jobWithComputedStatus = activeJobs.map(j => ({ ...j, _computedStatus: computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) }));
   const filteredJobs = filterStatus === "All" ? jobWithComputedStatus : jobWithComputedStatus.filter(j => j._computedStatus === filterStatus);
   const sortedJobs = [...filteredJobs].sort((a, b) => {
-    // Primary: status group (Scheduled → In Progress → Completed)
+    if (sortMode === "customer") {
+      // Sort purely by customer name A→Z (cross-status), tiebreak on WO ID desc (newest WO# first within customer).
+      const cust = (a.customer || "").localeCompare(b.customer || "");
+      if (cust !== 0) return cust;
+      return (b.id || 0) - (a.id || 0);
+    }
+    // Default: status group (Scheduled → In Progress → Completed) then scheduled date desc.
     const statusDiff = STATUS_ORDER.indexOf(a._computedStatus) - STATUS_ORDER.indexOf(b._computedStatus);
     if (statusDiff !== 0) return statusDiff;
-    // Secondary: scheduled date descending (newest first within each group)
     return (b.dateStarted || "").localeCompare(a.dateStarted || "");
   });
 
@@ -582,7 +588,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.41</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.42</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -689,6 +695,8 @@ function FTIDashboard() {
             sortedJobs={sortedJobs}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
+            sortMode={sortMode}
+            setSortMode={setSortMode}
             myActiveTodos={myActiveTodos}
             tickets={tickets}
             setTickets={setTickets}

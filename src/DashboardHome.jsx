@@ -8,6 +8,8 @@ function DashboardHome({
   sortedJobs,
   filterStatus,
   setFilterStatus,
+  sortMode,
+  setSortMode,
   myActiveTodos,
   tickets,
   setTickets,
@@ -64,6 +66,16 @@ function DashboardHome({
             }}>{s === "All" ? "ALL" : cfg.label}</button>
           );
         })}
+      </div>
+
+      {/* Sort control — separate row so it stays visible on mobile where the filter tabs scroll horizontally */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>SORT:</span>
+        <select value={sortMode} onChange={e => setSortMode(e.target.value)}
+          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg, fontFamily: "'Arial', sans-serif" }}>
+          <option value="default">Status + Date (newest first)</option>
+          <option value="customer">Customer (A → Z)</option>
+        </select>
       </div>
 
       {sortedJobs.map(job => (

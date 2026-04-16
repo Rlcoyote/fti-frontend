@@ -12,7 +12,8 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
   const [filterType, setFilterType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterCustomer, setFilterCustomer] = useState("All");
-  const [dragOrder, setDragOrder] = useState(null); // null = default date order
+  const [sortMode, setSortMode] = useState("date"); // "date" = newest first (default); "customer" = customer A→Z then date desc
+  const [dragOrder, setDragOrder] = useState(null); // null = default sort order (drag overrides both date + customer modes)
   const [dragIdx, setDragIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
 
@@ -33,10 +34,21 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
     return true;
   });
 
-  // Sort: if drag reorder active, use that; otherwise by date desc
+  // Sort: drag reorder wins when active; otherwise apply the selected sortMode.
+  //  - "date"     → date desc (newest first)
+  //  - "customer" → customer A→Z (from parent job), tiebreak on date desc
   const sorted = dragOrder
     ? dragOrder.filter(id => filtered.some(t => t.id === id)).map(id => filtered.find(t => t.id === id)).filter(Boolean)
-    : [...filtered].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    : [...filtered].sort((a, b) => {
+        if (sortMode === "customer") {
+          const custA = jobs.find(j => j.id === a.jobId)?.customer || "";
+          const custB = jobs.find(j => j.id === b.jobId)?.customer || "";
+          const cust = custA.localeCompare(custB);
+          if (cust !== 0) return cust;
+          return (b.date || "").localeCompare(a.date || "");
+        }
+        return (b.date || "").localeCompare(a.date || "");
+      });
 
   // If filters change and we have a drag order, we keep it but it only shows filtered items
   const resetOrder = () => setDragOrder(null);
@@ -97,6 +109,10 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
         </select>
         <select value={filterCustomer} onChange={e => setFilterCustomer(e.target.value)} style={selStyle}>
           {customerList.map(c => <option key={c} value={c}>{c === "All" ? "All Customers" : c}</option>)}
+        </select>
+        <select value={sortMode} onChange={e => setSortMode(e.target.value)} style={selStyle} title="Sort">
+          <option value="date">Sort: Date (newest)</option>
+          <option value="customer">Sort: Customer (A → Z)</option>
         </select>
       </div>
 
