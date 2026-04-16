@@ -10,6 +10,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   const [showSearch, setShowSearch] = useState(false);
   const [hasRigUp, setHasRigUp] = useState(false);
   const [copyLoading, setCopyLoading] = useState(false);
+  const [copyMsg, setCopyMsg] = useState(""); // transient feedback when copy finds no items
   const [warnItem, setWarnItem] = useState(null);
   const [allowedCodes, setAllowedCodes] = useState(null);
   const [editingIdx, setEditingIdx] = useState(null); // Mobile: which card is expanded for editing
@@ -17,15 +18,18 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   const isRental = ticketType === "Rental";
   const isRigDown = ticketType === "Rig Down";
 
-  // Check if a non-voided Rig Up exists on this job AND (for Rig Down) collect allowed QB codes
+  // Check if a non-voided Rig Up exists on this job AND (for Rig Down) collect allowed QB codes.
+  // v27.47: the visibility gate here was previously requiring the latest Rig Up to have line items,
+  // which made the button vanish silently whenever the newest Rig Up happened to be empty. Now we
+  // show the button whenever ANY non-voided Rig Up exists and let the copy action walk the list
+  // (newest first) to find one with items, or surface a visible message when none do.
   useEffect(() => {
     if (!jobId || ticketType === "Rig Up") { setHasRigUp(false); setAllowedCodes(null); return; }
     fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
       .then(r => r.ok ? r.json() : [])
       .then(data => {
-        const ru = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
-          .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
-        setHasRigUp(!!(ru && (ru.lineItems || ru.line_items || []).length > 0));
+        const rigUps = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at);
+        setHasRigUp(rigUps.length > 0);
         // For Rig Down tickets: collect QB codes from all Rig Up + Rental tickets
         if (isRigDown) {
           const codes = new Set();
@@ -45,22 +49,40 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   const copyFromRigUp = async () => {
     if (!jobId || copyLoading) return;
     setCopyLoading(true);
+    setCopyMsg("");
     try {
       const r = await fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`);
-      if (!r.ok) { setCopyLoading(false); return; }
+      if (!r.ok) { setCopyLoading(false); setCopyMsg("Couldn't reach server."); return; }
       const data = await r.json();
-      const ru = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
-        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
-      const items = (ru?.lineItems || ru?.line_items || []).map(li => ({
+      const rigUpsNewestFirst = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+      // Walk newest → oldest until we find one with line items. Silently skipping empty Rig Ups
+      // was the prior failure mode — now we fall through and copy from whichever Rig Up has items.
+      let sourceTicket = null;
+      for (const tk of rigUpsNewestFirst) {
+        const items = tk.lineItems || tk.line_items || [];
+        if (items.length > 0) { sourceTicket = tk; break; }
+      }
+      if (!sourceTicket) {
+        setCopyMsg("No Rig Up ticket on this Work Order has line items yet.");
+        setTimeout(() => setCopyMsg(""), 5000);
+        setCopyLoading(false);
+        return;
+      }
+      const items = (sourceTicket.lineItems || sourceTicket.line_items || []).map(li => ({
         qbCode: li.qb_code || li.qbCode || "", desc: li.description || li.desc || "",
         rate: Number(li.rate) || 0, qty: Number(li.qty) || 0,
         um: li.unit_measure || li.um || "DAY", days: Number(li.days) || 1,
       }));
-      if (items.length) {
-        setLineItems([...items]);
-        onSigWipe?.();
-      }
-    } catch (err) { console.error("Copy from Rig Up failed:", err); }
+      setLineItems([...items]);
+      onSigWipe?.();
+      setCopyMsg(`Copied ${items.length} item${items.length !== 1 ? "s" : ""} from Rig Up.`);
+      setTimeout(() => setCopyMsg(""), 4000);
+    } catch (err) {
+      console.error("Copy from Rig Up failed:", err);
+      setCopyMsg("Copy failed — check your connection.");
+      setTimeout(() => setCopyMsg(""), 5000);
+    }
     setCopyLoading(false);
   };
 
@@ -263,6 +285,9 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
         <Btn small variant="ghost" onClick={addBlank}>+ BLANK LINE</Btn>
         {hasRigUp && (
           <Btn small variant="ghost" onClick={copyFromRigUp} disabled={copyLoading}>{copyLoading ? "COPYING..." : "📋 COPY ITEMS FROM RIG UP"}</Btn>
+        )}
+        {copyMsg && (
+          <span style={{ fontSize: 11, fontWeight: 600, color: copyMsg.startsWith("Copied") ? C.green : C.red }}>{copyMsg}</span>
         )}
         {showSearch && (
           <div style={{
