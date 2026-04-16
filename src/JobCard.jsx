@@ -23,7 +23,9 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
-  const ticketTotal = jobTickets.reduce((s, t) => s + calcTicketTotal(t), 0);
+  // Billable total excludes voided tickets. Used for per-well display in the WELLS section below.
+  const ticketTotal = jobTickets.filter(t => t.status !== "voided").reduce((s, t) => s + calcTicketTotal(t), 0);
+  const perWellAmount = ticketTotal / (job.wells.length || 1);
   const hasJobPendingComment = jobTickets.some(t => t.hasPendingComment || t.has_pending_comment);
   const FINAL_STATES = ["sentToQB", "qbVerified", "voided"];
   const readyToClose = jobTickets.length > 0 && jobTickets.every(t => FINAL_STATES.includes(t.status)) && computedStatus !== "Completed";
@@ -168,11 +170,48 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
               gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 24, background: "#f7f9fc",
             }}>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WELLS / AFE</div>
+                {/* WO DETAILS — synopsis from the WO creation form. Fields hidden when empty. Order follows WO creation form. */}
+                {(() => {
+                  const pocFirst = job.contactFirst || job.contact_first;
+                  const pocLast = job.contactLast || job.contact_last;
+                  const pocName = [pocFirst, pocLast].filter(Boolean).join(" ");
+                  const pocPhone = job.pocPhone || job.poc_phone;
+                  const pocEmail = job.pocEmail || job.poc_email;
+                  const companyCode = job.companyCode || job.company_code;
+                  const costCenter = job.costCenter || job.cost_center;
+                  const po = job.po || job.po_number;
+                  const afe = job.afe;
+                  const hasAny = pocName || pocPhone || pocEmail || companyCode || costCenter || po || afe;
+                  if (!hasAny) return null;
+                  const kvRowStyle = { marginBottom: 6, display: "flex", gap: 6, flexWrap: "wrap" };
+                  const keyStyle = { fontSize: 11, color: C.muted };
+                  const valStyle = { fontSize: 11, color: C.text, fontWeight: 600 };
+                  return (
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WO DETAILS</div>
+                      {pocName && (
+                        <div style={{ marginBottom: 8 }}>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Point of Contact</div>
+                          <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{pocName}</div>
+                          {pocPhone && <div style={{ fontSize: 11, color: C.text }}>{pocPhone}</div>}
+                          {pocEmail && <div style={{ fontSize: 11, color: C.text }}>{pocEmail}</div>}
+                        </div>
+                      )}
+                      {companyCode && <div style={kvRowStyle}><span style={keyStyle}>Company Code:</span><span style={valStyle}>{companyCode}</span></div>}
+                      {costCenter && <div style={kvRowStyle}><span style={keyStyle}>Cost Center:</span><span style={valStyle}>{costCenter}</span></div>}
+                      {po && <div style={kvRowStyle}><span style={keyStyle}>PO:</span><span style={valStyle}>{po}</span></div>}
+                      {afe && <div style={kvRowStyle}><span style={keyStyle}>AFE:</span><span style={{ fontSize: 11, color: "#1a5fa8", fontWeight: 700 }}>{afe}</span></div>}
+                    </div>
+                  );
+                })()}
+                {/* WELLS — even split of all non-voided ticket totals across assigned wells. */}
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WELLS</div>
                 {job.wells.map((well, i) => (
-                  <div key={i} style={{ marginBottom: 8 }}>
+                  <div key={i} style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{well.well_name || well}</div>
-                    {i === 0 && job.afe && <div style={{ fontSize: 11, color: "#1a5fa8" }}>AFE: {job.afe}</div>}
+                    <div style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>
+                      ${perWellAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                   </div>
                 ))}
               </div>
