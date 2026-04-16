@@ -8,7 +8,9 @@ function ActivityLogPage() {
   const isAdmin = ["owner", "admin"].includes(currentUser?.role);
   const [activity, setActivity] = useState([]);
   const [online, setOnline] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("log"); // "log" | "sessions"
   const [filterUser, setFilterUser] = useState("All");
   const [filterAction, setFilterAction] = useState("All");
   const [dateFrom, setDateFrom] = useState("");
@@ -22,25 +24,29 @@ function ActivityLogPage() {
     if (!isAdmin) return;
     const load = async () => {
       try {
-        const [actR, onR] = await Promise.all([
+        const [actR, onR, sesR] = await Promise.all([
           fetch(`${API_URL}/activity?limit=500`).then(r => r.ok ? r.json() : []),
           fetch(`${API_URL}/activity/online`).then(r => r.ok ? r.json() : []),
+          fetch(`${API_URL}/activity/sessions?limit=200`).then(r => r.ok ? r.json() : []),
         ]);
         setActivity(actR);
         setOnline(onR);
+        setSessions(sesR);
       } catch { /* ignore */ }
       setLoading(false);
     };
     load();
-    // Poll both online status AND the main activity list every 30 seconds so the log updates live.
+    // Live polling every 30s — log, online users, and paired sessions all refresh together.
     const interval = setInterval(async () => {
       try {
-        const [actR, onR] = await Promise.all([
+        const [actR, onR, sesR] = await Promise.all([
           fetch(`${API_URL}/activity?limit=500`).then(r => r.ok ? r.json() : null),
           fetch(`${API_URL}/activity/online`).then(r => r.ok ? r.json() : null),
+          fetch(`${API_URL}/activity/sessions?limit=200`).then(r => r.ok ? r.json() : null),
         ]);
         if (actR) setActivity(actR);
         if (onR) setOnline(onR);
+        if (sesR) setSessions(sesR);
       } catch { /* ignore */ }
     }, 30000);
     return () => clearInterval(interval);
@@ -81,6 +87,47 @@ function ActivityLogPage() {
     return ip;
   };
 
+  // Human-friendly duration: "2h 15m", "35m", "1m 12s" — honest about minutes vs hours.
+  const formatDuration = (ms) => {
+    if (ms == null || ms < 0) return "—";
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    if (m > 0) return s > 0 && m < 5 ? `${m}m ${s}s` : `${m}m`;
+    return `${s}s`;
+  };
+
+  // Render audit-style details ({from, to, note}) into a compact inline summary for the log table.
+  // Keeps the one-line row constraint but shows meaningful context instead of raw JSON.
+  const renderDetails = (d) => {
+    if (!d) return "—";
+    let obj = d;
+    if (typeof d === "string") {
+      try { obj = JSON.parse(d); } catch { return d.slice(0, 80); }
+    }
+    if (typeof obj !== "object") return String(obj).slice(0, 80);
+    const parts = [];
+    if (obj.note || obj.notes) parts.push(String(obj.note || obj.notes));
+    if (obj.from && obj.to) {
+      const summarize = (v) => {
+        if (v == null) return "∅";
+        if (typeof v !== "object") return String(v);
+        const keys = Object.keys(v);
+        if (keys.length === 1) return `${keys[0]}: ${v[keys[0]]}`;
+        return keys.slice(0, 2).map(k => `${k}:${v[k]}`).join(", ");
+      };
+      parts.push(`${summarize(obj.from)} → ${summarize(obj.to)}`);
+    } else if (obj.count != null) {
+      parts.push(`count: ${obj.count}`);
+    } else if (Object.keys(obj).length > 0 && parts.length === 0) {
+      // Fallback: short key:value render
+      parts.push(Object.entries(obj).slice(0, 3).map(([k, v]) => `${k}: ${typeof v === "object" ? "…" : v}`).join(" · "));
+    }
+    return parts.length > 0 ? parts.join(" · ") : "—";
+  };
+
   if (!isAdmin) {
     return (
       <div style={{ padding: "24px 28px", textAlign: "center", color: C.muted, fontSize: 14, paddingTop: 80 }}>
@@ -118,65 +165,136 @@ function ActivityLogPage() {
         )}
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
-        <div>
-          <label style={labelStyle}>USER</label>
-          <select style={{ ...inputStyle, width: 180 }} value={filterUser} onChange={e => setFilterUser(e.target.value)}>
-            <option value="All">All Users</option>
-            {(users || []).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>ACTION</label>
-          <select style={{ ...inputStyle, width: 160 }} value={filterAction} onChange={e => setFilterAction(e.target.value)}>
-            <option value="All">All Actions</option>
-            {uniqueActions.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>FROM</label>
-          <input type="date" style={{ ...inputStyle, width: 150 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>TO</label>
-          <input type="date" style={{ ...inputStyle, width: 150 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
-        </div>
+      {/* Tab switcher — Log / Sessions */}
+      <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${C.border}`, marginBottom: 16 }}>
+        {[
+          { k: "log", label: "LOG", count: activity.filter(a => a.action !== "heartbeat").length },
+          { k: "sessions", label: "SESSIONS", count: sessions.length },
+        ].map(t => {
+          const active = tab === t.k;
+          return (
+            <button key={t.k} onClick={() => setTab(t.k)} style={{
+              background: active ? C.cardBg : "transparent",
+              border: active ? `1px solid ${C.border}` : "1px solid transparent",
+              borderBottom: active ? `1px solid ${C.cardBg}` : "1px solid transparent",
+              borderTopLeftRadius: 4, borderTopRightRadius: 4, marginBottom: active ? -1 : 0,
+              color: active ? C.blue : C.muted,
+              padding: "8px 18px", fontSize: 11, fontWeight: 800, cursor: "pointer",
+              letterSpacing: "0.08em", fontFamily: "'Arial', sans-serif",
+            }}>{t.label} <span style={{ color: C.muted, fontWeight: 600 }}>({t.count})</span></button>
+          );
+        })}
       </div>
+
+      {/* Filters — only apply to the LOG tab. Sessions are pre-paired server-side. */}
+      {tab === "log" && (
+        <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div>
+            <label style={labelStyle}>USER</label>
+            <select style={{ ...inputStyle, width: 180 }} value={filterUser} onChange={e => setFilterUser(e.target.value)}>
+              <option value="All">All Users</option>
+              {(users || []).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>ACTION</label>
+            <select style={{ ...inputStyle, width: 160 }} value={filterAction} onChange={e => setFilterAction(e.target.value)}>
+              <option value="All">All Actions</option>
+              {uniqueActions.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>FROM</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          </div>
+          <div>
+            <label style={labelStyle}>TO</label>
+            <input type="date" style={{ ...inputStyle, width: 150 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 40, color: C.muted }}>Loading...</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 13 }}>No activity recorded yet.</div>
-      ) : (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <div style={{ minWidth: 700 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "140px 100px 1fr 120px 120px", background: C.darkBlue, padding: "10px 14px" }}>
-                {["TIME", "USER", "ACTION", "IP ADDRESS", "DETAILS"].map(h => (
-                  <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>{h}</div>
-                ))}
+      ) : tab === "log" ? (
+        filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 13 }}>No activity recorded yet.</div>
+        ) : (
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ minWidth: 780 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "140px 120px 1fr 120px 1.5fr", background: C.darkBlue, padding: "10px 14px" }}>
+                  {["TIME", "USER", "ACTION", "IP ADDRESS", "DETAILS"].map(h => (
+                    <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>{h}</div>
+                  ))}
+                </div>
+                {filtered.slice(0, 200).map((a, i) => {
+                  const ac = actionColor(a.action);
+                  return (
+                    <div key={a.id} title={a.details ? (typeof a.details === "string" ? a.details : JSON.stringify(a.details, null, 2)) : ""}
+                      style={{ display: "grid", gridTemplateColumns: "140px 120px 1fr 120px 1.5fr", padding: "8px 14px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
+                      <div style={{ fontSize: 11, color: C.muted }}>{formatTime(a.created_at)}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{a.user_name || "—"}</div>
+                      <div>
+                        <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: ac.bg, color: ac.color, letterSpacing: "0.04em" }}>{a.action.toUpperCase()}</span>
+                        {a.entity_type && <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>{a.entity_type} {a.entity_id ? `#${a.entity_id}` : ""}</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{formatIP(a.ip_address)}</div>
+                      <div style={{ fontSize: 10, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {renderDetails(a.details)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              {filtered.slice(0, 200).map((a, i) => {
-                const ac = actionColor(a.action);
-                return (
-                  <div key={a.id} style={{ display: "grid", gridTemplateColumns: "140px 100px 1fr 120px 120px", padding: "8px 14px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
-                    <div style={{ fontSize: 11, color: C.muted }}>{formatTime(a.created_at)}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{a.user_name || "—"}</div>
-                    <div>
-                      <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: ac.bg, color: ac.color, letterSpacing: "0.04em" }}>{a.action.toUpperCase()}</span>
-                      {a.entity_type && <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>{a.entity_type} {a.entity_id ? `#${a.entity_id}` : ""}</span>}
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{formatIP(a.ip_address)}</div>
-                    <div style={{ fontSize: 10, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {a.details ? (typeof a.details === "string" ? a.details : JSON.stringify(a.details)).slice(0, 50) : "—"}
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
-        </div>
+        )
+      ) : (
+        // SESSIONS tab — paired login→logout with duration and status
+        sessions.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 13 }}>No sessions recorded yet.</div>
+        ) : (
+          <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
+            <div style={{ overflowX: "auto" }}>
+              <div style={{ minWidth: 760 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "120px 140px 140px 100px 80px 120px", background: C.darkBlue, padding: "10px 14px" }}>
+                  {["USER", "LOGIN", "LOGOUT", "DURATION", "STATUS", "IP"].map(h => (
+                    <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>{h}</div>
+                  ))}
+                </div>
+                {sessions.map((s, i) => {
+                  const loginMs = new Date(s.login_at).getTime();
+                  const endMs = s.logout_at ? new Date(s.logout_at).getTime()
+                    : s.last_seen_at ? new Date(s.last_seen_at).getTime()
+                    : loginMs;
+                  const duration = endMs - loginMs;
+                  const isOpen = s.status === "open";
+                  return (
+                    <div key={`${s.user_id}-${s.login_at}`} style={{ display: "grid", gridTemplateColumns: "120px 140px 140px 100px 80px 120px", padding: "8px 14px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{s.user_name || "—"}</div>
+                      <div style={{ fontSize: 11, color: C.muted }}>{formatTime(s.login_at)}</div>
+                      <div style={{ fontSize: 11, color: isOpen ? C.muted : C.text }}>
+                        {s.logout_at
+                          ? formatTime(s.logout_at)
+                          : <span style={{ fontStyle: "italic" }}>(active — last seen {formatTime(s.last_seen_at || s.login_at)})</span>
+                        }
+                      </div>
+                      <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{formatDuration(duration)}</div>
+                      <div>
+                        <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, letterSpacing: "0.06em",
+                          background: isOpen ? "#e6f5ec" : C.steel,
+                          color: isOpen ? C.green : C.muted,
+                        }}>{isOpen ? "OPEN" : "CLOSED"}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{formatIP(s.ip_address)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )
       )}
     </div>
   );
