@@ -426,15 +426,27 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             )}
           </div>
         )}
-        {/* Rental — JSA optional, show button only if one exists */}
-        {ticket.type === "Rental" && existingJSA && (
-          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}` }}>
-            <button type="button" onClick={() => setShowJSA(true)}
-              style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
-              ✓ VIEW / EDIT JSA
-            </button>
+        {/* Rental — JSA optional (not required for signing) */}
+        {ticket.type === "Rental" && jsaLoaded && (
+          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+            {existingJSA ? (
+              <button type="button" onClick={() => setShowJSA(true)}
+                style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+                onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
+                onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
+                ✓ VIEW / EDIT JSA
+              </button>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button type="button" onClick={() => setShowJSA(true)}
+                  style={{ background: "#fff", color: C.blue, border: `1px solid ${C.blue}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
+                  CREATE JSA
+                </button>
+                <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Optional for rentals</span>
+              </div>
+            )}
           </div>
         )}
 

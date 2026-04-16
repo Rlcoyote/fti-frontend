@@ -33,7 +33,7 @@ function useEditLock(type, id, currentUser, onAutoSave) {
         resetInactivity();
       } else {
         lockAcquired.current = false;
-        setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name, requestedByName: null, hasLock: false });
+        setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", requestedByName: null, hasLock: false });
       }
     } catch {
       // Fail-open: if lock endpoint unreachable, allow editing
@@ -89,7 +89,7 @@ function useEditLock(type, id, currentUser, onAutoSave) {
           // Lock released — try to acquire
           acquireLock();
         } else {
-          setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name, requestedByName: null, hasLock: false });
+          setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", requestedByName: null, hasLock: false });
         }
       }
     } catch {}
