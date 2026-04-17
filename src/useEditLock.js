@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { API_URL } from "./config.js";
 
 function useEditLock(type, id, currentUser, onAutoSave) {
-  const [lockState, setLockState] = useState({ isLocked: false, lockedBy: null, lockedByName: null, requestedByName: null, hasLock: true });
+  const [lockState, setLockState] = useState({ isLocked: false, lockedBy: null, lockedByName: null, lockedAt: null, requestedByName: null, hasLock: true });
   const lockAcquired = useRef(true);
   const inactivityTimer = useRef(null);
   const pollTimer = useRef(null);
@@ -29,11 +29,11 @@ function useEditLock(type, id, currentUser, onAutoSave) {
       const data = await r.json();
       if (data.locked) {
         lockAcquired.current = true;
-        setLockState({ isLocked: false, lockedBy: null, lockedByName: null, requestedByName: null, hasLock: true });
+        setLockState({ isLocked: false, lockedBy: null, lockedByName: null, lockedAt: null, requestedByName: null, hasLock: true });
         resetInactivity();
       } else {
         lockAcquired.current = false;
-        setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", requestedByName: null, hasLock: false });
+        setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", lockedAt: data.locked_at || null, requestedByName: null, hasLock: false });
       }
     } catch {
       // Fail-open: if lock endpoint unreachable, allow editing
@@ -65,6 +65,25 @@ function useEditLock(type, id, currentUser, onAutoSave) {
     } catch {}
   };
 
+  // Owner/admin override for phantom/stale locks. Clears the lock server-side regardless of
+  // who holds it, then reacquires for the current user. Refuses silently if role doesn't qualify.
+  const forceUnlock = async () => {
+    if (!id || !currentUser?.id) return;
+    if (!["owner", "admin"].includes(currentUser?.role)) return;
+    try {
+      await fetch(`${API_URL}/edit-lock/${type}/${id}/force-unlock`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requester_role: currentUser.role,
+          requester_id: currentUser.id,
+          requester_name: currentUser.name,
+        }),
+      });
+      // Immediately reacquire for ourselves so the UI flips to editable state.
+      await acquireLock();
+    } catch {}
+  };
+
   const dismissRequest = async () => {
     if (!id || !currentUser?.id) return;
     try {
@@ -89,7 +108,7 @@ function useEditLock(type, id, currentUser, onAutoSave) {
           // Lock released — try to acquire
           acquireLock();
         } else {
-          setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", requestedByName: null, hasLock: false });
+          setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", lockedAt: data.locked_at || null, requestedByName: null, hasLock: false });
         }
       }
     } catch {}
@@ -113,7 +132,7 @@ function useEditLock(type, id, currentUser, onAutoSave) {
     };
   }, [id]);
 
-  return { ...lockState, releaseLock, requestEdit, dismissRequest, resetInactivity };
+  return { ...lockState, releaseLock, requestEdit, dismissRequest, forceUnlock, resetInactivity };
 }
 
 

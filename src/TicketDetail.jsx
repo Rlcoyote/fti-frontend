@@ -385,15 +385,41 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
             onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}>CLOSE</button>
         </div>
-        {/* Edit Lock Banner */}
-        {editLock.isLocked && !editLock.hasLock && (
-          <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
-              This ticket is being edited by <strong>{editLock.lockedByName}</strong>. As soon as they are done, you may edit.
+        {/* Edit Lock Banner. When the holder's name can't be resolved (phantom/orphan lock),
+            surface the raw lock timestamp so the user can see how stale the lock is, and let
+            owner/admin force-unlock without waiting the 5-minute auto-expiry. */}
+        {editLock.isLocked && !editLock.hasLock && (() => {
+          const nameUnknown = editLock.lockedByName === "Another user";
+          const isOwnerOrAdmin = ["owner", "admin"].includes(currentUser?.role);
+          const lockedAtStr = editLock.lockedAt
+            ? new Date(editLock.lockedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
+            : null;
+          return (
+            <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+                This ticket is being edited by <strong>{editLock.lockedByName}</strong>.
+                {lockedAtStr && <span style={{ fontWeight: 500, marginLeft: 6 }}>Locked at {lockedAtStr}.</span>}
+                {!nameUnknown && <span style={{ marginLeft: 6, fontWeight: 500 }}>As soon as they are done, you may edit.</span>}
+                {nameUnknown && isOwnerOrAdmin && (
+                  <span style={{ display: "block", fontSize: 11, fontWeight: 500, marginTop: 4, color: "#8a6500" }}>
+                    Holder not in user records (orphan / stale lock). Auto-expires after 5 minutes — or force-unlock now.
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={editLock.requestEdit} style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>REQUEST EDIT</button>
+                {isOwnerOrAdmin && (
+                  <button onClick={editLock.forceUnlock} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "'Arial', sans-serif" }}
+                    onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                    title="Owner/admin override — clears the lock and gives you edit access">
+                    FORCE UNLOCK
+                  </button>
+                )}
+              </div>
             </div>
-            <button onClick={editLock.requestEdit} style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>REQUEST EDIT</button>
-          </div>
-        )}
+          );
+        })()}
         {/* Edit Request Notification (shown to lock holder) */}
         {editLock.hasLock && editLock.requestedByName && (
           <div style={{ background: "#e8f0fb", borderBottom: `1px solid ${C.blue}33`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
