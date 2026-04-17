@@ -84,7 +84,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
     try {
       if (ticketData.id) {
         // Ticket was auto-saved (for JSA) — update instead of create
-        await fetch(`${API_URL}/tickets/${ticketData.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        const r = await fetch(`${API_URL}/tickets/${ticketData.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        if (!r.ok) {
+          // Server rejected the update — don't close the modal silently, surface the failure.
+          const errBody = await r.text().catch(() => "");
+          alert(`Save failed (${r.status}). Ticket was not saved.\n${errBody.slice(0, 200)}`);
+          return;
+        }
         setTickets(prev => {
           const exists = prev.some(t => t.id === ticketData.id);
           if (exists) return prev.map(t => t.id === ticketData.id ? { ...ticketData, createdBy: currentUser?.name || null, createdAt: t.createdAt } : t);
@@ -92,13 +98,21 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         });
       } else {
         const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (r.ok) {
-          const saved = await r.json();
-          const newTicket = { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() };
-          setTickets(prev => [...prev, newTicket]);
+        if (!r.ok) {
+          // Surface the failure instead of closing the modal with silent data loss.
+          const errBody = await r.text().catch(() => "");
+          alert(`Save failed (${r.status}). Ticket was not saved — your data is still in the form.\n${errBody.slice(0, 200)}`);
+          return;
         }
+        const saved = await r.json();
+        const newTicket = { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() };
+        setTickets(prev => [...prev, newTicket]);
       }
-    } catch (err) { console.error("Ticket save failed:", err); }
+    } catch (err) {
+      console.error("Ticket save failed:", err);
+      alert(`Save failed — network or server error. Your data is still in the form.\n${err.message || err}`);
+      return;
+    }
     setShowAdd(false);
   };
 
