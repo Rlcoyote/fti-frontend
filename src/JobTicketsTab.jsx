@@ -182,16 +182,29 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 display: "flex", justifyContent: "space-between", alignItems: "center",
                 padding: "10px 12px", cursor: "pointer",
               }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                     <TicketTypeBadge type={t.type} />
                     <span style={{ fontSize: 9, color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
                   </div>
                   <div>
-                    <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{formatDate(t.date)}{t.createdAt ? ` · ${new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""}</div>
-                    {t.createdBy && <div style={{ fontSize: 9, color: "#a0aec8" }}>{t.createdBy}</div>}
+                    <div style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Job Date</div>
+                    <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{formatDate(t.date)}</div>
+                    {t.createdBy && (
+                      <>
+                        <div style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 5 }}>Created by</div>
+                        <div style={{ fontSize: 10, color: C.text, fontWeight: 600 }}>{t.createdBy}</div>
+                        {t.createdAt && (
+                          <div style={{ fontSize: 9, color: "#a0aec8" }}>
+                            {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
+                            {' · '}
+                            {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                          </div>
+                        )}
+                      </>
+                    )}
                     {hasPendingComment && (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044", marginTop: 3 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044", marginTop: 4 }}>
                         <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
                         COMMENT PENDING
                       </span>
@@ -275,15 +288,23 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <TicketTypeBadge type={t.type} />
                 <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap", fontWeight: 600 }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
               </div>
-              {/* Date + created time stacked */}
+              {/* Scheduled job date — separate from creation time so the bold date can't be confused with "when it was saved" */}
               <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 90 }}>
+                <span style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Job Date</span>
                 <span style={{ fontSize: 11, color: C.text, fontWeight: 600, whiteSpace: "nowrap" }}>{formatDate(t.date)}</span>
-                {t.createdAt && <span style={{ fontSize: 9, color: "#a0aec8", whiteSpace: "nowrap" }}>{new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</span>}
               </div>
-              {/* Created by user */}
+              {/* Created by: name + full date/time of creation. Paired together so the timestamp is unambiguously the audit stamp, not the job date. */}
               {t.createdBy && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 100 }}>
-                  <span style={{ fontSize: 10, color: "#a0aec8", whiteSpace: "nowrap" }}>{t.createdBy}</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 130 }}>
+                  <span style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Created by</span>
+                  <span style={{ fontSize: 11, color: C.text, fontWeight: 600, whiteSpace: "nowrap" }}>{t.createdBy}</span>
+                  {t.createdAt && (
+                    <span style={{ fontSize: 9, color: "#a0aec8", whiteSpace: "nowrap" }}>
+                      {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
+                      {' · '}
+                      {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                    </span>
+                  )}
                 </div>
               )}
               {hasPendingComment && (
