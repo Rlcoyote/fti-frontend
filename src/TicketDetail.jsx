@@ -1161,8 +1161,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <Btn variant="ghost" onClick={() => { setDupType(ticket.type); setDupDate(today()); setDupJobId(ticket.jobId); setIncLineItems(true); setIncNotes(false); setIncPin(true); setIncWells(true); setDupSubmitting(false); setShowDupModal(true); }}>DUPLICATE</Btn>
           )}
 
-          {/* Delete — not on locked/QB tickets */}
-          {onDelete && !isFullyLocked && (
+          {/* Delete — only on unsigned tickets. Signed/sigNotReq/approved tickets
+              preserve their audit record via VOID instead. Voided + fully-locked
+              (sentToQB/qbVerified) tickets are never deletable from here either. */}
+          {onDelete && !isFullyLocked && !signedBy && status !== "sigNotReq" && status !== "approved" && status !== "voided" && (
             <button type="button" onClick={() => setShowDeleteConfirm(true)}
               style={{ background: "transparent", border: "none", color: C.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: "6px 10px", letterSpacing: "0.04em", opacity: 0.7 }}>
               DELETE
@@ -1223,25 +1225,21 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               )}
 
               <div style={{ fontSize: 13, color: C.text, marginBottom: 20, lineHeight: 1.8, paddingLeft: 16 }}>
-                {voidReason === "Signed, but Found Discrepancy" ? (
-                  <>
-                    <div>1. Void this ticket permanently (cannot be reversed)</div>
-                    <div>2. Preserve the existing signature for audit records</div>
-                    <div>3. Generate a new draft ticket with the same line items</div>
-                  </>
-                ) : (
-                  <>
-                    <div>1. Void this ticket permanently (cannot be reversed)</div>
-                    <div>2. Preserve the existing signature for audit records</div>
-                  </>
-                )}
+                <div>• <strong>VOID ONLY</strong> — voids the ticket; no replacement created.</div>
+                <div>• <strong>VOID &amp; CREATE NEW</strong> — voids and opens a new draft carrying the job's line items, pin, site manager, time &amp; mileage.</div>
+                <div style={{ marginTop: 6, color: C.muted }}>Signature is preserved on the voided ticket for audit records.</div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <Btn disabled={!voidReason || (voidReason === "Other" && !voidReasonNote.trim())} onClick={() => {
                   const reason = voidReason === "Other" ? `Other: ${voidReasonNote.trim()}` : voidReason;
                   setShowVoidConfirm(false);
-                  if (onRevise) onRevise(ticket, reason);
-                }}>{voidReason === "Signed, but Found Discrepancy" ? "VOID & CREATE NEW" : "VOID TICKET"}</Btn>
+                  if (onRevise) onRevise(ticket, reason, { alsoCreateNew: false });
+                }}>VOID ONLY</Btn>
+                <Btn disabled={!voidReason || (voidReason === "Other" && !voidReasonNote.trim())} onClick={() => {
+                  const reason = voidReason === "Other" ? `Other: ${voidReasonNote.trim()}` : voidReason;
+                  setShowVoidConfirm(false);
+                  if (onRevise) onRevise(ticket, reason, { alsoCreateNew: true });
+                }}>VOID &amp; CREATE NEW</Btn>
                 <Btn variant="ghost" onClick={() => { setShowVoidConfirm(false); setVoidReason(""); setVoidReasonNote(""); }}>CANCEL</Btn>
               </div>
             </div>

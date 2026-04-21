@@ -483,13 +483,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               }
             } catch (err) { alert("Duplicate failed: " + err.message); }
           }}
-          onRevise={async (t, reason) => {
+          onRevise={async (t, reason, opts = {}) => {
+            const alsoCreateNew = !!opts.alsoCreateNew;
             try {
               const r = await fetch(`${API_URL}/tickets/${t.id}/revise`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ voided_reason: reason || null }),
+                body: JSON.stringify({ voided_reason: reason || null, also_create_new: alsoCreateNew }),
               });
-              if (!r.ok) { const d = await r.json(); alert(d.error || "Revise failed"); return; }
+              if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.error || "Revise failed"); return; }
               const saved = await r.json();
               // Send void notification email for the old ticket
               try {
@@ -501,21 +502,31 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               } catch (e) { alert("Ticket voided successfully, but the notification email failed to send."); }
               // Reload all tickets for this job (includes voided + new)
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
-              if (tr.ok) {
-                const data = await tr.json();
-                const mapped = data.map(mapTicketFromApi);
-                setTickets(prev => {
-                  const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
-                  return [...otherJobs, ...mapped];
-                });
-              // Open the new revision ticket
+              if (!tr.ok) {
+                alert("Voided, but the ticket list could not be refreshed. Close and reopen the tab to see current state.");
+                setViewTicket(null);
+                return;
+              }
+              const data = await tr.json();
+              const mapped = data.map(mapTicketFromApi);
+              setTickets(prev => {
+                const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
+                return [...otherJobs, ...mapped];
+              });
+              if (alsoCreateNew && saved.id != null) {
                 const newTicket = mapped.find(tk => tk.id === saved.id);
                 if (newTicket) {
                   setViewTicketMode("edit");
                   setViewTicket(newTicket);
+                } else {
+                  alert(`Ticket voided and revision #${saved.ticket_number} was created, but could not be opened automatically. Find it in the ticket list.`);
+                  setViewTicket(null);
                 }
+              } else {
+                // Void only — close the modal; list already shows voided state
+                setViewTicket(null);
               }
-            } catch (err) { alert("Revise failed: " + err.message); }
+            } catch (err) { alert("Revise failed: " + err.message); setViewTicket(null); }
           }}
         />
       )}

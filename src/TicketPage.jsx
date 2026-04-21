@@ -101,19 +101,43 @@ function TicketPage({ jobs, tickets, setTickets }) {
           }
         } catch (err) { console.error("Duplicate failed:", err); }
       }}
-      onRevise={async (t) => {
+      onRevise={async (t, reason, opts = {}) => {
+        const alsoCreateNew = !!opts.alsoCreateNew;
         try {
           const r = await fetch(`${API_URL}/tickets/${t.id}/revise`, {
             method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ voided_reason: reason || null, also_create_new: alsoCreateNew }),
           });
-          if (r.ok) {
-            const saved = await r.json();
-            if (setTickets) {
-              setTickets(prev => prev.map(tk => tk.id === t.id ? { ...tk, replacedBy: saved.id } : tk).concat([mapTicketFromApi(saved)]));
+          if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.error || "Revise failed"); return; }
+          const saved = await r.json();
+          // Refresh the tickets array with real data from the backend (not the
+          // minimal {id, ticket_number, voided_id} response — mapping that directly
+          // produced a near-empty ticket object and caused the "Unknown" display bug).
+          let newTicket = null;
+          if (setTickets) {
+            const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
+            if (tr.ok) {
+              const data = await tr.json();
+              const mapped = data.map(mapTicketFromApi);
+              setTickets(prev => {
+                const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
+                return [...otherJobs, ...mapped];
+              });
+              if (alsoCreateNew && saved.id != null) {
+                newTicket = mapped.find(tk => tk.id === saved.id) || null;
+              }
             }
-            navigate(`/ticket/${saved.id}`, { state: { ticket: mapTicketFromApi(saved) } });
           }
-        } catch (err) { console.error("Revise failed:", err); }
+          if (alsoCreateNew && newTicket) {
+            navigate(`/ticket/${saved.id}`, { state: { ticket: newTicket } });
+          } else if (alsoCreateNew && saved.id != null) {
+            alert(`Ticket voided and revision #${saved.ticket_number} was created, but could not be loaded. Returning to the list.`);
+            navigate(-1);
+          } else {
+            // Void only — return to source
+            navigate(-1);
+          }
+        } catch (err) { alert("Revise failed: " + err.message); }
       }}
     />
   );
