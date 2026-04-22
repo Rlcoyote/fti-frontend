@@ -258,9 +258,12 @@ function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
   const [phone, setPhone] = useState(initial.phone ? formatPhone(initial.phone) : "");
   const [role, setRole] = useState(initial.role || "field");
   const [qbId, setQbId] = useState(initial.qb_employee_id || "");
+  // Job title must come from the admin-managed list — no free-text fallback.
+  // If an existing employee's title was deactivated, the dropdown defaults to
+  // blank and the admin must either re-activate that title on the Job Titles
+  // page or pick a different one. Keeps the roster clean.
   const initialTitleKnown = initial.job_title && titleNames.includes(initial.job_title);
-  const [jobTitle, setJobTitle] = useState(initialTitleKnown ? initial.job_title : (initial.job_title ? "Other" : ""));
-  const [jobTitleCustom, setJobTitleCustom] = useState(initialTitleKnown ? "" : (initial.job_title || ""));
+  const [jobTitle, setJobTitle] = useState(initialTitleKnown ? initial.job_title : "");
   const [hourlyRate, setHourlyRate] = useState(initial.hourly_rate != null ? String(initial.hourly_rate) : "");
   const [hireDate, setHireDate] = useState(initial.hire_date ? String(initial.hire_date).slice(0, 10) : "");
   const [sendPinAfterCreate, setSendPinAfterCreate] = useState(true);
@@ -279,8 +282,7 @@ function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
     if (phoneD.length !== 10) return "Phone must be a complete 10-digit US number.";
     if (!role) return "Role is required.";
     if (!qbId.trim()) return "QB Employee ID is required.";
-    const finalTitle = jobTitle === "Other" ? jobTitleCustom.trim() : jobTitle;
-    if (!finalTitle) return "Job title is required.";
+    if (!jobTitle) return "Job title is required — pick one from the list, or ask an owner/admin to add it on the Job Titles page.";
     if (!hireDate) return "Hire date is required.";
     if (hireDate > todayYmd()) return "Hire date cannot be in the future.";
     if (hourlyRate !== "") {
@@ -297,7 +299,6 @@ function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
     setFormError("");
     setSubmitting(true);
     try {
-      const finalTitle = jobTitle === "Other" ? jobTitleCustom.trim() : jobTitle;
       const payload = {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -305,7 +306,7 @@ function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
         phone: phoneDigits(phone),
         role: isOwnerLocked ? undefined : role,
         qb_employee_id: qbId.trim(),
-        job_title: finalTitle,
+        job_title: jobTitle,
         hourly_rate: hourlyRate !== "" ? Number(hourlyRate) : null,
         hire_date: hireDate,
       };
@@ -368,14 +369,13 @@ function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
             <select style={inputStyle} value={jobTitle} onChange={e => setJobTitle(e.target.value)}>
               <option value="">— Select —</option>
               {titleNames.map(t => <option key={t} value={t}>{t}</option>)}
-              <option value="Other">Other</option>
             </select>
+            {titleNames.length === 0 && (
+              <div style={{ fontSize: 11, color: C.red, marginTop: 4 }}>
+                No active titles. Ask an owner/admin to add one on the Job Titles page.
+              </div>
+            )}
           </Field>
-          {jobTitle === "Other" ? (
-            <Field label="Custom Title *">
-              <input style={inputStyle} value={jobTitleCustom} onChange={e => setJobTitleCustom(e.target.value)} placeholder="Enter custom title" />
-            </Field>
-          ) : <div />}
           <Field label="Hire Date *">
             <input style={inputStyle} type="date" value={hireDate} max={todayYmd()} onChange={e => setHireDate(e.target.value)} />
           </Field>
