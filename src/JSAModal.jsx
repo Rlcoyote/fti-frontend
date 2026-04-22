@@ -31,7 +31,12 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const wellsList = ticket?.assignedWells?.length > 0
     ? ticket.assignedWells
     : (job.wells || []).map(w => typeof w === "string" ? w : w.well_name || w);
-  const [date, setDate] = useState(jsa?.date || ticket?.date?.slice(0, 10) || today());
+  // Postgres DATE columns can come back as full ISO timestamps (e.g.
+  // "2026-04-25T00:00:00.000Z"); <input type="date"> only accepts YYYY-MM-DD
+  // and silently drops anything longer, leaving the field blank. Slice both
+  // sources before handing them to the input.
+  const toDateInput = (d) => (d ? String(d).slice(0, 10) : "");
+  const [date, setDate] = useState(toDateInput(jsa?.date) || toDateInput(ticket?.date) || today());
   const [operator, setOperator] = useState(jsa?.operator || job.customer);
   // Auto-populate all wells from the ticket's assigned wells (not editable — Article X).
   const wellName = jsa?.wellName || jsa?.well_name || wellsList.join(", ") || "—";
@@ -97,7 +102,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   // Dirty-state detection for close confirmation. Captures the state the JSA opened with.
   // Weather is clean if it matches either the original OR the auto-populated tags (auto-pop fires after mount).
   const origRef = useRef({
-    date: jsa?.date || ticket?.date?.slice(0, 10) || today(),
+    date: toDateInput(jsa?.date) || toDateInput(ticket?.date) || today(),
     operator: jsa?.operator || job.customer,
     time: jsa?.time || "",
     designatedDriver: jsa?.designatedDriver || "",
