@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { API_URL, setCurrentUser as setGlobalUser } from "./config.js";
 import BrandedSplash from "./BrandedSplash.jsx";
+import { NoticeModal } from "./SharedUI.jsx";
 
 // ─── AppContext ──────────────────────────────────────────────────────────────
 // Single source of truth for app-wide state: currentUser, settings, users,
@@ -50,6 +51,16 @@ export function AppProvider({ children }) {
   const [qbItems, setQbItems] = useState([]);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // ── Global notice (replaces ad-hoc window.alert() calls) ──
+  // One NoticeModal mounted at the Provider; any component calls
+  // useApp().showNotice(title, message, variant) to surface a styled,
+  // dismissible modal. User must click OK — no ephemeral toasts.
+  const [notice, setNotice] = useState(null);
+  const showNotice = useCallback((title, message, variant = "ok") => {
+    setNotice({ title, message, variant });
+  }, []);
+  const clearNotice = useCallback(() => setNotice(null), []);
 
   // Keep the config.js mutable singleton in sync with currentUser.
   useEffect(() => {
@@ -240,11 +251,13 @@ export function AppProvider({ children }) {
     userNames, userIdByName,
     loading,
     refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets,
+    showNotice,
   }), [
     currentUser, setCurrentUser, logout, logActivity,
     settings, users, customers, qbItems, assets,
     userNames, userIdByName, loading,
     refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets,
+    showNotice,
   ]);
 
   // Show splash while the initial fetch is in flight post-login. Pre-login
@@ -254,9 +267,15 @@ export function AppProvider({ children }) {
     return (
       <AppContext.Provider value={value}>
         <BrandedSplash />
+        {notice && <NoticeModal title={notice.title} message={notice.message} variant={notice.variant} onClose={clearNotice} />}
       </AppContext.Provider>
     );
   }
 
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+      {notice && <NoticeModal title={notice.title} message={notice.message} variant={notice.variant} onClose={clearNotice} />}
+    </AppContext.Provider>
+  );
 }

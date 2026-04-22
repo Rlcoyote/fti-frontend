@@ -9,7 +9,7 @@ import AddTicketModal from "./AddTicketModal.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
-  const { currentUser } = useApp();
+  const { currentUser, showNotice } = useApp();
   const navigate = useNavigate();
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
@@ -88,7 +88,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         if (!r.ok) {
           // Server rejected the update — don't close the modal silently, surface the failure.
           const errBody = await r.text().catch(() => "");
-          alert(`Save failed (${r.status}). Ticket was not saved.\n${errBody.slice(0, 200)}`);
+          showNotice("Save Failed", `Ticket was not saved (HTTP ${r.status}). ${errBody.slice(0, 200)}`, "error");
           return;
         }
         setTickets(prev => {
@@ -101,7 +101,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         if (!r.ok) {
           // Surface the failure instead of closing the modal with silent data loss.
           const errBody = await r.text().catch(() => "");
-          alert(`Save failed (${r.status}). Ticket was not saved — your data is still in the form.\n${errBody.slice(0, 200)}`);
+          showNotice("Save Failed", `Ticket was not saved (HTTP ${r.status}). Your data is still in the form. ${errBody.slice(0, 200)}`, "error");
           return;
         }
         const saved = await r.json();
@@ -110,7 +110,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       }
     } catch (err) {
       console.error("Ticket save failed:", err);
-      alert(`Save failed — network or server error. Your data is still in the form.\n${err.message || err}`);
+      showNotice("Save Failed", `Network or server error. Your data is still in the form. ${err.message || err}`, "error");
       return;
     }
     setShowAdd(false);
@@ -452,7 +452,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   created_by: currentUser?.id || null,
                 }),
               });
-              if (!r.ok) { const d = await r.json(); alert(d.error || "Duplicate failed"); return; }
+              if (!r.ok) { const d = await r.json(); showNotice("Duplicate Failed", d.error || "Could not duplicate the ticket.", "error"); return; }
               const saved = await r.json();
               // Reload tickets for the target job
               const tr = await fetch(`${API_URL}/tickets?job_id=${targetJobId}&include_voided=true`);
@@ -481,7 +481,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   setViewTicket(null);
                 }
               }
-            } catch (err) { alert("Duplicate failed: " + err.message); }
+            } catch (err) { showNotice("Duplicate Failed", err.message, "error"); }
           }}
           onRevise={async (t, reason, opts = {}) => {
             const alsoCreateNew = !!opts.alsoCreateNew;
