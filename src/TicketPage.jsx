@@ -77,6 +77,7 @@ function TicketPage({ jobs, tickets, setTickets }) {
     <TicketDetail
       ticket={ticket}
       jobs={jobs}
+      tickets={tickets}
       openToSign={openToSign}
       asPage={true}
       onUpdate={(ticketId, updates) => { handleUpdate(ticketId, updates); setTicket(prev => prev ? { ...prev, ...updates } : null); }}

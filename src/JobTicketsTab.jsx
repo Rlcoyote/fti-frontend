@@ -430,7 +430,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       {viewTicket && (
         <TicketDetail
           key={viewTicket.id}
-          ticket={viewTicket} jobs={jobs}
+          ticket={viewTicket} jobs={jobs} tickets={tickets}
           openToSign={viewTicketMode === "sign"}
           onUpdate={(id, updates) => { handleUpdate(id, updates); setViewTicket(prev => prev ? { ...prev, ...updates } : null); }}
           onClose={() => setViewTicket(null)}
