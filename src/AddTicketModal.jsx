@@ -29,7 +29,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
   const [lineItems, setLineItems] = useState([]);
   const [notes, setNotes] = useState("");
-  const [date, setDate] = useState(today());
+  const [date, setDate] = useState(() => (job?.dateStarted ? String(job.dateStarted).slice(0, 10) : today()));
   const [startDate, setStartDate] = useState(today());
   const [cycleDays, setCycleDays] = useState(28);
   const [isRecurring, setIsRecurring] = useState(true);
