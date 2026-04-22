@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── Employees master page (v27.57 polish) ──────────────────────────────────
@@ -422,38 +422,6 @@ function Field({ label, children }) {
     <div>
       <div style={labelStyle}>{label}</div>
       {children}
-    </div>
-  );
-}
-
-// ─── Reusable ConfirmModal ──────────────────────────────────────────────────
-function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel }) {
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400 }}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>{title}</div>
-        <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={onYes}>{yesLabel}</Btn>
-          <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Reusable NoticeModal (replaces ephemeral toast) ────────────────────────
-function NoticeModal({ title, message, variant = "ok", onClose }) {
-  const accent = variant === "error" ? C.red : C.green;
-  return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400 }}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${accent}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: accent, marginBottom: 12 }}>{title}</div>
-        <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn variant="blue" onClick={onClose}>OK</Btn>
-        </div>
-      </div>
     </div>
   );
 }
