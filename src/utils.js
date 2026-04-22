@@ -15,6 +15,8 @@ export const mapTicketFromApi = (t) => ({
   cycleDays: t.cycle_days || 28, isRecurring: t.is_recurring || false,
   voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null,
   revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false,
+  deletedAt: t.deleted_at || null, deletedWithWo: t.deleted_with_wo || false,
+  jobStatus: t.job_status || null,
   hasJSA: t.has_jsa || false, assignedWells: t.assigned_wells || [],
   googlePin: t.google_pin || null, pinLat: t.pin_lat || null, pinLng: t.pin_lng || null,
   lvYard: t.lv_yard || "", arrivalTime: t.arrival_time || "",

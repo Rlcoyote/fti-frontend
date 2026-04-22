@@ -299,6 +299,19 @@ function FTIDashboard() {
     } catch (err) { console.error("Audit log failed:", err); }
   };
 
+  // Refresh deleted tickets from the backend after a cascade op. The active
+  // tickets state is already correct for the dashboard — deleted_at != null
+  // tickets are filtered out by the backend's GET /tickets default.
+  const refreshDeletedTickets = async () => {
+    try {
+      const r = await fetch(`${API_URL}/tickets?include_deleted=true`);
+      if (r.ok) {
+        const data = await r.json();
+        setDeletedTickets(data.map(mapTicketFromApi));
+      }
+    } catch (err) { console.error("Deleted tickets refresh failed:", err); }
+  };
+
   const handleDeleteJob = async (jobId) => {
     if (!["owner", "admin", "manager"].includes(currentUser.role)) return;
     const job = jobs.find(j => j.id === jobId);
@@ -309,6 +322,10 @@ function FTIDashboard() {
       });
       await logAudit("job_delete", "job", jobId, { status: job?.status, customer: job?.customer }, { status: "Deleted" }, `Work Order #${jobId} deleted by ${currentUser.name}`);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "Deleted" } : j));
+      // Backend cascaded deleted_at + deleted_with_wo onto this WO's active tickets —
+      // drop them from the active list and pull fresh deleted list.
+      setTickets(prev => prev.filter(t => t.jobId !== jobId));
+      await refreshDeletedTickets();
       setExpandedId(null);
     } catch (err) { console.error("Delete job failed:", err); }
   };
@@ -321,6 +338,17 @@ function FTIDashboard() {
       });
       await logAudit("job_restore", "job", jobId, { status: "Deleted" }, { status: "Scheduled" }, `Work Order #${jobId} restored by ${currentUser.name}`);
       setJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: "Scheduled" } : j));
+      // Backend cascade-restored tickets that were deleted_with_wo=true on this WO —
+      // pull fresh active + deleted lists so UI matches DB.
+      try {
+        const r = await fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`);
+        if (r.ok) {
+          const data = await r.json();
+          const mapped = data.map(mapTicketFromApi);
+          setTickets(prev => [...prev.filter(t => t.jobId !== jobId), ...mapped]);
+        }
+      } catch (err) { console.error("Ticket refresh after restore failed:", err); }
+      await refreshDeletedTickets();
     } catch (err) { console.error("Restore job failed:", err); }
   };
 
@@ -337,10 +365,18 @@ function FTIDashboard() {
 
   const handleRestoreTicket = async (ticketId) => {
     try {
-      await fetch(`${API_URL}/tickets/${ticketId}/restore`, { method: "POST" });
+      const r = await fetch(`${API_URL}/tickets/${ticketId}/restore`, { method: "POST" });
+      if (!r.ok) { console.error("Restore ticket failed:", r.status); return; }
+      const result = await r.json().catch(() => ({}));
       const restored = deletedTickets.find(t => t.id === ticketId);
       setDeletedTickets(prev => prev.filter(t => t.id !== ticketId));
-      if (restored) setTickets(prev => [...prev, restored]);
+      if (restored) setTickets(prev => [...prev, { ...restored, deletedAt: null, deletedWithWo: false }]);
+      // Backend may have auto-restored a deleted parent WO to give the ticket a home.
+      // Reflect that in jobs state + pull any of its cascaded siblings that also came back.
+      if (result.job_restored && result.job_id) {
+        setJobs(prev => prev.map(j => j.id === result.job_id ? { ...j, status: "Scheduled" } : j));
+        await refreshDeletedTickets();
+      }
     } catch (err) { console.error("Restore ticket failed:", err); }
   };
 
@@ -588,7 +624,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.53</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.54</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
