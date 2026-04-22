@@ -22,6 +22,7 @@ import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import CompanyDocumentsModal from "./CompanyDocumentsModal.jsx";
 import UsersPage from "./UsersPage.jsx";
 import EmployeesPage from "./EmployeesPage.jsx";
+import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
 import SafetyPage from "./SafetyPage.jsx";
@@ -625,7 +626,7 @@ function FTIDashboard() {
           }}>FTI</div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.56</span></div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>OPERATIONS DASHBOARD <span style={{ color: C.red }}>v27.57</span></div>
           </div>
         </div>
         <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
@@ -670,6 +671,14 @@ function FTIDashboard() {
                           onMouseEnter={e => e.currentTarget.style.background = C.steel}
                           onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                           Employees
+                        </div>
+                      )}
+                      {can("manage_users") && (
+                        <div onClick={() => { setShowSettingsMenu(false); navigate("/job-titles"); }}
+                          style={{ padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer", borderTop: `1px solid ${C.border}` }}
+                          onMouseEnter={e => e.currentTarget.style.background = C.steel}
+                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                          Job Titles
                         </div>
                       )}
                       {can("manage_users") && (
@@ -777,6 +786,7 @@ function FTIDashboard() {
         {can("view_archive") && <Route path="/archive" element={<ArchivePage />} />}
         {can("manage_users") && <Route path="/users" element={<UsersPage isAdmin={isAdmin} />} />}
         {can("manage_users") && <Route path="/employees" element={<EmployeesPage />} />}
+        {can("manage_users") && <Route path="/job-titles" element={<JobTitlesPage />} />}
         {/* Catch-all — redirect to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

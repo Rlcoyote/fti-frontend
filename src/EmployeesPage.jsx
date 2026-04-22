@@ -3,26 +3,42 @@ import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
-// ─── Employees master page (v27.56) ──────────────────────────────────────────
-// Owner/admin-only. Serves as the authoritative CRUD source for the users
-// table in its role as the employee master. PIN is NEVER entered here — the
-// admin sends a setup link, the employee picks their own PIN on first use.
+// ─── Employees master page (v27.57 polish) ──────────────────────────────────
+// Owner/admin-only. Authoritative CRUD source for the users table in its role
+// as the employee master. PIN is never entered here — admins send a setup
+// link, the employee picks their own PIN on the landing page.
 //
-// Stack role: this page unblocks ticket-level crew assignment (v27.57),
-// JSA signing upgrades (v27.58+), clock-in/out (v27.xx), and the QB API
-// integration arc (v27.xx). Everything downstream keys off a complete
-// employee roster that lives in one table.
+// v27.57 changes: first/last name split, phone formatter, job title dropdown,
+// role dropdown without "owner", hourly rate + hire date validation, email
+// regex, modal close only via Cancel button, all confirmations and results
+// in styled modals (no browser confirm() or transient toasts).
 
-const ROLE_OPTIONS = ["owner", "admin", "manager", "lead", "salesman", "field"];
+const ROLE_OPTIONS = ["admin", "manager", "lead", "salesman", "field"]; // owner intentionally excluded — promoted via Users page
+// Job titles come from /api/job-titles (admin-managed in its own page) so that
+// white-labeled installs can curate their own list without code changes.
+const EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+const MAX_HOURLY_RATE = 199.99;
+
+const formatPhone = (raw) => {
+  const d = String(raw || "").replace(/\D/g, "").slice(0, 10);
+  if (d.length === 0) return "";
+  if (d.length <= 3) return `(${d}`;
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+};
+const phoneDigits = (raw) => String(raw || "").replace(/\D/g, "");
+const todayYmd = () => new Date().toISOString().slice(0, 10);
 
 function EmployeesPage() {
   const { currentUser } = useApp();
   const [employees, setEmployees] = useState([]);
+  const [jobTitles, setJobTitles] = useState([]);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // null | "new" | employeeObject
-  const [toast, setToast] = useState(null); // {message, variant}
+  const [confirmAction, setConfirmAction] = useState(null); // { kind, employee, onYes }
+  const [notice, setNotice] = useState(null); // { title, message, variant }
 
   const canEdit = ["owner", "admin"].includes(currentUser?.role);
 
@@ -35,12 +51,17 @@ function EmployeesPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchEmployees(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeInactive]);
-
-  const showToast = (message, variant = "ok") => {
-    setToast({ message, variant });
-    setTimeout(() => setToast(null), 4000);
+  const fetchJobTitles = async () => {
+    try {
+      const r = await fetch(`${API_URL}/job-titles`);
+      if (r.ok) setJobTitles(await r.json());
+    } catch (err) { console.error("Fetch job titles failed:", err); }
   };
+
+  useEffect(() => { fetchEmployees(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeInactive]);
+  useEffect(() => { fetchJobTitles(); }, []);
+
+  const showNotice = (title, message, variant = "ok") => setNotice({ title, message, variant });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -53,44 +74,38 @@ function EmployeesPage() {
     );
   }, [employees, search]);
 
-  const sendPinSetup = async (id) => {
+  const sendPinSetup = async (employee) => {
     try {
-      const r = await fetch(`${API_URL}/employees/${id}/send-pin-setup`, { method: "POST" });
+      const r = await fetch(`${API_URL}/employees/${employee.id}/send-pin-setup`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) { showToast(data.error || "Send failed", "error"); return; }
-      showToast(`Setup link sent to ${data.email}`, "ok");
+      if (!r.ok) { showNotice("Send failed", data.error || "Could not send PIN setup email.", "error"); return; }
+      showNotice("PIN setup email sent", `A setup link was emailed to ${data.email}. The link expires in 7 days and can only be used once.`);
       fetchEmployees();
-    } catch (err) { showToast("Send failed: " + err.message, "error"); }
+    } catch (err) { showNotice("Send failed", err.message, "error"); }
   };
 
-  const resetPin = async (id) => {
-    if (!window.confirm("Reset this employee's PIN? They'll receive a new setup link by email.")) return;
+  const resetPin = async (employee) => {
     try {
-      const r = await fetch(`${API_URL}/employees/${id}/reset-pin`, { method: "POST" });
+      const r = await fetch(`${API_URL}/employees/${employee.id}/reset-pin`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) { showToast(data.error || "Reset failed", "error"); return; }
-      showToast(`PIN reset. Setup link sent to ${data.email}`, "ok");
+      if (!r.ok) { showNotice("Reset failed", data.error || "Could not reset PIN.", "error"); return; }
+      showNotice("PIN reset", `${employee.name}'s PIN has been cleared. A new setup link was emailed to ${data.email}. The link expires in 7 days and can only be used once.`);
       fetchEmployees();
-    } catch (err) { showToast("Reset failed: " + err.message, "error"); }
+    } catch (err) { showNotice("Reset failed", err.message, "error"); }
   };
 
-  const deactivate = async (id, name) => {
-    if (!window.confirm(`Deactivate ${name}? Their email will be released for reuse and any pending PIN setup link will be invalidated. Historical references (audit logs, ticket crew) remain intact.`)) return;
+  const deactivate = async (employee) => {
     try {
-      const r = await fetch(`${API_URL}/employees/${id}/deactivate`, { method: "POST" });
+      const r = await fetch(`${API_URL}/employees/${employee.id}/deactivate`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) { showToast(data.error || "Deactivate failed", "error"); return; }
-      showToast(`${name} deactivated`, "ok");
+      if (!r.ok) { showNotice("Deactivate failed", data.error || "Could not deactivate.", "error"); return; }
+      showNotice("Employee deactivated", `${employee.name} has been deactivated. Historical references (audit logs, ticket crew) remain intact. Their email is now free to reuse.`);
       fetchEmployees();
-    } catch (err) { showToast("Deactivate failed: " + err.message, "error"); }
+    } catch (err) { showNotice("Deactivate failed", err.message, "error"); }
   };
 
   if (!canEdit) {
-    return (
-      <div style={{ padding: 32, color: C.muted }}>
-        You need owner or admin access to view this page.
-      </div>
-    );
+    return <div style={{ padding: 32, color: C.muted }}>You need owner or admin access to view this page.</div>;
   }
 
   return (
@@ -130,18 +145,18 @@ function EmployeesPage() {
         <div style={{ padding: 40, textAlign: "center", color: C.muted }}>No employees match.</div>
       ) : (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, tableLayout: "auto" }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${C.border}`, textAlign: "left" }}>
                 <th style={thStyle}>Name</th>
                 <th style={thStyle}>Email</th>
-                <th style={thStyle}>Phone</th>
+                <th style={{ ...thStyle, whiteSpace: "nowrap" }}>Phone</th>
                 <th style={thStyle}>Role</th>
                 <th style={thStyle}>Title</th>
                 <th style={thStyle}>QB ID</th>
                 <th style={thStyle}>PIN</th>
                 <th style={thStyle}>Status</th>
-                <th style={thStyle}>Actions</th>
+                <th style={{ ...thStyle, minWidth: 240, textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -149,7 +164,9 @@ function EmployeesPage() {
                 <tr key={e.id} style={{ borderBottom: `1px solid ${C.border}`, background: e.is_active ? "transparent" : "#f6f6f8" }}>
                   <td style={tdStyle}><strong>{e.name}</strong></td>
                   <td style={tdStyle}>{e.email || <span style={{ color: C.muted }}>—</span>}</td>
-                  <td style={tdStyle}>{e.phone || <span style={{ color: C.muted }}>—</span>}</td>
+                  <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
+                    {e.phone ? formatPhone(e.phone) : <span style={{ color: C.muted }}>—</span>}
+                  </td>
                   <td style={tdStyle}>{e.role}</td>
                   <td style={tdStyle}>{e.job_title || <span style={{ color: C.muted }}>—</span>}</td>
                   <td style={tdStyle}>{e.qb_employee_id || <span style={{ color: C.muted }}>—</span>}</td>
@@ -163,12 +180,24 @@ function EmployeesPage() {
                       ? <span style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>ACTIVE</span>
                       : <span style={{ color: C.muted, fontSize: 11 }}>INACTIVE</span>}
                   </td>
-                  <td style={tdStyle}>
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
                       {e.is_active && <Btn small variant="ghost" onClick={() => setEditing(e)}>Edit</Btn>}
-                      {e.is_active && !e.pin_set && <Btn small variant="blue" onClick={() => sendPinSetup(e.id)}>Send PIN Setup</Btn>}
-                      {e.is_active && e.pin_set && <Btn small variant="ghost" onClick={() => resetPin(e.id)}>Reset PIN</Btn>}
-                      {e.is_active && <Btn small onClick={() => deactivate(e.id, e.name)}>Deactivate</Btn>}
+                      {e.is_active && !e.pin_set && <Btn small variant="blue" onClick={() => sendPinSetup(e)}>Send PIN Setup</Btn>}
+                      {e.is_active && e.pin_set && <Btn small variant="ghost" onClick={() => setConfirmAction({
+                        kind: "reset_pin",
+                        title: "Reset PIN?",
+                        message: `${e.name}'s current PIN will be cleared and a new setup link will be emailed to ${e.email}. The new link expires in 7 days and can only be used once.`,
+                        yesLabel: "Reset PIN",
+                        onYes: () => resetPin(e),
+                      })}>Reset PIN</Btn>}
+                      {e.is_active && <Btn small onClick={() => setConfirmAction({
+                        kind: "deactivate",
+                        title: "Deactivate Employee?",
+                        message: `${e.name} will be deactivated. Their email address will be released for reuse, any pending PIN setup link will be invalidated, and they will not appear in crew pickers. Historical references in audit logs and ticket crew stay intact.`,
+                        yesLabel: "Deactivate",
+                        onYes: () => deactivate(e),
+                      })}>Deactivate</Btn>}
                     </div>
                   </td>
                 </tr>
@@ -182,20 +211,37 @@ function EmployeesPage() {
         <EmployeeModal
           mode={editing === "new" ? "new" : "edit"}
           initial={editing === "new" ? {} : editing}
+          jobTitles={jobTitles}
           onClose={() => setEditing(null)}
-          onSaved={(msg) => { setEditing(null); showToast(msg, "ok"); fetchEmployees(); }}
-          onError={(msg) => showToast(msg, "error")}
+          onSaved={(title, message) => {
+            setEditing(null);
+            showNotice(title, message);
+            fetchEmployees();
+          }}
         />
       )}
 
-      {toast && (
-        <div style={{
-          position: "fixed", bottom: 24, right: 24, zIndex: 400,
-          background: toast.variant === "error" ? C.red : C.green,
-          color: "#fff", padding: "12px 20px", borderRadius: 6,
-          fontSize: 13, fontWeight: 700, boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          maxWidth: 400,
-        }}>{toast.message}</div>
+      {confirmAction && (
+        <ConfirmModal
+          title={confirmAction.title}
+          message={confirmAction.message}
+          yesLabel={confirmAction.yesLabel}
+          onYes={async () => {
+            const action = confirmAction;
+            setConfirmAction(null);
+            await action.onYes();
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+
+      {notice && (
+        <NoticeModal
+          title={notice.title}
+          message={notice.message}
+          variant={notice.variant}
+          onClose={() => setNotice(null)}
+        />
       )}
     </div>
   );
@@ -204,71 +250,147 @@ function EmployeesPage() {
 const thStyle = { padding: "10px 8px", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.muted, textTransform: "uppercase" };
 const tdStyle = { padding: "10px 8px", verticalAlign: "middle" };
 
-function EmployeeModal({ mode, initial, onClose, onSaved, onError }) {
-  const [name, setName] = useState(initial.name || "");
+function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
+  const titleNames = jobTitles.map(t => t.name);
+  const [firstName, setFirstName] = useState(initial.first_name || "");
+  const [lastName, setLastName] = useState(initial.last_name || "");
   const [email, setEmail] = useState(initial.email || "");
-  const [phone, setPhone] = useState(initial.phone || "");
+  const [phone, setPhone] = useState(initial.phone ? formatPhone(initial.phone) : "");
   const [role, setRole] = useState(initial.role || "field");
   const [qbId, setQbId] = useState(initial.qb_employee_id || "");
-  const [jobTitle, setJobTitle] = useState(initial.job_title || "");
+  const initialTitleKnown = initial.job_title && titleNames.includes(initial.job_title);
+  const [jobTitle, setJobTitle] = useState(initialTitleKnown ? initial.job_title : (initial.job_title ? "Other" : ""));
+  const [jobTitleCustom, setJobTitleCustom] = useState(initialTitleKnown ? "" : (initial.job_title || ""));
   const [hourlyRate, setHourlyRate] = useState(initial.hourly_rate != null ? String(initial.hourly_rate) : "");
   const [hireDate, setHireDate] = useState(initial.hire_date ? String(initial.hire_date).slice(0, 10) : "");
-  const [submitting, setSubmitting] = useState(false);
   const [sendPinAfterCreate, setSendPinAfterCreate] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  const isOwnerLocked = mode === "edit" && initial.role === "owner"; // editing an existing owner — don't let the Employees page change their role
+
+  const validate = () => {
+    if (!firstName.trim()) return "First name is required.";
+    if (!lastName.trim()) return "Last name is required.";
+    if (!email.trim()) return "Email is required.";
+    if (!EMAIL_RE.test(email.trim())) return "Email format is invalid (expected e.g. name@company.com).";
+    const phoneD = phoneDigits(phone);
+    if (!phoneD) return "Phone is required.";
+    if (phoneD.length !== 10) return "Phone must be a complete 10-digit US number.";
+    if (!role) return "Role is required.";
+    if (!qbId.trim()) return "QB Employee ID is required.";
+    const finalTitle = jobTitle === "Other" ? jobTitleCustom.trim() : jobTitle;
+    if (!finalTitle) return "Job title is required.";
+    if (!hireDate) return "Hire date is required.";
+    if (hireDate > todayYmd()) return "Hire date cannot be in the future.";
+    if (hourlyRate !== "") {
+      const n = Number(hourlyRate);
+      if (!Number.isFinite(n) || n <= 0) return "Hourly rate must be a positive number.";
+      if (n > MAX_HOURLY_RATE) return `Hourly rate must be ≤ $${MAX_HOURLY_RATE}/hr.`;
+    }
+    return null;
+  };
 
   const submit = async () => {
-    if (!name.trim()) { onError("Name is required"); return; }
-    if (!email.trim()) { onError("Email is required"); return; }
-    if (mode === "new" && !qbId.trim()) { onError("QB Employee ID is required for new employees"); return; }
+    const err = validate();
+    if (err) { setFormError(err); return; }
+    setFormError("");
     setSubmitting(true);
     try {
+      const finalTitle = jobTitle === "Other" ? jobTitleCustom.trim() : jobTitle;
       const payload = {
-        name: name.trim(), email: email.trim(), phone: phone || null, role,
-        qb_employee_id: qbId.trim() || null,
-        job_title: jobTitle || null,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        email: email.trim(),
+        phone: phoneDigits(phone),
+        role: isOwnerLocked ? undefined : role,
+        qb_employee_id: qbId.trim(),
+        job_title: finalTitle,
         hourly_rate: hourlyRate !== "" ? Number(hourlyRate) : null,
-        hire_date: hireDate || null,
+        hire_date: hireDate,
       };
       const url = mode === "new" ? `${API_URL}/employees` : `${API_URL}/employees/${initial.id}`;
       const method = mode === "new" ? "POST" : "PUT";
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) { onError(data.error || "Save failed"); setSubmitting(false); return; }
+      if (!r.ok) { setFormError(data.error || "Save failed."); setSubmitting(false); return; }
 
       if (mode === "new" && sendPinAfterCreate) {
         await fetch(`${API_URL}/employees/${data.id}/send-pin-setup`, { method: "POST" }).catch(() => {});
+        onSaved("Employee added", `${data.name} has been added to the roster and a PIN setup email was sent to ${data.email}. The link expires in 7 days and can only be used once.`);
+      } else if (mode === "new") {
+        onSaved("Employee added", `${data.name} has been added to the roster. PIN setup has not been sent — use the 'Send PIN Setup' button on the row when you're ready.`);
+      } else {
+        onSaved("Employee updated", `${data.name}'s profile has been updated.`);
       }
-      onSaved(mode === "new" ? `Added ${data.name}${sendPinAfterCreate ? " · PIN setup email sent" : ""}` : `Updated ${data.name}`);
     } catch (err) {
-      onError("Save failed: " + err.message);
+      setFormError("Save failed: " + err.message);
       setSubmitting(false);
     }
   };
 
+  // Modal close ONLY via Cancel button — backdrop click does nothing to prevent
+  // accidental loss of entered data (Article X — dummy-proof).
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={onClose}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 520, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
+      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 560, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}>
         <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>
           {mode === "new" ? "Add Employee" : `Edit ${initial.name}`}
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          <Field label="Name *"><input style={inputStyle} value={name} onChange={e => setName(e.target.value)} /></Field>
+          <Field label="First Name *"><input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value)} /></Field>
+          <Field label="Last Name *"><input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value)} /></Field>
           <Field label="Email *"><input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} /></Field>
-          <Field label="Phone"><input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} placeholder="(optional)" /></Field>
-          <Field label="Role">
-            <select style={{ ...inputStyle }} value={role} onChange={e => setRole(e.target.value)}>
-              {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+          <Field label="Phone *">
+            <input
+              style={inputStyle}
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              onChange={e => setPhone(formatPhone(e.target.value))}
+              placeholder="(XXX) XXX-XXXX"
+            />
           </Field>
-          <Field label={mode === "new" ? "QB Employee ID *" : "QB Employee ID"}>
+          <Field label="Role *">
+            {isOwnerLocked ? (
+              <div style={{ ...inputStyle, background: C.steel, color: C.muted, cursor: "not-allowed" }}>owner (locked — change via Users page)</div>
+            ) : (
+              <select style={{ ...inputStyle }} value={role} onChange={e => setRole(e.target.value)}>
+                {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            )}
+          </Field>
+          <Field label="QB Employee ID *">
             <input style={inputStyle} value={qbId} onChange={e => setQbId(e.target.value)} placeholder="e.g. E-001 or QB internal ID" />
           </Field>
-          <Field label="Job Title"><input style={inputStyle} value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="e.g. Lead Tester" /></Field>
-          <Field label="Hourly Rate">
-            <input style={inputStyle} type="number" step="0.01" value={hourlyRate} onChange={e => setHourlyRate(e.target.value)} placeholder="(optional)" />
+          <Field label="Job Title *">
+            <select style={inputStyle} value={jobTitle} onChange={e => setJobTitle(e.target.value)}>
+              <option value="">— Select —</option>
+              {titleNames.map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="Other">Other</option>
+            </select>
           </Field>
-          <Field label="Hire Date"><input style={inputStyle} type="date" value={hireDate} onChange={e => setHireDate(e.target.value)} /></Field>
+          {jobTitle === "Other" ? (
+            <Field label="Custom Title *">
+              <input style={inputStyle} value={jobTitleCustom} onChange={e => setJobTitleCustom(e.target.value)} placeholder="Enter custom title" />
+            </Field>
+          ) : <div />}
+          <Field label="Hire Date *">
+            <input style={inputStyle} type="date" value={hireDate} max={todayYmd()} onChange={e => setHireDate(e.target.value)} />
+          </Field>
+          <Field label={`Hourly Rate (optional, max $${MAX_HOURLY_RATE})`}>
+            <input
+              style={inputStyle}
+              type="number"
+              step="0.01"
+              min="0.01"
+              max={MAX_HOURLY_RATE}
+              value={hourlyRate}
+              onChange={e => setHourlyRate(e.target.value)}
+              placeholder="(optional)"
+            />
+          </Field>
         </div>
 
         {mode === "new" && (
@@ -277,6 +399,12 @@ function EmployeeModal({ mode, initial, onClose, onSaved, onError }) {
               <input type="checkbox" checked={sendPinAfterCreate} onChange={e => setSendPinAfterCreate(e.target.checked)} style={{ accentColor: C.blue, width: 16, height: 16 }} />
               Email PIN setup link immediately after creating the employee
             </label>
+          </div>
+        )}
+
+        {formError && (
+          <div style={{ marginTop: 16, padding: "10px 14px", background: "#fdecea", color: C.red, borderRadius: 6, fontSize: 13, fontWeight: 700 }}>
+            {formError}
           </div>
         )}
 
@@ -294,6 +422,38 @@ function Field({ label, children }) {
     <div>
       <div style={labelStyle}>{label}</div>
       {children}
+    </div>
+  );
+}
+
+// ─── Reusable ConfirmModal ──────────────────────────────────────────────────
+function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400 }}>
+      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>{title}</div>
+        <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn onClick={onYes}>{yesLabel}</Btn>
+          <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Reusable NoticeModal (replaces ephemeral toast) ────────────────────────
+function NoticeModal({ title, message, variant = "ok", onClose }) {
+  const accent = variant === "error" ? C.red : C.green;
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400 }}>
+      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${accent}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: accent, marginBottom: 12 }}>{title}</div>
+        <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn variant="blue" onClick={onClose}>OK</Btn>
+        </div>
+      </div>
     </div>
   );
 }
