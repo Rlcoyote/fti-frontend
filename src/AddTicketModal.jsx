@@ -21,7 +21,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, [isMobile, onClose]);
-  const { qbItems, settings, currentUser } = useApp();
+  const { qbItems, settings, currentUser, showNotice } = useApp();
   const yardsList = useMemo(() => parseYards(settings), [settings]);
   const [yardLocationIndex, setYardLocationIndex] = useState(1);
   const [type, setType] = useState(null);
@@ -116,8 +116,8 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         const saved = await r.json();
         setSavedTicketId(saved.id);
         setShowJSA(true);
-      } else { alert("Could not save ticket. Please try again."); }
-    } catch { alert("Network error saving ticket."); }
+      } else { showNotice("Save Failed", "Could not save the ticket. Please try again.", "error"); }
+    } catch { showNotice("Network Error", "A network error occurred while saving the ticket.", "error"); }
   };
 
   const handleSelectType = (t) => {

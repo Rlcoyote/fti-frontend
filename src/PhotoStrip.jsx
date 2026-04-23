@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
+import { useApp } from "./AppContext.jsx";
 
 // ─── PHOTO UTILITIES ──────────────────────────────────────────────────────────
 async function compressPhoto(file) {
@@ -40,6 +41,7 @@ async function compressPhoto(file) {
 
 // ─── PHOTO STRIP COMPONENT ───────────────────────────────────────────────────
 function PhotoStrip({ ticketId, isLocked }) {
+  const { showNotice } = useApp();
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
 
@@ -54,7 +56,7 @@ function PhotoStrip({ ticketId, isLocked }) {
   const handleUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    if (photos.length + files.length > 10) { alert(`Maximum 10 photos. Currently ${photos.length}.`); return; }
+    if (photos.length + files.length > 10) { showNotice("Photo Limit Reached", `Maximum 10 photos per ticket. You currently have ${photos.length}.`, "error"); return; }
     setUploading(true);
     try {
       const compressed = await Promise.all(files.map(f => compressPhoto(f)));

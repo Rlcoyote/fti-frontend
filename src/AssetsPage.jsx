@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, FilterBtn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, FilterBtn, ModalWrap, inputStyle, labelStyle, ConfirmModal } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 const ASSET_TYPES = ["Truck", "Trailer", "Separator", "Tank", "Generator", "Pump Unit", "Other"];
@@ -17,6 +17,7 @@ function AssetsPage({ jobs }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editAsset, setEditAsset] = useState(null);
   const [assignAsset, setAssignAsset] = useState(null);
+  const [deleteConfirmAsset, setDeleteConfirmAsset] = useState(null);
   const [msg, setMsg] = useState("");
 
   // Add form state
@@ -263,7 +264,7 @@ function AssetsPage({ jobs }) {
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={handleSaveEdit}>SAVE</Btn>
             <Btn onClick={() => setEditAsset(null)} variant="ghost">CANCEL</Btn>
-            <button onClick={() => { if (confirm("Delete this asset?")) handleDelete(editAsset.id); }} style={{ marginLeft: "auto", background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 4, cursor: "pointer" }}>DELETE</button>
+            <button onClick={() => setDeleteConfirmAsset(editAsset)} style={{ marginLeft: "auto", background: "transparent", border: `1px solid ${C.red}33`, color: C.red, fontSize: 12, fontWeight: 700, padding: "6px 14px", borderRadius: 4, cursor: "pointer" }}>DELETE</button>
           </div>
         </ModalWrap>
       )}
@@ -283,6 +284,20 @@ function AssetsPage({ jobs }) {
             <Btn onClick={() => setAssignAsset(null)} variant="ghost">CANCEL</Btn>
           </div>
         </ModalWrap>
+      )}
+
+      {deleteConfirmAsset && (
+        <ConfirmModal
+          title="Delete Asset?"
+          message={`${deleteConfirmAsset.name || "This asset"} will be permanently deleted. This cannot be undone.`}
+          yesLabel="Delete"
+          onYes={() => {
+            const id = deleteConfirmAsset.id;
+            setDeleteConfirmAsset(null);
+            handleDelete(id);
+          }}
+          onCancel={() => setDeleteConfirmAsset(null)}
+        />
       )}
     </div>
   );

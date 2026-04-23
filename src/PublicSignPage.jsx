@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { C, API_URL_PUBLIC } from "./config.js";
 import { PublicPhotoStrip } from "./PhotoStrip.jsx";
+import { useApp } from "./AppContext.jsx";
 
 // ─── PUBLIC SIGNATURE PAGE (no login required) ───────────────────────────────
 
@@ -140,6 +141,7 @@ function SigningTracker({ emailedAt, signedAt }) {
 }
 
 function PublicSignPage({ token }) {
+  const { showNotice } = useApp();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -194,8 +196,8 @@ function PublicSignPage({ token }) {
   };
 
   const handleSign = async () => {
-    if (!printedName.trim()) { alert("Please enter your printed name."); return; }
-    if (isCanvasBlank()) { alert("Please provide your signature."); return; }
+    if (!printedName.trim()) { showNotice("Printed Name Required", "Please enter your printed name before signing.", "error"); return; }
+    if (isCanvasBlank()) { showNotice("Signature Required", "Please draw your signature in the box before submitting.", "error"); return; }
     setSubmitting(true);
     try {
       const sigImg = canvasRef.current.toDataURL("image/png");
@@ -203,7 +205,7 @@ function PublicSignPage({ token }) {
         method: "PUT", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ signed_by: printedName.trim(), signature_img: sigImg }),
       });
-      if (!r.ok) { const d = await r.json(); alert(d.error || "Signature failed."); setSubmitting(false); return; }
+      if (!r.ok) { const d = await r.json(); showNotice("Signature Failed", d.error || "Could not submit your signature.", "error"); setSubmitting(false); return; }
       const result = await r.json();
       setDone(true); setIsSigned(true);
       setTicket(prev => ({
@@ -211,22 +213,22 @@ function PublicSignPage({ token }) {
         signed_at: new Date().toISOString(), signature_img: sigImg,
         emailed_at: result.emailed_at || prev.emailed_at,
       }));
-    } catch { alert("Network error. Please try again."); setSubmitting(false); }
+    } catch { showNotice("Network Error", "Please check your connection and try again.", "error"); setSubmitting(false); }
   };
 
   const handleComment = async () => {
-    if (!commentName.trim() || !commentMsg.trim()) { alert("Please enter your name and comment."); return; }
+    if (!commentName.trim() || !commentMsg.trim()) { showNotice("Comment Incomplete", "Please enter both your name and a comment before sending.", "error"); return; }
     setSendingComment(true);
     try {
       const r = await fetch(`${API_URL_PUBLIC}/signature/${token}/comment`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ author: commentName.trim(), message: commentMsg.trim() }),
       });
-      if (!r.ok) { const d = await r.json(); alert(d.error || "Comment failed."); setSendingComment(false); return; }
+      if (!r.ok) { const d = await r.json(); showNotice("Comment Failed", d.error || "Could not post your comment.", "error"); setSendingComment(false); return; }
       setComments(prev => [...prev, { author: commentName.trim(), author_type: "site_mgr", message: commentMsg.trim(), created_at: new Date().toISOString() }]);
       setCommentMsg("");
       setSendingComment(false);
-    } catch { alert("Network error."); setSendingComment(false); }
+    } catch { showNotice("Network Error", "Please check your connection and try again.", "error"); setSendingComment(false); }
   };
 
   let wells = [];

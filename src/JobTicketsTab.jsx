@@ -490,7 +490,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ voided_reason: reason || null, also_create_new: alsoCreateNew }),
               });
-              if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.error || "Revise failed"); return; }
+              if (!r.ok) { const d = await r.json().catch(() => ({})); showNotice("Revise Failed", d.error || "Could not revise the ticket.", "error"); return; }
               const saved = await r.json();
               // Send void notification email for the old ticket
               try {
@@ -499,11 +499,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   body: JSON.stringify({ new_ticket_number: saved.ticket_number, new_ticket_id: saved.id }),
                 });
                 if (!nr.ok) console.error("Void notify response not ok:", nr.status);
-              } catch (e) { alert("Ticket voided successfully, but the notification email failed to send."); }
+              } catch (e) { showNotice("Notification Email Failed", "The ticket was voided successfully, but the notification email failed to send. Check your email configuration.", "error"); }
               // Reload all tickets for this job (includes voided + new)
               const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
               if (!tr.ok) {
-                alert("Voided, but the ticket list could not be refreshed. Close and reopen the tab to see current state.");
+                showNotice("Voided — Refresh Needed", "The ticket was voided, but the ticket list could not be refreshed automatically. Close and reopen the tab to see the current state.", "error");
                 setViewTicket(null);
                 return;
               }
@@ -519,14 +519,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   setViewTicketMode("edit");
                   setViewTicket(newTicket);
                 } else {
-                  alert(`Ticket voided and revision #${saved.ticket_number} was created, but could not be opened automatically. Find it in the ticket list.`);
+                  showNotice("Voided — New Revision Created", `Ticket was voided and revision #${saved.ticket_number} was created, but could not be opened automatically. Find it in the ticket list.`, "ok");
                   setViewTicket(null);
                 }
               } else {
                 // Void only — close the modal; list already shows voided state
                 setViewTicket(null);
               }
-            } catch (err) { alert("Revise failed: " + err.message); setViewTicket(null); }
+            } catch (err) { showNotice("Revise Failed", err.message, "error"); setViewTicket(null); }
           }}
         />
       )}
@@ -551,9 +551,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                       setDeleteConfirmId(null);
                     } else {
                       const d = await r.json();
-                      alert(d.error || "Delete failed");
+                      showNotice("Delete Failed", d.error || "Could not delete the ticket.", "error");
                     }
-                  } catch (err) { alert("Delete failed: " + err.message); }
+                  } catch (err) { showNotice("Delete Failed", err.message, "error"); }
                 }}>DELETE</Btn>
                 <Btn variant="ghost" onClick={() => setDeleteConfirmId(null)}>CANCEL</Btn>
               </div>
@@ -591,7 +591,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             <div style={{ display: "flex", gap: 8 }}>
               <Btn variant="blue" onClick={async () => {
                 const email = emailConfirmTo.trim();
-                if (!email) { alert("Enter a recipient email."); return; }
+                if (!email) { showNotice("Email Required", "Enter a recipient email address before sending.", "error"); return; }
                 try {
                   // Save emailTo to backend first
                   const payload = buildTicketPayload({ emailTo: email });
@@ -604,11 +604,11 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ performed_by: currentUser?.name }),
                   });
-                  if (!r.ok) { const d = await r.json(); alert(d.error || "Email failed"); return; }
+                  if (!r.ok) { const d = await r.json(); showNotice("Email Failed", d.error || "Could not send the email.", "error"); return; }
                   // Single state update with all changes
                   setTickets(prev => prev.map(tk => tk.id === emailConfirm.ticketId ? { ...tk, status: "emailed", emailTo: email, emailedAt: new Date().toISOString() } : tk));
                   setEmailConfirm(null);
-                } catch (err) { alert("Email send failed: " + err.message); }
+                } catch (err) { showNotice("Email Failed", err.message, "error"); }
               }}>SEND</Btn>
               <Btn variant="ghost" onClick={() => setEmailConfirm(null)}>CANCEL</Btn>
             </div>

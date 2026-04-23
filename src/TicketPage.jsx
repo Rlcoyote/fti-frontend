@@ -15,6 +15,7 @@ function TicketPage({ jobs, tickets, setTickets }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { showNotice } = useApp();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const openToSign = location.state?.openToSign || false;
@@ -109,7 +110,7 @@ function TicketPage({ jobs, tickets, setTickets }) {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ voided_reason: reason || null, also_create_new: alsoCreateNew }),
           });
-          if (!r.ok) { const d = await r.json().catch(() => ({})); alert(d.error || "Revise failed"); return; }
+          if (!r.ok) { const d = await r.json().catch(() => ({})); showNotice("Revise Failed", d.error || "Could not revise the ticket.", "error"); return; }
           const saved = await r.json();
           // Refresh the tickets array with real data from the backend (not the
           // minimal {id, ticket_number, voided_id} response — mapping that directly
@@ -132,13 +133,13 @@ function TicketPage({ jobs, tickets, setTickets }) {
           if (alsoCreateNew && newTicket) {
             navigate(`/ticket/${saved.id}`, { state: { ticket: newTicket } });
           } else if (alsoCreateNew && saved.id != null) {
-            alert(`Ticket voided and revision #${saved.ticket_number} was created, but could not be loaded. Returning to the list.`);
+            showNotice("Voided — New Revision Created", `Ticket was voided and revision #${saved.ticket_number} was created, but could not be loaded automatically. Returning to the list.`, "ok");
             navigate(-1);
           } else {
             // Void only — return to source
             navigate(-1);
           }
-        } catch (err) { alert("Revise failed: " + err.message); }
+        } catch (err) { showNotice("Revise Failed", err.message, "error"); }
       }}
     />
   );

@@ -33,7 +33,7 @@ function RentalCountdown({ ticket }) {
 }
 
 function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, tickets = [], openToSign = false, asPage = false }) {
-  const { qbItems, currentUser, settings } = useApp();
+  const { qbItems, currentUser, settings, showNotice } = useApp();
   const [isMobile] = useState(() => window.innerWidth <= 900);
   const yardsList = useMemo(() => parseYards(settings), [settings]);
   // All state initialized from ticket prop on mount only
@@ -1085,12 +1085,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                       method: "POST", headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ author: currentUser?.name || "FTI", message: tdReply.trim() }),
                     });
-                    if (!r.ok) { const d = await r.json(); alert(d.error || "Reply failed"); setTdSending(false); return; }
+                    if (!r.ok) { const d = await r.json(); showNotice("Reply Failed", d.error || "Could not post reply.", "error"); setTdSending(false); return; }
                     setTdComments(prev => [...prev, { author: currentUser?.name || "FTI", author_type: "fti", message: tdReply.trim(), created_at: new Date().toISOString() }]);
                     setTdReply("");
                     // Clear pending flag locally
                     if (onUpdate) onUpdate(ticket.id, { hasPendingComment: false, has_pending_comment: false });
-                  } catch (err) { alert("Reply failed: " + err.message); }
+                  } catch (err) { showNotice("Reply Failed", err.message, "error"); }
                   setTdSending(false);
                 }}>
                 {tdSending ? "Sending..." : "Reply & Email"}
@@ -1187,9 +1187,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 <Btn onClick={async () => {
                   try {
                     const r = await fetch(`${API_URL}/tickets/${ticket.id}`, { method: "DELETE" });
-                    if (!r.ok) { const d = await r.json(); alert(d.error || "Delete failed"); return; }
+                    if (!r.ok) { const d = await r.json(); showNotice("Delete Failed", d.error || "Could not delete the ticket.", "error"); return; }
                     if (onDelete) onDelete(ticket.id);
-                  } catch (err) { alert("Delete failed: " + err.message); }
+                  } catch (err) { showNotice("Delete Failed", err.message, "error"); }
                   setShowDeleteConfirm(false);
                 }}>YES, DELETE</Btn>
                 <Btn variant="ghost" onClick={() => setShowDeleteConfirm(false)}>CANCEL</Btn>
