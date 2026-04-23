@@ -161,7 +161,7 @@ function UsersPage({ isAdmin }) {
             <div><label style={labelStyle}>EMAIL *</label><input style={inputStyle} value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@flotest.com" /></div>
             <div><label style={labelStyle}>ROLE</label>
               <select style={inputStyle} value={newRole} onChange={e => setNewRole(e.target.value)}>
-                {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                {ROLE_OPTIONS.filter(r => r.value !== "owner" || isOwner).map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
           </div>
@@ -188,7 +188,7 @@ function UsersPage({ isAdmin }) {
                     <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editName} onChange={e => setEditName(e.target.value)} />
                     <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
                     <select style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={!canModify}>
-                      {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      {ROLE_OPTIONS.filter(r => r.value !== "owner" || isOwner).map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={handleSaveEdit} style={{ background: C.green, border: "none", color: C.white, fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 3, cursor: "pointer" }}>SAVE</button>
@@ -248,7 +248,7 @@ function UsersPage({ isAdmin }) {
                   <div><label style={labelStyle}>EMAIL</label><input style={{ ...inputStyle, fontSize: 12, padding: "6px 8px" }} value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
                   <div><label style={labelStyle}>ROLE</label>
                     <select style={{ ...inputStyle, fontSize: 12, padding: "6px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={!canModify}>
-                      {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      {ROLE_OPTIONS.filter(r => r.value !== "owner" || isOwner).map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                   </div>
                 </div>
