@@ -10,7 +10,7 @@ They have been removed. This pointer file replaces them so no future session eve
 
 | Document | Path |
 |---|---|
-| **CAM** (current) | `/Users/reggi/Documents/AI - Claude ChatGPT/Constitution_of_the_Ancient_Mariner_<latest>.md (current: v1798.15)` |
+| **CAM** (current) | `/Users/reggi/Documents/AI - Claude ChatGPT/Constitution_of_the_Ancient_Mariner_<latest>.md (current: v1798.16)` |
 | **Mariner's Companion** (non-code sister CAM) | `/Users/reggi/Documents/AI - Claude ChatGPT/Mariners_Companion_v<latest>.md` |
 | **FTI Progress Log** | `/Users/reggi/Documents/BUSINESS - Flo-Test/FT - AI Claude GPT Files/docs/references/FTI Progress Log v2.md` |
 | **FTI Session state files** | `/Users/reggi/Documents/BUSINESS - Flo-Test/FT - AI Claude GPT Files/docs/sessions/` |
