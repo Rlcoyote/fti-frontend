@@ -260,8 +260,12 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 </>)}
                 {/* Delete — only if not sent to QB */}
                 {!isSent && (
+                  // v27.69: aria-label for accessibility (screen readers +
+                  // assistive tech) but no `title=` — browser-native tooltip
+                  // has 1.5s delay and is invisible on mobile. The trash icon
+                  // plus red-on-hover color is the visible affordance.
                   <span
-                    title="Delete ticket"
+                    aria-label="Delete ticket"
                     onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }}
                     style={{ fontSize: 14, color: "#ccc", cursor: "pointer", padding: "2px 4px" }}
                     onMouseEnter={e => { e.currentTarget.style.color = C.red; }}
@@ -281,7 +285,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             <div
               onClick={() => openTicket(t, "edit")}
               style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1, cursor: "pointer" }}
-              title="Open ticket"
+              aria-label="Open ticket"
             >
               {/* Ticket badge + # stacked */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 70 }}>
@@ -412,7 +416,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               {/* Delete — only if not sent to QB */}
               {!isSent && (
                 <span
-                  title="Delete ticket"
+                  aria-label="Delete ticket"
                   onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(t.id); }}
                   style={{ fontSize: 14, color: "#ccc", cursor: "pointer", marginLeft: 4, padding: "2px 4px" }}
                   onMouseEnter={e => { e.currentTarget.style.color = C.red; }}

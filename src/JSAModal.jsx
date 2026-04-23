@@ -158,12 +158,15 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em" }}>FLO-TEST, INC. — JSA</div>
             <div style={{ fontSize: 11, color: C.muted }}>#{ticketNum} — Tailgate Safety Meeting · {job.customer}{ticket ? ` · ${ticket.type}` : ""}</div>
           </div>
-          <div style={{ fontSize: 11, color: C.muted, textAlign: "right" }}>
+          <div style={{ fontSize: 11, textAlign: "right" }}>
+            {/* Emergency contacts deliberately bold red for immediate-recognition
+                visibility — these are safety-critical phone numbers. Per Art X:
+                dummy-proof in field conditions (2 AM windstorm). */}
             {emergencyContacts.length > 0
               ? emergencyContacts.map((c, i) => (
-                  <div key={i} style={{ fontWeight: 700 }}>{c.label}: {c.phone}</div>
+                  <div key={i} style={{ fontWeight: 800, color: C.red }}>{c.label}: {c.phone}</div>
                 ))
-              : <div style={{ fontWeight: 700 }}>AIRLIFE: 800-627-2376</div>
+              : <div style={{ fontWeight: 800, color: C.red }}>AIRLIFE: 800-627-2376</div>
             }
             {currentUser?.role === "owner" && (
               <div onClick={(e) => { e.stopPropagation(); setShowEmergencyEdit(true); }}
@@ -336,17 +339,42 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
           <Btn small variant="ghost" onClick={() => setAdditionalSteps(prev => [...prev, { step: "", hazard: "", procedure: "" }])}>+ ADD STEP</Btn>
         </div>
 
-        {/* Footer */}
+        {/* Footer — required-field gate (v27.69):
+            Per Reggie's spec the JSA cannot save without: date (auto-filled),
+            designated driver, location pin (auto-populated when possible),
+            and at least one crew signature. Validation happens client-side;
+            the missing-fields list renders above the footer so the user knows
+            exactly what to fill in. */}
+        {(() => {
+          const validSigs = (signatures || []).filter(Boolean);
+          const missing = [];
+          if (!date) missing.push('Date');
+          if (!String(designatedDriver || '').trim()) missing.push('Designated Driver');
+          if (!lat || !lng) missing.push('Location Pin');
+          if (validSigs.length === 0) missing.push('At least one crew signature');
+          return missing.length > 0 ? (
+            <div style={{ margin: "0 24px", padding: "10px 14px", background: "#fdf5d8", border: `1px solid #8a650044`, borderRadius: 6, fontSize: 12, color: "#8a6500" }}>
+              <strong>Required before saving:</strong> {missing.join(' · ')}
+            </div>
+          ) : null;
+        })()}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8 }}>
-          <Btn onClick={() => {
-            onSave({
-              jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
-              lat, lng, weather, ppe, signatures: signatures.filter(Boolean),
-              presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
-              savedAt: new Date().toISOString(),
-            });
-            onClose();
-          }}>SAVE JSA</Btn>
+          {(() => {
+            const validSigs = (signatures || []).filter(Boolean);
+            const canSave = !!date && !!String(designatedDriver || '').trim() && !!lat && !!lng && validSigs.length > 0;
+            return (
+              <Btn disabled={!canSave} onClick={() => {
+                if (!canSave) return;
+                onSave({
+                  jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
+                  lat, lng, weather, ppe, signatures: validSigs,
+                  presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
+                  savedAt: new Date().toISOString(),
+                });
+                onClose();
+              }}>SAVE JSA</Btn>
+            );
+          })()}
           <Btn onClick={handleClose} variant="ghost">CLOSE</Btn>
         </div>
       </div>

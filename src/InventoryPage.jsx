@@ -193,18 +193,18 @@ function InventoryPage({ inventory, setInventory, jobs }) {
                   <td style={{ padding: "6px 6px", whiteSpace: "nowrap" }}>
                     <div style={{ display: "flex", gap: 4 }}>
                       {item.inYard > 0 && (
-                        <button onClick={() => setShowCheckOut(item)} title="Check Out" style={{
+                        <button onClick={() => setShowCheckOut(item)} style={{
                           background: C.red, color: C.white, border: "none", borderRadius: 3,
                           padding: "4px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer",
                         }}>OUT</button>
                       )}
                       {out > 0 && (
-                        <button onClick={() => setShowCheckIn(item)} title="Check In" style={{
+                        <button onClick={() => setShowCheckIn(item)} style={{
                           background: C.green, color: C.white, border: "none", borderRadius: 3,
                           padding: "4px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer",
                         }}>IN</button>
                       )}
-                      <button onClick={() => setShowEdit(item)} title="Edit" style={{
+                      <button onClick={() => setShowEdit(item)} style={{
                         background: "transparent", color: C.muted, border: `1px solid ${C.border}`, borderRadius: 3,
                         padding: "4px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer",
                       }}>EDIT</button>

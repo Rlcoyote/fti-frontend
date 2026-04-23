@@ -234,7 +234,9 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
             <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>
               {idx + 1}
               {isRigDown && allowedCodes && allowedCodes.size > 0 && li.qbCode && !allowedCodes.has(li.qbCode) && (
-                <span title="Not on Rig Up or Rental ticket" style={{ color: "#8a6500", fontSize: 10, display: "block", lineHeight: 1 }}>⚠</span>
+                // v27.69: inline warning text instead of title= tooltip (which
+                // has ~1.5s browser delay and is invisible on mobile).
+                <span style={{ color: "#8a6500", fontSize: 9, display: "block", lineHeight: 1.2, fontWeight: 700 }} aria-label="Not on Rig Up or Rental ticket">⚠ Not on RU/RNT</span>
               )}
             </div>
             <input style={{ ...inputStyle, padding: "4px 6px", fontSize: 11 }} value={li.qbCode}
