@@ -13,7 +13,9 @@ import { useApp } from "./AppContext.jsx";
 // regex, modal close only via Cancel button, all confirmations and results
 // in styled modals (no browser confirm() or transient toasts).
 
-const ROLE_OPTIONS = ["admin", "manager", "lead", "salesman", "field"]; // owner intentionally excluded — promoted via Users page
+// Role list comes from /api/config/roles via AppContext (see roles.allowedForEmployee).
+// Owner is excluded there (promoted via Users page only). Single source of truth;
+// previously drift-prone local ROLE_OPTIONS const was removed in v27.64.
 // Job titles come from /api/job-titles (admin-managed in its own page) so that
 // white-labeled installs can curate their own list without code changes.
 const EMAIL_RE = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
@@ -30,7 +32,7 @@ const phoneDigits = (raw) => String(raw || "").replace(/\D/g, "");
 const todayYmd = () => new Date().toISOString().slice(0, 10);
 
 function EmployeesPage() {
-  const { currentUser } = useApp();
+  const { currentUser, roles } = useApp();
   const [employees, setEmployees] = useState([]);
   const [jobTitles, setJobTitles] = useState([]);
   const [includeInactive, setIncludeInactive] = useState(false);
@@ -212,6 +214,7 @@ function EmployeesPage() {
           mode={editing === "new" ? "new" : "edit"}
           initial={editing === "new" ? {} : editing}
           jobTitles={jobTitles}
+          roleOptions={roles?.allowedForEmployee || []}
           onClose={() => setEditing(null)}
           onSaved={(title, message) => {
             setEditing(null);
@@ -250,7 +253,7 @@ function EmployeesPage() {
 const thStyle = { padding: "10px 8px", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.muted, textTransform: "uppercase" };
 const tdStyle = { padding: "10px 8px", verticalAlign: "middle" };
 
-function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
+function EmployeeModal({ mode, initial, jobTitles = [], roleOptions = [], onClose, onSaved }) {
   const titleNames = jobTitles.map(t => t.name);
   const [firstName, setFirstName] = useState(initial.first_name || "");
   const [lastName, setLastName] = useState(initial.last_name || "");
@@ -358,7 +361,7 @@ function EmployeeModal({ mode, initial, jobTitles = [], onClose, onSaved }) {
               <div style={{ ...inputStyle, background: C.steel, color: C.muted, cursor: "not-allowed" }}>owner (locked — change via Users page)</div>
             ) : (
               <select style={{ ...inputStyle }} value={role} onChange={e => setRole(e.target.value)}>
-                {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                {roleOptions.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             )}
           </Field>

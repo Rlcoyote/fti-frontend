@@ -43,6 +43,16 @@ function mapQbItem(q) {
   };
 }
 
+// Role list fallback — used if /api/config/roles is unavailable. Must stay in
+// sync with backend src/routes/config.js ROLES. The whole point of the API
+// fetch is to eliminate drift; this fallback just keeps the UI working if the
+// endpoint ever fails.
+const DEFAULT_ROLES = {
+  all: ["owner", "admin", "manager", "lead", "salesman", "field"],
+  allowedForEmployee: ["admin", "manager", "lead", "salesman", "field"],
+  privileged: ["owner", "admin"],
+};
+
 export function AppProvider({ children }) {
   const [currentUser, setCurrentUserState] = useState(readSavedUser);
   const [settings, setSettings] = useState(null);
@@ -50,6 +60,7 @@ export function AppProvider({ children }) {
   const [customers, setCustomers] = useState([]);
   const [qbItems, setQbItems] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [roles, setRoles] = useState(DEFAULT_ROLES);
   const [loading, setLoading] = useState(false);
 
   // ── Global notice (replaces ad-hoc window.alert() calls) ──
@@ -141,6 +152,21 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  const refreshRoles = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_URL}/config/roles`);
+      if (r.ok) {
+        const data = await r.json();
+        // Server is source of truth; only accept if shape looks right.
+        if (data && Array.isArray(data.all) && Array.isArray(data.allowedForEmployee)) {
+          setRoles(data);
+        }
+      }
+    } catch (err) {
+      console.error("AppContext: roles fetch failed (using fallback)", err);
+    }
+  }, []);
+
   // ── Initial load on authentication ──
   useEffect(() => {
     if (!currentUser) {
@@ -161,11 +187,12 @@ export function AppProvider({ children }) {
       refreshCustomers(),
       refreshQbItems(),
       refreshAssets(),
+      refreshRoles(),
     ]).finally(() => {
       if (!cancelled) setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets]);
+  }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles]);
 
   // ── Heartbeat — keeps the logged-in user visible in /activity/online while the app is open.
   // Backend "online" window is 15 minutes; we ping every 10 so idle users don't drop off.
@@ -247,16 +274,16 @@ export function AppProvider({ children }) {
 
   const value = useMemo(() => ({
     currentUser, setCurrentUser, logout, logActivity,
-    settings, users, customers, qbItems, assets,
+    settings, users, customers, qbItems, assets, roles,
     userNames, userIdByName,
     loading,
-    refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets,
+    refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles,
     showNotice,
   }), [
     currentUser, setCurrentUser, logout, logActivity,
-    settings, users, customers, qbItems, assets,
+    settings, users, customers, qbItems, assets, roles,
     userNames, userIdByName, loading,
-    refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets,
+    refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles,
     showNotice,
   ]);
 
