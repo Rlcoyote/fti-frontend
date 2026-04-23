@@ -61,6 +61,8 @@ export function Btn({ onClick, children, variant = "primary", small, disabled, s
     primary: { background: C.red, color: C.white, border: "none" },
     ghost:   { background: "transparent", color: C.muted, border: `1px solid ${C.border}` },
     blue:    { background: C.blue, color: C.white, border: "none" },
+    // v27.98 — danger variant for destructive confirmations (disable 2FA, etc.)
+    danger:  { background: "#8b1010", color: C.white, border: "none" },
   };
   return (
     <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled} title={title} style={{

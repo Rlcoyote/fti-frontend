@@ -3,6 +3,7 @@ import { C, API_URL } from "./config.js";
 import { ROLE_OPTIONS, canModifyUser } from "./utils.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import TotpSetupModal from "./TotpSetupModal.jsx";
 
 function UsersPage({ isAdmin }) {
   const { users, currentUser, refreshUsers } = useApp();
@@ -20,6 +21,8 @@ function UsersPage({ isAdmin }) {
   const [resetPwConfirm, setResetPwConfirm] = useState("");
   const [resetPwMsg, setResetPwMsg] = useState("");
   const [showChangePw, setShowChangePw] = useState(false);
+  // v27.98 — Two-factor authentication setup modal (self-service)
+  const [showTotp, setShowTotp] = useState(false);
   const [changePwCurrent, setChangePwCurrent] = useState("");
   const [changePwNew, setChangePwNew] = useState("");
   const [changePwConfirm, setChangePwConfirm] = useState("");
@@ -210,6 +213,7 @@ function UsersPage({ isAdmin }) {
                       {canModify && !isSelf && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
                       {canModify && !isSelf && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyle}>RESET PW</button>}
                       {isSelf && <button onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyle}>CHANGE PW</button>}
+                      {isSelf && <button onClick={() => setShowTotp(true)} style={{ ...actionBtnStyle, border: `1px solid ${u.totp_enabled ? C.green : C.muted}44`, color: u.totp_enabled ? C.green : C.text }}>{u.totp_enabled ? "2FA ✓" : "SET UP 2FA"}</button>}
                       {canModify && !isSelf && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyle}>RESEND INVITE</button>}
                       {!canModify && !isSelf && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                       {canModify && (
@@ -275,6 +279,7 @@ function UsersPage({ isAdmin }) {
                   {canModify && !isSelf && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
                   {canModify && !isSelf && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyleMob}>RESET PW</button>}
                   {isSelf && <button onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyleMob}>CHANGE PW</button>}
+                  {isSelf && <button onClick={() => setShowTotp(true)} style={{ ...actionBtnStyleMob, border: `1px solid ${u.totp_enabled ? C.green : C.muted}44`, color: u.totp_enabled ? C.green : C.text }}>{u.totp_enabled ? "2FA ✓" : "SET UP 2FA"}</button>}
                   {canModify && !isSelf && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyleMob}>RESEND INVITE</button>}
                   {!canModify && !isSelf && <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                 </div>
@@ -304,6 +309,16 @@ function UsersPage({ isAdmin }) {
             <Btn onClick={() => setResetPwUser(null)} variant="ghost">CANCEL</Btn>
           </div>
         </ModalWrap>
+      )}
+
+      {/* ── 2FA SETUP / DISABLE MODAL (v27.98) ── */}
+      {showTotp && (
+        <TotpSetupModal
+          userName={currentUser?.name || "your account"}
+          totpEnabled={!!(users.find(u => u.id === currentUser?.id)?.totp_enabled)}
+          onClose={() => setShowTotp(false)}
+          onStateChange={() => refreshUsers()}
+        />
       )}
 
       {/* ── CHANGE OWN PASSWORD MODAL ── */}

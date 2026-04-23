@@ -15,6 +15,11 @@ function LoginScreen() {
   const [confirmPw, setConfirmPw] = useState("");
   const [resetToken, setResetToken] = useState(null);
   const [resetUid, setResetUid] = useState(null);
+  // v27.98 — TOTP challenge state. When backend returns requires_totp on a
+  // valid password, the UI switches to a code-entry step using the same
+  // email + password already entered (we keep them in state).
+  const [totpRequired, setTotpRequired] = useState(false);
+  const [totpCode, setTotpCode] = useState("");
 
   // Check URL for reset token on mount
   useEffect(() => {
@@ -35,17 +40,39 @@ function LoginScreen() {
     const emailVal = email.trim() || document.querySelector('input[type="email"]')?.value?.trim() || "";
     const pwVal = password || document.querySelector('input[type="password"]')?.value || "";
     if (!emailVal || !pwVal) { setError("Email and password required"); return; }
+    if (totpRequired && !totpCode.trim()) { setError("2FA code required"); return; }
     // Sync state if DOM had values that React missed
     if (!email.trim() && emailVal) setEmail(emailVal);
     if (!password && pwVal) setPassword(pwVal);
     setLoading(true); setError("");
     try {
+      // v27.98 — include totp_code on the second pass (after backend returned requires_totp).
+      const body = { email: emailVal.toLowerCase(), password: pwVal };
+      if (totpRequired && totpCode.trim()) body.totp_code = totpCode.trim();
       const r = await fetch(`${API_URL}/auth/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailVal.toLowerCase(), password: pwVal }),
+        body: JSON.stringify(body),
       });
       const data = await r.json();
-      if (r.ok) { setCurrentUser(data); } else { setError(data.error || "Login failed"); }
+      if (r.ok && data.requires_totp) {
+        // v27.98 — backend asks for 2FA code. Keep email + password in state;
+        // switch the UI to the code-entry step.
+        setTotpRequired(true);
+        setTotpCode("");
+        setError("");
+        return;
+      }
+      if (r.ok && data.token) {
+        // Full login success.
+        setCurrentUser(data);
+        setTotpRequired(false);
+        setTotpCode("");
+        return;
+      }
+      setError(data.error || "Login failed");
+      // If the 2FA code was wrong, leave the TOTP step up so user can retry
+      // without re-typing password. If error suggests bad password (and
+      // we're not in TOTP step), nothing special to do.
     } catch (err) { setError("Connection error — check internet"); }
     finally { setLoading(false); }
   };
@@ -97,7 +124,7 @@ function LoginScreen() {
           </div>
         </div>
 
-        {mode === "login" && (
+        {mode === "login" && !totpRequired && (
           <>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>EMAIL</label>
@@ -119,6 +146,38 @@ function LoginScreen() {
               borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
               letterSpacing: "0.06em", opacity: loading ? 0.6 : 1,
             }}>{loading ? "SIGNING IN..." : "SIGN IN"}</button>
+          </>
+        )}
+
+        {mode === "login" && totpRequired && (
+          <>
+            <div style={{ marginBottom: 8, textAlign: "center" }}>
+              <div style={{ fontSize: 13, color: C.text, fontWeight: 600, marginBottom: 4 }}>Two-Factor Authentication</div>
+              <div style={{ fontSize: 11, color: C.muted }}>Enter the 6-digit code from your authenticator app, or a recovery code.</div>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>CODE</label>
+              <input
+                style={{ ...inputStyle, fontFamily: "monospace", fontSize: 18, letterSpacing: "0.1em", textAlign: "center" }}
+                type="text"
+                inputMode="text"
+                autoComplete="one-time-code"
+                autoFocus
+                value={totpCode}
+                onChange={e => setTotpCode(e.target.value)}
+                placeholder="123456"
+                onKeyDown={e => e.key === "Enter" && handleLogin()}
+              />
+            </div>
+            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+            <button onClick={handleLogin} disabled={loading} style={{
+              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
+              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
+            }}>{loading ? "VERIFYING..." : "VERIFY & SIGN IN"}</button>
+            <div style={{ textAlign: "center" }}>
+              <span onClick={() => { setTotpRequired(false); setTotpCode(""); setError(""); }} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back</span>
+            </div>
           </>
         )}
 
