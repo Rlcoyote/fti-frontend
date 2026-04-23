@@ -14,6 +14,8 @@ import TicketJsaBar from "./TicketJsaBar.jsx";
 import TicketHeaderRow from "./TicketHeaderRow.jsx";
 import TicketSignatureFlow from "./TicketSignatureFlow.jsx";
 import TicketStatusBanners from "./TicketStatusBanners.jsx";
+import TicketJobInfo from "./TicketJobInfo.jsx";
+import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
 import { inputStyle, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
@@ -378,35 +380,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           yardsList={yardsList}
         />
 
-        {/* Job / Customer Info — read only */}
-        {job && (
-          <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "12px 24px" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>WORK ORDER INFO — <span style={{ color: C.muted, fontWeight: 400 }}>To update, go to Active Work Orders → Details → Edit Work Order</span></div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 24px", fontSize: 12 }}>
-              <span><span style={{ color: C.muted }}>Customer: </span><strong>{job.customer}</strong></span>
-              {job.jobState && <span><span style={{ color: C.muted }}>State: </span><strong>{job.jobState}</strong></span>}
-              {job.county && <span><span style={{ color: C.muted }}>County: </span><strong>{job.county}</strong></span>}
-              {job.wells?.length > 0 && (
-                <span>
-                  <span style={{ color: C.muted }}>Wells: </span>
-                  <strong>
-                    {ticket.assignedWells?.length > 0
-                      ? ticket.assignedWells.join(", ")
-                      : job.wells.map(w => w.well_name || w).join(", ")}
-                  </strong>
-                  {ticket.assignedWells?.length > 0 && ticket.assignedWells.length < job.wells.length && (
-                    <span style={{ color: C.muted, fontSize: 10 }}> ({ticket.assignedWells.length} of {job.wells.length})</span>
-                  )}
-                </span>
-              )}
-              {job.afe && <span><span style={{ color: C.muted }}>AFE: </span><strong>{job.afe}</strong></span>}
-              {job.companyCode && <span><span style={{ color: C.muted }}>Co. Code: </span><strong>{job.companyCode}</strong></span>}
-              {job.costCenter && <span><span style={{ color: C.muted }}>Cost Center: </span><strong>{job.costCenter}</strong></span>}
-              {job.po && <span><span style={{ color: C.muted }}>PO: </span><strong>{job.po}</strong></span>}
-              {(job.contactFirst || job.contactLast) && <span><span style={{ color: C.muted }}>Point of Contact: </span><strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong></span>}
-            </div>
-          </div>
-        )}
+        {/* Job / Customer Info — extracted to TicketJobInfo (v27.86) */}
+        <TicketJobInfo job={job} assignedWells={ticket.assignedWells} />
 
         {/* Site Manager — extracted to TicketSiteManager (v27.76) */}
         <TicketSiteManager
@@ -492,21 +467,13 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             signedBy={signedBy} isEditing={isEditing} sigWiped={sigWiped}
           />
 
-          {/* Missing pieces (RD only) */}
-          {ticket.type === "Rig Down" && (
-            <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 6, padding: 12, marginBottom: 16 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.yellow }}>Check quantities against R/U — any pieces missing? </span>
-              {!isLocked ? (
-                <>
-                  <span onClick={() => setMissingPieces(false)} style={{ cursor: "pointer", fontWeight: 700, color: missingPieces === false ? C.green : C.muted, marginLeft: 8 }}>NO</span>
-                  <span style={{ color: C.muted, margin: "0 6px" }}>|</span>
-                  <span onClick={() => setMissingPieces(true)} style={{ cursor: "pointer", fontWeight: 700, color: missingPieces === true ? C.red : C.muted }}>YES</span>
-                </>
-              ) : (
-                <span style={{ fontWeight: 700, color: missingPieces ? C.red : C.green, marginLeft: 8 }}>{missingPieces ? "YES" : "NO"}</span>
-              )}
-            </div>
-          )}
+          {/* Rig Down missing-pieces — extracted to TicketRigDownMissing (v27.86) */}
+          <TicketRigDownMissing
+            ticketType={ticket.type}
+            isLocked={isLocked}
+            missingPieces={missingPieces}
+            setMissingPieces={setMissingPieces}
+          />
 
           {/* Line items */}
           <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
