@@ -233,12 +233,14 @@ export const ROLE_OPTIONS = [
 export const ROLE_RANK = { owner: 4, admin: 3, manager: 2, lead: 1, salesman: 1, field: 0 };
 export const canModifyUser = (currentUserRole, targetUserRole) => {
   if (!currentUserRole || !targetUserRole) return false;
-  // v27.74 same-rank exception for owners: an owner can modify another owner.
-  // Without this, if you accidentally promoted a test user to 'owner', you
-  // were locked out of demoting or deactivating them through the UI. Backend
-  // (v27.73) still enforces that only an owner token can touch owner rows,
-  // so this widening of the client-side gate does not weaken security.
-  if (currentUserRole === "owner") return true;
+  // v27.87 — strict rank gate. v27.74's owner-same-rank exception was rolled
+  // back: owners CANNOT modify other owner rows from the UI. All owner role
+  // transitions (create/promote/demote/deactivate) go through
+  // scripts/change-owner-role.js on the server. The backend enforces this
+  // too (routes/users.js 403s any owner-role write), but keeping the
+  // frontend gate strict means the UI doesn't offer paths that the server
+  // is just going to reject. Owners editing their own non-role fields is
+  // handled via the separate `isSelf` check in UsersPage.jsx.
   const myRank = ROLE_RANK[currentUserRole] ?? 0;
   const theirRank = ROLE_RANK[targetUserRole] ?? 0;
   return myRank > theirRank;

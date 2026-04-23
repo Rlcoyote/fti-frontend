@@ -161,7 +161,9 @@ function UsersPage({ isAdmin }) {
             <div><label style={labelStyle}>EMAIL *</label><input style={inputStyle} value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@flotest.com" /></div>
             <div><label style={labelStyle}>ROLE</label>
               <select style={inputStyle} value={newRole} onChange={e => setNewRole(e.target.value)}>
-                {ROLE_OPTIONS.filter(r => r.value !== "owner" || isOwner).map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                {/* v27.87 — "owner" never appears in the add-user dropdown. Owner role is
+                    assigned only via scripts/change-owner-role.js on the server. */}
+                {ROLE_OPTIONS.filter(r => r.value !== "owner").map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
             </div>
           </div>
@@ -188,7 +190,10 @@ function UsersPage({ isAdmin }) {
                     <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editName} onChange={e => setEditName(e.target.value)} />
                     <input style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editEmail} onChange={e => setEditEmail(e.target.value)} />
                     <select style={{ ...inputStyle, fontSize: 12, padding: "4px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={!canModify}>
-                      {ROLE_OPTIONS.filter(r => r.value !== "owner" || isOwner).map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      {/* v27.87 — "owner" shows in the dropdown only when the target IS currently
+                          an owner (so the disabled select displays correctly). Never selectable as
+                          a target role — server 403s any role=owner write anyway. */}
+                      {ROLE_OPTIONS.filter(r => r.value !== "owner" || editRole === "owner").map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button onClick={handleSaveEdit} style={{ background: C.green, border: "none", color: C.white, fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 3, cursor: "pointer" }}>SAVE</button>
@@ -248,7 +253,8 @@ function UsersPage({ isAdmin }) {
                   <div><label style={labelStyle}>EMAIL</label><input style={{ ...inputStyle, fontSize: 12, padding: "6px 8px" }} value={editEmail} onChange={e => setEditEmail(e.target.value)} /></div>
                   <div><label style={labelStyle}>ROLE</label>
                     <select style={{ ...inputStyle, fontSize: 12, padding: "6px 8px" }} value={editRole} onChange={e => setEditRole(e.target.value)} disabled={!canModify}>
-                      {ROLE_OPTIONS.filter(r => r.value !== "owner" || isOwner).map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                      {/* v27.87 — "owner" shows only when the target is currently an owner. */}
+                      {ROLE_OPTIONS.filter(r => r.value !== "owner" || editRole === "owner").map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                   </div>
                 </div>
