@@ -12,10 +12,10 @@ import TicketActionBar from "./TicketActionBar.jsx";
 import TicketEditLockBanner from "./TicketEditLockBanner.jsx";
 import TicketJsaBar from "./TicketJsaBar.jsx";
 import TicketHeaderRow from "./TicketHeaderRow.jsx";
-import { Btn, inputStyle, TICKET_TYPES } from "./SharedUI.jsx";
+import TicketSignatureFlow from "./TicketSignatureFlow.jsx";
+import { inputStyle, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
-import SignaturePad from "./SignaturePad.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
 import JSAModal from "./JSAModal.jsx";
@@ -567,48 +567,19 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
           {/* JSA button moved to header bar */}
 
-          {/* Signature display */}
-          {["signed", "approved", "sentToQB", "qbVerified", "voided"].includes(status) && signedBy && (
-            <div style={{ background: status === "voided" ? "#fdecea" : "#e6f5ec", border: `1px solid ${status === "voided" ? C.red : C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: status === "voided" ? C.red : C.green, marginBottom: 6 }}>✓ SIGNED &nbsp; {signedBy}</div>
-              {signedAt && <div style={{ fontSize: 10, color: C.muted, marginBottom: 6 }}>Signed: {new Date(signedAt).toLocaleString("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true })}</div>}
-              {signatureImage && <img src={signatureImage} alt="Signature" style={{ maxWidth: 300, height: 80, display: "block", border: `1px solid ${C.border}`, borderRadius: 4, background: C.white }} />}
-            </div>
-          )}
-
-          {/* Sig not required display */}
-          {status === "sigNotReq" && (
-            <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.blue }}>SIGNATURE NOT REQUIRED</div>
-              <div style={{ fontSize: 11, color: C.text, marginTop: 4 }}>{sigNotReqReason}</div>
-              {sigNotReqNote && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sigNotReqNote}</div>}
-            </div>
-          )}
-
-          {/* Sig not required options */}
-          {showSigOptions && (
-            <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginTop: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 10 }}>REASON SIGNATURE NOT REQUIRED</div>
-              {[["not_required", "Customer does not require field signature"], ["other", "Other"]].map(([val, lbl]) => (
-                <div key={val} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer" }} onClick={() => setSigNotReqReason(sigNotReqReason === val ? null : val)}>
-                  <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${sigNotReqReason === val ? C.blue : C.border}`, background: sigNotReqReason === val ? C.blue : "transparent" }} />
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{lbl}</span>
-                </div>
-              ))}
-              {sigNotReqReason === "other" && (
-                <input style={inputStyle} value={sigNotReqNote} onChange={e => setSigNotReqNote(e.target.value)} placeholder="Reason..." />
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <Btn onClick={handleSigNotRequired}>CONFIRM</Btn>
-                <Btn variant="ghost" onClick={() => setShowSigOptions(false)}>CANCEL</Btn>
-              </div>
-            </div>
-          )}
-
-          {/* Sig pad — always rendered when showSigPad is true */}
-          {showSigPad && (
-            <SignaturePad onSign={handleSign} onCancel={() => setShowSigPad(false)} />
-          )}
+          {/* Signature flow — extracted to TicketSignatureFlow (v27.84) */}
+          <TicketSignatureFlow
+            status={status}
+            signedBy={signedBy} signedAt={signedAt} signatureImage={signatureImage}
+            sigNotReqReason={sigNotReqReason} sigNotReqNote={sigNotReqNote}
+            showSigOptions={showSigOptions}
+            setSigNotReqReason={setSigNotReqReason} setSigNotReqNote={setSigNotReqNote}
+            onConfirmSigNotRequired={handleSigNotRequired}
+            onCancelSigOptions={() => setShowSigOptions(false)}
+            showSigPad={showSigPad}
+            onSign={handleSign}
+            onCancelSigPad={() => setShowSigPad(false)}
+          />
 
           {/* Comment Thread — extracted to TicketCommentThread (v27.75) */}
           <TicketCommentThread
