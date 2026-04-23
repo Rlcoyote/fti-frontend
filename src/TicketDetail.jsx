@@ -13,6 +13,7 @@ import TicketEditLockBanner from "./TicketEditLockBanner.jsx";
 import TicketJsaBar from "./TicketJsaBar.jsx";
 import TicketHeaderRow from "./TicketHeaderRow.jsx";
 import TicketSignatureFlow from "./TicketSignatureFlow.jsx";
+import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import { inputStyle, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
@@ -485,47 +486,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
 
-          {/* Voided banner */}
-          {ticket.voidedAt && (
-            <div style={{ background: "#fdecea", border: `1px solid ${C.red}44`, borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: C.red }}>
-              VOIDED{ticket._replacedByLabel ? ` — Replaced by #${ticket._replacedByLabel}` : ""}
-            </div>
-          )}
-
-          {/* Revision banner */}
-          {ticket.revisionOf && (
-            <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: C.blue }}>
-              Revision of #{ticket._revisionOfLabel || "previous ticket"}
-            </div>
-          )}
-
-          {/* Duplicate reminder */}
-          {ticket._duplicateReminder && (
-            <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.blue }}>
-              This ticket was duplicated. Please update the date and review before saving.
-            </div>
-          )}
-
-          {/* Awaiting signature banner */}
-          {status === "emailed" && !signedBy && (
-            <div style={{ background: "#f3eafa", border: "1px solid #7a3ca044", borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: "#7a3ca0", display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#7a3ca0", animation: "pulse 2s infinite" }} />
-              Emailed for signature — awaiting response
-              {ticket.emailedAt && <span style={{ fontWeight: 400, fontSize: 12, marginLeft: "auto" }}>Sent {new Date(ticket.emailedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>}
-            </div>
-          )}
-
-          {/* Edit warning */}
-          {isEditing && !sigWiped && signedBy && (
-            <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
-              ⚠ Editing signed ticket — changing line items, rate, or qty will require a new signature.
-            </div>
-          )}
-          {sigWiped && (
-            <div style={{ background: "#fdecea", border: `1px solid ${C.red}44`, borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.red }}>
-              ⚠ Line items changed — signature cleared. Customer must re-sign before saving.
-            </div>
-          )}
+          {/* Status banners — extracted to TicketStatusBanners (v27.85) */}
+          <TicketStatusBanners
+            ticket={ticket} status={status}
+            signedBy={signedBy} isEditing={isEditing} sigWiped={sigWiped}
+          />
 
           {/* Missing pieces (RD only) */}
           {ticket.type === "Rig Down" && (
