@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { C, API_URL } from "./config.js";
-import { formatDate, formatShortStamp, shortName, calcLineTotal, buildTicketPayload, mapTicketFromApi, parseYards } from "./utils.js";
+import { formatDate, calcLineTotal, buildTicketPayload, mapTicketFromApi, parseYards } from "./utils.js";
 import TicketDeleteModal from "./TicketDeleteModal.jsx";
 import TicketVoidModal from "./TicketVoidModal.jsx";
 import TicketDuplicateModal from "./TicketDuplicateModal.jsx";
@@ -11,9 +11,9 @@ import TicketTimeAndMileage from "./TicketTimeAndMileage.jsx";
 import TicketActionBar from "./TicketActionBar.jsx";
 import TicketEditLockBanner from "./TicketEditLockBanner.jsx";
 import TicketJsaBar from "./TicketJsaBar.jsx";
-import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
+import TicketHeaderRow from "./TicketHeaderRow.jsx";
+import { Btn, inputStyle, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
-import TimePicker from "./TimePicker.jsx";
 import { PhotoStrip } from "./PhotoStrip.jsx";
 import SignaturePad from "./SignaturePad.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
@@ -365,64 +365,17 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             both non-Rental (required) and Rental (optional) variants via ticket.type. */}
         <TicketJsaBar ticket={ticket} jsaLoaded={jsaLoaded} existingJSA={existingJSA} onOpen={() => setShowJSA(true)} />
 
-        {/* Header — mobile: single-column vertical stack. Desktop: side-by-side with total right-aligned */}
-        <div style={{ padding: isPageMode ? "14px 16px 12px" : "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
-          {/* Row 1: badges + ticket number */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-            <TicketTypeBadge type={ticket.type} />
-            <TicketStatusBadge status={status} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}</span>
-            {isLocked && <span style={{ fontSize: 10, fontWeight: 700, color: isFullyLocked ? C.green : C.orange, background: isFullyLocked ? "#d4edda" : "#fdf5d8", padding: "2px 8px", borderRadius: 3 }}>{isFullyLocked ? "QB VERIFIED" : "LOCKED"}</span>}
-          </div>
-          {/* Row 2: total + created by */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: C.text }}>{'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            {ticket.createdBy && <span style={{ fontSize: 9, color: "#a0aec8" }}>{shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}</span>}
-          </div>
-          {/* Row 3: customer + date */}
-          <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>
-            <span>{job?.customer || "Unknown"} · {isLocked
-              ? formatDate(ticketDate)
-              : <input type="date" value={ticketDate} onChange={e => handleDateChange(e.target.value)}
-                  style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
-            }</span>
-          </div>
-          {/* Row 4: Location Time + Time Zone + Yard — each on own line on mobile */}
-          {ticket.type !== "Rental" && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12, color: C.muted }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>LOCATION TIME:</span>
-                {editable
-                  ? <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
-                  : <span style={{ fontWeight: 600 }}>{dueOnLoc || "—"}</span>
-                }
-              </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>TIME ZONE:</span>
-                {editable
-                  ? <span style={{ display: "flex", gap: 6 }}>
-                      {["TX", "NM"].map(tz => (
-                        <span key={tz} onClick={() => setTimeZone(tz)} style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}>
-                          <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
-                          {tz}
-                        </span>
-                      ))}
-                    </span>
-                  : <span style={{ fontWeight: 600 }}>{timeZone || "—"}</span>
-                }
-              </span>
-              {yardsList.length > 1 && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>YARD:</span>
-                  <select value={yardLocationIndex} onChange={e => setYardLocationIndex(parseInt(e.target.value, 10))}
-                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg, fontWeight: 600, maxWidth: isPageMode ? 200 : "none" }}>
-                    {yardsList.map((y, i) => <option key={i} value={i + 1}>{y.name || `Yard #${i + 1}`}</option>)}
-                  </select>
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Header row — extracted to TicketHeaderRow (v27.83) */}
+        <TicketHeaderRow
+          ticket={ticket} status={status} total={total}
+          isLocked={isLocked} isFullyLocked={isFullyLocked} editable={editable}
+          job={job} isPageMode={isPageMode}
+          ticketDate={ticketDate} onDateChange={handleDateChange}
+          dueOnLoc={dueOnLoc} setDueOnLoc={setDueOnLoc}
+          timeZone={timeZone} setTimeZone={setTimeZone}
+          yardLocationIndex={yardLocationIndex} setYardLocationIndex={setYardLocationIndex}
+          yardsList={yardsList}
+        />
 
         {/* Job / Customer Info — read only */}
         {job && (
