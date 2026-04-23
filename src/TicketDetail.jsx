@@ -6,6 +6,7 @@ import TicketVoidModal from "./TicketVoidModal.jsx";
 import TicketDuplicateModal from "./TicketDuplicateModal.jsx";
 import TicketCommentThread from "./TicketCommentThread.jsx";
 import TicketSiteManager from "./TicketSiteManager.jsx";
+import TicketGooglePin from "./TicketGooglePin.jsx";
 import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import TimePicker from "./TimePicker.jsx";
@@ -67,8 +68,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [ticketPin, setTicketPin] = useState(() => ticket.googlePin || ticket.google_pin || "");
   const [ticketPinLat, setTicketPinLat] = useState(() => ticket.pinLat || ticket.pin_lat || null);
   const [ticketPinLng, setTicketPinLng] = useState(() => ticket.pinLng || ticket.pin_lng || null);
-  const [ticketPinResolving, setTicketPinResolving] = useState(false);
-  const [ticketPinError, setTicketPinError] = useState("");
+  // ticketPinResolving + ticketPinError moved into TicketGooglePin (v27.77)
+  // — transient display state, never read outside the component.
   const [driveInfo, setDriveInfo] = useState(null);
   const [driveLoading, setDriveLoading] = useState(false);
   // Site Manager fields (ticket-level)
@@ -743,103 +744,32 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </div>
         )}
 
-        {/* Google Pin — shared section for ALL ticket types */}
-        {(() => {
-          const lblStyle = { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 };
-          const roStyle = { fontSize: 13, color: C.text, padding: "6px 0" };
-          const jobPin = job?.googlePin || job?.google_pin || "";
-          const pinMismatch = jobPin && ticketPin && ticketPin.trim() !== jobPin.trim();
-          const resolveTicketPin = async (url) => {
-            if (!url.trim()) return;
-            setTicketPinResolving(true); setTicketPinError("");
+        {/* Google Pin — extracted to TicketGooglePin (v27.77) */}
+        <TicketGooglePin
+          editable={editable}
+          values={{ pin: ticketPin, lat: ticketPinLat, lng: ticketPinLng }}
+          onChange={(partial) => {
+            if (partial.pin !== undefined) setTicketPin(partial.pin);
+            if (partial.lat !== undefined) setTicketPinLat(partial.lat);
+            if (partial.lng !== undefined) setTicketPinLng(partial.lng);
+          }}
+          job={job}
+          driveInfo={driveInfo}
+          driveLoading={driveLoading}
+          onCalcDrive={async () => {
+            if (!ticketPinLat || !ticketPinLng) return;
+            setDriveLoading(true);
             try {
-              const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+              const r = await fetch(`${API_URL}/jobs/drive-distance`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: url.trim() }),
+                body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng, yard_index: yardLocationIndex }),
               });
-              if (!r.ok) { setTicketPinError("Could not resolve pin."); }
-              else { const { lat, lng } = await r.json(); setTicketPinLat(lat); setTicketPinLng(lng); }
-            } catch { setTicketPinError("Network error."); }
-            finally { setTicketPinResolving(false); }
-          };
-          return (
-            <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                <div style={lblStyle}>GOOGLE PIN</div>
-                {pinMismatch && (
-                  <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
-                    ALT PIN — differs from Work Order
-                  </span>
-                )}
-                {jobPin && !ticketPin && (
-                  <span style={{ fontSize: 10, color: C.muted }}>Work Order: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
-                )}
-              </div>
-              {editable ? (
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
-                    value={ticketPin}
-                    onChange={e => { setTicketPin(e.target.value); setTicketPinLat(null); setTicketPinLng(null); setTicketPinError(""); }}
-                    placeholder={jobPin ? "Override Work Order pin or leave blank to use Work Order pin" : "Paste Google Maps link..."}
-                  />
-                  {ticketPin && (
-                    <button type="button" onClick={() => resolveTicketPin(ticketPin)} disabled={ticketPinResolving}
-                      style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}>
-                      {ticketPinResolving ? "..." : "RESOLVE"}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div style={roStyle}>{ticketPin || (jobPin ? "Using Work Order pin" : "—")}</div>
-              )}
-              {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 3 }}>⚠ {ticketPinError}</div>}
-              {(ticketPinLat || ticketPinLng) && (
-                <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4, display: "flex", gap: 12, alignItems: "center" }}>
-                  <span>{parseFloat(ticketPinLat).toFixed(6)}, {parseFloat(ticketPinLng).toFixed(6)}</span>
-                  <a href={`https://www.google.com/maps?q=${ticketPinLat},${ticketPinLng}`} target="_blank" rel="noopener noreferrer"
-                    style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", fontFamily: "'Arial', sans-serif" }}>
-                    View on Google Maps ↗
-                  </a>
-                </div>
-              )}
-              {(ticketPinLat && ticketPinLng) && (
-                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                  {!driveInfo && !driveLoading && (
-                    <button type="button" onClick={async () => {
-                      setDriveLoading(true);
-                      try {
-                        const r = await fetch(`${API_URL}/jobs/drive-distance`, {
-                          method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ destLat: ticketPinLat, destLng: ticketPinLng, yard_index: yardLocationIndex }),
-                        });
-                        if (r.ok) { const d = await r.json(); setDriveInfo(d); }
-                        else setDriveInfo({ error: "Could not calculate — check yard location in Settings" });
-                      } catch { setDriveInfo({ error: "Network error" }); }
-                      setDriveLoading(false);
-                    }} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "3px 10px", fontSize: 10, fontWeight: 700, color: C.text, cursor: "pointer" }}>
-                      CALC DRIVE
-                    </button>
-                  )}
-                  {driveLoading && <span style={{ fontSize: 11, color: C.muted }}>Calculating...</span>}
-                  {driveInfo && !driveInfo.error && (
-                    <div style={{ display: "flex", gap: 16 }}>
-                      <div>
-                        <div style={lblStyle}>DRIVE DISTANCE</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{driveInfo.distance}</div>
-                      </div>
-                      <div>
-                        <div style={lblStyle}>EST. DRIVE TIME</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{driveInfo.duration}</div>
-                      </div>
-                    </div>
-                  )}
-                  {driveInfo?.error && <div style={{ fontSize: 11, color: C.red }}>⚠ {driveInfo.error}</div>}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+              if (r.ok) { const d = await r.json(); setDriveInfo(d); }
+              else setDriveInfo({ error: "Could not calculate — check yard location in Settings" });
+            } catch { setDriveInfo({ error: "Network error" }); }
+            setDriveLoading(false);
+          }}
+        />
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
