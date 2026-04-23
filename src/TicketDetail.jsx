@@ -8,6 +8,7 @@ import TicketCommentThread from "./TicketCommentThread.jsx";
 import TicketSiteManager from "./TicketSiteManager.jsx";
 import TicketGooglePin from "./TicketGooglePin.jsx";
 import TicketTimeAndMileage from "./TicketTimeAndMileage.jsx";
+import TicketActionBar from "./TicketActionBar.jsx";
 import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import TimePicker from "./TimePicker.jsx";
@@ -747,91 +748,26 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-
-          {/* QB Verified — fully locked */}
-          {status === "qbVerified" && (
-            <span style={{ fontSize: 12, fontWeight: 800, color: C.green, background: "#d4edda", padding: "6px 14px", borderRadius: 4 }}>✓ QB VERIFIED</span>
-          )}
-
-          {status === "sentToQB" && (
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.steel, border: `1px solid ${C.border}`, padding: "6px 14px", borderRadius: 4 }}>AWAITING QB VERIFICATION</span>
-          )}
-
-          {/* Approved tickets are routed to Final Review for accounting handoff */}
-          {status === "approved" && !isEditing && (
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, background: C.steel, border: `1px solid ${C.border}`, padding: "6px 14px", borderRadius: 4 }}>READY FOR FINAL REVIEW</span>
-          )}
-
-          {/* Signed/SigNotReq — approve */}
-          {(status === "signed" || status === "sigNotReq") && !isEditing && (
-            canApprove
-              ? <Btn variant="blue" onClick={handleApprove}>APPROVE TICKET</Btn>
-              : <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, padding: "6px 0" }}>Awaiting approval</span>
-          )}
-
-          {/* Editable — save/sign buttons */}
-          {!isLocked && !showSigPad && !showSigOptions && (
-            <>
-              <Btn onClick={handleSave}>SAVE & CLOSE</Btn>
-              {!sigWiped && (existingJSA || ticket.type === "Rental") && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
-              {!sigWiped && !signedBy && (existingJSA || ticket.type === "Rental") && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
-              {/* v27.68: when JSA is missing on a ticket that requires it,
-                  replace the old pair of greyed COLLECT SIGNATURE + SIG NOT
-                  REQUIRED buttons with a single ACTIVE button that makes the
-                  dependency explicit AND provides the direct action. Avoids
-                  browser-native title-attribute tooltips (1.5s delay,
-                  invisible on mobile). Clicking it opens the JSA modal — same
-                  handler used by the CREATE JSA entry at the top of the
-                  ticket. After the JSA saves, existingJSA flips truthy and
-                  the normal COLLECT SIGNATURE + SIG NOT REQUIRED pair above
-                  takes over. */}
-              {!sigWiped && !signedBy && !existingJSA && ticket.type !== "Rental" && jsaLoaded && (
-                <Btn variant="blue" onClick={() => setShowJSA(true)}>CREATE JSA TO COLLECT SIGNATURE</Btn>
-              )}
-            </>
-          )}
-
-          {/* Edit button for locked but NOT signed tickets (e.g., sigNotReq) */}
-          {isLocked && !isFullyLocked && !signedBy && status !== "sentToQB" && status !== "voided" && !isEditing && (
-            <Btn variant="ghost" onClick={() => setIsEditing(true)}>EDIT TICKET</Btn>
-          )}
-
-          {/* Void button for signed or sigNotReq tickets */}
-          {(signedBy || status === "sigNotReq" || status === "approved") && !isFullyLocked && status !== "voided" && !isEditing && onRevise && (
-            <Btn variant="ghost" onClick={() => setShowVoidConfirm(true)}>VOID TICKET</Btn>
-          )}
-
-          {/* Voided — no actions */}
-          {status === "voided" && (
-            <span style={{ fontSize: 12, fontWeight: 800, color: C.red, background: "#fdecea", padding: "6px 14px", borderRadius: 4 }}>VOIDED</span>
-          )}
-
-          {/* Always show close/cancel */}
-          {!isFullyLocked && !isEditing && !sigWiped && <Btn variant="ghost" onClick={handleClose}>CLOSE</Btn>}
-          {!isFullyLocked && (isEditing || sigWiped) && <Btn variant="ghost" onClick={handleCancel}>CANCEL</Btn>}
-          {isFullyLocked && <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>}
-
-          {/* Spacer to push delete/duplicate to the right */}
-          <div style={{ flex: 1 }} />
-
-          {/* Duplicate */}
-          {onDuplicate && !isFullyLocked && (
-            <Btn variant="ghost" onClick={() => setShowDupModal(true)}>DUPLICATE</Btn>
-          )}
-
-          {/* Delete — only on unsigned tickets. Signed/sigNotReq/approved tickets
-              preserve their audit record via VOID instead. Voided + fully-locked
-              (sentToQB/qbVerified) tickets are never deletable from here either. */}
-          {onDelete && !isFullyLocked && !signedBy && status !== "sigNotReq" && status !== "approved" && status !== "voided" && (
-            <button type="button" onClick={() => setShowDeleteConfirm(true)}
-              style={{ background: "transparent", border: "none", color: C.red, fontSize: 11, fontWeight: 700, cursor: "pointer", padding: "6px 10px", letterSpacing: "0.04em", opacity: 0.7 }}>
-              DELETE
-            </button>
-          )}
-
-        </div>
+        {/* Footer — extracted to TicketActionBar (v27.80) */}
+        <TicketActionBar
+          ticket={ticket}
+          status={status}
+          isLocked={isLocked} isFullyLocked={isFullyLocked} isEditing={isEditing}
+          sigWiped={sigWiped} signedBy={signedBy}
+          existingJSA={existingJSA} jsaLoaded={jsaLoaded}
+          canApprove={canApprove}
+          showSigPad={showSigPad} showSigOptions={showSigOptions}
+          handleSave={handleSave} handleClose={handleClose}
+          handleCancel={handleCancel} handleApprove={handleApprove}
+          onClose={onClose}
+          setIsEditing={setIsEditing}
+          setShowSigPad={setShowSigPad} setShowSigOptions={setShowSigOptions}
+          setShowJSA={setShowJSA}
+          setShowVoidConfirm={setShowVoidConfirm}
+          setShowDupModal={setShowDupModal}
+          setShowDeleteConfirm={setShowDeleteConfirm}
+          onRevise={onRevise} onDuplicate={onDuplicate} onDelete={onDelete}
+        />
 
         {/* Delete confirmation — extracted to TicketDeleteModal (v27.70) */}
         {showDeleteConfirm && (
