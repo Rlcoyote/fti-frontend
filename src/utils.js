@@ -4,7 +4,44 @@ export const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
 
 export const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
 
-export const mapTicketFromApi = (t) => ({
+// v27.66: the backend keeps adding ticket columns and this mapper has to stay
+// in sync. MAPPED_KEYS is the canonical list of snake_case columns we expect;
+// dev-only drift detection walks through the first response and console.warns
+// about any keys the backend returned that this mapper silently drops.
+// Catches "new column added, frontend forgot to map it" scenarios without
+// forcing a runtime assertion in production.
+const TICKET_MAPPED_KEYS = new Set([
+  'id', 'job_id', 'type', 'status', 'date',
+  'signed_by', 'signed_at', 'signature_img', 'sig_not_req_reason', 'sig_not_req_note',
+  'notes', 'emailed_at', 'email_to', 'has_pending_comment', 'missing_pieces',
+  'locked', 'ticket_number', 'start_date', 'end_date', 'cycle_days', 'is_recurring',
+  'voided_at', 'replaced_by', 'revision_of', 'cycle_ended',
+  'deleted_at', 'deleted_with_wo', 'job_status',
+  'has_jsa', 'assigned_wells', 'google_pin', 'pin_lat', 'pin_lng',
+  'lv_yard', 'arrival_time', 'due_on_loc', 'job_start_time', 'job_end_time', 'ret_yard',
+  'time_zone', 'mileage_begin', 'mileage_end',
+  'created_by_name', 'created_at', 'site_mgr_first', 'site_mgr_last', 'site_mgr_phone', 'site_mgr_email',
+  'archived_at', 'yard_location_index',
+  // Join aliases that aren't exposed on the mapped object but are returned
+  // by the API and we knowingly ignore:
+  'job_num', 'created_by', 'updated_at',
+  // Line items are nested — handled separately
+  'lineItems', 'line_items',
+]);
+let __ticketDriftWarned = false;
+function __checkTicketDrift(t) {
+  if (__ticketDriftWarned || typeof t !== 'object' || !t) return;
+  const unknown = Object.keys(t).filter(k => !TICKET_MAPPED_KEYS.has(k));
+  if (unknown.length > 0) {
+    __ticketDriftWarned = true;
+    // eslint-disable-next-line no-console
+    console.warn('[mapTicketFromApi] Backend returned keys not in the mapper — update TICKET_MAPPED_KEYS / mapTicketFromApi:', unknown);
+  }
+}
+
+export const mapTicketFromApi = (t) => {
+  __checkTicketDrift(t);
+  return {
   id: t.id, jobId: t.job_id, type: t.type, status: t.status, date: t.date,
   signedBy: t.signed_by, signedAt: t.signed_at, signatureImage: t.signature_img,
   sigNotReqReason: t.sig_not_req_reason, sigNotReqNote: t.sig_not_req_note,
@@ -33,7 +70,8 @@ export const mapTicketFromApi = (t) => ({
     qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
     qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
   })),
-});
+  };
+};
 
 // Parse the yards[] array from an app_settings row. The `yards` column is a
 // JSON string; fall back to the legacy single-yard columns when it's absent

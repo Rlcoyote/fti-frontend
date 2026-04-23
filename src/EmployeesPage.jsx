@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, inputStyle, labelStyle, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, ConfirmModal } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── Employees master page (v27.57 polish) ──────────────────────────────────
@@ -32,7 +32,7 @@ const phoneDigits = (raw) => String(raw || "").replace(/\D/g, "");
 const todayYmd = () => new Date().toISOString().slice(0, 10);
 
 function EmployeesPage() {
-  const { currentUser, roles } = useApp();
+  const { currentUser, roles, showNotice } = useApp();
   const [employees, setEmployees] = useState([]);
   const [jobTitles, setJobTitles] = useState([]);
   const [includeInactive, setIncludeInactive] = useState(false);
@@ -40,7 +40,6 @@ function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // null | "new" | employeeObject
   const [confirmAction, setConfirmAction] = useState(null); // { kind, employee, onYes }
-  const [notice, setNotice] = useState(null); // { title, message, variant }
 
   const canEdit = ["owner", "admin"].includes(currentUser?.role);
 
@@ -62,8 +61,6 @@ function EmployeesPage() {
 
   useEffect(() => { fetchEmployees(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeInactive]);
   useEffect(() => { fetchJobTitles(); }, []);
-
-  const showNotice = (title, message, variant = "ok") => setNotice({ title, message, variant });
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -238,14 +235,7 @@ function EmployeesPage() {
         />
       )}
 
-      {notice && (
-        <NoticeModal
-          title={notice.title}
-          message={notice.message}
-          variant={notice.variant}
-          onClose={() => setNotice(null)}
-        />
-      )}
+      {/* NoticeModal is mounted globally in AppContext — no local render needed */}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, inputStyle, labelStyle, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, ConfirmModal } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── Job Titles admin (v27.57) ──────────────────────────────────────────────
@@ -13,13 +13,12 @@ import { useApp } from "./AppContext.jsx";
 // title just disappears from the Employees dropdown going forward.
 
 function JobTitlesPage() {
-  const { currentUser } = useApp();
+  const { currentUser, showNotice } = useApp();
   const [titles, setTitles] = useState([]);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // null | "new" | titleObject
   const [confirmAction, setConfirmAction] = useState(null);
-  const [notice, setNotice] = useState(null);
 
   const canEdit = ["owner", "admin"].includes(currentUser?.role);
 
@@ -33,8 +32,6 @@ function JobTitlesPage() {
   };
 
   useEffect(() => { fetchTitles(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeInactive]);
-
-  const showNotice = (title, message, variant = "ok") => setNotice({ title, message, variant });
 
   const deactivate = async (title) => {
     try {
@@ -134,9 +131,7 @@ function JobTitlesPage() {
         />
       )}
 
-      {notice && (
-        <NoticeModal title={notice.title} message={notice.message} variant={notice.variant} onClose={() => setNotice(null)} />
-      )}
+      {/* NoticeModal is mounted globally in AppContext — no local render needed */}
     </div>
   );
 }
