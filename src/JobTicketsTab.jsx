@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
-import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload } from "./utils.js";
+import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload, reviseTicketRequest } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
@@ -484,49 +484,16 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             } catch (err) { showNotice("Duplicate Failed", err.message, "error"); }
           }}
           onRevise={async (t, reason, opts = {}) => {
-            const alsoCreateNew = !!opts.alsoCreateNew;
-            try {
-              const r = await fetch(`${API_URL}/tickets/${t.id}/revise`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ voided_reason: reason || null, also_create_new: alsoCreateNew }),
-              });
-              if (!r.ok) { const d = await r.json().catch(() => ({})); showNotice("Revise Failed", d.error || "Could not revise the ticket.", "error"); return; }
-              const saved = await r.json();
-              // Send void notification email for the old ticket
-              try {
-                const nr = await fetch(`${API_URL}/signature/void-notify/${t.id}`, {
-                  method: "POST", headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ new_ticket_number: saved.ticket_number, new_ticket_id: saved.id }),
-                });
-                if (!nr.ok) console.error("Void notify response not ok:", nr.status);
-              } catch (e) { showNotice("Notification Email Failed", "The ticket was voided successfully, but the notification email failed to send. Check your email configuration.", "error"); }
-              // Reload all tickets for this job (includes voided + new)
-              const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
-              if (!tr.ok) {
-                showNotice("Voided — Refresh Needed", "The ticket was voided, but the ticket list could not be refreshed automatically. Close and reopen the tab to see the current state.", "error");
-                setViewTicket(null);
-                return;
-              }
-              const data = await tr.json();
-              const mapped = data.map(mapTicketFromApi);
-              setTickets(prev => {
-                const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
-                return [...otherJobs, ...mapped];
-              });
-              if (alsoCreateNew && saved.id != null) {
-                const newTicket = mapped.find(tk => tk.id === saved.id);
-                if (newTicket) {
-                  setViewTicketMode("edit");
-                  setViewTicket(newTicket);
-                } else {
-                  showNotice("Voided — New Revision Created", `Ticket was voided and revision #${saved.ticket_number} was created, but could not be opened automatically. Find it in the ticket list.`, "ok");
-                  setViewTicket(null);
-                }
-              } else {
-                // Void only — close the modal; list already shows voided state
-                setViewTicket(null);
-              }
-            } catch (err) { showNotice("Revise Failed", err.message, "error"); setViewTicket(null); }
+            const result = await reviseTicketRequest({
+              ticket: t, reason, alsoCreateNew: !!opts.alsoCreateNew,
+              setTickets, showNotice,
+            });
+            if (result.newTicket) {
+              setViewTicketMode("edit");
+              setViewTicket(result.newTicket);
+            } else {
+              setViewTicket(null);
+            }
           }}
         />
       )}

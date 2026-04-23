@@ -130,6 +130,59 @@ export const updateTicketApi = async (id, updates, setTickets) => {
   setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
 };
 
+// Shared helper: POST /tickets/:id/revise + refetch + map the new ticket.
+// v27.63: extracted from JobTicketsTab.jsx (desktop modal) and TicketPage.jsx
+// (mobile route) which had ~35 lines of near-identical logic each.
+// Returns { success, refreshed, newTicket, ticketNumber }. Callers decide
+// how to "open" the new ticket (modal setState vs router navigate) based on
+// the returned newTicket.
+export const reviseTicketRequest = async ({ ticket, reason, alsoCreateNew = false, setTickets, showNotice }) => {
+  try {
+    const r = await fetch(`${API_URL}/tickets/${ticket.id}/revise`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voided_reason: reason || null, also_create_new: !!alsoCreateNew }),
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      showNotice?.("Revise Failed", d.error || "Could not revise the ticket.", "error");
+      return { success: false };
+    }
+    const saved = await r.json();
+    // Fire-and-forget void-notification email (non-blocking on error).
+    try {
+      const nr = await fetch(`${API_URL}/signature/void-notify/${ticket.id}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ new_ticket_number: saved.ticket_number, new_ticket_id: saved.id }),
+      });
+      if (!nr.ok) console.error("Void notify non-2xx:", nr.status);
+    } catch (e) {
+      showNotice?.("Notification Email Failed", "The ticket was voided successfully, but the notification email failed to send.", "error");
+    }
+    // Refetch the WO's tickets (including voided) so local state matches server.
+    const tr = await fetch(`${API_URL}/tickets?job_id=${ticket.jobId}&include_voided=true`);
+    if (!tr.ok) {
+      showNotice?.("Voided — Refresh Needed", "The ticket was voided, but the list could not be refreshed automatically. Close and reopen the tab to see the current state.", "error");
+      return { success: true, refreshed: false };
+    }
+    const data = await tr.json();
+    const mapped = data.map(mapTicketFromApi);
+    if (setTickets) {
+      setTickets(prev => {
+        const otherJobs = prev.filter(tk => tk.jobId !== ticket.jobId);
+        return [...otherJobs, ...mapped];
+      });
+    }
+    const newTicket = alsoCreateNew && saved.id != null ? (mapped.find(tk => tk.id === saved.id) || null) : null;
+    if (alsoCreateNew && saved.id != null && !newTicket) {
+      showNotice?.("Voided — New Revision Created", `Ticket was voided and revision #${saved.ticket_number} was created, but could not be opened automatically. Find it in the ticket list.`, "ok");
+    }
+    return { success: true, refreshed: true, newTicket, ticketNumber: saved.ticket_number };
+  } catch (err) {
+    showNotice?.("Revise Failed", err.message, "error");
+    return { success: false };
+  }
+};
+
 // Role hierarchy for user management
 export const ROLE_OPTIONS = [
   { value: "owner", label: "Owner" },

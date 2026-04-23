@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { C, API_URL } from "./config.js";
-import { mapTicketFromApi, buildTicketPayload } from "./utils.js";
+import { mapTicketFromApi, buildTicketPayload, reviseTicketRequest } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
@@ -104,42 +104,15 @@ function TicketPage({ jobs, tickets, setTickets }) {
         } catch (err) { console.error("Duplicate failed:", err); }
       }}
       onRevise={async (t, reason, opts = {}) => {
-        const alsoCreateNew = !!opts.alsoCreateNew;
-        try {
-          const r = await fetch(`${API_URL}/tickets/${t.id}/revise`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ voided_reason: reason || null, also_create_new: alsoCreateNew }),
-          });
-          if (!r.ok) { const d = await r.json().catch(() => ({})); showNotice("Revise Failed", d.error || "Could not revise the ticket.", "error"); return; }
-          const saved = await r.json();
-          // Refresh the tickets array with real data from the backend (not the
-          // minimal {id, ticket_number, voided_id} response — mapping that directly
-          // produced a near-empty ticket object and caused the "Unknown" display bug).
-          let newTicket = null;
-          if (setTickets) {
-            const tr = await fetch(`${API_URL}/tickets?job_id=${t.jobId}&include_voided=true`);
-            if (tr.ok) {
-              const data = await tr.json();
-              const mapped = data.map(mapTicketFromApi);
-              setTickets(prev => {
-                const otherJobs = prev.filter(tk => tk.jobId !== t.jobId);
-                return [...otherJobs, ...mapped];
-              });
-              if (alsoCreateNew && saved.id != null) {
-                newTicket = mapped.find(tk => tk.id === saved.id) || null;
-              }
-            }
-          }
-          if (alsoCreateNew && newTicket) {
-            navigate(`/ticket/${saved.id}`, { state: { ticket: newTicket } });
-          } else if (alsoCreateNew && saved.id != null) {
-            showNotice("Voided — New Revision Created", `Ticket was voided and revision #${saved.ticket_number} was created, but could not be loaded automatically. Returning to the list.`, "ok");
-            navigate(-1);
-          } else {
-            // Void only — return to source
-            navigate(-1);
-          }
-        } catch (err) { showNotice("Revise Failed", err.message, "error"); }
+        const result = await reviseTicketRequest({
+          ticket: t, reason, alsoCreateNew: !!opts.alsoCreateNew,
+          setTickets, showNotice,
+        });
+        if (result.newTicket) {
+          navigate(`/ticket/${result.newTicket.id}`, { state: { ticket: result.newTicket } });
+        } else {
+          navigate(-1);
+        }
       }}
     />
   );
