@@ -9,6 +9,8 @@ import TicketSiteManager from "./TicketSiteManager.jsx";
 import TicketGooglePin from "./TicketGooglePin.jsx";
 import TicketTimeAndMileage from "./TicketTimeAndMileage.jsx";
 import TicketActionBar from "./TicketActionBar.jsx";
+import TicketEditLockBanner from "./TicketEditLockBanner.jsx";
+import TicketJsaBar from "./TicketJsaBar.jsx";
 import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import TimePicker from "./TimePicker.jsx";
@@ -357,96 +359,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
             onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}>CLOSE</button>
         </div>
-        {/* Edit Lock Banner. When the holder's name can't be resolved (phantom/orphan lock),
-            surface the raw lock timestamp so the user can see how stale the lock is, and let
-            owner/admin force-unlock without waiting the 5-minute auto-expiry. */}
-        {editLock.isLocked && !editLock.hasLock && (() => {
-          const nameUnknown = editLock.lockedByName === "Another user";
-          const isOwnerOrAdmin = ["owner", "admin"].includes(currentUser?.role);
-          const lockedAtStr = editLock.lockedAt
-            ? new Date(editLock.lockedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
-            : null;
-          return (
-            <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
-                This ticket is being edited by <strong>{editLock.lockedByName}</strong>.
-                {lockedAtStr && <span style={{ fontWeight: 500, marginLeft: 6 }}>Locked at {lockedAtStr}.</span>}
-                {!nameUnknown && <span style={{ marginLeft: 6, fontWeight: 500 }}>As soon as they are done, you may edit.</span>}
-                {nameUnknown && isOwnerOrAdmin && (
-                  <span style={{ display: "block", fontSize: 11, fontWeight: 500, marginTop: 4, color: "#8a6500" }}>
-                    Holder not in user records (orphan / stale lock). Auto-expires after 5 minutes — or force-unlock now.
-                  </span>
-                )}
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={editLock.requestEdit} style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}>REQUEST EDIT</button>
-                {isOwnerOrAdmin && (
-                  <button onClick={editLock.forceUnlock} style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "'Arial', sans-serif" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
-                    title="Owner/admin override — clears the lock and gives you edit access">
-                    FORCE UNLOCK
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-        {/* Edit Request Notification (shown to lock holder) */}
-        {editLock.hasLock && editLock.requestedByName && (
-          <div style={{ background: "#e8f0fb", borderBottom: `1px solid ${C.blue}33`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>
-              <strong>{editLock.requestedByName}</strong> is requesting access to this ticket.
-            </div>
-            <button onClick={editLock.dismissRequest} style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>THE CURRENT USER WILL BE FINISHED SHORTLY</button>
-          </div>
-        )}
-        {/* JSA Required bar — non-Rental only, before header */}
-        {ticket.type !== "Rental" && jsaLoaded && (
-          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-            {existingJSA ? (
-              <button type="button" onClick={() => setShowJSA(true)}
-                style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
-                ✓ VIEW / EDIT JSA
-              </button>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button type="button" onClick={() => setShowJSA(true)}
-                  style={{ background: "#fff", color: C.red, border: `2px solid ${C.red}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
-                  CREATE JSA
-                </button>
-                <span style={{ fontSize: 10, color: C.red, fontWeight: 600, fontStyle: "italic" }}>Required before signing</span>
-              </div>
-            )}
-          </div>
-        )}
-        {/* Rental — JSA optional (not required for signing) */}
-        {ticket.type === "Rental" && jsaLoaded && (
-          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-            {existingJSA ? (
-              <button type="button" onClick={() => setShowJSA(true)}
-                style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
-                ✓ VIEW / EDIT JSA
-              </button>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button type="button" onClick={() => setShowJSA(true)}
-                  style={{ background: "#fff", color: C.blue, border: `1px solid ${C.blue}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#e8f0fb"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
-                  CREATE JSA
-                </button>
-                <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Optional for rentals</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Edit lock banner + edit-request notification — extracted to TicketEditLockBanner (v27.81) */}
+        <TicketEditLockBanner editLock={editLock} currentUserRole={currentUser?.role} />
+        {/* JSA bar — extracted to TicketJsaBar (v27.82). Single component handles
+            both non-Rental (required) and Rental (optional) variants via ticket.type. */}
+        <TicketJsaBar ticket={ticket} jsaLoaded={jsaLoaded} existingJSA={existingJSA} onOpen={() => setShowJSA(true)} />
 
         {/* Header — mobile: single-column vertical stack. Desktop: side-by-side with total right-aligned */}
         <div style={{ padding: isPageMode ? "14px 16px 12px" : "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
