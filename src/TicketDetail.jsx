@@ -16,28 +16,12 @@ import SignaturePad from "./SignaturePad.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
 import JSAModal from "./JSAModal.jsx";
+import TicketRentalCycle, { RentalCountdown } from "./TicketRentalCycle.jsx";
 import { useApp } from "./AppContext.jsx";
 
-function RentalCountdown({ ticket }) {
-  const endDate = ticket.endDate || ticket.end_date;
-  if (!endDate || endDate === "" || ticket.type !== "Rental") return null;
-  if (ticket.cycleEnded || ticket.cycle_ended || ticket.voidedAt || ticket.voided_at) return null;
-  const end = new Date(endDate + "T23:59:59");
-  if (isNaN(end.getTime())) return null;
-  const now = new Date();
-  const diffMs = end - now;
-  const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (daysLeft < 0 || isNaN(daysLeft)) return null;
-  const color = daysLeft <= 1 ? "#B01020" : daysLeft <= 7 ? "#8a6500" : "#1a7a3c";
-  const bg = daysLeft <= 1 ? "#fdecea" : daysLeft <= 7 ? "#fdf5d8" : "#e6f5ec";
-  const border = daysLeft <= 1 ? "#B0102044" : daysLeft <= 7 ? "#e6c20044" : "#1a7a3c44";
-  const label = daysLeft === 0 ? "Last day" : daysLeft === 1 ? "1 day left" : `${daysLeft} days left`;
-  return (
-    <span style={{ background: bg, color, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${border}`, whiteSpace: "nowrap" }}>
-      {label}
-    </span>
-  );
-}
+// RentalCountdown is re-exported below for backward compat with JobTicketsTab
+// which still imports from this module path. New code should import directly
+// from TicketRentalCycle.
 
 function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, tickets = [], openToSign = false, asPage = false }) {
   const { qbItems, currentUser, settings, showNotice } = useApp();
@@ -587,49 +571,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           />
         )}
 
-        {/* Rental cycle info */}
-        {ticket.type === "Rental" && (rentalStartDate || ticket.startDate || ticket.start_date) && (
-          <div style={{ background: "#f8f4e8", borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
-            {isFullyLocked || ticket.voidedAt ? (
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
-                <span><span style={{ color: C.muted }}>Start: </span><strong>{formatDate(rentalStartDate)}</strong></span>
-                <span><span style={{ color: C.muted }}>End: </span><strong>{formatDate(rentalEndDate)}</strong></span>
-                <span><span style={{ color: C.muted }}>Cycle: </span><strong>{rentalCycleDays} days</strong></span>
-                <span style={{ color: rentalRecurring ? C.green : C.muted, fontWeight: 700 }}>
-                  {rentalRecurring ? "● Recurring" : "○ Not recurring"}
-                </span>
-                {(ticket.cycleEnded || ticket.cycle_ended) && (
-                  <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
-                )}
-                <RentalCountdown ticket={{ ...ticket, endDate: rentalEndDate, isRecurring: rentalRecurring }} />
-              </div>
-            ) : (
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
-                <div>
-                  <span style={{ color: C.muted, fontWeight: 600, fontSize: 10, letterSpacing: "0.06em" }}>START </span>
-                  <input type="date" value={rentalStartDate} onChange={e => setRentalStartDate(e.target.value)}
-                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
-                </div>
-                <div>
-                  <span style={{ color: C.muted, fontWeight: 600, fontSize: 10, letterSpacing: "0.06em" }}>END </span>
-                  <input type="date" value={rentalEndDate} onChange={e => setRentalEndDate(e.target.value)}
-                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg }} />
-                </div>
-                <div>
-                  <span style={{ color: C.muted, fontWeight: 600, fontSize: 10, letterSpacing: "0.06em" }}>CYCLE </span>
-                  <input type="number" value={rentalCycleDays} onChange={e => setRentalCycleDays(e.target.value)} min={1}
-                    style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg, width: 50 }} />
-                  <span style={{ fontSize: 11, color: C.muted }}> days</span>
-                </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-                  <input type="checkbox" checked={rentalRecurring} onChange={e => setRentalRecurring(e.target.checked)} style={{ width: 14, height: 14 }} />
-                  <span style={{ color: rentalRecurring ? C.green : C.muted }}>{rentalRecurring ? "● Recurring" : "○ Not recurring"}</span>
-                </label>
-                <RentalCountdown ticket={{ ...ticket, endDate: rentalEndDate, isRecurring: rentalRecurring }} />
-              </div>
-            )}
-          </div>
-        )}
+        {/* Rental cycle — extracted to TicketRentalCycle (v27.79) */}
+        <TicketRentalCycle
+          ticket={ticket}
+          readOnly={isFullyLocked || !!ticket.voidedAt}
+          values={{ startDate: rentalStartDate, endDate: rentalEndDate, cycleDays: rentalCycleDays, recurring: rentalRecurring }}
+          onChange={(partial) => {
+            if (partial.startDate !== undefined) setRentalStartDate(partial.startDate);
+            if (partial.endDate !== undefined) setRentalEndDate(partial.endDate);
+            if (partial.cycleDays !== undefined) setRentalCycleDays(partial.cycleDays);
+            if (partial.recurring !== undefined) setRentalRecurring(partial.recurring);
+          }}
+        />
 
         {/* Google Pin — extracted to TicketGooglePin (v27.77) */}
         <TicketGooglePin
