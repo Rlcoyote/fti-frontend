@@ -1,5 +1,25 @@
 import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
 
+// ─── MODAL Z-INDEX LAYERS (v27.67) ────────────────────────────────────────
+// The app stacks modals intentionally: a confirmation-over-an-edit-modal
+// needs to render above the edit modal. Before this there were ad-hoc values
+// (100, 200, 300, 400) scattered across files with no rule — formalizing
+// here so new modals pick the right layer deliberately.
+//
+// Use via Z_INDEX.<layer>. Never hardcode a number in a modal.
+export const Z_INDEX = {
+  // Base-level modals (edit forms, add flows). ModalWrap uses this.
+  modal: 100,
+  // Secondary modals that render OVER a base modal (confirmations from
+  // within an edit flow, duplicate options opened from ticket detail).
+  overlay: 200,
+  // Tertiary (picker / child modal opened from an overlay).
+  nested: 300,
+  // Global, top-of-everything (NoticeModal, ConfirmModal from this file —
+  // they always win regardless of what else is open).
+  global: 400,
+};
+
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────
 export const TICKET_TYPES = {
   "Rig Up":   { color: "#B01020", bg: "#fdecea", label: "RIG UP",   abbr: "RU" },
@@ -212,7 +232,7 @@ export function ModalWrap({ title, onClose, children, width = 440 }) {
 // action uses the red Btn; cancel is a ghost Btn.
 export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel }) {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400 }}>
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}>
       <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>{title}</div>
         <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
@@ -232,7 +252,7 @@ export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCa
 export function NoticeModal({ title, message, variant = "ok", onClose }) {
   const accent = variant === "error" ? C.red : C.green;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 400 }}>
+    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}>
       <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${accent}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
         <div style={{ fontSize: 16, fontWeight: 800, color: accent, marginBottom: 12 }}>{title}</div>
         <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
