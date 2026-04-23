@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { C, API_URL } from "./config.js";
-import { today, formatDate, formatShortStamp, shortName, calcLineTotal, buildTicketPayload, mapTicketFromApi, parseYards } from "./utils.js";
+import { formatDate, formatShortStamp, shortName, calcLineTotal, buildTicketPayload, mapTicketFromApi, parseYards } from "./utils.js";
+import TicketDeleteModal from "./TicketDeleteModal.jsx";
+import TicketVoidModal from "./TicketVoidModal.jsx";
+import TicketDuplicateModal from "./TicketDuplicateModal.jsx";
 import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import TimePicker from "./TimePicker.jsx";
@@ -85,16 +88,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       .catch(() => {});
   }, [_contactCustId]);
   const [showDupModal, setShowDupModal] = useState(false);
-  const [dupType, setDupType] = useState(ticket.type);
-  const [dupDate, setDupDate] = useState(() => today());
-  const [dupJobId, setDupJobId] = useState(ticket.jobId);
-  const [dupSourceId, setDupSourceId] = useState(ticket.id);
-  const [dupSourcePickerOpen, setDupSourcePickerOpen] = useState(false);
-  const [incLineItems, setIncLineItems] = useState(true);
-  const [incNotes, setIncNotes] = useState(false);
-  const [incPin, setIncPin] = useState(true);
-  const [incWells, setIncWells] = useState(true);
-  const [dupSubmitting, setDupSubmitting] = useState(false);
+  // All duplicate-modal state (dupType, dupDate, dupJobId, dupSourceId,
+  // dupSourcePickerOpen, incLineItems, incNotes, incPin, incWells,
+  // dupSubmitting) moved into TicketDuplicateModal (v27.72). Parent just
+  // controls open/close; each open starts with fresh defaults.
   const [emailTo, setEmailTo] = useState(() => {
     if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
     const job = jobs?.find(j => j.id === ticket.jobId);
@@ -150,8 +147,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [tdLoading, setTdLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
-  const [voidReason, setVoidReason] = useState("");
-  const [voidReasonNote, setVoidReasonNote] = useState("");
+  // voidReason / voidReasonNote state moved into TicketVoidModal (v27.71) —
+  // no parent ownership needed; reset happens naturally on modal close.
   const [showJSA, setShowJSA] = useState(false);
   const [existingJSA, setExistingJSA] = useState(null);
   const [jsaLoaded, setJsaLoaded] = useState(false);
@@ -1171,7 +1168,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
           {/* Duplicate */}
           {onDuplicate && !isFullyLocked && (
-            <Btn variant="ghost" onClick={() => { setDupType(ticket.type); setDupDate(today()); setDupJobId(ticket.jobId); setDupSourceId(ticket.id); setDupSourcePickerOpen(false); setIncLineItems(true); setIncNotes(false); setIncPin(true); setIncWells(true); setDupSubmitting(false); setShowDupModal(true); }}>DUPLICATE</Btn>
+            <Btn variant="ghost" onClick={() => setShowDupModal(true)}>DUPLICATE</Btn>
           )}
 
           {/* Delete — only on unsigned tickets. Signed/sigNotReq/approved tickets
@@ -1186,77 +1183,22 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
         </div>
 
-        {/* Delete confirmation */}
+        {/* Delete confirmation — extracted to TicketDeleteModal (v27.70) */}
         {showDeleteConfirm && (
-          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowDeleteConfirm(false)}>
-            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Delete Ticket?</div>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
-                This will remove ticket <strong>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}</strong> ({ticket.type}). The ticket can be recovered by an admin.
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={async () => {
-                  try {
-                    const r = await fetch(`${API_URL}/tickets/${ticket.id}`, { method: "DELETE" });
-                    if (!r.ok) { const d = await r.json(); showNotice("Delete Failed", d.error || "Could not delete the ticket.", "error"); return; }
-                    if (onDelete) onDelete(ticket.id);
-                  } catch (err) { showNotice("Delete Failed", err.message, "error"); }
-                  setShowDeleteConfirm(false);
-                }}>YES, DELETE</Btn>
-                <Btn variant="ghost" onClick={() => setShowDeleteConfirm(false)}>CANCEL</Btn>
-              </div>
-            </div>
-          </div>
+          <TicketDeleteModal
+            ticket={ticket}
+            onClose={() => setShowDeleteConfirm(false)}
+            onDeleted={onDelete}
+          />
         )}
 
-        {/* Void confirmation with reason */}
+        {/* Void confirmation — extracted to TicketVoidModal (v27.71) */}
         {showVoidConfirm && (
-          <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowVoidConfirm(false)}>
-            <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.red, marginBottom: 10 }}>Void This Ticket?</div>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.7 }}>
-                Ticket <strong>#{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}</strong> is signed and permanent.
-              </div>
-
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>REASON FOR VOIDING *</div>
-                <select value={voidReason} onChange={e => setVoidReason(e.target.value)}
-                  style={{ width: "100%", padding: "8px 10px", border: `1px solid ${voidReason ? C.border : C.red}`, borderRadius: 4, fontSize: 13 }}>
-                  <option value="">Select a reason...</option>
-                  <option value="Signed, but Found Discrepancy">Signed, but Found Discrepancy</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              {voidReason === "Other" && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>DETAILS</div>
-                  <textarea value={voidReasonNote} onChange={e => setVoidReasonNote(e.target.value)}
-                    style={{ ...inputStyle, width: "100%", minHeight: 60, resize: "vertical", boxSizing: "border-box" }}
-                    placeholder="Describe the reason..." />
-                </div>
-              )}
-
-              <div style={{ fontSize: 13, color: C.text, marginBottom: 20, lineHeight: 1.8, paddingLeft: 16 }}>
-                <div>• <strong>VOID ONLY</strong> — voids the ticket; no replacement created.</div>
-                <div>• <strong>VOID &amp; CREATE NEW</strong> — voids and opens a new draft carrying the job's line items, pin, site manager, time &amp; mileage.</div>
-                <div style={{ marginTop: 6, color: C.muted }}>Signature is preserved on the voided ticket for audit records.</div>
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <Btn disabled={!voidReason || (voidReason === "Other" && !voidReasonNote.trim())} onClick={() => {
-                  const reason = voidReason === "Other" ? `Other: ${voidReasonNote.trim()}` : voidReason;
-                  setShowVoidConfirm(false);
-                  if (onRevise) onRevise(ticket, reason, { alsoCreateNew: false });
-                }}>VOID ONLY</Btn>
-                <Btn disabled={!voidReason || (voidReason === "Other" && !voidReasonNote.trim())} onClick={() => {
-                  const reason = voidReason === "Other" ? `Other: ${voidReasonNote.trim()}` : voidReason;
-                  setShowVoidConfirm(false);
-                  if (onRevise) onRevise(ticket, reason, { alsoCreateNew: true });
-                }}>VOID &amp; CREATE NEW</Btn>
-                <Btn variant="ghost" onClick={() => { setShowVoidConfirm(false); setVoidReason(""); setVoidReasonNote(""); }}>CANCEL</Btn>
-              </div>
-            </div>
-          </div>
+          <TicketVoidModal
+            ticket={ticket}
+            onClose={() => setShowVoidConfirm(false)}
+            onRevise={onRevise}
+          />
         )}
 
         {/* JSA Modal */}
@@ -1294,135 +1236,16 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           />
         )}
 
-        {/* Duplicate Options Modal */}
-        {showDupModal && (() => {
-          const DUP_TYPES = ["Rig Up", "Tester", "Pumper", "Rental", "Rig Down"];
-          // Source defaults to the ticket this modal was opened on. User can change
-          // via the "(change)" link for the ~10% case where a different source is wanted.
-          const dupSource = (tickets || []).find(t => t.id === dupSourceId) || ticket;
-          const dupTargetJob = (jobs || []).find(j => j.id === dupJobId);
-          const dupSourceJob = (jobs || []).find(j => j.id === dupSource.jobId);
-          const dupCustChanged = dupTargetJob && dupSourceJob && dupTargetJob.customer !== dupSourceJob.customer;
-          const dupActiveJobs = (jobs || []).filter(j => j.status !== "Deleted");
-          // Eligible sources: same-WO tickets that aren't deleted. Voided tickets
-          // stay listed (copying FROM a voided original is legitimate for reissue flows)
-          // but are badged so the user sees what they're picking.
-          const sourceOptions = (tickets || [])
-            .filter(t => t.jobId === ticket.jobId && !t.deletedAt)
-            .sort((a, b) => (b.ticketNumber || 0) - (a.ticketNumber || 0));
-          const chk = { width: 16, height: 16, cursor: "pointer", accentColor: C.blue };
-          const lbl = { fontSize: 13, cursor: "pointer", userSelect: "none" };
-          return (
-            <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setShowDupModal(false)}>
-              <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 500, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Duplicate Ticket</div>
-
-                {/* Source — progressive disclosure. Label shows the current source;
-                    "(change)" reveals an inline dropdown of eligible same-WO tickets. */}
-                <div style={{ marginBottom: 20, padding: "10px 12px", background: C.steel, borderRadius: 6 }}>
-                  {!dupSourcePickerOpen ? (
-                    <div style={{ fontSize: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                      <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>DUPLICATING FROM:</span>
-                      <span style={{ color: C.text, fontWeight: 600 }}>
-                        #{dupSource.jobId}{dupSource.ticketNumber ? `-${dupSource.ticketNumber}` : ""}
-                      </span>
-                      {dupSource.date && <span style={{ color: C.muted }}>· {String(dupSource.date).slice(0, 10)}</span>}
-                      <span style={{ color: C.muted }}>· {dupSource.type || "—"}</span>
-                      {dupSource.voidedAt && <span style={{ color: C.red, fontWeight: 700 }}>VOIDED</span>}
-                      {sourceOptions.length > 1 && (
-                        <button type="button" onClick={() => setDupSourcePickerOpen(true)}
-                          style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.blue, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-                          (change)
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>DUPLICATING FROM</div>
-                      <select value={dupSourceId} onChange={e => setDupSourceId(Number(e.target.value))}
-                        style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}>
-                        {sourceOptions.map(t => (
-                          <option key={t.id} value={t.id}>
-                            #{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)} · {t.type || "—"}{t.voidedAt ? " · VOIDED" : ""}
-                          </option>
-                        ))}
-                      </select>
-                      <button type="button" onClick={() => setDupSourcePickerOpen(false)}
-                        style={{ background: "transparent", border: "none", color: C.blue, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "8px 0 0", textDecoration: "underline" }}>
-                        done
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Type */}
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TICKET TYPE</div>
-                  <select value={dupType} onChange={e => setDupType(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}>
-                    {DUP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-
-                {/* Date */}
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TICKET DATE</div>
-                  <input type="date" value={dupDate} onChange={e => setDupDate(e.target.value)} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, boxSizing: "border-box" }} />
-                </div>
-
-                {/* Target Job */}
-                <div style={{ marginBottom: 18 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>ASSIGN TO WORK ORDER</div>
-                  <select value={dupJobId} onChange={e => setDupJobId(Number(e.target.value))} style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}>
-                    {dupActiveJobs.map(j => <option key={j.id} value={j.id}>#{j.id} — {j.customer} ({j.location})</option>)}
-                  </select>
-                  {dupJobId !== dupSource.jobId && dupTargetJob && (
-                    <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Customer: {dupTargetJob.customer}</div>
-                  )}
-                </div>
-
-                {/* Carry Over Options — all counts/flags reflect the chosen SOURCE */}
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>CARRY OVER</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20, padding: "12px 14px", background: C.steel, borderRadius: 6 }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-                    <input type="checkbox" checked={incLineItems} onChange={e => setIncLineItems(e.target.checked)} style={chk} />
-                    Line Items ({dupSource.lineItems?.length || 0} items)
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-                    <input type="checkbox" checked={incNotes} onChange={e => setIncNotes(e.target.checked)} style={chk} />
-                    Notes
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl, opacity: dupCustChanged ? 0.5 : 1 }}>
-                    <input type="checkbox" checked={dupCustChanged ? false : incPin} onChange={e => setIncPin(e.target.checked)} disabled={dupCustChanged} style={{ ...chk, cursor: dupCustChanged ? "not-allowed" : "pointer" }} />
-                    Google Pin {dupCustChanged && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>(different customer)</span>}
-                  </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-                    <input type="checkbox" checked={incWells} onChange={e => setIncWells(e.target.checked)} style={chk} />
-                    Assigned Wells
-                  </label>
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <Btn variant="blue" onClick={async () => {
-                    setDupSubmitting(true);
-                    await onDuplicate(dupSource, {
-                      new_date: dupDate,
-                      new_job_id: dupJobId !== dupSource.jobId ? dupJobId : undefined,
-                      new_type: dupType !== dupSource.type ? dupType : undefined,
-                      assigned_wells: incWells ? dupSource.assignedWells : [],
-                      include_notes: incNotes,
-                      include_line_items: incLineItems,
-                      include_pin: dupCustChanged ? false : incPin,
-                      include_site_mgr: !dupCustChanged,
-                    });
-                    setShowDupModal(false);
-                    setDupSubmitting(false);
-                  }} disabled={dupSubmitting}>{dupSubmitting ? "DUPLICATING..." : "DUPLICATE"}</Btn>
-                  <Btn variant="ghost" onClick={() => setShowDupModal(false)}>CANCEL</Btn>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {/* Duplicate Options Modal — extracted to TicketDuplicateModal (v27.72) */}
+        {showDupModal && (
+          <TicketDuplicateModal
+            ticket={ticket}
+            jobs={jobs}
+            tickets={tickets}
+            onClose={() => setShowDupModal(false)}
+            onDuplicate={onDuplicate}
+          />
+        )}
 
       </div>
     </div>
