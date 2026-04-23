@@ -4,6 +4,7 @@ import { formatDate, formatShortStamp, shortName, calcLineTotal, buildTicketPayl
 import TicketDeleteModal from "./TicketDeleteModal.jsx";
 import TicketVoidModal from "./TicketVoidModal.jsx";
 import TicketDuplicateModal from "./TicketDuplicateModal.jsx";
+import TicketCommentThread from "./TicketCommentThread.jsx";
 import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import TimePicker from "./TimePicker.jsx";
@@ -141,10 +142,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   };
   const [showSigPad, setShowSigPad] = useState(() => openToSign && !["sentToQB", "qbVerified", "signed", "sigNotReq", "approved"].includes(ticket.status));
   const [showSigOptions, setShowSigOptions] = useState(false);
-  const [tdComments, setTdComments] = useState([]);
-  const [tdReply, setTdReply] = useState("");
-  const [tdSending, setTdSending] = useState(false);
-  const [tdLoading, setTdLoading] = useState(false);
+  // Comment-thread state (tdComments, tdReply, tdSending, tdLoading) moved into
+  // TicketCommentThread (v27.75). Parent no longer owns any of it.
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
   // voidReason / voidReasonNote state moved into TicketVoidModal (v27.71) —
@@ -194,23 +193,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       .finally(() => setDriveLoading(false));
   }, [ticket.id, yardLocationIndex]);
 
+  // Signature status polling — comment loading moved to TicketCommentThread
+  // (v27.75). This effect now only polls for signature arrival when the
+  // ticket is emailed-but-unsigned; updates local display when it lands.
   useEffect(() => {
     if (!ticket.id) return;
-    const loadComments = () => {
-      fetch(`${API_URL}/signature/comments/${ticket.id}`)
-        .then(r => r.ok ? r.json() : [])
-        .then(data => { setTdComments(data); setTdLoading(false); })
-        .catch(() => setTdLoading(false));
-    };
     const checkSignatureStatus = () => {
-      // Only poll if ticket is emailed and unsigned
       if (status !== "emailed" || signedBy) return;
       fetch(`${API_URL}/tickets?job_id=${ticket.jobId}&include_voided=true`)
         .then(r => r.ok ? r.json() : [])
         .then(data => {
           const updated = data.find(t => t.id === ticket.id);
           if (updated && updated.signature_img && !signedBy) {
-            // Update local display only — parent state refreshes on close/save
             setSignedBy(updated.signed_by);
             setSignedAt(updated.signed_at);
             setSignatureImage(updated.signature_img);
@@ -219,19 +213,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         })
         .catch(() => {});
     };
-    setTdLoading(true);
-    loadComments();
-    // Clear pending flag when ticket is opened
-    if (ticket.hasPendingComment || ticket.has_pending_comment) {
-      fetch(`${API_URL}/tickets/${ticket.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ has_pending_comment: false }),
-      }).catch(() => {});
-      if (onUpdate) onUpdate(ticket.id, { hasPendingComment: false, has_pending_comment: false });
-    }
-    const interval = setInterval(() => { loadComments(); checkSignatureStatus(); }, 30000);
+    const interval = setInterval(checkSignatureStatus, 30000);
     return () => clearInterval(interval);
-  }, [ticket.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.id, status, signedBy]);
 
   const handleClose = () => {
     editLock.releaseLock();
@@ -1041,59 +1026,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <SignaturePad onSign={handleSign} onCancel={() => setShowSigPad(false)} />
           )}
 
-          {/* ── Comment Thread ── */}
-          <div style={{ marginTop: 20, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-              <span style={{ fontWeight: 700, fontSize: 14 }}>Site Manager Comments</span>
-              {(ticket.hasPendingComment || ticket.has_pending_comment) && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
-                  <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
-                  COMMENT PENDING
-                </span>
-              )}
-            </div>
-            {tdLoading && <div style={{ fontSize: 12, color: C.muted }}>Loading comments...</div>}
-            {!tdLoading && tdComments.length === 0 && <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>No comments yet.</div>}
-            {tdComments.map((c, i) => {
-              const who = c.author_type === "fti" ? `Flo-Test (${c.author})` : `${c.author} (Site)`;
-              const bg = c.author_type === "fti" ? "#e8f0fb" : "#fef9e7";
-              const time = new Date(c.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-              return (
-                <div key={i} style={{ background: bg, borderRadius: 6, padding: "8px 12px", marginBottom: 6 }}>
-                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}><strong>{who}</strong> · {time}</div>
-                  <div style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{c.message}</div>
-                </div>
-              );
-            })}
-            <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-end" }}>
-              <textarea
-                style={{ flex: 1, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minHeight: 50, resize: "vertical", boxSizing: "border-box" }}
-                value={tdReply} onChange={e => setTdReply(e.target.value)}
-                placeholder="Reply to site manager..."
-              />
-              <button type="button"
-                style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: tdSending ? 0.6 : 1, whiteSpace: "nowrap", height: 36 }}
-                disabled={tdSending || !tdReply.trim()}
-                onClick={async () => {
-                  if (!tdReply.trim()) return;
-                  setTdSending(true);
-                  try {
-                    const r = await fetch(`${API_URL}/signature/reply/${ticket.id}`, {
-                      method: "POST", headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ author: currentUser?.name || "FTI", message: tdReply.trim() }),
-                    });
-                    if (!r.ok) { const d = await r.json(); showNotice("Reply Failed", d.error || "Could not post reply.", "error"); setTdSending(false); return; }
-                    setTdComments(prev => [...prev, { author: currentUser?.name || "FTI", author_type: "fti", message: tdReply.trim(), created_at: new Date().toISOString() }]);
-                    setTdReply("");
-                    // Clear pending flag locally
-                    if (onUpdate) onUpdate(ticket.id, { hasPendingComment: false, has_pending_comment: false });
-                  } catch (err) { showNotice("Reply Failed", err.message, "error"); }
-                  setTdSending(false);
-                }}>
-                {tdSending ? "Sending..." : "Reply & Email"}
-              </button>
-            </div>
-          </div>
+          {/* Comment Thread — extracted to TicketCommentThread (v27.75) */}
+          <TicketCommentThread
+            ticket={ticket}
+            onPendingCleared={(id) => { if (onUpdate) onUpdate(id, { hasPendingComment: false, has_pending_comment: false }); }}
+          />
 
         </div>
 
