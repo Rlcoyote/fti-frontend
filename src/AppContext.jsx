@@ -3,6 +3,39 @@ import { API_URL, setCurrentUser as setGlobalUser } from "./config.js";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { NoticeModal } from "./SharedUI.jsx";
 
+// ─── Fetch wrapper: auto-attach JWT on API calls (v27.65) ───────────────────
+// Installed once on module load. Every fetch() to our API_URL gets the
+// Authorization: Bearer <token> header automatically; any other URL passes
+// through unchanged. No existing fetch() call site needs to change.
+//
+// If the token is missing (not logged in, or before /auth/login completes),
+// no header is attached — backend reads/mutations stay as-is.
+(function installFetchAuthWrapper() {
+  if (typeof window === 'undefined' || window.__ftiFetchWrapped) return;
+  const origFetch = window.fetch.bind(window);
+  window.fetch = (input, init = {}) => {
+    try {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (url.startsWith(API_URL)) {
+        const raw = sessionStorage.getItem('fti_user');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const token = parsed && parsed.token;
+          if (token) {
+            const headers = new Headers(init.headers || (typeof input !== 'string' ? input.headers : undefined));
+            if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+            init = { ...init, headers };
+          }
+        }
+      }
+    } catch (e) {
+      // Fetch wrapper must never break the actual request — fail open.
+    }
+    return origFetch(input, init);
+  };
+  window.__ftiFetchWrapped = true;
+})();
+
 // ─── AppContext ──────────────────────────────────────────────────────────────
 // Single source of truth for app-wide state: currentUser, settings, users,
 // customers, qbItems, assets. Page-level state (jobs, tickets, todos,
