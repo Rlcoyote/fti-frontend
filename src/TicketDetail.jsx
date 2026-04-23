@@ -5,6 +5,7 @@ import TicketDeleteModal from "./TicketDeleteModal.jsx";
 import TicketVoidModal from "./TicketVoidModal.jsx";
 import TicketDuplicateModal from "./TicketDuplicateModal.jsx";
 import TicketCommentThread from "./TicketCommentThread.jsx";
+import TicketSiteManager from "./TicketSiteManager.jsx";
 import { Btn, FilterBtn, inputStyle, labelStyle, TicketTypeBadge, TicketStatusBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import TimePicker from "./TimePicker.jsx";
@@ -549,77 +550,19 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </div>
         )}
 
-        {/* Site Manager — ticket level */}
-        <div style={{ background: C.cardBg, borderBottom: `1px solid ${C.border}`, padding: "12px 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>SITE MANAGER</div>
-            {editable && job && (job.contactFirst || job.contactLast) && (
-              <span onClick={() => {
-                setSiteMgrFirst(job.contactFirst || "");
-                setSiteMgrLast(job.contactLast || "");
-                setSiteMgrPhone(job.pocPhone || job.poc_phone || "");
-                setSiteMgrEmail(job.pocEmail || job.poc_email || "");
-              }} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: C.blue, fontWeight: 700, cursor: "pointer", padding: "3px 10px", border: `1px solid ${C.blue}44`, borderRadius: 4, background: "transparent" }}>
-                <span style={{ fontSize: 13 }}>📋</span> Copy Point of Contact Info
-              </span>
-            )}
-          </div>
-          {editable && (() => {
-            const pocOptions = knownContacts.filter(c => c.role_tag === "site_manager" || c.role_tag === "poc");
-            if (pocOptions.length === 0) return null;
-            return (
-              <div style={{ marginBottom: 8 }}>
-                <label style={labelStyle}>EXISTING SITE MANAGER / POC FOR THIS CUSTOMER</label>
-                <select style={{ ...inputStyle, maxWidth: 360 }} defaultValue="" onChange={e => {
-                  const c = pocOptions.find(o => String(o.id) === e.target.value);
-                  if (c) {
-                    const parts = c.name.split(" ");
-                    setSiteMgrFirst(parts[0] || "");
-                    setSiteMgrLast(parts.slice(1).join(" ") || "");
-                    setSiteMgrPhone(c.phone || "");
-                    setSiteMgrEmail(c.email || "");
-                  }
-                  e.target.value = "";
-                }}>
-                  <option value="">— Choose existing contact or enter new below —</option>
-                  {pocOptions.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}{c.role_tag === "poc" ? " (POC)" : ""}</option>
-                  ))}
-                </select>
-              </div>
-            );
-          })()}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
-            <div>
-              <label style={labelStyle}>FIRST NAME</label>
-              {editable
-                ? <input style={inputStyle} value={siteMgrFirst} onChange={e => setSiteMgrFirst(e.target.value)} placeholder="First" />
-                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrFirst || "—"}</div>
-              }
-            </div>
-            <div>
-              <label style={labelStyle}>LAST NAME</label>
-              {editable
-                ? <input style={inputStyle} value={siteMgrLast} onChange={e => setSiteMgrLast(e.target.value)} placeholder="Last" />
-                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrLast || "—"}</div>
-              }
-            </div>
-            <div>
-              <label style={labelStyle}>PHONE</label>
-              {editable
-                ? <input style={inputStyle} value={siteMgrPhone} onChange={e => setSiteMgrPhone(e.target.value)} placeholder="555-555-5555" />
-                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrPhone || "—"}</div>
-              }
-            </div>
-            <div>
-              <label style={labelStyle}>EMAIL</label>
-              {editable
-                ? <input style={inputStyle} value={siteMgrEmail} onChange={e => setSiteMgrEmail(e.target.value)} placeholder="email@company.com" />
-                : <div style={{ fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" }}>{siteMgrEmail || "—"}</div>
-              }
-            </div>
-          </div>
-        </div>
+        {/* Site Manager — extracted to TicketSiteManager (v27.76) */}
+        <TicketSiteManager
+          editable={editable}
+          values={{ first: siteMgrFirst, last: siteMgrLast, phone: siteMgrPhone, email: siteMgrEmail }}
+          onChange={(partial) => {
+            if (partial.first !== undefined) setSiteMgrFirst(partial.first);
+            if (partial.last !== undefined) setSiteMgrLast(partial.last);
+            if (partial.phone !== undefined) setSiteMgrPhone(partial.phone);
+            if (partial.email !== undefined) setSiteMgrEmail(partial.email);
+          }}
+          job={job}
+          knownContacts={knownContacts}
+        />
 
         {/* Time & Mileage band — below job info, all types except Rental */}
         {!["Rental"].includes(ticket.type) && (() => {
