@@ -1129,9 +1129,20 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <>
               <Btn onClick={handleSave}>SAVE & CLOSE</Btn>
               {!sigWiped && (existingJSA || ticket.type === "Rental") && <Btn variant="blue" onClick={() => setShowSigPad(true)}>COLLECT SIGNATURE</Btn>}
-              {!sigWiped && !existingJSA && ticket.type !== "Rental" && jsaLoaded && <Btn variant="blue" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA before collecting signature">COLLECT SIGNATURE</Btn>}
               {!sigWiped && !signedBy && (existingJSA || ticket.type === "Rental") && <Btn variant="ghost" onClick={() => setShowSigOptions(true)}>SIG NOT REQUIRED</Btn>}
-              {!sigWiped && !signedBy && !existingJSA && ticket.type !== "Rental" && jsaLoaded && <Btn variant="ghost" disabled style={{ opacity: 0.4, cursor: "not-allowed" }} title="Complete JSA first">SIG NOT REQUIRED</Btn>}
+              {/* v27.68: when JSA is missing on a ticket that requires it,
+                  replace the old pair of greyed COLLECT SIGNATURE + SIG NOT
+                  REQUIRED buttons with a single ACTIVE button that makes the
+                  dependency explicit AND provides the direct action. Avoids
+                  browser-native title-attribute tooltips (1.5s delay,
+                  invisible on mobile). Clicking it opens the JSA modal — same
+                  handler used by the CREATE JSA entry at the top of the
+                  ticket. After the JSA saves, existingJSA flips truthy and
+                  the normal COLLECT SIGNATURE + SIG NOT REQUIRED pair above
+                  takes over. */}
+              {!sigWiped && !signedBy && !existingJSA && ticket.type !== "Rental" && jsaLoaded && (
+                <Btn variant="blue" onClick={() => setShowJSA(true)}>CREATE JSA TO COLLECT SIGNATURE</Btn>
+              )}
             </>
           )}
 
