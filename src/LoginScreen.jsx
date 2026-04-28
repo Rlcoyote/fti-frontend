@@ -1,7 +1,37 @@
 import { useState, useEffect } from "react";
+import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+
+// ─── LoginScreen (v27.99) ───────────────────────────────────────────────────
+// Two-stage login: password → biometric.
+//
+// Stage 1 — POST /auth/login with email + password.
+//   Response branches on whether the user already has a registered device:
+//     - requires_webauthn_registration: true → first login post-deploy.
+//       Browser runs navigator.credentials.create() with the supplied options;
+//       on success we POST /auth/webauthn/register-verify with the attestation
+//       + pending_token; server returns the full session JWT.
+//     - requires_webauthn_authentication: true → existing device.
+//       Browser runs navigator.credentials.get() with the supplied options;
+//       on success we POST /auth/webauthn/auth-verify; server returns JWT.
+//
+// Stage 2 happens entirely inside the same handleLogin() flow — after the
+// browser's biometric prompt. No second screen, no code entry. The user
+// experiences: enter email + password → tap Touch ID / Face ID → in.
+//
+// First-login UX:
+//   The user must register a device on their first login post-v27.99 deploy.
+//   We ask for a friendly device label (defaults to a guess from user agent)
+//   so they'll recognize it on the Manage Devices page later. Skipping this
+//   step is not allowed — biometric is required for everyone.
+//
+// Browser support:
+//   browserSupportsWebAuthn() is checked on mount. If the browser is too old
+//   or running in a context that doesn't support WebAuthn (some embedded
+//   webviews), we surface a clear "use a modern browser" message instead of
+//   letting the user hit a cryptic error.
 
 function LoginScreen() {
   const { setCurrentUser } = useApp();
@@ -15,11 +45,15 @@ function LoginScreen() {
   const [confirmPw, setConfirmPw] = useState("");
   const [resetToken, setResetToken] = useState(null);
   const [resetUid, setResetUid] = useState(null);
-  // v27.98 — TOTP challenge state. When backend returns requires_totp on a
-  // valid password, the UI switches to a code-entry step using the same
-  // email + password already entered (we keep them in state).
-  const [totpRequired, setTotpRequired] = useState(false);
-  const [totpCode, setTotpCode] = useState("");
+
+  // v27.99 — WebAuthn registration step state. When backend returns
+  // requires_webauthn_registration on a valid password, we hold the pending
+  // token + reg options here while the user names their device. On confirm,
+  // we run startRegistration() and post the result to register-verify.
+  const [pendingRegistration, setPendingRegistration] = useState(null);
+  const [deviceLabel, setDeviceLabel] = useState("");
+
+  const webauthnSupported = typeof window !== "undefined" ? browserSupportsWebAuthn() : true;
 
   // Check URL for reset token on mount
   useEffect(() => {
@@ -30,51 +64,136 @@ function LoginScreen() {
       setResetToken(token);
       setResetUid(uid);
       setMode("reset");
-      // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
+
+  // Suggest a device label based on user agent — user can edit before registering.
+  const suggestDeviceLabel = () => {
+    const ua = (navigator.userAgent || "").toLowerCase();
+    if (/iphone/.test(ua)) return "iPhone";
+    if (/ipad/.test(ua)) return "iPad";
+    if (/android/.test(ua)) return "Android phone";
+    if (/mac/.test(ua)) return "MacBook";
+    if (/windows/.test(ua)) return "Windows PC";
+    return "This device";
+  };
+
+  // ── Stage 2a: complete authentication with existing device ──
+  const completeAuthentication = async (pendingToken, authOptions) => {
+    let assertion;
+    try {
+      assertion = await startAuthentication({ optionsJSON: authOptions });
+    } catch (browserErr) {
+      const msg = browserErr?.message || "Biometric verification cancelled";
+      setError(msg);
+      return;
+    }
+    try {
+      const r = await fetch(`${API_URL}/auth/webauthn/auth-verify`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token: pendingToken, response: assertion }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setError(data.error || "Verification failed");
+        return;
+      }
+      if (data.token) {
+        setCurrentUser(data);
+      } else {
+        setError("Server did not return a session token");
+      }
+    } catch {
+      setError("Connection error during verification");
+    }
+  };
+
+  // ── Stage 2b: register first device, then complete login ──
+  const completeFirstRegistration = async () => {
+    if (!pendingRegistration) return;
+    const { pending_token, registration_options } = pendingRegistration;
+    const label = (deviceLabel || "").trim() || suggestDeviceLabel();
+    setError(""); setLoading(true);
+    try {
+      let attResp;
+      try {
+        attResp = await startRegistration({ optionsJSON: registration_options });
+      } catch (browserErr) {
+        const msg = browserErr?.name === "InvalidStateError"
+          ? "This device is already registered."
+          : browserErr?.message || "Biometric registration cancelled";
+        setError(msg);
+        return;
+      }
+      const r = await fetch(`${API_URL}/auth/webauthn/register-verify`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token, response: attResp, device_label: label }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setError(data.error || "Registration failed");
+        return;
+      }
+      if (data.token) {
+        setCurrentUser(data);
+      } else {
+        setError("Server did not return a session token");
+      }
+    } catch {
+      setError("Connection error during registration");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     // Read directly from DOM as fallback in case Chrome autofill bypassed onChange
     const emailVal = email.trim() || document.querySelector('input[type="email"]')?.value?.trim() || "";
     const pwVal = password || document.querySelector('input[type="password"]')?.value || "";
     if (!emailVal || !pwVal) { setError("Email and password required"); return; }
-    if (totpRequired && !totpCode.trim()) { setError("2FA code required"); return; }
-    // Sync state if DOM had values that React missed
+    if (!webauthnSupported) {
+      setError("Your browser doesn't support biometric sign-in. Use a modern browser (Chrome, Safari, Edge, Firefox).");
+      return;
+    }
     if (!email.trim() && emailVal) setEmail(emailVal);
     if (!password && pwVal) setPassword(pwVal);
     setLoading(true); setError("");
     try {
-      // v27.98 — include totp_code on the second pass (after backend returned requires_totp).
-      const body = { email: emailVal.toLowerCase(), password: pwVal };
-      if (totpRequired && totpCode.trim()) body.totp_code = totpCode.trim();
       const r = await fetch(`${API_URL}/auth/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ email: emailVal.toLowerCase(), password: pwVal }),
       });
       const data = await r.json();
-      if (r.ok && data.requires_totp) {
-        // v27.98 — backend asks for 2FA code. Keep email + password in state;
-        // switch the UI to the code-entry step.
-        setTotpRequired(true);
-        setTotpCode("");
-        setError("");
+      if (!r.ok) {
+        setError(data.error || "Login failed");
         return;
       }
-      if (r.ok && data.token) {
-        // Full login success.
-        setCurrentUser(data);
-        setTotpRequired(false);
-        setTotpCode("");
+      // v27.99 — biometric authentication branch.
+      if (data.requires_webauthn_authentication && data.pending_token && data.authentication_options) {
+        await completeAuthentication(data.pending_token, data.authentication_options);
         return;
       }
-      setError(data.error || "Login failed");
-      // If the 2FA code was wrong, leave the TOTP step up so user can retry
-      // without re-typing password. If error suggests bad password (and
-      // we're not in TOTP step), nothing special to do.
-    } catch (err) { setError("Connection error — check internet"); }
-    finally { setLoading(false); }
+      // v27.99 — first-login device registration branch.
+      if (data.requires_webauthn_registration && data.pending_token && data.registration_options) {
+        setPendingRegistration({
+          pending_token: data.pending_token,
+          registration_options: data.registration_options,
+        });
+        setDeviceLabel(suggestDeviceLabel());
+        return;
+      }
+      // Defensive — backend should never reach here.
+      setError("Unexpected login response. Contact your administrator.");
+    } catch {
+      setError("Connection error — check internet");
+    } finally { setLoading(false); }
+  };
+
+  const cancelRegistration = () => {
+    setPendingRegistration(null);
+    setDeviceLabel("");
+    setError("");
   };
 
   const handleForgot = async () => {
@@ -87,7 +206,7 @@ function LoginScreen() {
       });
       const data = await r.json();
       setMsg(data.message || "Check your email for a reset link.");
-    } catch (err) { setError("Connection error"); }
+    } catch { setError("Connection error"); }
     finally { setLoading(false); }
   };
 
@@ -104,9 +223,12 @@ function LoginScreen() {
       const data = await r.json();
       if (r.ok) { setMsg(data.message); setMode("login"); setResetToken(null); setResetUid(null); }
       else { setError(data.error || "Reset failed"); }
-    } catch (err) { setError("Connection error"); }
+    } catch { setError("Connection error"); }
     finally { setLoading(false); }
   };
+
+  const showRegistrationStep = mode === "login" && !!pendingRegistration;
+  const showLoginForm = mode === "login" && !pendingRegistration;
 
   return (
     <div style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}>
@@ -120,11 +242,20 @@ function LoginScreen() {
           }}>FTI</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "0.1em" }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
-            {mode === "login" ? "OPERATIONS DASHBOARD" : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
+            {mode === "login" ? (showRegistrationStep ? "REGISTER THIS DEVICE" : "OPERATIONS DASHBOARD") : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
           </div>
         </div>
 
-        {mode === "login" && !totpRequired && (
+        {!webauthnSupported && (
+          <div style={{
+            background: "#fdecea", border: `1px solid ${C.red}33`, color: C.red,
+            padding: "10px 14px", borderRadius: 4, fontSize: 12, marginBottom: 16, fontWeight: 600,
+          }}>
+            Your browser doesn't support biometric sign-in. Use Chrome, Safari, Edge, or Firefox.
+          </div>
+        )}
+
+        {showLoginForm && (
           <>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>EMAIL</label>
@@ -141,42 +272,49 @@ function LoginScreen() {
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
             {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
-            <button onClick={handleLogin} disabled={loading} style={{
+            <button onClick={handleLogin} disabled={loading || !webauthnSupported} style={{
               width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
               borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
               letterSpacing: "0.06em", opacity: loading ? 0.6 : 1,
             }}>{loading ? "SIGNING IN..." : "SIGN IN"}</button>
+            <div style={{ fontSize: 10, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.4 }}>
+              After your password, you'll confirm with Touch ID, Face ID, or Windows Hello.
+            </div>
           </>
         )}
 
-        {mode === "login" && totpRequired && (
+        {showRegistrationStep && (
           <>
-            <div style={{ marginBottom: 8, textAlign: "center" }}>
-              <div style={{ fontSize: 13, color: C.text, fontWeight: 600, marginBottom: 4 }}>Two-Factor Authentication</div>
-              <div style={{ fontSize: 11, color: C.muted }}>Enter the 6-digit code from your authenticator app, or a recovery code.</div>
+            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+              First time signing in. Register this device's biometric so you can use it next time.
             </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>CODE</label>
+            <div style={{
+              fontSize: 12, color: C.muted, marginBottom: 14, padding: "10px 12px",
+              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
+            }}>
+              When you click below, your device will prompt for Touch ID, Face ID, or Windows Hello.
+              The biometric never leaves this device — only a public key is stored on the server.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>NAME THIS DEVICE</label>
               <input
-                style={{ ...inputStyle, fontFamily: "monospace", fontSize: 18, letterSpacing: "0.1em", textAlign: "center" }}
-                type="text"
-                inputMode="text"
-                autoComplete="one-time-code"
+                style={inputStyle}
+                value={deviceLabel}
+                onChange={e => setDeviceLabel(e.target.value.slice(0, 60))}
+                maxLength={60}
+                placeholder="iPhone, MacBook, etc."
+                onKeyDown={e => e.key === "Enter" && !loading && completeFirstRegistration()}
                 autoFocus
-                value={totpCode}
-                onChange={e => setTotpCode(e.target.value)}
-                placeholder="123456"
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
               />
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            <button onClick={handleLogin} disabled={loading} style={{
+            <button onClick={completeFirstRegistration} disabled={loading} style={{
               width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
               borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
               letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
-            }}>{loading ? "VERIFYING..." : "VERIFY & SIGN IN"}</button>
+            }}>{loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}</button>
             <div style={{ textAlign: "center" }}>
-              <span onClick={() => { setTotpRequired(false); setTotpCode(""); setError(""); }} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back</span>
+              <span onClick={cancelRegistration} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back</span>
             </div>
           </>
         )}

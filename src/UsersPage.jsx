@@ -3,7 +3,7 @@ import { C, API_URL } from "./config.js";
 import { ROLE_OPTIONS, canModifyUser } from "./utils.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
-import TotpSetupModal from "./TotpSetupModal.jsx";
+import WebAuthnSetupModal from "./WebAuthnSetupModal.jsx";
 
 function UsersPage({ isAdmin }) {
   const { users, currentUser, refreshUsers } = useApp();
@@ -21,8 +21,10 @@ function UsersPage({ isAdmin }) {
   const [resetPwConfirm, setResetPwConfirm] = useState("");
   const [resetPwMsg, setResetPwMsg] = useState("");
   const [showChangePw, setShowChangePw] = useState(false);
-  // v27.98 — Two-factor authentication setup modal (self-service)
-  const [showTotp, setShowTotp] = useState(false);
+  // v27.99 — WebAuthn (biometric) device management modal (self-service).
+  // Replaces the v27.98 TOTP modal. Admin force-wipe of another user's
+  // credentials goes through handleAdminWipeBio() below.
+  const [showWebauthn, setShowWebauthn] = useState(false);
   const [changePwCurrent, setChangePwCurrent] = useState("");
   const [changePwNew, setChangePwNew] = useState("");
   const [changePwConfirm, setChangePwConfirm] = useState("");
@@ -124,6 +126,34 @@ function UsersPage({ isAdmin }) {
     } catch { setResetPwMsg("Error resetting password"); }
   };
 
+  // v27.99 — Owner/admin force-wipes a target user's biometric credentials.
+  // Used when a user has lost ALL their registered devices and the in-app
+  // self-service path is unreachable. Owner-protection is enforced server-side
+  // (admin cannot wipe an owner's biometric — only another owner can, or the
+  // CLI fallback scripts/disable-user-webauthn.js).
+  const handleAdminWipeBio = async (target) => {
+    if (!target) return;
+    if (!window.confirm(`Wipe ALL biometric devices for ${target.name}?\n\nThey'll need to re-register a device on their next login (after entering their password). All their current sessions will be invalidated.`)) return;
+    try {
+      const r = await fetch(`${API_URL}/auth/webauthn/admin-disable`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: target.id }),
+      });
+      const data = await r.json().catch(() => null);
+      if (!r.ok) {
+        setMsg(data?.error || "Could not wipe biometric devices");
+        setTimeout(() => setMsg(""), 5000);
+        return;
+      }
+      await refreshUsers();
+      setMsg(`Biometric devices wiped for ${target.name}.`);
+      setTimeout(() => setMsg(""), 4000);
+    } catch {
+      setMsg("Connection error wiping biometric devices");
+      setTimeout(() => setMsg(""), 4000);
+    }
+  };
+
   const handleChangePw = async () => {
     if (!changePwCurrent) { setChangePwMsg("Enter your current password"); return; }
     if (!changePwNew || changePwNew.length < 6) { setChangePwMsg("New password must be at least 6 characters"); return; }
@@ -213,7 +243,8 @@ function UsersPage({ isAdmin }) {
                       {canModify && !isSelf && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
                       {canModify && !isSelf && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyle}>RESET PW</button>}
                       {isSelf && <button onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyle}>CHANGE PW</button>}
-                      {isSelf && <button onClick={() => setShowTotp(true)} style={{ ...actionBtnStyle, border: `1px solid ${u.totp_enabled ? C.green : C.muted}44`, color: u.totp_enabled ? C.green : C.text }}>{u.totp_enabled ? "2FA ✓" : "SET UP 2FA"}</button>}
+                      {isSelf && <button onClick={() => setShowWebauthn(true)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>MANAGE DEVICES</button>}
+                      {canModify && !isSelf && <button onClick={() => handleAdminWipeBio(u)} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }} title="Wipe all biometric devices for this user (used when they've lost all their devices)">WIPE BIO</button>}
                       {canModify && !isSelf && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyle}>RESEND INVITE</button>}
                       {!canModify && !isSelf && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                       {canModify && (
@@ -279,7 +310,8 @@ function UsersPage({ isAdmin }) {
                   {canModify && !isSelf && <button onClick={() => handleDeactivate(u.id)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.red}33`, color: C.red }}>REMOVE</button>}
                   {canModify && !isSelf && <button onClick={() => { setResetPwUser(u); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyleMob}>RESET PW</button>}
                   {isSelf && <button onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyleMob}>CHANGE PW</button>}
-                  {isSelf && <button onClick={() => setShowTotp(true)} style={{ ...actionBtnStyleMob, border: `1px solid ${u.totp_enabled ? C.green : C.muted}44`, color: u.totp_enabled ? C.green : C.text }}>{u.totp_enabled ? "2FA ✓" : "SET UP 2FA"}</button>}
+                  {isSelf && <button onClick={() => setShowWebauthn(true)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.blue}44`, color: C.blue }}>MANAGE DEVICES</button>}
+                  {canModify && !isSelf && <button onClick={() => handleAdminWipeBio(u)} style={{ ...actionBtnStyleMob, border: `1px solid ${C.red}33`, color: C.red }}>WIPE BIO</button>}
                   {canModify && !isSelf && <button onClick={() => handleResendInvite(u.id)} style={actionBtnStyleMob}>RESEND INVITE</button>}
                   {!canModify && !isSelf && <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Protected</span>}
                 </div>
@@ -311,12 +343,11 @@ function UsersPage({ isAdmin }) {
         </ModalWrap>
       )}
 
-      {/* ── 2FA SETUP / DISABLE MODAL (v27.98) ── */}
-      {showTotp && (
-        <TotpSetupModal
+      {/* ── BIOMETRIC DEVICE MANAGER (v27.99) ── */}
+      {showWebauthn && (
+        <WebAuthnSetupModal
           userName={currentUser?.name || "your account"}
-          totpEnabled={!!(users.find(u => u.id === currentUser?.id)?.totp_enabled)}
-          onClose={() => setShowTotp(false)}
+          onClose={() => setShowWebauthn(false)}
           onStateChange={() => refreshUsers()}
         />
       )}
