@@ -53,6 +53,16 @@ function LoginScreen() {
   const [pendingRegistration, setPendingRegistration] = useState(null);
   const [deviceLabel, setDeviceLabel] = useState("");
 
+  // v28.01 — Pending authentication state. iOS WebKit (Safari + Chrome on
+  // iOS) revokes user-activation across an awaited fetch, so calling
+  // startAuthentication() inline after `await fetch('/auth/login')` throws
+  // NotAllowedError on iPhones — the activation token expired during the
+  // network round-trip. Fix: stash the auth payload here and render a fresh
+  // "Confirm with Biometric" button. The user's tap on that button creates
+  // a new activation, then startAuthentication() fires inside the activation
+  // window. Costs one extra tap; eliminates iOS NotAllowedError entirely.
+  const [pendingAuthentication, setPendingAuthentication] = useState(null);
+
   const webauthnSupported = typeof window !== "undefined" ? browserSupportsWebAuthn() : true;
 
   // Check URL for reset token on mount
@@ -80,13 +90,26 @@ function LoginScreen() {
   };
 
   // ── Stage 2a: complete authentication with existing device ──
-  const completeAuthentication = async (pendingToken, authOptions) => {
+  // v28.01 — Called from the "Confirm with Biometric" button click handler so
+  // the WebAuthn call runs inside a fresh user-activation window. Reads the
+  // pending payload from state instead of taking it as args; the button-click
+  // boundary is the activation source.
+  const completeAuthentication = async () => {
+    if (!pendingAuthentication) return;
+    const { pending_token: pendingToken, authentication_options: authOptions } = pendingAuthentication;
+    setError(""); setLoading(true);
     let assertion;
     try {
       assertion = await startAuthentication({ optionsJSON: authOptions });
     } catch (browserErr) {
-      const msg = browserErr?.message || "Biometric verification cancelled";
+      const name = browserErr?.name || "";
+      // Friendlier messages for the most common iOS / cross-device cases.
+      let msg = browserErr?.message || "Biometric verification cancelled";
+      if (name === "NotAllowedError") {
+        msg = "Biometric prompt was cancelled or this device has no matching passkey. If this is a new device, you may need to register it first — see help below.";
+      }
       setError(msg);
+      setLoading(false);
       return;
     }
     try {
@@ -106,7 +129,14 @@ function LoginScreen() {
       }
     } catch {
       setError("Connection error during verification");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const cancelAuthentication = () => {
+    setPendingAuthentication(null);
+    setError("");
   };
 
   // ── Stage 2b: register first device, then complete login ──
@@ -170,8 +200,14 @@ function LoginScreen() {
         return;
       }
       // v27.99 — biometric authentication branch.
+      // v28.01 — Don't auto-fire startAuthentication(); stash the payload and
+      // require a fresh tap on the Confirm button so iOS WebKit sees a live
+      // user-activation token when the WebAuthn call runs.
       if (data.requires_webauthn_authentication && data.pending_token && data.authentication_options) {
-        await completeAuthentication(data.pending_token, data.authentication_options);
+        setPendingAuthentication({
+          pending_token: data.pending_token,
+          authentication_options: data.authentication_options,
+        });
         return;
       }
       // v27.99 — first-login device registration branch.
@@ -228,7 +264,8 @@ function LoginScreen() {
   };
 
   const showRegistrationStep = mode === "login" && !!pendingRegistration;
-  const showLoginForm = mode === "login" && !pendingRegistration;
+  const showAuthenticationStep = mode === "login" && !!pendingAuthentication && !pendingRegistration;
+  const showLoginForm = mode === "login" && !pendingRegistration && !pendingAuthentication;
 
   return (
     <div style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}>
@@ -242,7 +279,9 @@ function LoginScreen() {
           }}>FTI</div>
           <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "0.1em" }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
-            {mode === "login" ? (showRegistrationStep ? "REGISTER THIS DEVICE" : "OPERATIONS DASHBOARD") : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
+            {mode === "login"
+              ? (showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
+              : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
           </div>
         </div>
 
@@ -279,6 +318,29 @@ function LoginScreen() {
             }}>{loading ? "SIGNING IN..." : "SIGN IN"}</button>
             <div style={{ fontSize: 10, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.4 }}>
               After your password, you'll confirm with Touch ID, Face ID, or Windows Hello.
+            </div>
+          </>
+        )}
+
+        {showAuthenticationStep && (
+          <>
+            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+              Password verified. Tap below to confirm with your biometric.
+            </div>
+            <div style={{
+              fontSize: 12, color: C.muted, marginBottom: 16, padding: "10px 12px",
+              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
+            }}>
+              Your device will prompt for Touch ID, Face ID, Windows Hello, or your saved passkey.
+            </div>
+            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+            <button onClick={completeAuthentication} disabled={loading} style={{
+              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
+              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
+            }}>{loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}</button>
+            <div style={{ textAlign: "center" }}>
+              <span onClick={cancelAuthentication} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back</span>
             </div>
           </>
         )}
