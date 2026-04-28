@@ -63,19 +63,63 @@ function LoginScreen() {
   // window. Costs one extra tap; eliminates iOS NotAllowedError entirely.
   const [pendingAuthentication, setPendingAuthentication] = useState(null);
 
+  // v28.03 — Magic-link new-device enrollment state. Three sub-states:
+  //   - authFailedShowLinkOption: after a failed startAuthentication() on a
+  //     device with no matching passkey, surface the "Send registration link"
+  //     CTA. User taps → POST /webauthn/request-device-link → email sent.
+  //   - linkSentMsg: after the email goes out, show a confirmation banner.
+  //   - enrollmentLanding: when the user opens the email link, the URL has
+  //     ?enroll=<token>&uid=<id>; we fetch options, render a name-this-device
+  //     panel, run startRegistration() on tap, then complete login.
+  const [authFailedShowLinkOption, setAuthFailedShowLinkOption] = useState(false);
+  const [linkSentMsg, setLinkSentMsg] = useState("");
+  const [enrollmentLanding, setEnrollmentLanding] = useState(null); // { pending_token, registration_options, user_email, user_name } | null
+  const [enrollmentLoading, setEnrollmentLoading] = useState(false);
+
   const webauthnSupported = typeof window !== "undefined" ? browserSupportsWebAuthn() : true;
 
-  // Check URL for reset token on mount
+  // Check URL for reset token on mount, OR for v28.03 enrollment token.
+  // Two link types share the same landing page; they're disambiguated by
+  // which query param is present (`?reset=` vs `?enroll=`).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("reset");
+    const resetTokenParam = params.get("reset");
+    const enrollTokenParam = params.get("enroll");
     const uid = params.get("uid");
-    if (token && uid) {
-      setResetToken(token);
+    if (resetTokenParam && uid) {
+      setResetToken(resetTokenParam);
       setResetUid(uid);
       setMode("reset");
       window.history.replaceState({}, document.title, window.location.pathname);
+      return;
     }
+    if (enrollTokenParam && uid) {
+      // v28.03 — magic-link device enrollment landing. Fetch options and
+      // pre-fill the device-label panel; user clicks REGISTER to fire the
+      // WebAuthn ceremony from a fresh user-activation window.
+      window.history.replaceState({}, document.title, window.location.pathname);
+      (async () => {
+        setEnrollmentLoading(true); setError("");
+        try {
+          const r = await fetch(`${API_URL}/auth/webauthn/enroll-options`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: enrollTokenParam, user_id: uid }),
+          });
+          const data = await r.json();
+          if (!r.ok) {
+            setError(data.error || "Could not start enrollment");
+            return;
+          }
+          setEnrollmentLanding(data);
+          setDeviceLabel(suggestDeviceLabel());
+        } catch {
+          setError("Connection error opening enrollment link");
+        } finally {
+          setEnrollmentLoading(false);
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Suggest a device label based on user agent — user can edit before registering.
@@ -97,16 +141,18 @@ function LoginScreen() {
   const completeAuthentication = async () => {
     if (!pendingAuthentication) return;
     const { pending_token: pendingToken, authentication_options: authOptions } = pendingAuthentication;
-    setError(""); setLoading(true);
+    setError(""); setLinkSentMsg(""); setAuthFailedShowLinkOption(false); setLoading(true);
     let assertion;
     try {
       assertion = await startAuthentication({ optionsJSON: authOptions });
     } catch (browserErr) {
       const name = browserErr?.name || "";
-      // Friendlier messages for the most common iOS / cross-device cases.
       let msg = browserErr?.message || "Biometric verification cancelled";
       if (name === "NotAllowedError") {
-        msg = "Biometric prompt was cancelled or this device has no matching passkey. If this is a new device, you may need to register it first — see help below.";
+        // v28.03 — surface the magic-link CTA when biometric fails. This is
+        // the typical "I'm on a new device, I don't have a passkey here" path.
+        msg = "Biometric verification didn't complete. If this is a new device, you can register it via an email link below.";
+        setAuthFailedShowLinkOption(true);
       }
       setError(msg);
       setLoading(false);
@@ -136,7 +182,74 @@ function LoginScreen() {
 
   const cancelAuthentication = () => {
     setPendingAuthentication(null);
+    setAuthFailedShowLinkOption(false);
+    setLinkSentMsg("");
     setError("");
+  };
+
+  // v28.03 — User clicked "Send registration link to my email" after a failed
+  // biometric on this device. POSTs to /auth/webauthn/request-device-link
+  // with the pending_token from the prior /auth/login response.
+  const requestDeviceLink = async () => {
+    if (!pendingAuthentication) return;
+    const { pending_token: pendingToken } = pendingAuthentication;
+    setLoading(true); setError(""); setLinkSentMsg("");
+    try {
+      const r = await fetch(`${API_URL}/auth/webauthn/request-device-link`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token: pendingToken }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setError(data.error || "Could not send registration link");
+        return;
+      }
+      setLinkSentMsg(data.message || "Registration link sent. Check your email on this device.");
+      setAuthFailedShowLinkOption(false);
+    } catch {
+      setError("Connection error — could not send registration link");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // v28.03 — User opened the email link on the new device and clicked
+  // REGISTER & SIGN IN. Runs the WebAuthn registration ceremony with options
+  // already fetched by the URL-param effect, then posts the attestation.
+  const completeDeviceEnrollment = async () => {
+    if (!enrollmentLanding) return;
+    const label = (deviceLabel || "").trim() || suggestDeviceLabel();
+    setError(""); setLoading(true);
+    try {
+      let attResp;
+      try {
+        attResp = await startRegistration({ optionsJSON: enrollmentLanding.registration_options });
+      } catch (browserErr) {
+        const msg = browserErr?.name === "InvalidStateError"
+          ? "This device is already registered for your account."
+          : browserErr?.message || "Biometric registration cancelled";
+        setError(msg);
+        return;
+      }
+      const r = await fetch(`${API_URL}/auth/webauthn/enroll-verify`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending_token: enrollmentLanding.pending_token, response: attResp, device_label: label }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setError(data.error || "Enrollment failed");
+        return;
+      }
+      if (data.token) {
+        setCurrentUser(data);
+      } else {
+        setError("Server did not return a session token");
+      }
+    } catch {
+      setError("Connection error during enrollment");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // ── Stage 2b: register first device, then complete login ──
@@ -263,9 +376,10 @@ function LoginScreen() {
     finally { setLoading(false); }
   };
 
-  const showRegistrationStep = mode === "login" && !!pendingRegistration;
-  const showAuthenticationStep = mode === "login" && !!pendingAuthentication && !pendingRegistration;
-  const showLoginForm = mode === "login" && !pendingRegistration && !pendingAuthentication;
+  const showEnrollmentStep = mode === "login" && !!enrollmentLanding;
+  const showRegistrationStep = mode === "login" && !!pendingRegistration && !enrollmentLanding;
+  const showAuthenticationStep = mode === "login" && !!pendingAuthentication && !pendingRegistration && !enrollmentLanding;
+  const showLoginForm = mode === "login" && !pendingRegistration && !pendingAuthentication && !enrollmentLanding;
 
   return (
     <div style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}>
@@ -280,7 +394,7 @@ function LoginScreen() {
           <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "0.1em" }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
             {mode === "login"
-              ? (showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
+              ? (showEnrollmentStep ? "REGISTER THIS DEVICE" : showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
               : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
           </div>
         </div>
@@ -334,15 +448,91 @@ function LoginScreen() {
               Your device will prompt for Touch ID, Face ID, Windows Hello, or your saved passkey.
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+            {linkSentMsg && (
+              <div style={{
+                background: "#e6f5ec", border: `1px solid ${C.green}33`, color: C.green,
+                padding: "10px 14px", borderRadius: 4, fontSize: 12, marginBottom: 12, fontWeight: 600, textAlign: "center",
+              }}>
+                {linkSentMsg}
+              </div>
+            )}
             <button onClick={completeAuthentication} disabled={loading} style={{
               width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
               borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
               letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
             }}>{loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}</button>
+
+            {/* v28.03 — magic-link CTA. Shown after a failed biometric attempt
+                (NotAllowedError typically means "no matching passkey on this
+                device"). One tap → email link → register on this device. */}
+            {authFailedShowLinkOption && !linkSentMsg && (
+              <div style={{
+                marginBottom: 12, padding: "12px 14px",
+                background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
+              }}>
+                <div style={{ fontSize: 12, color: C.text, marginBottom: 10, lineHeight: 1.5 }}>
+                  Is this a new device that hasn't been registered yet? We can email you a one-time link to register it.
+                </div>
+                <button onClick={requestDeviceLink} disabled={loading} style={{
+                  width: "100%", padding: "10px 0", background: "transparent",
+                  border: `1px solid ${C.blue}`, color: C.blue, borderRadius: 4,
+                  fontSize: 13, fontWeight: 700, cursor: loading ? "default" : "pointer",
+                  letterSpacing: "0.04em", opacity: loading ? 0.6 : 1,
+                }}>
+                  {loading ? "SENDING..." : "SEND REGISTRATION LINK TO MY EMAIL"}
+                </button>
+              </div>
+            )}
+
             <div style={{ textAlign: "center" }}>
               <span onClick={cancelAuthentication} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back</span>
             </div>
           </>
+        )}
+
+        {/* v28.03 — Magic-link landing. User opened the email on the new device
+            and clicked the link. Options were fetched in the URL-param effect;
+            user names the device and confirms registration. The biometric
+            ceremony fires from a fresh user-activation (the click on this
+            button), so iOS WebKit can't revoke it mid-flight. */}
+        {showEnrollmentStep && (
+          <>
+            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+              Welcome, <strong>{enrollmentLanding.user_name}</strong>. Register this device to sign in here going forward.
+            </div>
+            <div style={{
+              fontSize: 12, color: C.muted, marginBottom: 14, padding: "10px 12px",
+              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
+            }}>
+              When you tap below, this device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves the device — only a public key is stored on the server.
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>NAME THIS DEVICE</label>
+              <input
+                style={inputStyle}
+                value={deviceLabel}
+                onChange={e => setDeviceLabel(e.target.value.slice(0, 60))}
+                maxLength={60}
+                placeholder="iPhone, MacBook, etc."
+                onKeyDown={e => e.key === "Enter" && !loading && completeDeviceEnrollment()}
+                autoFocus
+              />
+            </div>
+            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+            <button onClick={completeDeviceEnrollment} disabled={loading} style={{
+              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
+              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
+            }}>{loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}</button>
+          </>
+        )}
+
+        {/* Loading state for the enrollment-options fetch. Shown briefly while
+            the URL-param effect resolves before showEnrollmentStep flips on. */}
+        {enrollmentLoading && !enrollmentLanding && (
+          <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>
+            Opening registration link...
+          </div>
         )}
 
         {showRegistrationStep && (
