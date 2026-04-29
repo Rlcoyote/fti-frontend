@@ -250,7 +250,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             onClose={() => setShowJSA(false)}
             onSave={async (jsaData) => {
               try {
-                await fetch(`${API_URL}/jsas/ticket/${savedTicketId}`, {
+                // v28.07.4 — mirror v28.07.2 fix in useTicketJSA: capture
+                // jsaId from response so existingJSA.id is set, which is
+                // what JSACrewSigners' parent gating depends on. Earlier
+                // code dropped the jsaId, leaving existingJSA without an id
+                // and the biometric section either invisible or rendering
+                // empty.
+                const r = await fetch(`${API_URL}/jsas/ticket/${savedTicketId}`, {
                   method: "PUT", headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     job_id: jobId,
@@ -265,7 +271,9 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                     additional_steps: jsaData.additionalSteps,
                   }),
                 });
-                setExistingJSA(jsaData);
+                const responseData = await r.json().catch(() => null);
+                const newId = responseData?.jsaId || existingJSA?.id || null;
+                setExistingJSA({ ...jsaData, id: newId });
               } catch (err) { console.error("JSA save failed:", err); }
             }}
           />

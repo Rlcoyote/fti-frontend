@@ -109,12 +109,25 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
     }
   };
 
+  // v28.07.4 — never return null. Always show the section header so the
+  // user knows where the FTI Crew Biometric Signatures live, regardless of
+  // load state or fetch outcome. Earlier code returned null on fetch
+  // failure, leaving silent empty space that looked like the feature was
+  // missing entirely.
   if (loading) return (
-    <div style={{ marginBottom: 14, padding: 14, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 12, color: C.muted }}>
-      Loading required signers...
+    <div style={{ marginBottom: 14, padding: 14, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 }}>
+      <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
+      <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Loading required signers...</div>
     </div>
   );
-  if (!data) return null;
+  if (!data) return (
+    <div style={{ marginBottom: 14, padding: 14, background: C.cardBg, border: `1px solid ${C.red}33`, borderRadius: 6 }}>
+      <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
+      <div style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>
+        {error || "Could not load required signers."}
+      </div>
+    </div>
+  );
 
   const userOnCrew = data.crew.find(c => c.user_id === currentUser?.id);
   const userIsLead = !!(userOnCrew && userOnCrew.is_lead);
@@ -131,8 +144,16 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
         </div>
 
         {data.crew.length === 0 && (
-          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", padding: 8 }}>
-            No crew assigned to this ticket. Add crew via Ticket Crew section before opening the JSA.
+          <div style={{
+            padding: "10px 12px", background: "#fdf5d8",
+            border: `1px solid #8a650044`, borderRadius: 4,
+            fontSize: 12, color: "#8a6500", lineHeight: 1.5,
+          }}>
+            <strong>No crew assigned to this ticket yet.</strong> Close the JSA, find
+            the TICKET CREW section on the ticket itself (between Site Manager and
+            Time &amp; Mileage in TicketDetail, or below Notes in the Add Ticket modal),
+            assign at least one crew member as lead, then re-open the JSA. Required
+            signers will then auto-populate here.
           </div>
         )}
 
