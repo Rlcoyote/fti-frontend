@@ -6,6 +6,7 @@ import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import JSAModal from "./JSAModal.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
+import CrewSelectionView from "./CrewSelectionView.jsx";
 import CopyCrewModal from "./CopyCrewModal.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -495,9 +496,11 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               {/* Crew Selection — between Site Manager and Google Pin per
                   v28.09 reorder so the section sits in the same place
                   before AND after save (matches TicketDetail). Pre-save:
-                  local crewSelection state, bulk-POSTed on CREATE TICKET.
-                  Post-save: live CrewSelectionManager fetches from
-                  /tickets/:id/crew. */}
+                  local crewSelection state rendered via CrewSelectionView,
+                  bulk-POSTed on CREATE TICKET. Post-save: CrewSelectionManager
+                  takes over, fetching from /tickets/:id/crew and rendering
+                  via the same CrewSelectionView. v28.13 — both surfaces
+                  now share one visual implementation; UX tweaks land once. */}
               {savedTicketId ? (
                 <CrewSelectionManager
                   ticketId={savedTicketId}
@@ -507,142 +510,41 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                   jobId={jobId}
                 />
               ) : (
-                <div style={{
-                  marginBottom: 14, padding: 14,
-                  background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>
-                      CREW SELECTION ({crewSelection.length})
-                      <span style={{ marginLeft: 8, fontWeight: 400, fontStyle: "italic", color: C.muted, textTransform: "none", letterSpacing: 0 }}>
-                        — saved when you create the ticket
-                      </span>
-                    </div>
-                    {hasRigUpForCopy && (
-                      <Btn small variant="ghost" onClick={() => setShowCopyCrew(true)}>
-                        📋 COPY CREW FROM RIG UP
-                      </Btn>
-                    )}
-                  </div>
-
-                  {/* Permanent select-to-add — no +ADD button. Selecting an
-                      employee from the dropdown immediately adds them.
-                      First-added is auto-designated as lead. */}
-                  {(() => {
-                    const addable = (users || [])
+                <>
+                  <CrewSelectionView
+                    crew={crewSelection}
+                    canMutate={true}
+                    addableUsers={(users || [])
                       .filter(u => u.is_active !== false)
                       .filter(u => !crewSelection.some(s => s.user_id === u.id))
-                      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-                    return (
-                      <div style={{ marginBottom: 10 }}>
-                        <select
-                          style={inputStyle}
-                          value=""
-                          disabled={addable.length === 0}
-                          onChange={e => {
-                            const id = e.target.value;
-                            if (!id) return;
-                            const u = addable.find(x => x.id === id);
-                            if (!u) return;
-                            setCrewSelection(prev => [
-                              ...prev,
-                              {
-                                user_id: u.id,
-                                user_name: u.name,
-                                user_role: u.role,
-                                is_lead: prev.length === 0,
-                              },
-                            ]);
-                          }}
-                        >
-                          <option value="">
-                            {addable.length === 0 ? "— all employees added —" : "— select employee —"}
-                          </option>
-                          {addable.map(u => (
-                            <option key={u.id} value={u.id}>
-                              {u.name}{u.role ? ` (${u.role})` : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Selection list */}
-                  {crewSelection.length === 0 ? (
-                    <div style={{
-                      fontSize: 12, color: C.muted, fontStyle: "italic",
-                      padding: "10px 12px", background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
-                    }}>
-                      No crew selected yet. Pick an employee above to add — the first becomes lead.
-                    </div>
-                  ) : (
-                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, overflow: "hidden" }}>
-                      {crewSelection.map((c, i) => (
-                        <div
-                          key={c.user_id}
-                          style={{
-                            display: "flex", alignItems: "center", justifyContent: "space-between",
-                            padding: "8px 12px",
-                            borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                            background: c.is_lead ? "#fdf5d8" : C.cardBg,
-                          }}
-                        >
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                              {c.user_name}
-                              {c.is_lead && (
-                                <span style={{
-                                  marginLeft: 8, fontSize: 9, fontWeight: 800, color: "#8a6500",
-                                  background: "#ffffffaa", border: `1px solid #8a650044`,
-                                  padding: "1px 6px", borderRadius: 3, letterSpacing: "0.08em",
-                                }}>LEAD</span>
-                              )}
-                              {c.user_role && (
-                                <span style={{ marginLeft: 6, fontSize: 10, color: C.muted, fontWeight: 400 }}>
-                                  · {c.user_role}
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            {!c.is_lead && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCrewSelection(prev => prev.map(s => ({ ...s, is_lead: s.user_id === c.user_id })));
-                                }}
-                                style={{
-                                  background: "transparent", border: `1px solid ${C.muted}55`,
-                                  color: C.muted, fontSize: 10, fontWeight: 700,
-                                  padding: "3px 8px", borderRadius: 3, cursor: "pointer",
-                                  letterSpacing: "0.06em",
-                                }}
-                              >MAKE LEAD</button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCrewSelection(prev => {
-                                  const next = prev.filter(s => s.user_id !== c.user_id);
-                                  if (c.is_lead && next.length > 0 && !next.some(s => s.is_lead)) {
-                                    next[0] = { ...next[0], is_lead: true };
-                                  }
-                                  return next;
-                                });
-                              }}
-                              style={{
-                                background: "transparent", border: `1px solid ${C.red}33`,
-                                color: C.red, fontSize: 10, fontWeight: 700,
-                                padding: "3px 8px", borderRadius: 3, cursor: "pointer",
-                                letterSpacing: "0.06em",
-                              }}
-                            >REMOVE</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                      .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+                    }
+                    hasCopySource={hasRigUpForCopy}
+                    onCopySource={() => setShowCopyCrew(true)}
+                    onAdd={(userId, isLead) => {
+                      const u = (users || []).find(x => x.id === userId);
+                      if (!u) return;
+                      setCrewSelection(prev => [
+                        ...prev,
+                        { user_id: u.id, user_name: u.name, user_role: u.role, is_lead: !!isLead },
+                      ]);
+                    }}
+                    onSetLead={(userId) => {
+                      setCrewSelection(prev => prev.map(s => ({ ...s, is_lead: s.user_id === userId })));
+                    }}
+                    onRemove={(userId) => {
+                      setCrewSelection(prev => {
+                        const removed = prev.find(s => s.user_id === userId);
+                        const next = prev.filter(s => s.user_id !== userId);
+                        if (removed?.is_lead && next.length > 0 && !next.some(s => s.is_lead)) {
+                          next[0] = { ...next[0], is_lead: true };
+                        }
+                        return next;
+                      });
+                    }}
+                    headerSubtext="— saved when you create the ticket"
+                    emptyMessage="No crew selected yet. Pick an employee above to add — the first becomes lead."
+                  />
 
                   {showCopyCrew && (
                     <CopyCrewModal
@@ -671,7 +573,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                       }}
                     />
                   )}
-                </div>
+                </>
               )}
 
               {/* Google Pin — before Time & Mileage so drive info populates first */}
