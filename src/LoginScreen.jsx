@@ -396,7 +396,7 @@ function LoginScreen() {
             {mode === "login"
               ? (showEnrollmentStep ? "REGISTER THIS DEVICE" : showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
               : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
-            {" "}<span style={{ color: C.red, fontWeight: 700 }}>v28.04</span>
+            {" "}<span style={{ color: C.red, fontWeight: 700 }}>v28.06</span>
           </div>
         </div>
 

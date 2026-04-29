@@ -15,6 +15,7 @@ import TicketHeaderRow from "./TicketHeaderRow.jsx";
 import TicketSignatureFlow from "./TicketSignatureFlow.jsx";
 import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import TicketJobInfo from "./TicketJobInfo.jsx";
+import TicketCrewManager from "./TicketCrewManager.jsx";
 import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
 import { inputStyle, TICKET_TYPES } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
@@ -230,6 +231,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           job={job}
           knownContacts={s.knownContacts}
         />
+
+        {/* Ticket-level crew + lead designation (v28.06). Prereq for v28.07
+            JSA biometric flow — JSA auto-populates required signers from
+            this list. Hidden until ticket has an id (skip on the create
+            flow before ticket exists in DB). */}
+        {ticket?.id && (
+          <TicketCrewManager
+            ticketId={ticket.id}
+            ticketIsClosed={isFullyLocked || !!ticket.voidedAt || !!ticket.deletedAt}
+            editable={editable}
+          />
+        )}
 
         {/* Time & Mileage — extracted to TicketTimeAndMileage (v27.78) */}
         {!['Rental'].includes(ticket.type) && (
