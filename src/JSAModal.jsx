@@ -55,6 +55,13 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
       .then(rows => setTicketCrewForDD(Array.isArray(rows) ? rows : []))
       .catch(() => setTicketCrewForDD([]));
   }, [ticket?.id]);
+
+  // v28.07.2 — Save state for non-blocking save flow. Modal stays open
+  // after save (so the FTI CREW BIOMETRIC SIGNATURES section becomes
+  // immediately usable on a fresh JSA). lastSavedAt powers the "Saved
+  // HH:MM" indicator next to the Save button.
+  const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState(null);
   const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat || "");
   const [lng, setLng] = useState(jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng || "");
   const [mapLink, setMapLink] = useState(() => {
@@ -400,43 +407,57 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
           <Btn small variant="ghost" onClick={() => setAdditionalSteps(prev => [...prev, { step: "", hazard: "", procedure: "" }])}>+ ADD STEP</Btn>
         </div>
 
-        {/* Footer — required-field gate (v27.69):
-            Per Reggie's spec the JSA cannot save without: date (auto-filled),
-            designated driver, location pin (auto-populated when possible),
-            and at least one crew signature. Validation happens client-side;
-            the missing-fields list renders above the footer so the user knows
-            exactly what to fill in. */}
+        {/* Footer — incomplete-fields HINT (v28.07.2):
+            Save is no longer gated on missing fields. Reggie's call: JSA
+            should save freely as a draft, and surface what's still needed
+            for COMPLETION (not for saving). External signatures are
+            optional (most JSAs have none). The hint banner shows what's
+            outstanding for the JSA to be considered "complete." */}
         {(() => {
           const validSigs = (signatures || []).filter(Boolean);
           const missing = [];
           if (!date) missing.push('Date');
           if (!String(designatedDriver || '').trim()) missing.push('Designated Driver');
           if (!lat || !lng) missing.push('Location Pin');
-          if (validSigs.length === 0) missing.push('At least one crew signature');
+          // Note: external signatures are NOT required (per Reggie's spec —
+          // most JSAs don't have non-FTI signers). Biometric crew sigs are
+          // tracked separately via the FTI CREW BIOMETRIC SIGNATURES section.
           return missing.length > 0 ? (
             <div style={{ margin: "0 24px", padding: "10px 14px", background: "#fdf5d8", border: `1px solid #8a650044`, borderRadius: 6, fontSize: 12, color: "#8a6500" }}>
-              <strong>Required before saving:</strong> {missing.join(' · ')}
+              <strong>Incomplete:</strong> {missing.join(' · ')} — JSA can still be saved as a draft.
             </div>
           ) : null;
         })()}
-        <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8 }}>
-          {(() => {
-            const validSigs = (signatures || []).filter(Boolean);
-            const canSave = !!date && !!String(designatedDriver || '').trim() && !!lat && !!lng && validSigs.length > 0;
-            return (
-              <Btn disabled={!canSave} onClick={() => {
-                if (!canSave) return;
-                onSave({
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center" }}>
+          <Btn
+            disabled={saving}
+            onClick={async () => {
+              if (saving) return;
+              setSaving(true);
+              try {
+                const validSigs = (signatures || []).filter(Boolean);
+                await onSave({
                   jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
                   lat, lng, weather, ppe, signatures: validSigs,
                   presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
                   savedAt: new Date().toISOString(),
                 });
-                onClose();
-              }}>SAVE JSA</Btn>
-            );
-          })()}
+                setLastSavedAt(new Date());
+                // v28.07.2 — DO NOT onClose() after save. User stays in
+                // the modal so the FTI CREW BIOMETRIC SIGNATURES section
+                // (which only renders once existingJSA has an id) can be
+                // used immediately for self-sign or send-link actions.
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >{saving ? "SAVING..." : "SAVE JSA"}</Btn>
           <Btn onClick={handleClose} variant="ghost">CLOSE</Btn>
+          {lastSavedAt && (
+            <span style={{ fontSize: 11, color: C.green, fontWeight: 600, marginLeft: 6 }}>
+              ✓ Saved {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          )}
         </div>
       </div>
       {showEmergencyEdit && (

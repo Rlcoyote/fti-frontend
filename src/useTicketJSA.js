@@ -60,13 +60,22 @@ export default function useTicketJSA(ticket, job, onUpdate) {
 
   // Save handler. Endpoint picks itself based on whether the ticket has an
   // ID yet (ticket-scoped) or we're saving pre-creation (job-scoped).
+  //
+  // v28.07.2 — capture the JSA id from the backend response and merge it
+  // into local state. Earlier code did `setExistingJSA(jsaData)` which
+  // dropped the new id (form values had no id field), so subsequent
+  // re-opens of the modal saw existingJSA without an id and the v28.07
+  // FTI CREW BIOMETRIC SIGNATURES section couldn't activate. Now the
+  // returned jsaId is preserved, plus the form fields are kept so the
+  // modal can stay open after save and immediately surface the live
+  // signers section.
   const handleJsaSave = async (jsaData) => {
-    if (!job) return;
+    if (!job) return null;
     try {
       const endpoint = ticket.id
         ? `${API_URL}/jsas/ticket/${ticket.id}`
         : `${API_URL}/jsas/${job.id}`;
-      await fetch(endpoint, {
+      const r = await fetch(endpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -87,11 +96,16 @@ export default function useTicketJSA(ticket, job, onUpdate) {
           additional_steps: jsaData.additionalSteps,
         }),
       });
-      setExistingJSA(jsaData);
+      const responseData = await r.json().catch(() => null);
+      const newId = responseData?.jsaId || existingJSA?.id || null;
+      const merged = { ...jsaData, id: newId };
+      setExistingJSA(merged);
       // Flip hasJSA on the ticket row so the badge refreshes without a full fetch.
       if (onUpdate) onUpdate(ticket.id, { hasJSA: true, has_jsa: true });
+      return merged;
     } catch (err) {
       console.error("JSA save failed:", err);
+      return null;
     }
   };
 
