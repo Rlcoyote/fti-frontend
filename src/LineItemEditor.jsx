@@ -3,14 +3,15 @@ import { C, API_URL } from "./config.js";
 import { calcLineTotal } from "./utils.js";
 import { Btn, inputStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import CopyLineItemsModal from "./CopyLineItemsModal.jsx";
 
 function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId }) {
   const { qbItems } = useApp();
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [hasRigUp, setHasRigUp] = useState(false);
-  const [copyLoading, setCopyLoading] = useState(false);
-  const [copyMsg, setCopyMsg] = useState(""); // transient feedback when copy finds no items
+  const [copyMsg, setCopyMsg] = useState(""); // transient post-copy feedback
+  const [showCopyModal, setShowCopyModal] = useState(false);
   const [warnItem, setWarnItem] = useState(null);
   const [allowedCodes, setAllowedCodes] = useState(null);
   const [editingIdx, setEditingIdx] = useState(null); // Mobile: which card is expanded for editing
@@ -46,44 +47,18 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
       .catch(() => { setHasRigUp(false); if (isRigDown) setAllowedCodes(new Set()); });
   }, [jobId, ticketType, isRigDown]);
 
-  const copyFromRigUp = async () => {
-    if (!jobId || copyLoading) return;
-    setCopyLoading(true);
-    setCopyMsg("");
-    try {
-      const r = await fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`);
-      if (!r.ok) { setCopyLoading(false); setCopyMsg("Couldn't reach server."); return; }
-      const data = await r.json();
-      const rigUpsNewestFirst = data.filter(tk => tk.type === "Rig Up" && !tk.voided_at)
-        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-      // Walk newest → oldest until we find one with line items. Silently skipping empty Rig Ups
-      // was the prior failure mode — now we fall through and copy from whichever Rig Up has items.
-      let sourceTicket = null;
-      for (const tk of rigUpsNewestFirst) {
-        const items = tk.lineItems || tk.line_items || [];
-        if (items.length > 0) { sourceTicket = tk; break; }
-      }
-      if (!sourceTicket) {
-        setCopyMsg("No Rig Up ticket on this Work Order has line items yet.");
-        setTimeout(() => setCopyMsg(""), 5000);
-        setCopyLoading(false);
-        return;
-      }
-      const items = (sourceTicket.lineItems || sourceTicket.line_items || []).map(li => ({
-        qbCode: li.qb_code || li.qbCode || "", desc: li.description || li.desc || "",
-        rate: Number(li.rate) || 0, qty: Number(li.qty) || 0,
-        um: li.unit_measure || li.um || "DAY", days: Number(li.days) || 1,
-      }));
-      setLineItems([...items]);
-      onSigWipe?.();
-      setCopyMsg(`Copied ${items.length} item${items.length !== 1 ? "s" : ""} from Rig Up.`);
-      setTimeout(() => setCopyMsg(""), 4000);
-    } catch (err) {
-      console.error("Copy from Rig Up failed:", err);
-      setCopyMsg("Copy failed — check your connection.");
-      setTimeout(() => setCopyMsg(""), 5000);
-    }
-    setCopyLoading(false);
+  // v28.11 — copy-from-Rig-Up flow handed to CopyLineItemsModal so it
+  // matches the source-picker pattern from CopyCrewModal +
+  // TicketDuplicateModal. The modal handles the eligible-source fetch,
+  // progressive-disclosure picker, and items preview. This handler just
+  // commits whatever the modal returns.
+  const handleCopyItems = (items) => {
+    if (!items?.length) { setShowCopyModal(false); return; }
+    setLineItems([...items]);
+    onSigWipe?.();
+    setCopyMsg(`Copied ${items.length} item${items.length !== 1 ? "s" : ""} from Rig Up.`);
+    setTimeout(() => setCopyMsg(""), 4000);
+    setShowCopyModal(false);
   };
 
   const filteredQB = searchTerm.length > 0 ? qbItems.filter(q =>
@@ -289,10 +264,18 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
         <Btn small onClick={() => setShowSearch(s => !s)}>+ FROM RATE SHEET</Btn>
         <Btn small variant="ghost" onClick={addBlank}>+ BLANK LINE</Btn>
         {hasRigUp && (
-          <Btn small variant="ghost" onClick={copyFromRigUp} disabled={copyLoading}>{copyLoading ? "COPYING..." : "📋 COPY ITEMS FROM RIG UP"}</Btn>
+          <Btn small variant="ghost" onClick={() => setShowCopyModal(true)}>📋 COPY ITEMS FROM RIG UP</Btn>
         )}
         {copyMsg && (
           <span style={{ fontSize: 11, fontWeight: 600, color: copyMsg.startsWith("Copied") ? C.green : C.red }}>{copyMsg}</span>
+        )}
+        {showCopyModal && (
+          <CopyLineItemsModal
+            jobId={jobId}
+            excludeTicketId={null}
+            onClose={() => setShowCopyModal(false)}
+            onCopy={handleCopyItems}
+          />
         )}
         {showSearch && (
           <div style={{
