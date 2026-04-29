@@ -62,6 +62,11 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   // HH:MM" indicator next to the Save button.
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
+  // v28.10 — MARK COMPLETE state. Separate from saving so the two buttons
+  // can be in flight independently (though the UI disables both while
+  // either is busy to avoid a half-saved/completed race).
+  const [completing, setCompleting] = useState(false);
+  const [completeError, setCompleteError] = useState("");
   const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat || "");
   const [lng, setLng] = useState(jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng || "");
   const [mapLink, setMapLink] = useState(() => {
@@ -105,6 +110,36 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
     "STOP WORK AUTHORITY. Slips Trips Falls. Keep Walkways Clear. Confined Spaces & Pinch Points. Hands Visible at all times. Eye Safety. 100% Tie Off Policy. Location of Emergency First Aid Kit and how to find the nearest hospital. Importance of a good attitude. Good Communication is key!"
   );
   const [additionalSteps, setAdditionalSteps] = useState(jsa?.additionalSteps || [{ step: "", hazard: "", procedure: "" }]);
+
+  // v28.10 — Auto-create a draft JSA on modal mount if none exists. The
+  // form state above is already populated with sensible defaults from
+  // settings + ticket; the draft inherits those values. Without this, the
+  // FTI CREW BIOMETRIC SIGNATURES section would have nothing to attach
+  // signatures to, and the user would have to manually click SAVE JSA
+  // before signing — which leaks the underlying FK constraint
+  // (jsa_crew_signatures.jsa_id REFERENCES jsas.id) into the user's face.
+  // Layer 1 (DB FK) and Layer 2 (API contract) stay correct; Layer 3 (UX)
+  // no longer surfaces the architectural detail. CAM Article VII
+  // Amendment 1 / Article X applied: solve the UX problem with the right
+  // tool (transparent persistence) rather than gating a layer-3 concern
+  // on a layer-1 detail. The ref guards against double-fire if the effect
+  // re-runs before the POST resolves and updates existingJSA.
+  const autoCreateAttempted = useRef(false);
+  useEffect(() => {
+    if (existingJSA?.id) return;
+    if (autoCreateAttempted.current) return;
+    autoCreateAttempted.current = true;
+    (async () => {
+      const validSigs = (signatures || []).filter(Boolean);
+      await onSave({
+        jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
+        lat, lng, weather, ppe, signatures: validSigs,
+        presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
+        savedAt: new Date().toISOString(),
+      });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingJSA?.id]);
 
   const weatherOpts = ["clear", "cloudy", "calm", "rain", "mud", "hot", "windy", "freezing", "ice", "snow"];
 
@@ -294,27 +329,14 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             </div>
           </div>
 
-          {/* FTI Crew Biometric Signatures (v28.07) — pulled from ticket_crew,
-              cryptographic, immutable legal record. Distinct from the
-              typed-name section below for non-FTI external signers.
-              v28.07.1 — shown even before the JSA is saved, with a
-              placeholder telling the user to save first. */}
-          {existingJSA?.id ? (
-            <JSACrewSigners jsaId={existingJSA.id} />
-          ) : (
-            <div style={{
-              marginBottom: 14, padding: 14, background: C.steel,
-              border: `1px dashed ${C.border}`, borderRadius: 6,
-            }}>
-              <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
-              <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", lineHeight: 1.5 }}>
-                Save the JSA first to enable biometric crew signing. Required signers
-                will be auto-populated from the ticket crew. Each crew member must sign
-                with their own biometric (Touch ID / Face ID) — or via a sign-link to
-                their device — before the JSA can be marked complete.
-              </div>
-            </div>
-          )}
+          {/* FTI Crew Biometric Signatures (v28.07; v28.10 — always render).
+              v28.10 architecture: a draft JSA is auto-created on modal mount
+              if no existingJSA, so JSACrewSigners always has an id to query
+              by. The earlier "Save the JSA first" placeholder is gone — the
+              user no longer has to manually trigger JSA creation before
+              biometric signing. CAM Article VII Amendment 1 / Article X in
+              practice: don't leak the FK constraint into the user's face. */}
+          <JSACrewSigners jsaId={existingJSA?.id} />
 
           {/* External / Non-FTI Crew Signatures (typed name) — for
               subcontractors and customer reps whose identity FTI cannot
@@ -428,7 +450,7 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             </div>
           ) : null;
         })()}
-        <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <Btn
             disabled={saving}
             onClick={async () => {
@@ -445,18 +467,61 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
                 setLastSavedAt(new Date());
                 // v28.07.2 — DO NOT onClose() after save. User stays in
                 // the modal so the FTI CREW BIOMETRIC SIGNATURES section
-                // (which only renders once existingJSA has an id) can be
-                // used immediately for self-sign or send-link actions.
+                // can be used immediately for self-sign or send-link.
               } finally {
                 setSaving(false);
               }
             }}
           >{saving ? "SAVING..." : "SAVE JSA"}</Btn>
+          {/* v28.10 — MARK COMPLETE finalizes the JSA. Server-side gating
+              (POST /api/jsas/:id/complete) refuses if any active crew
+              member hasn't signed yet, returning 409 with the unsigned
+              names — surfaced inline below. We don't pre-disable the
+              button client-side based on signers state because that data
+              lives inside JSACrewSigners; trusting the server for the
+              authoritative gate keeps the two surfaces decoupled. */}
+          {existingJSA?.id && !existingJSA?.completed_at && (
+            <Btn
+              variant="blue"
+              disabled={completing || saving}
+              onClick={async () => {
+                if (completing || saving) return;
+                setCompleting(true); setCompleteError("");
+                try {
+                  const r = await fetch(`${API_URL}/jsas/${existingJSA.id}/complete`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                  });
+                  const j = await r.json().catch(() => null);
+                  if (!r.ok) {
+                    if (j?.unsigned?.length > 0) {
+                      const names = j.unsigned.map(u => u.name).join(', ');
+                      setCompleteError(`Cannot complete — these crew members have not signed yet: ${names}`);
+                    } else {
+                      setCompleteError(j?.error || `Could not complete the JSA (${r.status})`);
+                    }
+                    return;
+                  }
+                  // Success: close the modal. Parent (TicketDetail / AddTicketModal)
+                  // re-fetches JSA on next open and will see completed_at set.
+                  onClose();
+                } catch {
+                  setCompleteError("Connection error while marking complete");
+                } finally {
+                  setCompleting(false);
+                }
+              }}
+            >{completing ? "COMPLETING..." : "MARK COMPLETE"}</Btn>
+          )}
           <Btn onClick={handleClose} variant="ghost">CLOSE</Btn>
           {lastSavedAt && (
             <span style={{ fontSize: 11, color: C.green, fontWeight: 600, marginLeft: 6 }}>
               ✓ Saved {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </span>
+          )}
+          {completeError && (
+            <div style={{ flexBasis: "100%", marginTop: 8, color: C.red, fontSize: 12, fontWeight: 700 }}>
+              {completeError}
+            </div>
           )}
         </div>
       </div>
