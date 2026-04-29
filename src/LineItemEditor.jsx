@@ -267,16 +267,19 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
             }}>×</button>
           </div>
         ))}
+        {/* v28.09 — TOTAL pinned LEFT instead of trailing the grid. The grid
+            layout above can overflow on narrow desktops (its minWidth is 520),
+            and pinning the total to the right meant users had to horizontally
+            scroll to see the number that summarizes everything. The summary
+            row has nothing else on it — flex-start is the right home. */}
         <div style={{
-          display: "grid", gridTemplateColumns: cols,
-          gap: 4, padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4,
+          display: "flex", alignItems: "center", gap: 8,
+          padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4,
         }}>
-          {headers.slice(0, -2).map((_, i) => <div key={i} />)}
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, textAlign: "right", letterSpacing: "0.1em" }}>TOTAL</div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: "right" }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>TOTAL</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
             {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          <div />
         </div>
         </div>
         </div>

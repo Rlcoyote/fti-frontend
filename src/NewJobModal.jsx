@@ -222,13 +222,18 @@ function NewJobModal({ onClose, onCreateJob }) {
       } onClick={isMobile ? undefined : e => e.stopPropagation()}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW WORK ORDER</div>
 
-        {/* Scheduled Date + Salesman — TOP */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-          <div style={{ flex: 1, minWidth: 140 }}>
+        {/* Scheduled Date + Salesman — TOP. Mobile stacks columns explicitly
+            because flex-wrap math against iOS Safari + native select chevron
+            sizing produced a visual overlap at iPhone widths in v28.08. */}
+        <div style={isMobile
+          ? { display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }
+          : { display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }
+        }>
+          <div style={isMobile ? {} : { flex: 1, minWidth: 140 }}>
             <label style={labelStyle}>SCHEDULED DATE</label>
             <input type="date" style={inputStyle} value={schedDate} onChange={e => setSchedDate(e.target.value)} />
           </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={isMobile ? {} : { flex: 1, minWidth: 180 }}>
             <label style={labelStyle}>SALESMAN *</label>
             <select style={{ ...inputStyle, borderColor: errors.salesman ? C.red : C.border }} value={salesman} onChange={e => { setSalesman(e.target.value); setErrors(prev => ({...prev, salesman: null})); }}>
               <option value="">— Select —</option>

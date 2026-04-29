@@ -1,37 +1,42 @@
 import { useState, useEffect, useCallback } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, labelStyle, inputStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import CopyCrewModal from "./CopyCrewModal.jsx";
 
-// ─── TicketCrewManager (v28.06) ─────────────────────────────────────────────
-// Per-ticket crew assignment + lead designation. Renders inside TicketDetail
-// between Site Manager and Time & Mileage. Lists active crew, lets the lead
+// ─── CrewSelectionManager (v28.09, renamed from TicketCrewManager) ─────────
+// Per-ticket crew selection + lead designation. Renders inside TicketDetail
+// between Site Manager and Google Pin. Lists active crew, lets the lead
 // (or manager+) add/remove members and change the lead.
 //
-// Backend contract:
+// v28.09 UX overhaul:
+//   - "TICKET CREW" → "CREW SELECTION" (matches the section's user-facing
+//     intent — selecting WHO is on this ticket — and aligns the variable
+//     names in AddTicketModal that mirror this surface)
+//   - Drop the "+ ADD CREW" button + the secondary add-panel. The dropdown
+//     lives at the top of the section permanently; selecting an employee
+//     adds them immediately. One tap to add, not three.
+//   - "— pick employee —" → "— select employee —" placeholder
+//   - First-added is auto-designated as lead (matches pre-save staged UX in
+//     AddTicketModal)
+//   - 📋 COPY CREW FROM RIG UP button when a Rig Up exists on the job and
+//     this isn't itself an RU ticket. Opens CopyCrewModal with progressive-
+//     disclosure source picker mirroring TicketDuplicateModal.
+//
+// Backend contract (unchanged):
 //   GET    /tickets/:id/crew                — list active crew
 //   POST   /tickets/:id/crew                — body { user_id, is_lead? }
 //   DELETE /tickets/:id/crew/:userId        — soft-remove
 //   PUT    /tickets/:id/crew/lead           — body { user_id }
-//
-// Authorization is enforced server-side. Client just hides controls when the
-// caller's role + ticket-state combo doesn't permit modification (avoids
-// surfacing buttons that would 403).
-//
-// Why a separate component instead of inlining: this is the prerequisite
-// plumbing for the v28.07 JSA biometric flow — JSA auto-pop reads the crew
-// list this component manages. Keeping it isolated makes the JSA integration
-// in v28.07 a clean dependency, not a refactor.
 
-function TicketCrewManager({ ticketId, ticketIsClosed, editable }) {
+function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType = null, jobId = null }) {
   const { currentUser, users } = useApp();
   const [crew, setCrew] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showAdd, setShowAdd] = useState(false);
-  const [pendingUserId, setPendingUserId] = useState("");
-  const [pendingIsLead, setPendingIsLead] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showCopy, setShowCopy] = useState(false);
+  const [hasRigUp, setHasRigUp] = useState(false);
 
   // Permission to mutate this ticket's crew. Client-side hint only — server
   // enforces. Owner/admin/manager always; lead of THIS ticket while open.
@@ -40,7 +45,6 @@ function TicketCrewManager({ ticketId, ticketIsClosed, editable }) {
   const canModify = !ticketIsClosed && editable && (
     ["owner", "admin", "manager"].includes(role) || userIsTicketLead
   );
-  // Closed-ticket modification: owner/admin only (server enforces; UI hides)
   const canModifyClosed = ticketIsClosed && ["owner", "admin"].includes(role);
   const canMutate = canModify || canModifyClosed;
 
@@ -65,22 +69,34 @@ function TicketCrewManager({ ticketId, ticketIsClosed, editable }) {
     if (ticketId) fetchCrew();
   }, [ticketId, fetchCrew]);
 
-  const addMember = async () => {
-    if (!pendingUserId) { setError("Pick a crew member first"); return; }
+  // Detect whether the parent job has a non-voided Rig Up (other than this
+  // ticket if it happens to be one). Drives visibility of the COPY CREW
+  // FROM RIG UP button. Pattern matches LineItemEditor.copyFromRigUp gate.
+  useEffect(() => {
+    if (!jobId || ticketType === "Rig Up") { setHasRigUp(false); return; }
+    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+      .then(r => r.ok ? r.json() : [])
+      .then(data => {
+        const rigUps = (data || []).filter(tk => tk.type === "Rig Up" && !tk.voided_at);
+        setHasRigUp(rigUps.length > 0);
+      })
+      .catch(() => setHasRigUp(false));
+  }, [jobId, ticketType]);
+
+  // Add a crew member directly on dropdown change. First-added is auto-lead.
+  const addMember = async (userId, isLead = false) => {
+    if (!userId) return;
     setBusy(true); setError("");
     try {
       const r = await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: pendingUserId, is_lead: pendingIsLead }),
+        body: JSON.stringify({ user_id: userId, is_lead: isLead }),
       });
       if (!r.ok) {
         const data = await r.json().catch(() => null);
         setError(data?.error || "Could not add crew member");
         return;
       }
-      setShowAdd(false);
-      setPendingUserId("");
-      setPendingIsLead(false);
       await fetchCrew();
     } catch {
       setError("Connection error adding crew member");
@@ -129,6 +145,28 @@ function TicketCrewManager({ ticketId, ticketIsClosed, editable }) {
     }
   };
 
+  // Bulk-add from CopyCrewModal. Sequential POSTs preserve add-order; lead
+  // designation is carried over from the source so the same person remains
+  // the lead on the target ticket.
+  const bulkAdd = async (members) => {
+    if (!members?.length) { setShowCopy(false); return; }
+    setBusy(true); setError("");
+    try {
+      for (const m of members) {
+        await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: m.user_id, is_lead: !!m.is_lead }),
+        });
+      }
+      await fetchCrew();
+      setShowCopy(false);
+    } catch {
+      setError("Connection error during copy");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // Available users to add — active users not already on the crew.
   const activeCrewIds = new Set(crew.map(c => c.user_id));
   const addableUsers = (users || [])
@@ -147,19 +185,40 @@ function TicketCrewManager({ ticketId, ticketIsClosed, editable }) {
 
   return (
     <div style={sectionStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <div style={headerStyle}>Ticket Crew{loading ? " — loading..." : ` (${crew.length})`}</div>
-        {canMutate && !showAdd && (
-          <button
-            onClick={() => setShowAdd(true)}
-            style={{
-              background: "transparent", border: `1px solid ${C.blue}`, color: C.blue,
-              fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 3,
-              cursor: "pointer", letterSpacing: "0.06em",
-            }}
-          >+ ADD CREW</button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+        <div style={headerStyle}>Crew Selection{loading ? " — loading..." : ` (${crew.length})`}</div>
+        {canMutate && hasRigUp && (
+          <Btn small variant="ghost" onClick={() => setShowCopy(true)} disabled={busy}>
+            📋 COPY CREW FROM RIG UP
+          </Btn>
         )}
       </div>
+
+      {/* Permanent select-to-add dropdown — no +ADD button. Selecting a name
+          immediately POSTs the addition; first-added becomes lead. */}
+      {canMutate && (
+        <div style={{ marginBottom: 12 }}>
+          <select
+            style={inputStyle}
+            value=""
+            disabled={busy || addableUsers.length === 0}
+            onChange={e => {
+              const id = e.target.value;
+              if (!id) return;
+              addMember(id, crew.length === 0); // first-added = lead
+            }}
+          >
+            <option value="">
+              {addableUsers.length === 0 ? "— all employees on crew —" : "— select employee —"}
+            </option>
+            {addableUsers.map(u => (
+              <option key={u.id} value={u.id}>
+                {u.name}{u.role ? ` (${u.role})` : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Crew list */}
       {!loading && crew.length === 0 && (
@@ -167,7 +226,7 @@ function TicketCrewManager({ ticketId, ticketIsClosed, editable }) {
           fontSize: 12, color: C.muted, fontStyle: "italic",
           padding: "10px 12px", background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
         }}>
-          No crew assigned to this ticket yet. {canMutate ? "Add at least the lead before opening the JSA." : ""}
+          No crew assigned yet. {canMutate ? "Select an employee above to add them — the first becomes lead." : ""}
         </div>
       )}
 
@@ -231,55 +290,23 @@ function TicketCrewManager({ ticketId, ticketIsClosed, editable }) {
         </div>
       )}
 
-      {/* Add panel */}
-      {showAdd && (
-        <div style={{
-          marginTop: 12, padding: 12, background: C.steel,
-          border: `1px solid ${C.border}`, borderRadius: 4,
-        }}>
-          <div style={{ marginBottom: 10 }}>
-            <label style={labelStyle}>EMPLOYEE</label>
-            <select
-              style={inputStyle}
-              value={pendingUserId}
-              onChange={e => setPendingUserId(e.target.value)}
-            >
-              <option value="">— pick employee —</option>
-              {addableUsers.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.name}{u.role ? ` (${u.role})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, fontSize: 12, color: C.text, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={pendingIsLead}
-              onChange={e => setPendingIsLead(e.target.checked)}
-            />
-            Designate as lead (replaces any current lead)
-          </label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Btn onClick={addMember} disabled={busy || !pendingUserId}>
-              {busy ? "ADDING..." : "ADD TO CREW"}
-            </Btn>
-            <Btn onClick={() => { setShowAdd(false); setPendingUserId(""); setPendingIsLead(false); setError(""); }} variant="ghost">
-              CANCEL
-            </Btn>
-          </div>
+      {error && (
+        <div style={{ marginTop: 10, color: C.red, fontSize: 12, fontWeight: 700 }}>
+          {error}
         </div>
       )}
 
-      {error && (
-        <div style={{
-          marginTop: 10, color: C.red, fontSize: 12, fontWeight: 700,
-        }}>
-          {error}
-        </div>
+      {showCopy && (
+        <CopyCrewModal
+          jobId={jobId}
+          excludeTicketId={ticketId}
+          existingCrewUserIds={activeCrewIds}
+          onClose={() => setShowCopy(false)}
+          onCopy={bulkAdd}
+        />
       )}
     </div>
   );
 }
 
-export default TicketCrewManager;
+export default CrewSelectionManager;

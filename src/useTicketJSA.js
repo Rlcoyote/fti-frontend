@@ -97,7 +97,12 @@ export default function useTicketJSA(ticket, job, onUpdate) {
         }),
       });
       const responseData = await r.json().catch(() => null);
-      const newId = responseData?.jsaId || existingJSA?.id || null;
+      // v28.09 — only accept a numeric id from the response/cascade. Defends
+      // against accidental "null"/"undefined" string slipping through and
+      // breaking downstream URL-builds that 500 the backend.
+      const candidate = responseData?.jsaId ?? existingJSA?.id;
+      const candidateNum = typeof candidate === 'number' ? candidate : parseInt(candidate, 10);
+      const newId = Number.isInteger(candidateNum) && candidateNum > 0 ? candidateNum : null;
       const merged = { ...jsaData, id: newId };
       setExistingJSA(merged);
       // Flip hasJSA on the ticket row so the badge refreshes without a full fetch.
