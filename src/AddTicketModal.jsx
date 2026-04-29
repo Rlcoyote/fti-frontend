@@ -5,6 +5,7 @@ import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge } from "./Sh
 import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import JSAModal from "./JSAModal.jsx";
+import TicketCrewManager from "./TicketCrewManager.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
@@ -567,9 +568,37 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 <label style={labelStyle}>NOTES</label>
                 <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={e => setNotes(e.target.value)} />
               </div>
+
+              {/* v28.07.3 — Ticket crew assignment shown in AddTicketModal too,
+                  not just TicketDetail. Conditional on savedTicketId means
+                  it appears AFTER first save (when the ticket actually has
+                  an id in the DB). Before save, a placeholder explains the
+                  flow. This unblocks the new-WO → new-ticket → assign-crew
+                  → open-JSA continuous workflow. */}
+              {savedTicketId ? (
+                <TicketCrewManager
+                  ticketId={savedTicketId}
+                  ticketIsClosed={false}
+                  editable={true}
+                />
+              ) : (
+                <div style={{
+                  marginBottom: 14, padding: 14, background: C.steel,
+                  border: `1px dashed ${C.border}`, borderRadius: 6,
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>
+                    TICKET CREW
+                  </div>
+                  <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", lineHeight: 1.5 }}>
+                    Save the ticket first (CREATE TICKET below) to assign crew. The
+                    crew you assign here drives who must sign the JSA biometrically.
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={handleSave}>CREATE TICKET</Btn>
-                <Btn onClick={handleClose} variant="ghost">CANCEL</Btn>
+                <Btn onClick={handleSave}>{savedTicketId ? "UPDATE TICKET" : "CREATE TICKET"}</Btn>
+                <Btn onClick={handleClose} variant="ghost">{savedTicketId ? "DONE" : "CANCEL"}</Btn>
               </div>
             </>
           )}
