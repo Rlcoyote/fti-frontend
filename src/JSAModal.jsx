@@ -452,9 +452,9 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
         })()}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <Btn
-            disabled={saving}
+            disabled={saving || completing}
             onClick={async () => {
-              if (saving) return;
+              if (saving || completing) return;
               setSaving(true);
               try {
                 const validSigs = (signatures || []).filter(Boolean);

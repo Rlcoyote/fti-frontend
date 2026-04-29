@@ -114,7 +114,7 @@ function DesktopNavBar({
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>
-            OPERATIONS DASHBOARD <span style={{ color: C.red }}>{version}</span>
+            OPERATIONS DASHBOARD <span style={{ color: C.white, fontWeight: 800 }}>{version}</span>
           </div>
         </div>
       </div>
