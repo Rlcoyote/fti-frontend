@@ -52,7 +52,7 @@ import { useJobActions } from "./useJobActions.js";
 // as a coordination layer over the four delegates above. Add a new page,
 // modal, or filter — change one of these surfaces, not all of them.
 
-const VERSION = "v28.07.5";
+const VERSION = "v28.08";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -131,7 +131,7 @@ function FTIDashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
-  const [sortMode, setSortMode] = useState("default"); // "default" = status group + date desc; "customer" = A→Z by customer
+  const [sortMode, setSortMode] = useState("scheduled"); // "scheduled" = scheduled date ASC, WO# DESC tiebreak; "ticket" = WO# DESC; "customer" = customer A→Z, WO# DESC tiebreak
   const [showNewJob, setShowNewJob] = useState(false);
 
   // ── Page-level data (jobs, tickets, todos, inventory, deletedTickets, jsas) ──
@@ -189,16 +189,20 @@ function FTIDashboard() {
   const jobWithComputedStatus = activeJobs.map(j => ({ ...j, _computedStatus: computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) }));
   const filteredJobs = filterStatus === "All" ? jobWithComputedStatus : jobWithComputedStatus.filter(j => j._computedStatus === filterStatus);
   const sortedJobs = [...filteredJobs].sort((a, b) => {
+    if (sortMode === "ticket") {
+      return (b.id || 0) - (a.id || 0);
+    }
     if (sortMode === "customer") {
-      // Sort purely by customer name A→Z (cross-status), tiebreak on WO ID desc (newest WO# first within customer).
       const cust = (a.customer || "").localeCompare(b.customer || "");
       if (cust !== 0) return cust;
       return (b.id || 0) - (a.id || 0);
     }
-    // Default: status group (Scheduled → In Progress → Completed) then scheduled date desc.
-    const statusDiff = STATUS_ORDER.indexOf(a._computedStatus) - STATUS_ORDER.indexOf(b._computedStatus);
-    if (statusDiff !== 0) return statusDiff;
-    return (b.dateStarted || "").localeCompare(a.dateStarted || "");
+    // "scheduled" (default): soonest scheduled date first; unscheduled jobs sink to the bottom; WO# DESC on ties.
+    const aDate = a.dateStarted || "9999-99-99";
+    const bDate = b.dateStarted || "9999-99-99";
+    const dateDiff = aDate.localeCompare(bDate);
+    if (dateDiff !== 0) return dateDiff;
+    return (b.id || 0) - (a.id || 0);
   });
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);

@@ -52,7 +52,8 @@ function DashboardHome({
         {/* Sort is the first filter control — it's a filter on ordering, which applies before status selection. */}
         <select value={sortMode} onChange={e => setSortMode(e.target.value)}
           style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg, fontFamily: "'Arial', sans-serif", marginRight: 10, marginBottom: 6 }}>
-          <option value="default">Sort: Status + Date</option>
+          <option value="scheduled">Sort: Scheduled Date</option>
+          <option value="ticket">Sort: Ticket #</option>
           <option value="customer">Sort: Customer (A → Z)</option>
         </select>
         {["All", ...STATUS_ORDER].map(s => {
