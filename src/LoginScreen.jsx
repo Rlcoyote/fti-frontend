@@ -76,15 +76,25 @@ function LoginScreen() {
   const [enrollmentLanding, setEnrollmentLanding] = useState(null); // { pending_token, registration_options, user_email, user_name } | null
   const [enrollmentLoading, setEnrollmentLoading] = useState(false);
 
+  // v28.07 — JSA sign-link landing state. Set when ?jsa_sign=&uid=&jsa= URL
+  // params are present and the /api/jsas/sign-options call succeeds.
+  // Carries: pending_token, authentication_options, user_name, jsa { id,
+  // ticket_number, ticket_type, ticket_date, customer_name }.
+  const [jsaSignLanding, setJsaSignLanding] = useState(null);
+  const [jsaSignLoading, setJsaSignLoading] = useState(false);
+  const [jsaSignDone, setJsaSignDone] = useState(false);
+
   const webauthnSupported = typeof window !== "undefined" ? browserSupportsWebAuthn() : true;
 
-  // Check URL for reset token on mount, OR for v28.03 enrollment token.
-  // Two link types share the same landing page; they're disambiguated by
-  // which query param is present (`?reset=` vs `?enroll=`).
+  // Check URL for reset token on mount, OR for v28.03 enrollment token,
+  // OR for v28.07 JSA-sign magic-link.
+  // Three link types share the same landing page; disambiguated by which
+  // query param is present (`?reset=` / `?enroll=` / `?jsa_sign=`).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const resetTokenParam = params.get("reset");
     const enrollTokenParam = params.get("enroll");
+    const jsaSignTokenParam = params.get("jsa_sign");
     const uid = params.get("uid");
     if (resetTokenParam && uid) {
       setResetToken(resetTokenParam);
@@ -94,9 +104,7 @@ function LoginScreen() {
       return;
     }
     if (enrollTokenParam && uid) {
-      // v28.03 — magic-link device enrollment landing. Fetch options and
-      // pre-fill the device-label panel; user clicks REGISTER to fire the
-      // WebAuthn ceremony from a fresh user-activation window.
+      // v28.03 — magic-link device enrollment landing.
       window.history.replaceState({}, document.title, window.location.pathname);
       (async () => {
         setEnrollmentLoading(true); setError("");
@@ -116,6 +124,36 @@ function LoginScreen() {
           setError("Connection error opening enrollment link");
         } finally {
           setEnrollmentLoading(false);
+        }
+      })();
+      return;
+    }
+    if (jsaSignTokenParam && uid) {
+      // v28.07 — JSA sign magic-link landing. Validates token, fetches
+      // WebAuthn auth options, drops user into a sign-this-JSA flow.
+      const jsaIdParam = params.get("jsa");
+      if (!jsaIdParam) {
+        setError("Sign link is missing the JSA reference. Ask the lead to send a fresh link.");
+        return;
+      }
+      window.history.replaceState({}, document.title, window.location.pathname);
+      (async () => {
+        setJsaSignLoading(true); setError("");
+        try {
+          const r = await fetch(`${API_URL}/jsas/sign-options`, {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: jsaSignTokenParam, user_id: uid, jsa_id: parseInt(jsaIdParam, 10) }),
+          });
+          const data = await r.json();
+          if (!r.ok) {
+            setError(data.error || "Could not open sign link");
+            return;
+          }
+          setJsaSignLanding({ ...data, jsa_id: parseInt(jsaIdParam, 10) });
+        } catch {
+          setError("Connection error opening sign link");
+        } finally {
+          setJsaSignLoading(false);
         }
       })();
     }
@@ -208,6 +246,57 @@ function LoginScreen() {
       setAuthFailedShowLinkOption(false);
     } catch {
       setError("Connection error — could not send registration link");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // v28.07 — User opened the JSA sign-link on their device. Runs the
+  // WebAuthn authentication ceremony with options already fetched by the
+  // URL-param effect, then posts the assertion to /jsas/:id/sign with the
+  // pending_token. This flow does NOT log them into the dashboard — it
+  // signs the JSA and shows a success state.
+  const completeJsaSign = async () => {
+    if (!jsaSignLanding) return;
+    setError(""); setLoading(true);
+    try {
+      let assertion;
+      try {
+        assertion = await startAuthentication({ optionsJSON: jsaSignLanding.authentication_options });
+      } catch (browserErr) {
+        const msg = browserErr?.name === "NotAllowedError"
+          ? "Biometric did not complete. Tap CONFIRM again."
+          : browserErr?.message || "Biometric cancelled";
+        setError(msg);
+        return;
+      }
+      const captureGps = () => new Promise(resolve => {
+        if (!navigator.geolocation) return resolve({ lat: null, lng: null });
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          () => resolve({ lat: null, lng: null }),
+          { timeout: 4000, enableHighAccuracy: false }
+        );
+      });
+      const gps = await captureGps();
+      const r = await fetch(`${API_URL}/jsas/${jsaSignLanding.jsa_id}/sign`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          method: "biometric",
+          webauthn_response: assertion,
+          pending_token: jsaSignLanding.pending_token,
+          gps_lat: gps.lat,
+          gps_lng: gps.lng,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setError(data.error || "Sign verification failed");
+        return;
+      }
+      setJsaSignDone(true);
+    } catch {
+      setError("Connection error during signing");
     } finally {
       setLoading(false);
     }
@@ -376,10 +465,11 @@ function LoginScreen() {
     finally { setLoading(false); }
   };
 
-  const showEnrollmentStep = mode === "login" && !!enrollmentLanding;
-  const showRegistrationStep = mode === "login" && !!pendingRegistration && !enrollmentLanding;
-  const showAuthenticationStep = mode === "login" && !!pendingAuthentication && !pendingRegistration && !enrollmentLanding;
-  const showLoginForm = mode === "login" && !pendingRegistration && !pendingAuthentication && !enrollmentLanding;
+  const showJsaSignStep = mode === "login" && !!jsaSignLanding;
+  const showEnrollmentStep = mode === "login" && !!enrollmentLanding && !jsaSignLanding;
+  const showRegistrationStep = mode === "login" && !!pendingRegistration && !enrollmentLanding && !jsaSignLanding;
+  const showAuthenticationStep = mode === "login" && !!pendingAuthentication && !pendingRegistration && !enrollmentLanding && !jsaSignLanding;
+  const showLoginForm = mode === "login" && !pendingRegistration && !pendingAuthentication && !enrollmentLanding && !jsaSignLanding;
 
   return (
     <div style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}>
@@ -394,9 +484,9 @@ function LoginScreen() {
           <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "0.1em" }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
             {mode === "login"
-              ? (showEnrollmentStep ? "REGISTER THIS DEVICE" : showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
+              ? (showJsaSignStep ? "SIGN THE JSA" : showEnrollmentStep ? "REGISTER THIS DEVICE" : showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
               : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
-            {" "}<span style={{ color: C.red, fontWeight: 700 }}>v28.06</span>
+            {" "}<span style={{ color: C.red, fontWeight: 700 }}>v28.07</span>
           </div>
         </div>
 
@@ -435,6 +525,57 @@ function LoginScreen() {
               After your password, you'll confirm with Touch ID, Face ID, or Windows Hello.
             </div>
           </>
+        )}
+
+        {/* v28.07 — JSA sign-link landing. User clicked a sign-link from
+            email/SMS. They auth via biometric (existing passkey on this
+            device required) and the JSA gets signed in their slot. They
+            do NOT log into the dashboard from this flow — it's a single-
+            purpose JSA sign confirmation. */}
+        {showJsaSignStep && !jsaSignDone && (
+          <>
+            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+              Hi <strong>{jsaSignLanding.user_name}</strong>. You've been asked to sign the
+              JSA for <strong>{jsaSignLanding.jsa.customer_name || 'this ticket'}</strong>
+              {jsaSignLanding.jsa.ticket_date ? <> on <strong>{new Date(jsaSignLanding.jsa.ticket_date).toLocaleDateString()}</strong></> : null}
+              {jsaSignLanding.jsa.ticket_number ? <> — Ticket #{jsaSignLanding.jsa.ticket_number}</> : null}.
+            </div>
+            <div style={{
+              fontSize: 12, color: C.muted, marginBottom: 16, padding: "10px 12px",
+              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
+            }}>
+              By tapping CONFIRM WITH BIOMETRIC, you attest under penalty of perjury
+              that you have read and understood the JSA, that you participated in the
+              JSA meeting, and that this is your legally binding signature.
+            </div>
+            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
+            <button onClick={completeJsaSign} disabled={loading} style={{
+              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
+              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
+              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
+            }}>{loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}</button>
+          </>
+        )}
+
+        {showJsaSignStep && jsaSignDone && (
+          <>
+            <div style={{
+              padding: "14px 16px", background: "#e6f5ec",
+              border: `1px solid #00633a44`, borderRadius: 4, marginBottom: 16,
+              fontSize: 14, fontWeight: 700, color: "#00633a", textAlign: "center",
+            }}>
+              ✓ JSA signed.<br/>
+              <span style={{ fontSize: 12, fontWeight: 400, color: C.text }}>
+                Your signature has been recorded. You can close this window.
+              </span>
+            </div>
+          </>
+        )}
+
+        {jsaSignLoading && !jsaSignLanding && (
+          <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>
+            Opening sign link...
+          </div>
         )}
 
         {showAuthenticationStep && (

@@ -5,6 +5,7 @@ import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { useApp } from "./AppContext.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
+import JSACrewSigners from "./JSACrewSigners.jsx";
 
 function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const { settings, currentUser } = useApp();
@@ -251,16 +252,27 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             </div>
           </div>
 
-          {/* Crew Signatures */}
+          {/* FTI Crew Biometric Signatures (v28.07) — pulled from ticket_crew,
+              cryptographic, immutable legal record. Distinct from the
+              typed-name CREW SIGNATURES section below which is for non-FTI
+              external signers (subcontractor, customer rep, walk-up). */}
+          {existingJSA?.id && (
+            <JSACrewSigners jsaId={existingJSA.id} />
+          )}
+
+          {/* External / Non-FTI Crew Signatures (typed name) — for
+              subcontractors, customer reps, and walk-ups whose identity FTI
+              cannot cryptographically verify. Records are kept for the legal
+              file but flagged as external_unverified in the audit log. */}
           <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle}>CREW SIGNATURES (By signing, each person acknowledges STOP WORK AUTHORITY)</label>
+            <label style={labelStyle}>EXTERNAL / NON-FTI SIGNATURES (subcontractors, customer reps, walk-ups — typed name only)</label>
             {signatures.map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                <input style={{ ...inputStyle, flex: 1 }} value={s} onChange={e => { const ns = [...signatures]; ns[i] = e.target.value; setSignatures(ns); }} placeholder={`Crew member ${i + 1}`} />
+                <input style={{ ...inputStyle, flex: 1 }} value={s} onChange={e => { const ns = [...signatures]; ns[i] = e.target.value; setSignatures(ns); }} placeholder={`External signer ${i + 1} — typed name`} />
                 {signatures.length > 1 && <button onClick={() => setSignatures(prev => prev.filter((_, j) => j !== i))} style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16 }}>×</button>}
               </div>
             ))}
-            <Btn small variant="ghost" onClick={() => setSignatures(prev => [...prev, ""])}>+ ADD SIGNATURE</Btn>
+            <Btn small variant="ghost" onClick={() => setSignatures(prev => [...prev, ""])}>+ ADD EXTERNAL SIGNATURE</Btn>
           </div>
 
           {/* Presenter Review */}
