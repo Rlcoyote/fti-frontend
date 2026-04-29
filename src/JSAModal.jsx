@@ -43,6 +43,18 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   const wellName = jsa?.wellName || jsa?.well_name || wellsList.join(", ") || "—";
   const [time, setTime] = useState(jsa?.time || "");
   const [designatedDriver, setDesignatedDriver] = useState(jsa?.designatedDriver || "");
+
+  // v28.07.1 — Designated Driver dropdown sourced from the ticket's active
+  // crew (ticket_crew table). Fetched once on mount when ticket is present.
+  // Free-text fallback shown if the ticket has no crew assigned yet.
+  const [ticketCrewForDD, setTicketCrewForDD] = useState([]);
+  useEffect(() => {
+    if (!ticket?.id) return;
+    fetch(`${API_URL}/tickets/${ticket.id}/crew`)
+      .then(r => r.ok ? r.json() : [])
+      .then(rows => setTicketCrewForDD(Array.isArray(rows) ? rows : []))
+      .catch(() => setTicketCrewForDD([]));
+  }, [ticket?.id]);
   const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat || "");
   const [lng, setLng] = useState(jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng || "");
   const [mapLink, setMapLink] = useState(() => {
@@ -191,7 +203,30 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <div><label style={labelStyle}>DESIGNATED DRIVER</label><input style={inputStyle} value={designatedDriver} onChange={e => setDesignatedDriver(e.target.value)} /></div>
+            <div>
+              <label style={labelStyle}>DESIGNATED DRIVER</label>
+              {ticketCrewForDD.length > 0 ? (
+                <select
+                  style={inputStyle}
+                  value={designatedDriver}
+                  onChange={e => setDesignatedDriver(e.target.value)}
+                >
+                  <option value="">— pick driver —</option>
+                  {ticketCrewForDD.map(c => (
+                    <option key={c.user_id} value={c.user_name}>
+                      {c.user_name}{c.is_lead ? " (Lead)" : ""}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  style={inputStyle}
+                  value={designatedDriver}
+                  onChange={e => setDesignatedDriver(e.target.value)}
+                  placeholder="Add ticket crew first to populate dropdown"
+                />
+              )}
+            </div>
             <div>
               <label style={labelStyle}>LOCATION PIN (Paste Google Maps link or coordinates)</label>
               <input style={inputStyle} value={mapLink} onChange={e => {
@@ -254,18 +289,32 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
 
           {/* FTI Crew Biometric Signatures (v28.07) — pulled from ticket_crew,
               cryptographic, immutable legal record. Distinct from the
-              typed-name CREW SIGNATURES section below which is for non-FTI
-              external signers (subcontractor, customer rep, walk-up). */}
-          {existingJSA?.id && (
+              typed-name section below for non-FTI external signers.
+              v28.07.1 — shown even before the JSA is saved, with a
+              placeholder telling the user to save first. */}
+          {existingJSA?.id ? (
             <JSACrewSigners jsaId={existingJSA.id} />
+          ) : (
+            <div style={{
+              marginBottom: 14, padding: 14, background: C.steel,
+              border: `1px dashed ${C.border}`, borderRadius: 6,
+            }}>
+              <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
+              <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", lineHeight: 1.5 }}>
+                Save the JSA first to enable biometric crew signing. Required signers
+                will be auto-populated from the ticket crew. Each crew member must sign
+                with their own biometric (Touch ID / Face ID) — or via a sign-link to
+                their device — before the JSA can be marked complete.
+              </div>
+            </div>
           )}
 
           {/* External / Non-FTI Crew Signatures (typed name) — for
-              subcontractors, customer reps, and walk-ups whose identity FTI
-              cannot cryptographically verify. Records are kept for the legal
+              subcontractors and customer reps whose identity FTI cannot
+              cryptographically verify. Records are kept for the legal
               file but flagged as external_unverified in the audit log. */}
           <div style={{ marginBottom: 14 }}>
-            <label style={labelStyle}>EXTERNAL / NON-FTI SIGNATURES (subcontractors, customer reps, walk-ups — typed name only)</label>
+            <label style={labelStyle}>EXTERNAL / NON-FTI SIGNATURES (subcontractors, customer reps — typed name only)</label>
             {signatures.map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
                 <input style={{ ...inputStyle, flex: 1 }} value={s} onChange={e => { const ns = [...signatures]; ns[i] = e.target.value; setSignatures(ns); }} placeholder={`External signer ${i + 1} — typed name`} />
