@@ -107,6 +107,22 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         const saved = await r.json();
         const newTicket = { ...ticketData, id: saved.id, ticketNumber: saved.ticket_number, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() };
         setTickets(prev => [...prev, newTicket]);
+        // v28.07.5 — bulk-POST any staged crew to /tickets/:id/crew. AddTicketModal
+        // sets ticketData.stagedCrew when the user added crew before clicking
+        // CREATE TICKET (rather than via autoSaveForJSA which already commits).
+        if (Array.isArray(ticketData.stagedCrew) && ticketData.stagedCrew.length > 0) {
+          for (const c of ticketData.stagedCrew) {
+            try {
+              await fetch(`${API_URL}/tickets/${saved.id}/crew`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: c.user_id, is_lead: !!c.is_lead }),
+              });
+            } catch (crewErr) {
+              console.warn("Staged crew member failed:", c.user_name, crewErr);
+            }
+          }
+        }
       }
     } catch (err) {
       console.error("Ticket save failed:", err);

@@ -22,7 +22,14 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, [isMobile, onClose]);
-  const { qbItems, settings, currentUser, showNotice } = useApp();
+  const { qbItems, settings, currentUser, showNotice, users } = useApp();
+  // v28.07.5 — stage crew assignments BEFORE the ticket is saved. Local
+  // state holds the planned crew; on CREATE TICKET we POST the ticket,
+  // then bulk-POST the crew to /tickets/:id/crew using the new id.
+  // Lets users fill in everything (ticket details + crew + JSA) in one
+  // continuous flow without modal-hopping.
+  const [stagedCrew, setStagedCrew] = useState([]); // [{ user_id, user_name, user_role, is_lead }]
+  const [stagedAddPick, setStagedAddPick] = useState("");
   const yardsList = useMemo(() => parseYards(settings), [settings]);
   const [yardLocationIndex, setYardLocationIndex] = useState(1);
   const [type, setType] = useState(null);
@@ -87,6 +94,27 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const isDirty = type || lineItems.length > 0 || notes;
   const handleClose = () => { if (isDirty) { setShowUnsaved(true); } else { onClose(); } };
 
+  // v28.07.5 — Bulk-POST staged crew to /tickets/:id/crew after the ticket
+  // exists. Called from autoSaveForJSA (when user opens JSA before explicit
+  // save) AND from JobTicketsTab.handleAdd (after explicit CREATE TICKET).
+  // Lead-promotion is atomic on the server side — POST with is_lead=true
+  // demotes any existing lead in the same transaction.
+  const commitStagedCrew = async (ticketId) => {
+    if (!ticketId || stagedCrew.length === 0) return;
+    for (const c of stagedCrew) {
+      try {
+        await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: c.user_id, is_lead: !!c.is_lead }),
+        });
+      } catch (err) {
+        console.warn("Staged crew member failed to commit:", c.user_name, err);
+      }
+    }
+    setStagedCrew([]); // clear local; the live TicketCrewManager will fetch the just-inserted rows
+  };
+
   // Auto-save ticket silently (for JSA creation before explicit save)
   const autoSaveForJSA = async () => {
     if (savedTicketId) { setShowJSA(true); return; } // already saved
@@ -116,6 +144,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
       if (r.ok) {
         const saved = await r.json();
         setSavedTicketId(saved.id);
+        // v28.07.5 — commit any staged crew to the new ticket so the JSA
+        // can pull them in via /required-signers. Sequential awaits to
+        // preserve add-order; fast on small crews (typical 1-6 members).
+        await commitStagedCrew(saved.id);
         setShowJSA(true);
       } else { showNotice("Save Failed", "Could not save the ticket. Please try again.", "error"); }
     } catch { showNotice("Network Error", "A network error occurred while saving the ticket.", "error"); }
@@ -175,6 +207,11 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     };
     // If ticket was already auto-saved (for JSA), pass the ID so parent knows to update, not create
     if (savedTicketId) ticketData.id = savedTicketId;
+    // v28.07.5 — pass staged crew along so the parent (JobTicketsTab.handleAdd)
+    // can bulk-POST them to /tickets/:id/crew after the ticket POST succeeds.
+    // If savedTicketId is already set (autoSaveForJSA path), commitStagedCrew
+    // already ran and stagedCrew is empty — passing the empty array is a no-op.
+    if (stagedCrew.length > 0) ticketData.stagedCrew = stagedCrew;
     onSave(ticketData);
   };
 
@@ -577,12 +614,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={e => setNotes(e.target.value)} />
               </div>
 
-              {/* v28.07.3 — Ticket crew assignment shown in AddTicketModal too,
-                  not just TicketDetail. Conditional on savedTicketId means
-                  it appears AFTER first save (when the ticket actually has
-                  an id in the DB). Before save, a placeholder explains the
-                  flow. This unblocks the new-WO → new-ticket → assign-crew
-                  → open-JSA continuous workflow. */}
+              {/* v28.07.5 — Ticket crew is now stageable BEFORE the ticket is
+                  saved. Local state holds planned crew + lead designation;
+                  on CREATE TICKET (or auto-save when opening JSA) the staged
+                  crew is bulk-POSTed to /tickets/:id/crew via the new id.
+                  Continuous workflow: fill ticket details + crew + JSA in
+                  one pass without modal-hopping. After save, switches to
+                  the live TicketCrewManager for further edits. */}
               {savedTicketId ? (
                 <TicketCrewManager
                   ticketId={savedTicketId}
@@ -591,16 +629,142 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 />
               ) : (
                 <div style={{
-                  marginBottom: 14, padding: 14, background: C.steel,
-                  border: `1px dashed ${C.border}`, borderRadius: 6,
+                  marginBottom: 14, padding: 14,
+                  background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
                 }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>
-                    TICKET CREW
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>
+                      TICKET CREW ({stagedCrew.length})
+                      <span style={{ marginLeft: 8, fontWeight: 400, fontStyle: "italic", color: C.muted, textTransform: "none", letterSpacing: 0 }}>
+                        — saved when you create the ticket
+                      </span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", lineHeight: 1.5 }}>
-                    Save the ticket first (CREATE TICKET below) to assign crew. The
-                    crew you assign here drives who must sign the JSA biometrically.
+
+                  {/* Add-row */}
+                  <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                    <select
+                      style={{ ...inputStyle, flex: 1 }}
+                      value={stagedAddPick}
+                      onChange={e => setStagedAddPick(e.target.value)}
+                    >
+                      <option value="">— pick employee —</option>
+                      {(users || [])
+                        .filter(u => u.is_active !== false)
+                        .filter(u => !stagedCrew.some(s => s.user_id === u.id))
+                        .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+                        .map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.name}{u.role ? ` (${u.role})` : ""}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!stagedAddPick) return;
+                        const u = (users || []).find(x => x.id === stagedAddPick);
+                        if (!u) return;
+                        setStagedCrew(prev => [
+                          ...prev,
+                          {
+                            user_id: u.id,
+                            user_name: u.name,
+                            user_role: u.role,
+                            is_lead: prev.length === 0, // first add becomes lead by default
+                          },
+                        ]);
+                        setStagedAddPick("");
+                      }}
+                      disabled={!stagedAddPick}
+                      style={{
+                        background: "transparent", border: `1px solid ${C.blue}`, color: C.blue,
+                        fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 3,
+                        cursor: stagedAddPick ? "pointer" : "default", letterSpacing: "0.06em",
+                        opacity: stagedAddPick ? 1 : 0.5,
+                      }}
+                    >+ ADD</button>
                   </div>
+
+                  {/* Staged crew list */}
+                  {stagedCrew.length === 0 ? (
+                    <div style={{
+                      fontSize: 12, color: C.muted, fontStyle: "italic",
+                      padding: "10px 12px", background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
+                    }}>
+                      No crew added yet. Pick an employee above to stage them. The first
+                      person added is auto-designated as lead — change with MAKE LEAD
+                      below.
+                    </div>
+                  ) : (
+                    <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, overflow: "hidden" }}>
+                      {stagedCrew.map((c, i) => (
+                        <div
+                          key={c.user_id}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "8px 12px",
+                            borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+                            background: c.is_lead ? "#fdf5d8" : C.cardBg,
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                              {c.user_name}
+                              {c.is_lead && (
+                                <span style={{
+                                  marginLeft: 8, fontSize: 9, fontWeight: 800, color: "#8a6500",
+                                  background: "#ffffffaa", border: `1px solid #8a650044`,
+                                  padding: "1px 6px", borderRadius: 3, letterSpacing: "0.08em",
+                                }}>LEAD</span>
+                              )}
+                              {c.user_role && (
+                                <span style={{ marginLeft: 6, fontSize: 10, color: C.muted, fontWeight: 400 }}>
+                                  · {c.user_role}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            {!c.is_lead && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Atomic lead promote: set this one true, all others false.
+                                  setStagedCrew(prev => prev.map(s => ({ ...s, is_lead: s.user_id === c.user_id })));
+                                }}
+                                style={{
+                                  background: "transparent", border: `1px solid ${C.muted}55`,
+                                  color: C.muted, fontSize: 10, fontWeight: 700,
+                                  padding: "3px 8px", borderRadius: 3, cursor: "pointer",
+                                  letterSpacing: "0.06em",
+                                }}
+                              >MAKE LEAD</button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setStagedCrew(prev => {
+                                  const next = prev.filter(s => s.user_id !== c.user_id);
+                                  // If we just removed the lead and there's anyone left, promote the first remaining.
+                                  if (c.is_lead && next.length > 0 && !next.some(s => s.is_lead)) {
+                                    next[0] = { ...next[0], is_lead: true };
+                                  }
+                                  return next;
+                                });
+                              }}
+                              style={{
+                                background: "transparent", border: `1px solid ${C.red}33`,
+                                color: C.red, fontSize: 10, fontWeight: 700,
+                                padding: "3px 8px", borderRadius: 3, cursor: "pointer",
+                                letterSpacing: "0.06em",
+                              }}
+                            >REMOVE</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
