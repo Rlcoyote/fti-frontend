@@ -140,16 +140,18 @@ function LoginScreen() {
       (async () => {
         setJsaSignLoading(true); setError("");
         try {
+          // v28.20 — jsa_id is UUID per schema.sql; pass the URL param string
+          // through verbatim, do not coerce to integer.
           const r = await fetch(`${API_URL}/jsas/sign-options`, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: jsaSignTokenParam, user_id: uid, jsa_id: parseInt(jsaIdParam, 10) }),
+            body: JSON.stringify({ token: jsaSignTokenParam, user_id: uid, jsa_id: jsaIdParam }),
           });
           const data = await r.json();
           if (!r.ok) {
             setError(data.error || "Could not open sign link");
             return;
           }
-          setJsaSignLanding({ ...data, jsa_id: parseInt(jsaIdParam, 10) });
+          setJsaSignLanding({ ...data, jsa_id: jsaIdParam });
         } catch {
           setError("Connection error opening sign link");
         } finally {
@@ -486,7 +488,7 @@ function LoginScreen() {
             {mode === "login"
               ? (showJsaSignStep ? "SIGN THE JSA" : showEnrollmentStep ? "REGISTER THIS DEVICE" : showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
               : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
-            {" "}<span style={{ color: C.white, fontWeight: 700 }}>v28.19</span>
+            {" "}<span style={{ color: C.white, fontWeight: 700 }}>v28.20</span>
           </div>
         </div>
 

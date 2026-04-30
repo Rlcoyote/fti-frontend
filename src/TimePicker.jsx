@@ -29,25 +29,33 @@ function TimePicker({ value, onChange, startHour = 6, startPeriod = "AM" }) {
   const uniqueHours = hours.filter(h => { if (seen.has(h)) return false; seen.add(h); return true; });
 
   const minutes = ["00", "10", "20", "30", "40", "50"];
-  const selBase = { border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 4px", fontSize: 12, color: C.text, background: C.cardBg };
+  // v28.20 — bumped select widths so iOS Safari's native chevron doesn't
+  // overlap the displayed value. Original 48px was just enough for the digits
+  // but iOS adds ~12px of chevron padding on top, which on a narrow phone
+  // column made the "—", ":", "00", "AM" elements visually collide.
+  const selBase = {
+    border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 8px",
+    fontSize: 13, color: C.text, background: C.cardBg,
+    minWidth: 0, // let flex-shrink work if container is very tight
+  };
 
   return (
-    <div style={{ display: "flex", gap: 2, alignItems: "center" }}>
-      <select value={hr} onChange={e => assemble(e.target.value, min, period)} style={{ ...selBase, width: 48 }}>
+    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "nowrap" }}>
+      <select value={hr} onChange={e => assemble(e.target.value, min, period)} style={{ ...selBase, width: 64 }}>
         <option value="">—</option>
         {uniqueHours.map(h => <option key={h} value={String(h)}>{h}</option>)}
       </select>
-      <span style={{ fontSize: 13, fontWeight: 600, color: C.muted }}>:</span>
-      <select value={min} onChange={e => assemble(hr, e.target.value, period)} style={{ ...selBase, width: 48 }}>
+      <span style={{ fontSize: 14, fontWeight: 600, color: C.muted, flexShrink: 0 }}>:</span>
+      <select value={min} onChange={e => assemble(hr, e.target.value, period)} style={{ ...selBase, width: 64 }}>
         {minutes.map(m => <option key={m} value={m}>{m}</option>)}
       </select>
       <span onClick={() => assemble(hr, min, period === "AM" ? "PM" : "AM")} style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center",
-        width: 32, height: 28, fontSize: 10, fontWeight: 800, letterSpacing: "0.04em",
+        width: 38, height: 30, fontSize: 11, fontWeight: 800, letterSpacing: "0.04em",
         color: period === "AM" ? C.blue : C.red,
         background: period === "AM" ? "#e8f0fb" : "#fdecea",
         border: `1px solid ${period === "AM" ? C.blue + "44" : C.red + "44"}`,
-        borderRadius: 4, cursor: "pointer", userSelect: "none",
+        borderRadius: 4, cursor: "pointer", userSelect: "none", flexShrink: 0,
       }}>{period}</span>
     </div>
   );
