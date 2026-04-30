@@ -168,9 +168,7 @@ function DesktopNavBar({
                     {can("manage_users") && (
                       <GearMenuItem label="Job Titles" hasTopBorder onClick={() => { setShowSettingsMenu(false); navigate("/job-titles"); }} />
                     )}
-                    {can("manage_users") && (
-                      {/* v28.17 — Permissions menu item removed. Matrix now lives as a tab inside /people. */}
-                    )}
+                    {/* v28.17 — Permissions gear item removed; matrix now lives as a tab inside /people. */}
                     {currentUser.role === "owner" && (
                       <GearMenuItem label="Yard Locations" hasTopBorder onClick={() => { setShowSettingsMenu(false); setShowSettings(true); }} />
                     )}
