@@ -110,6 +110,13 @@ function PermissionsModal({ onClose }) {
   }, [editTemplates, templates]);
 
   const thStyle = { position: "sticky", top: 0, background: C.cardBg, padding: "10px 4px", textAlign: "center", borderBottom: `2px solid ${C.border}`, fontWeight: 600, color: C.muted, minWidth: 55, fontSize: 10, lineHeight: 1.3, zIndex: 2 };
+  // v28.14 — sticky-left for the row-identifier column. Header gets z-index
+  // bumped above the regular sticky-top headers so it stays above when both
+  // sticky directions intersect at the corner cell. Body cells need an
+  // explicit opaque background so scrolled-under content doesn't show
+  // through. boxShadow gives a subtle visual seam.
+  const stickyLeftHeader = { position: "sticky", left: 0, zIndex: 3, background: C.cardBg, boxShadow: `2px 0 0 ${C.border}` };
+  const stickyLeftCell = { position: "sticky", left: 0, zIndex: 1, background: C.cardBg, boxShadow: `2px 0 0 ${C.border}` };
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={onClose}>
@@ -142,7 +149,11 @@ function PermissionsModal({ onClose }) {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                     <thead>
                       <tr>
-                        <th style={{ ...thStyle, textAlign: "left", padding: "10px 12px", minWidth: 100, fontWeight: 800, color: C.text }}>Role</th>
+                        {/* v28.14 — Role label column sticky-left so the role
+                            stays in view while the permission columns scroll
+                            horizontally. Header background opaque to avoid
+                            scrolled cells showing through. */}
+                        <th style={{ ...thStyle, ...stickyLeftHeader, textAlign: "left", padding: "10px 12px", minWidth: 100, fontWeight: 800, color: C.text }}>Role</th>
                         {PERMISSION_CATEGORIES.map(p => (
                           <th key={p.key} style={thStyle}>{p.label}</th>
                         ))}
@@ -151,7 +162,7 @@ function PermissionsModal({ onClose }) {
                     <tbody>
                       {EDITABLE_ROLES.map(r => (
                         <tr key={r.value} style={{ borderBottom: `1px solid ${C.border}` }}>
-                          <td style={{ padding: "8px 12px", fontWeight: 700, color: C.text, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.04em" }}>
+                          <td style={{ ...stickyLeftCell, padding: "8px 12px", fontWeight: 700, color: C.text, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.04em" }}>
                             {r.label}
                           </td>
                           {PERMISSION_CATEGORIES.map(p => (
@@ -189,7 +200,11 @@ function PermissionsModal({ onClose }) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>
                 <tr>
-                  <th style={{ ...thStyle, textAlign: "left", padding: "10px 12px", minWidth: 140, fontWeight: 800, color: C.text }}>User</th>
+                  {/* v28.14 — User name column sticky-left so the row label
+                      stays visible while the permission columns scroll
+                      horizontally. Background opaque so scrolled cells
+                      don't bleed through. */}
+                  <th style={{ ...thStyle, ...stickyLeftHeader, textAlign: "left", padding: "10px 12px", minWidth: 140, fontWeight: 800, color: C.text }}>User</th>
                   <th style={{ ...thStyle, minWidth: 100, fontWeight: 700 }}>Role Template</th>
                   {PERMISSION_CATEGORIES.map(p => (
                     <th key={p.key} style={thStyle}>{p.label}</th>
@@ -202,9 +217,12 @@ function PermissionsModal({ onClose }) {
                   const canModify = canModifyUser(currentUser?.role, u.role);
                   const effectiveRole = detectEffectiveRole(u.permissions, templates);
                   const isCustom = effectiveRole === "custom";
+                  // Sticky cell needs an explicit background — owner rows
+                  // tint differently so the sticky User cell has to match.
+                  const stickyBg = isOwner ? "#f0f3f8" : C.cardBg;
                   return (
                     <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: isOwner ? "#f0f3f8" : "transparent" }}>
-                      <td style={{ padding: "8px 12px", fontWeight: 700, color: C.text }}>
+                      <td style={{ ...stickyLeftCell, background: stickyBg, padding: "8px 12px", fontWeight: 700, color: C.text }}>
                         {u.name}
                         {saving[u.id] && <span style={{ fontSize: 9, color: C.blue, marginLeft: 6 }}>saving...</span>}
                       </td>
