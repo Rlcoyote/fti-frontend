@@ -16,11 +16,11 @@ import CrewPage from "./CrewPage.jsx";
 import JobHistoryPage from "./JobHistoryPage.jsx";
 import DeletedJobsPage from "./DeletedJobsPage.jsx";
 import SettingsModal from "./SettingsModal.jsx";
-import PermissionsModal from "./PermissionsModal.jsx";
+// v28.17 — PermissionsModal, UsersPage, EmployeesPage all consolidated
+// into PeoplePage (one canonical surface for all person-management).
+import PeoplePage from "./PeoplePage.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import CompanyDocumentsModal from "./CompanyDocumentsModal.jsx";
-import UsersPage from "./UsersPage.jsx";
-import EmployeesPage from "./EmployeesPage.jsx";
 import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
@@ -52,7 +52,7 @@ import { useJobActions } from "./useJobActions.js";
 // as a coordination layer over the four delegates above. Add a new page,
 // modal, or filter — change one of these surfaces, not all of them.
 
-const VERSION = "v28.15";
+const VERSION = "v28.17";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -116,13 +116,16 @@ function FTIDashboard() {
     if (p.startsWith("/reports")) return "reports";
     if (p.startsWith("/deleted")) return "deleted";
     if (p.startsWith("/archive")) return "archive";
-    if (p.startsWith("/users")) return "users";
+    if (p.startsWith("/people")) return "people";
+    if (p.startsWith("/users")) return "people";       // v28.17 alias for legacy bookmarks
+    if (p.startsWith("/employees")) return "people";   // v28.17 alias for legacy bookmarks
     return "dashboard";
   })();
   const navigateToPage = (path) => navigate(path);
 
   // ── UI state ──
-  const [showPermissions, setShowPermissions] = useState(false);
+  // v28.17 — showPermissions removed; the permissions matrix is now a tab
+  // inside PeoplePage instead of a standalone modal.
   const [showSettings, setShowSettings] = useState(false);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
   const [showCompanyDocs, setShowCompanyDocs] = useState(false);
@@ -249,7 +252,6 @@ function FTIDashboard() {
         can={can}
         myActiveTodosCount={myActiveTodos.length}
         deletedTotalCount={deletedJobs.length + deletedTickets.length}
-        setShowPermissions={setShowPermissions}
         setShowSettings={setShowSettings}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
@@ -268,7 +270,6 @@ function FTIDashboard() {
         deletedTotalCount={deletedJobs.length + deletedTickets.length}
         showSettingsMenu={showSettingsMenu}
         setShowSettingsMenu={setShowSettingsMenu}
-        setShowPermissions={setShowPermissions}
         setShowSettings={setShowSettings}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
@@ -320,8 +321,11 @@ function FTIDashboard() {
         {can("view_inventory") && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
         {can("delete_jobs") && <Route path="/deleted" element={<DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />} />}
         {can("view_archive") && <Route path="/archive" element={<ArchivePage />} />}
-        {can("manage_users") && <Route path="/users" element={<UsersPage isAdmin={isAdmin} />} />}
-        {can("manage_users") && <Route path="/employees" element={<EmployeesPage />} />}
+        {/* v28.17 — One canonical /people route. /users and /employees
+            redirect for legacy bookmark compatibility. */}
+        {can("manage_users") && <Route path="/people" element={<PeoplePage />} />}
+        {can("manage_users") && <Route path="/users" element={<Navigate to="/people" replace />} />}
+        {can("manage_users") && <Route path="/employees" element={<Navigate to="/people" replace />} />}
         {can("manage_users") && <Route path="/job-titles" element={<JobTitlesPage />} />}
         {/* Catch-all — redirect to dashboard */}
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -329,7 +333,7 @@ function FTIDashboard() {
 
       {/* MODALS */}
       {showNewJob && <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} />}
-      {showPermissions && <PermissionsModal onClose={() => setShowPermissions(false)} />}
+      {/* v28.17 — PermissionsModal removed; matrix lives inside /people. */}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
       {showCompanyDocs && <CompanyDocumentsModal onClose={() => setShowCompanyDocs(false)} />}

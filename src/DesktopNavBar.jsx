@@ -32,7 +32,7 @@ const PAGE_MAP = {
   Reports: "reports",
   Deleted: "deleted",
   Archive: "archive",
-  Users: "users",
+  Users: "people",  // v28.17 — top-nav "Users" label kept; the page key is "people" (consolidated route)
 };
 
 const ROUTE_MAP = {
@@ -48,7 +48,7 @@ const ROUTE_MAP = {
   Reports: "/reports",
   Deleted: "/deleted",
   Archive: "/archive",
-  Users: "/users",
+  Users: "/people",  // v28.17 — consolidated route
 };
 
 // Inline helper to render a single dropdown menu item with consistent style
@@ -82,8 +82,8 @@ function DesktopNavBar({
   // Gear-menu local UI state
   showSettingsMenu,
   setShowSettingsMenu,
-  // Modal-open setters
-  setShowPermissions,
+  // Modal-open setters (v28.17 — setShowPermissions removed; the
+  // permissions matrix lives inside /people now, not a standalone modal).
   setShowSettings,
   setShowEmergencyContacts,
   setShowCompanyDocs,
@@ -163,13 +163,13 @@ function DesktopNavBar({
                     boxShadow: "0 4px 16px #00000033", minWidth: 160, overflow: "hidden",
                   }}>
                     {can("manage_users") && (
-                      <GearMenuItem label="Employees" onClick={() => { setShowSettingsMenu(false); navigate("/employees"); }} />
+                      <GearMenuItem label="People" onClick={() => { setShowSettingsMenu(false); navigate("/people"); }} />
                     )}
                     {can("manage_users") && (
                       <GearMenuItem label="Job Titles" hasTopBorder onClick={() => { setShowSettingsMenu(false); navigate("/job-titles"); }} />
                     )}
                     {can("manage_users") && (
-                      <GearMenuItem label="Permissions" hasTopBorder onClick={() => { setShowSettingsMenu(false); setShowPermissions(true); }} />
+                      {/* v28.17 — Permissions menu item removed. Matrix now lives as a tab inside /people. */}
                     )}
                     {currentUser.role === "owner" && (
                       <GearMenuItem label="Yard Locations" hasTopBorder onClick={() => { setShowSettingsMenu(false); setShowSettings(true); }} />

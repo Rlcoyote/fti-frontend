@@ -47,7 +47,7 @@ const ROUTE_MAP = {
   Reports: "/reports",
   Deleted: "/deleted",
   Archive: "/archive",
-  Users: "/users",
+  Users: "/people",  // v28.17 — "Users" label kept for nav continuity; route now points to consolidated People page
 };
 
 const NAV_ICONS = {
@@ -103,7 +103,8 @@ function MobileNavDrawer({
   can,
   myActiveTodosCount,
   deletedTotalCount,
-  setShowPermissions,
+  // v28.17 — setShowPermissions removed; the permissions matrix is a tab
+  // inside /people now, not a standalone modal.
   setShowSettings,
   setShowEmergencyContacts,
   setShowCompanyDocs,
@@ -181,9 +182,7 @@ function MobileNavDrawer({
         })}
 
         {/* GEAR ITEMS — admin / owner only */}
-        {can("manage_users") && (
-          <DrawerItem icon="⚙" label="Permissions" onClick={() => { setDrawerOpen(false); setShowPermissions(true); }} />
-        )}
+        {/* v28.17 — Permissions item removed; permissions matrix lives as a tab inside /people. */}
         {currentUser.role === "owner" && (
           <DrawerItem icon="⚙" label="Yard Locations" onClick={() => { setDrawerOpen(false); setShowSettings(true); }} />
         )}
