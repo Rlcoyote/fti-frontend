@@ -4,6 +4,7 @@ import { Btn, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import JSASignSubmitModal from "./JSASignSubmitModal.jsx";
 import JSALeadOverrideModal from "./JSALeadOverrideModal.jsx";
+import JSAPathBSignModal from "./JSAPathBSignModal.jsx";
 
 // ─── JSACrewSigners (v28.07) ────────────────────────────────────────────────
 // Renders the list of required FTI crew signers for a JSA (sourced from the
@@ -63,6 +64,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
   const [error, setError] = useState("");
   const [signOpen, setSignOpen] = useState(false);
   const [overrideTarget, setOverrideTarget] = useState(null);
+  const [pinWitnessTarget, setPinWitnessTarget] = useState(null);
   const [busyUserId, setBusyUserId] = useState(null);
   const [linkSentMsg, setLinkSentMsg] = useState("");
 
@@ -198,6 +200,15 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                       {canSendLinkOrOverride && !canSelfSign && (
                         <>
                           <button
+                            onClick={() => setPinWitnessTarget(c)}
+                            style={{
+                              background: C.blue, border: "none", color: C.white,
+                              fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 3,
+                              cursor: "pointer", letterSpacing: "0.06em",
+                            }}
+                            title="Crew member signs by entering their PIN on this device, with a photo + your biometric witness."
+                          >SIGN W/ PIN</button>
+                          <button
                             onClick={() => sendLink(c.user_id)}
                             disabled={busyUserId === c.user_id}
                             style={{
@@ -272,6 +283,28 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
             setOverrideTarget(null);
             fetchSigners();
             if (onNeedsRefresh) onNeedsRefresh();
+          }}
+        />
+      )}
+
+      {/* PATH B — PIN + photo + lead biometric witness (v28.19) */}
+      {pinWitnessTarget && (
+        <JSAPathBSignModal
+          jsaId={jsaId}
+          target={pinWitnessTarget}
+          onClose={() => setPinWitnessTarget(null)}
+          onSigned={() => {
+            setPinWitnessTarget(null);
+            fetchSigners();
+            if (onNeedsRefresh) onNeedsRefresh();
+          }}
+          onFallbackToOverride={(target, reason) => {
+            // 3-strike PIN failure or no-PIN-set → seamless transition
+            // into Path C without context-switching the lead.
+            setLinkSentMsg(reason);
+            setTimeout(() => setLinkSentMsg(""), 6000);
+            setPinWitnessTarget(null);
+            setOverrideTarget(target);
           }}
         />
       )}

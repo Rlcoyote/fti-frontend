@@ -52,7 +52,7 @@ import { useJobActions } from "./useJobActions.js";
 // as a coordination layer over the four delegates above. Add a new page,
 // modal, or filter — change one of these surfaces, not all of them.
 
-const VERSION = "v28.18";
+const VERSION = "v28.19";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -210,11 +210,12 @@ function FTIDashboard() {
 
   const totalOut = inventory.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
 
-  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Assets", "Crew", "Safety", "Final Review", "Reports", "Deleted", "Archive", "Users"];
+  // v28.19 — "Users" removed from the top nav. People management is
+  // admin-cadence work and lives in the gear menu only ("People" → /people).
+  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Assets", "Crew", "Safety", "Final Review", "Reports", "Deleted", "Archive"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
     if (i === "Inventory" && !can("view_inventory")) return false;
     if (i === "Assets" && !can("view_inventory")) return false;
-    if (i === "Users" && !can("manage_users")) return false;
     if (i === "Work Order History" && !can("view_jobs")) return false;
     if (i === "Deleted" && !can("delete_jobs")) return false;
     if (i === "Archive" && !can("view_archive")) return false;

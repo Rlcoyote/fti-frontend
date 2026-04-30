@@ -31,7 +31,6 @@ const PAGE_MAP = {
   Reports: "reports",
   Deleted: "deleted",
   Archive: "archive",
-  Users: "users",
 };
 
 const ROUTE_MAP = {
@@ -47,7 +46,8 @@ const ROUTE_MAP = {
   Reports: "/reports",
   Deleted: "/deleted",
   Archive: "/archive",
-  Users: "/people",  // v28.17 — "Users" label kept for nav continuity; route now points to consolidated People page
+  // v28.19 — Users drawer entry removed. People management lives in the gear
+  // menu only (admin-cadence, not daily-use surface).
 };
 
 const NAV_ICONS = {
@@ -63,7 +63,6 @@ const NAV_ICONS = {
   Reports: "📊",
   Deleted: "🗑",
   Archive: "📁",
-  Users: "👤",
 };
 
 function DrawerItem({ icon, label, active, onClick, badge, badgeColor }) {
@@ -161,7 +160,6 @@ function MobileNavDrawer({
 
         {/* NAV ITEMS */}
         {navItems.map(item => {
-          if (item === "Users" && !isManager) return null;
           if (item === "Work Order History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
           const active = PAGE_MAP[item] === page;

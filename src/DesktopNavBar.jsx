@@ -32,7 +32,8 @@ const PAGE_MAP = {
   Reports: "reports",
   Deleted: "deleted",
   Archive: "archive",
-  Users: "people",  // v28.17 — top-nav "Users" label kept; the page key is "people" (consolidated route)
+  // v28.19 — Users top-nav slot removed. People management is admin-cadence
+  // work and now lives in the gear menu only ("People" → /people).
 };
 
 const ROUTE_MAP = {
@@ -48,7 +49,6 @@ const ROUTE_MAP = {
   Reports: "/reports",
   Deleted: "/deleted",
   Archive: "/archive",
-  Users: "/people",  // v28.17 — consolidated route
 };
 
 // Inline helper to render a single dropdown menu item with consistent style
