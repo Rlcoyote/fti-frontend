@@ -69,7 +69,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
   const [sessionTimeout, setSessionTimeout] = useState(
     typeof initial.session_timeout_minutes === "number" ? initial.session_timeout_minutes : 30
   );
-  // New-only: send PIN setup email immediately after create
+  // New-only: send PIN setup link via SMS immediately after create (v28.22)
   const [sendPinAfterCreate, setSendPinAfterCreate] = useState(true);
 
   const [submitting, setSubmitting] = useState(false);
@@ -145,9 +145,9 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
         } catch { /* non-blocking */ }
       }
 
-      // Send PIN setup email immediately on create (new mode + checkbox).
-      // Silent on failure — the user can use the row's "Send PIN Setup"
-      // button to retry.
+      // Send PIN setup text immediately on create (new mode + checkbox).
+      // v28.22 — channel is SMS, not email. Silent on failure — the user
+      // can use the row's "Send PIN Setup" button to retry.
       if (mode === "new" && sendPinAfterCreate && savedId) {
         try {
           await fetch(`${API_URL}/employees/${savedId}/send-pin-setup`, {
@@ -160,7 +160,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
       const personName = `${payload.first_name} ${payload.last_name}`;
       const successMsg = mode === "new"
         ? (sendPinAfterCreate
-            ? `${personName} added — a PIN setup email was sent. The link expires in 7 days and can only be used once.`
+            ? `${personName} added — a PIN setup text was sent to their phone. They tap the link, register biometric, set PIN. Link expires in 7 days, single-use.`
             : `${personName} added. Use the "Send PIN Setup" button on their row when you're ready to issue their PIN.`)
         : `${personName} updated.`;
       onSaved(successTitle, successMsg);
@@ -291,7 +291,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
           )}
         </div>
 
-        {/* New-mode-only: PIN setup email checkbox */}
+        {/* New-mode-only: PIN setup SMS checkbox (v28.22 — SMS, not email) */}
         {mode === "new" && (
           <label style={{
             display: "flex", alignItems: "center", gap: 10,
@@ -304,7 +304,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
               onChange={e => setSendPinAfterCreate(e.target.checked)}
               style={{ accentColor: C.blue }}
             />
-            Email PIN setup link immediately after creating the person
+            Text PIN setup link to their phone immediately after creating the person
           </label>
         )}
 

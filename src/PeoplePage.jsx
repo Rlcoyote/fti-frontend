@@ -129,7 +129,7 @@ function PeoplePage() {
         return;
       }
       showNotice("PIN setup link sent",
-        `An email has been sent to ${p.email}. The link expires in 7 days and can only be used once.`);
+        `A text message has been sent to ${p.phone || "their phone"}. They tap the link on their phone, register their biometric, set their PIN. Link expires in 7 days, single-use.`);
       fetchPeople();
     } catch (err) { showNotice("Send PIN failed", err.message, "error"); }
   };
@@ -143,7 +143,7 @@ function PeoplePage() {
         return;
       }
       showNotice("PIN reset",
-        `${p.first_name} ${p.last_name}'s PIN has been cleared. A new setup email is on the way to ${p.email}.`);
+        `${p.first_name} ${p.last_name}'s PIN has been cleared. A new setup text is on the way to ${p.phone || "their phone"}.`);
       fetchPeople();
     } catch (err) { showNotice("Reset PIN failed", err.message, "error"); }
   };
@@ -295,7 +295,7 @@ function PeoplePage() {
           <button key="reset-pin" onClick={() => setConfirmAction({
             kind: "reset-pin",
             title: "Reset PIN?",
-            message: `${p.first_name} ${p.last_name}'s current PIN will be cleared. A new setup email will be sent to ${p.email}. The link expires in 7 days and can only be used once.`,
+            message: `${p.first_name} ${p.last_name}'s current PIN will be cleared. A new setup text will be sent to ${p.phone || "their phone"}. The link expires in 7 days and can only be used once.`,
             yesLabel: "Reset PIN",
             onYes: () => resetPin(p),
           })} style={actionBtnStyle}>
