@@ -88,10 +88,13 @@ function PeoplePage() {
   // Inline transient toast for non-modal feedback
   const [msg, setMsg] = useState("");
 
-  if (!isOwnerOrAdmin) {
-    return <div style={{ padding: 32, color: C.muted }}>You need owner or admin access to view this page.</div>;
-  }
-
+  // v28.17 fix — fetchers + their useEffects must come BEFORE the
+  // permission early-return below. Hooks must run in the same order on
+  // every render; if a non-owner first sees the early return and then
+  // becomes an owner, the second render would call MORE hooks than the
+  // first → React crashes with "Rendered more hooks than during the
+  // previous render." Mirror the JobTitlesPage pattern (useEffect first,
+  // gate later).
   const fetchPeople = async () => {
     setLoading(true);
     try {
@@ -110,6 +113,10 @@ function PeoplePage() {
 
   useEffect(() => { fetchPeople(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeInactive]);
   useEffect(() => { fetchJobTitles(); }, []);
+
+  if (!isOwnerOrAdmin) {
+    return <div style={{ padding: 32, color: C.muted }}>You need owner or admin access to view this page.</div>;
+  }
 
   // ─── Lifecycle actions (each fires API + refreshes list / toasts) ────────
 
