@@ -1,5 +1,25 @@
 import { C } from "./config.js";
 import { NavBadge } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
+
+// v28.25 — theme toggle icon shown in the top-right of the desktop nav.
+// Sun = "go to light" (visible in dark mode); Moon = "go to dark"
+// (visible in light mode). Lives outside the gear menu so non-admin
+// field users can flip themes too — eye fatigue isn't a permission.
+function ThemeToggleIcon() {
+  const { theme, toggleTheme } = useApp();
+  const isDark = theme === "dark";
+  return (
+    <span
+      onClick={toggleTheme}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      style={{
+        fontSize: 16, color: "#a0aec8", cursor: "pointer", lineHeight: 1,
+        userSelect: "none", padding: "2px 4px",
+      }}
+    >{isDark ? "☀" : "☾"}</span>
+  );
+}
 
 // ─── DesktopNavBar (v28.05) ─────────────────────────────────────────────────
 // Top navigation bar used at viewport widths ≥ 900px. Contains:
@@ -144,8 +164,14 @@ function DesktopNavBar({
           );
         })}
 
-        {/* GEAR DROPDOWN */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* GEAR DROPDOWN + THEME TOGGLE */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Theme toggle (v28.25) — visible to all users. The icon shown is
+              the destination, not the current state: sun = "click for light",
+              moon = "click for dark." Title attribute spells it out so there's
+              no ambiguity. */}
+          <ThemeToggleIcon />
+
           {(can("manage_users") || currentUser.role === "owner") && (
             <div style={{ position: "relative" }}>
               <span

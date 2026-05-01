@@ -488,7 +488,7 @@ function LoginScreen() {
             {mode === "login"
               ? (showJsaSignStep ? "SIGN THE JSA" : showEnrollmentStep ? "REGISTER THIS DEVICE" : showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
               : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
-            {" "}<span style={{ color: C.white, fontWeight: 700 }}>v28.24</span>
+            {" "}<span style={{ color: C.white, fontWeight: 700 }}>v28.25</span>
           </div>
         </div>
 

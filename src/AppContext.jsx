@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { API_URL, setCurrentUser as setGlobalUser } from "./config.js";
+import { API_URL, setCurrentUser as setGlobalUser, applyTheme, getTheme } from "./config.js";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { NoticeModal } from "./SharedUI.jsx";
 
@@ -95,6 +95,24 @@ export function AppProvider({ children }) {
   const [assets, setAssets] = useState([]);
   const [roles, setRoles] = useState(DEFAULT_ROLES);
   const [loading, setLoading] = useState(false);
+
+  // ── Theme (v28.25) ──
+  // Mirrors the persisted localStorage value; on mount, config.js has
+  // already called applyTheme(getTheme()) synchronously so first paint
+  // matches preference. setTheme below re-applies (mutating the global
+  // C palette in place), persists to localStorage, and bumps state to
+  // re-render the tree. Components that read C.X get fresh values on
+  // re-render because C is the same object reference with new property
+  // values.
+  const [theme, setThemeState] = useState(() => getTheme());
+  const setTheme = useCallback((t) => {
+    const next = t === "dark" ? "dark" : "light";
+    applyTheme(next);
+    setThemeState(next);
+  }, []);
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  }, [theme, setTheme]);
 
   // ── Global notice (replaces ad-hoc window.alert() calls) ──
   // One NoticeModal mounted at the Provider; any component calls
@@ -312,12 +330,14 @@ export function AppProvider({ children }) {
     loading,
     refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles,
     showNotice,
+    theme, setTheme, toggleTheme,
   }), [
     currentUser, setCurrentUser, logout, logActivity,
     settings, users, customers, qbItems, assets, roles,
     userNames, userIdByName, loading,
     refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles,
     showNotice,
+    theme, setTheme, toggleTheme,
   ]);
 
   // Show splash while the initial fetch is in flight post-login. Pre-login

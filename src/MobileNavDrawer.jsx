@@ -1,4 +1,25 @@
 import { C } from "./config.js";
+import { useApp } from "./AppContext.jsx";
+
+// v28.25 — theme toggle row for the mobile drawer. Mirrors the desktop
+// icon in DesktopNavBar but rendered as a full-width drawer item with
+// label text since the drawer pattern uses tappable rows. Visible to
+// every user role (eye fatigue isn't a permission).
+function ThemeDrawerItem() {
+  const { theme, toggleTheme } = useApp();
+  const isDark = theme === "dark";
+  return (
+    <div onClick={toggleTheme} style={{
+      display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
+      cursor: "pointer",
+    }}>
+      <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{isDark ? "☀" : "☾"}</span>
+      <span style={{ fontSize: 15, color: "#b0bdd4", fontWeight: 400 }}>
+        {isDark ? "Light Mode" : "Dark Mode"}
+      </span>
+    </div>
+  );
+}
 
 // ─── MobileNavDrawer (v28.05) ───────────────────────────────────────────────
 // Bottom-sheet navigation drawer used at viewport widths < 900px. Slides up
@@ -192,6 +213,9 @@ function MobileNavDrawer({
         {can("view_activity_log") && (
           <DrawerItem icon="📋" label="Activity Log" onClick={() => { setDrawerOpen(false); navigate("/activity"); }} />
         )}
+
+        {/* THEME TOGGLE (v28.25) */}
+        <ThemeDrawerItem />
 
         {/* SIGN OUT */}
         <div onClick={() => { setDrawerOpen(false); setShowLogoutConfirm(true); }} style={{
