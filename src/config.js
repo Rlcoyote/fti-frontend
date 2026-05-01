@@ -25,6 +25,12 @@ const LIGHT = {
   overdue: "#B01020", overdueB: "#fdf0f0",
   priHigh: "#B01020", priHighB: "#fdecea",
   priLow: "#1a5fa8", priLowB: "#e8f0fb",
+  // v28.26 — header tokens for the top nav bar. In light mode the banner
+  // is dark-navy with white text; in dark mode the banner is light-blue
+  // with dark-navy text (per Reggie's call: "make the top banner print
+  // Dark blue against the light blue"). Decoupled from the rest of the
+  // palette so the header can carry brand-distinct contrast in each mode.
+  headerBg: "#002060", headerText: "#FFFFFF", headerMuted: "#a0aec8",
 };
 
 // Dark palette — hand-picked so brand red/blue stay recognizable on dark
@@ -42,6 +48,12 @@ const DARK = {
   overdue: "#FF4458", overdueB: "#3b1f24",
   priHigh: "#FF4458", priHighB: "#3b1f24",
   priLow: "#5b9bf2", priLowB: "#1a2a44",
+  // Light-blue banner with dark-navy text — Reggie's spec for dark mode.
+  // headerBg matches the dark-mode darkBlue accent so existing icons
+  // composed against the banner (FTI circle, sign-out badge) still read
+  // correctly. headerText is very dark navy so white logo / version text
+  // becomes high-contrast dark text against the light blue band.
+  headerBg: "#4a8be2", headerText: "#0a1430", headerMuted: "#1a2340",
 };
 
 // Mutable singleton — imports hold a reference to this object. On theme

@@ -145,20 +145,23 @@ function ActivityLogPage() {
         </div>
       </div>
 
-      {/* Online now */}
-      <div style={{ background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6, padding: "12px 16px", marginBottom: 20 }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: C.green, letterSpacing: "0.08em", marginBottom: 6 }}>
+      {/* Online now — v28.26: green tint background is hardcoded (doesn't
+          flip with theme), so text colors inside it are also hardcoded to
+          dark navy for legibility on the green. Reggie's call: "make the
+          wording below it dark blue." */}
+      <div style={{ background: "#e6f5ec", border: `1px solid #00633a44`, borderRadius: 6, padding: "12px 16px", marginBottom: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: "#00633a", letterSpacing: "0.08em", marginBottom: 6 }}>
           ONLINE NOW ({online.length})
         </div>
         {online.length === 0 ? (
-          <div style={{ fontSize: 12, color: C.muted }}>No active users in the last 15 minutes</div>
+          <div style={{ fontSize: 12, color: "#4a5570" }}>No active users in the last 15 minutes</div>
         ) : (
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {online.map(u => (
               <div key={u.user_id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{u.user_name}</span>
-                <span style={{ fontSize: 10, color: C.muted }}>{formatIP(u.ip_address)}</span>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00633a" }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#002060" }}>{u.user_name}</span>
+                <span style={{ fontSize: 10, color: "#4a5570" }}>{formatIP(u.ip_address)}</span>
               </div>
             ))}
           </div>

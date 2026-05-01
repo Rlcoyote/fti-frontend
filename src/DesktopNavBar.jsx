@@ -14,7 +14,7 @@ function ThemeToggleIcon() {
       onClick={toggleTheme}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       style={{
-        fontSize: 16, color: "#a0aec8", cursor: "pointer", lineHeight: 1,
+        fontSize: 16, color: C.headerMuted, cursor: "pointer", lineHeight: 1,
         userSelect: "none", padding: "2px 4px",
       }}
     >{isDark ? "☀" : "☾"}</span>
@@ -113,7 +113,7 @@ function DesktopNavBar({
 }) {
   return (
     <div className="fti-nav-bar" style={{
-      background: C.darkBlue, borderBottom: `2px solid ${C.red}`,
+      background: C.headerBg, borderBottom: `2px solid ${C.red}`,
       padding: "0 28px", display: "flex", alignItems: "center",
       justifyContent: "space-between", minHeight: 56,
     }}>
@@ -132,9 +132,9 @@ function DesktopNavBar({
           boxShadow: `0 0 12px ${C.red}44`,
         }}>FTI</div>
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.white }}>FLO-TEST INC.</div>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#a0aec8", letterSpacing: "0.12em" }}>
-            OPERATIONS DASHBOARD <span style={{ color: C.white, fontWeight: 800 }}>{version}</span>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.headerText }}>FLO-TEST INC.</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.headerMuted, letterSpacing: "0.12em" }}>
+            OPERATIONS DASHBOARD <span style={{ color: C.headerText, fontWeight: 800 }}>{version}</span>
           </div>
         </div>
       </div>
@@ -149,7 +149,7 @@ function DesktopNavBar({
               key={item}
               onClick={() => { if (clickable) navigate(ROUTE_MAP[item]); }}
               style={{
-                fontSize: 13, color: active ? C.white : clickable ? "#b0bdd4" : "#6b7a99",
+                fontSize: 13, color: active ? C.headerText : clickable ? C.headerMuted : "#6b7a99",
                 letterSpacing: "0.08em", cursor: clickable ? "pointer" : "default",
                 borderBottom: active ? `2px solid ${C.red}` : "2px solid transparent",
                 paddingBottom: 4, fontWeight: active ? 700 : 600,
@@ -176,7 +176,7 @@ function DesktopNavBar({
             <div style={{ position: "relative" }}>
               <span
                 onClick={() => setShowSettingsMenu(v => !v)}
-                style={{ fontSize: 18, color: showSettingsMenu ? C.white : "#a0aec8", cursor: "pointer", lineHeight: 1, userSelect: "none" }}
+                style={{ fontSize: 18, color: showSettingsMenu ? C.headerText : C.headerMuted, cursor: "pointer", lineHeight: 1, userSelect: "none" }}
                 title="Settings"
               >⚙</span>
               {showSettingsMenu && (
@@ -215,7 +215,7 @@ function DesktopNavBar({
           {/* SIGN OUT */}
           <span
             onClick={() => setShowLogoutConfirm(true)}
-            style={{ fontSize: 11, color: "#a0aec8", cursor: "pointer", letterSpacing: "0.06em" }}
+            style={{ fontSize: 11, color: C.headerMuted, cursor: "pointer", letterSpacing: "0.06em" }}
           >SIGN OUT</span>
           <div
             onClick={() => setShowLogoutConfirm(true)}

@@ -106,7 +106,7 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
     const leftBorder = flavor === "cascaded" ? `3px solid ${C.red}99` : `3px solid ${tcfg.color}`;
     return (
       <div key={t.id} style={{
-        background: C.white, border: `1px solid ${C.border}`, borderLeft: leftBorder,
+        background: C.cardBg, border: `1px solid ${C.border}`, borderLeft: leftBorder,
         borderRadius: 4, padding: "10px 14px", marginBottom: 6,
         display: "flex", alignItems: "center", gap: 10,
       }}>
@@ -149,7 +149,7 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
 
     return (
       <div key={g.jobId} style={{
-        background: g.woDeleted ? "#fdf0f0" : "#f5f7fb",
+        background: g.woDeleted ? C.priHighB : C.lightSteel,
         border: `1px solid ${g.woDeleted ? C.red + "44" : C.border}`,
         borderRadius: 8, padding: "14px 18px", marginBottom: 14,
       }}>
