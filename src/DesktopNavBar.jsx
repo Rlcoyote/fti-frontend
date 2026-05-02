@@ -116,6 +116,11 @@ function DesktopNavBar({
       background: C.headerBg, borderBottom: `2px solid ${C.red}`,
       padding: "0 28px", display: "flex", alignItems: "center",
       justifyContent: "space-between", minHeight: 56,
+      // v28.27 — sticky top nav. Header stays visible when the page scrolls.
+      // zIndex: 50 sits above page content but below modals (which use 100+
+      // throughout the app), so opening a JSA / EditPerson / Confirm modal
+      // still covers the nav as expected.
+      position: "sticky", top: 0, zIndex: 50,
     }}>
       {/* LOGO + BRAND */}
       <div
