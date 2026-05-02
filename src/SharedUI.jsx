@@ -185,6 +185,12 @@ export function PipelineSummary({ jobs, tickets }) {
 }
 
 // ─── TICKET TYPE & STATUS BADGES ──────────────────────────────────────────────
+// v28.28 — fixed minWidth + centered label so RIG UP / RIG DOWN / TESTER /
+// PUMPER / RENTAL all render at the same visual width. Without this, "RIG UP"
+// (6 chars) renders narrower than "RIG DOWN" (8 chars) which pushes every
+// downstream column on the ticket row out of vertical alignment from row to
+// row. minWidth (not width) so longer labels never truncate; the badge
+// grows beyond 78px if a future TICKET_TYPES entry needs it.
 export function TicketTypeBadge({ type }) {
   const cfg = TICKET_TYPES[type] || { color: C.muted, bg: C.steel, label: type || "—" };
   return (
@@ -192,6 +198,7 @@ export function TicketTypeBadge({ type }) {
       display: "inline-block", padding: "3px 10px", borderRadius: 3,
       fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
       color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}33`,
+      minWidth: 78, textAlign: "center", boxSizing: "border-box",
     }}>{cfg.label}</span>
   );
 }
