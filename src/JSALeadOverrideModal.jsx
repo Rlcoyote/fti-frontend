@@ -16,13 +16,17 @@ import { useApp } from "./AppContext.jsx";
 // 'lead_override') so the JSA's "all required signers signed" gate is
 // satisfied. Audit trail captures who overrode whom and why.
 
+// v28.39 — reduced from 6 reasons to 2. The original list described
+// scenarios where the lead's actual job is to MODIFY THE CREW ROSTER
+// (off-site, departed, refusing, incapacitated mid-shift) rather than
+// anchor an override on someone who shouldn't be on the crew. Each
+// override row is a perjury record — the lead can only honestly vouch
+// for someone who is present and willing but technically unable to
+// authenticate. See backend OVERRIDE_REASON_CODES for the full
+// rationale.
 const REASON_OPTIONS = [
-  { code: 'unreachable_offsite',  label: 'Unreachable / off-site' },
-  { code: 'incapacitated_or_ill', label: 'Incapacitated or ill' },
-  { code: 'unresponsive_present', label: 'Unresponsive (on-site, refusing to participate)' },
-  { code: 'departed_site',        label: 'Departed site before JSA acknowledgment' },
-  { code: 'phone_lost_or_dead',   label: 'Phone lost or dead — no other path' },
-  { code: 'other',                label: 'Other (describe in detail)' },
+  { code: 'no_other_path', label: 'No other path available (phone dead/lost, no biometric registered, sign-link unreachable)' },
+  { code: 'other',         label: 'Other (describe in detail)' },
 ];
 
 function JSALeadOverrideModal({ jsaId, target, jsaContext, onClose, onOverridden }) {
@@ -132,7 +136,7 @@ function JSALeadOverrideModal({ jsaId, target, jsaContext, onClose, onOverridden
           style={{ ...inputStyle, minHeight: 70, resize: "vertical" }}
           value={reasonText}
           onChange={e => setReasonText(e.target.value)}
-          placeholder="Describe the specific circumstance — e.g. 'Crew member departed site at 14:30 due to illness, supervisor notified.'"
+          placeholder="Describe the specific technical inability — e.g. 'Phone died at 10:15, no replacement charger on site, biometric not registered on shop iPad.'"
           maxLength={500}
         />
       </div>

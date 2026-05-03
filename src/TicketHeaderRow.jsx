@@ -40,13 +40,23 @@ function TicketHeaderRow({
   const lockPillBg = isFullyLocked ? "#d4edda" : "#fdf5d8";
   const lockPillLabel = isFullyLocked ? "QB VERIFIED" : "LOCKED";
 
+  // v28.39 — TicketDetail panel sits on a light pastel tcfg.bg (always
+  // light, regardless of theme). C.text and C.muted are themed (light in
+  // dark mode), so every text element on this panel was light-on-light.
+  // Forcing explicit dark colors throughout the header. Inputs (date,
+  // yard select) keep their own theme — they have their own dark
+  // C.cardBg background so theme colors inside them are correct.
+  const PANEL_TEXT = "#1a2340";   // dark navy — primary text on pastel
+  const PANEL_MUTED = "#4a5570";  // slate — secondary text on pastel
+  const PANEL_FAINT = "#6b7a99";  // lighter slate — tertiary stamps
+
   return (
     <div style={{ padding: isPageMode ? "14px 16px 12px" : "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
       {/* Row 1: type + status badges + ticket # + lock pill */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
         <TicketTypeBadge type={ticket.type} />
         <TicketStatusBadge status={status} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: PANEL_TEXT }}>
           #{ticket.jobId}{ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}
         </span>
         {isLocked && (
@@ -57,23 +67,19 @@ function TicketHeaderRow({
       </div>
 
       {/* Row 2: dollar total + created-by stamp */}
-      {/* v28.38 — TicketDetail panel sits on a light pastel tcfg.bg (light
-          regardless of theme). C.text is light in dark mode, so the dollar
-          total was unreadable. Forcing dark navy explicitly since the
-          background is always light. */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: "#1a2340" }}>
+        <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: PANEL_TEXT }}>
           {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         {ticket.createdBy && (
-          <span style={{ fontSize: 9, color: "#a0aec8" }}>
+          <span style={{ fontSize: 9, color: PANEL_FAINT }}>
             {shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}
           </span>
         )}
       </div>
 
       {/* Row 3: customer + editable date */}
-      <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>
+      <div style={{ fontSize: 12, color: PANEL_MUTED, marginBottom: 6 }}>
         <span>{job?.customer || "Unknown"} · {isLocked
           ? formatDate(ticketDate)
           : (
@@ -89,7 +95,7 @@ function TicketHeaderRow({
 
       {/* Row 4: Location Time + Time Zone + Yard (non-Rental only) */}
       {ticket.type !== "Rental" && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12, color: C.muted }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12, color: PANEL_MUTED }}>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>LOCATION TIME:</span>
             {editable
@@ -106,7 +112,7 @@ function TicketHeaderRow({
                     <span
                       key={tz}
                       onClick={() => setTimeZone(tz)}
-                      style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : C.muted }}
+                      style={{ display: "flex", alignItems: "center", gap: 3, cursor: "pointer", fontSize: 12, fontWeight: 700, color: timeZone === tz ? C.red : PANEL_MUTED }}
                     >
                       <span style={{ width: 12, height: 12, borderRadius: "50%", border: `2px solid ${timeZone === tz ? C.red : C.border}`, background: timeZone === tz ? C.red : "transparent", display: "inline-block" }} />
                       {tz}
