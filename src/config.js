@@ -86,12 +86,36 @@ export function applyTheme(theme) {
 // last-saved preference. Avoids a "light flash" before AppContext mounts.
 applyTheme(getTheme());
 
-export const STATUS_CONFIG = {
-  Scheduled:    { color: "#1a5fa8", bg: "#e8f0fb", label: "SCHEDULED" },
-  "In Progress":{ color: "#1a7a3c", bg: "#e6f5ec", label: "IN PROGRESS" },
-  Completed:    { color: "#6b7a99", bg: "#f0f3f8", label: "COMPLETED" },
-};
-export const STATUS_ORDER = ["Scheduled", "In Progress", "Completed"];
+// v28.40 — WO status taxonomy collapsed. The 3-tier (SCHEDULED / IN PROGRESS /
+// COMPLETED) failed CAM Article III Amendment 2 — IN PROGRESS was a date-based
+// heuristic that didn't reflect actual work state, SCHEDULED was redundant
+// with "no tickets touched yet" (derivable), and the whole taxonomy was
+// information the ticket dots already conveyed. Replaced with binary
+// active-vs-archived: a WO is active until the lead clicks MARK FOR
+// COMPLETION, then it's archived (lives in /archive). No badge on active
+// WOs — the ticket pips are the state.
+
+// Canonical ticket lifecycle order. Drives the sort in JobTicketsTab + the
+// "needs lead action" filter on the WO surface (incomplete + signed +
+// sigNotReq stay in the WO; approved+ ship to Final Review/Archive).
+// inField was merged into incomplete in v28.40 — see TICKET_STATUSES.
+export const TICKET_STATUS_ORDER = [
+  "incomplete",
+  "emailed",
+  "signed",
+  "sigNotReq",
+  "approved",
+  "sentToQB",
+  "qbVerified",
+  "voided",
+];
+
+// Tickets that belong on the WO surface (lead's domain — needs action).
+export const WO_TICKET_STATUSES = ["incomplete", "emailed", "signed", "sigNotReq"];
+// Tickets that belong in Final Review (owner's domain — ready for accounting).
+export const FINAL_REVIEW_TICKET_STATUSES = ["approved"];
+// Terminal states — tickets in these states leave both surfaces.
+export const TERMINAL_TICKET_STATUSES = ["sentToQB", "qbVerified", "voided"];
 
 export const API_URL = "https://fti-app-production.up.railway.app/api";
 export const API_URL_PUBLIC = "https://fti-app-production.up.railway.app/api";

@@ -34,7 +34,7 @@ import { useApp } from "./AppContext.jsx";
 // from TicketRentalCycle.
 
 function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, tickets = [], openToSign = false, asPage = false }) {
-  const { qbItems, currentUser, settings } = useApp();
+  const { qbItems, currentUser, settings, showNotice } = useApp();
   const [isMobile] = useState(() => window.innerWidth <= 900);
   const yardsList = useMemo(() => parseYards(settings), [settings]);
 
@@ -121,13 +121,40 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     s.setSignedBy(null);
     s.setSignedAt(null);
     s.setSignatureImage(null);
-    // If ticket was approved, revert approval
+    // v28.40 — wipe-edit on a previously-signed/approved ticket lands the
+    // ticket back at incomplete (was inField pre-v28.40). The two states
+    // were functionally identical (both meant "needs a signature"); the
+    // distinction was historical noise without operational value.
     if (["approved", "sentToQB"].includes(s.status)) {
-      s.setStatus("inField");
+      s.setStatus("incomplete");
     }
   };
 
+  // v28.40 — future-date guard. A ticket cannot be "completed" (signed or
+  // sigNotReq) while its date is in the future. Per Reggie's framing:
+  // creation with a future date is allowed (scheduling work for next week
+  // is normal); completion with a future date is not (you can't have done
+  // work that hasn't happened yet). Backend enforces the same rule.
+  const isFutureDated = () => {
+    const d = (s.ticketDate || ticket.date || "").slice(0, 10);
+    if (!d) return false;
+    const todayStr = new Date().toLocaleDateString("en-CA");
+    return d > todayStr;
+  };
+
+  const blockIfFutureDated = (whichAction) => {
+    if (!isFutureDated()) return false;
+    const d = (s.ticketDate || ticket.date || "").slice(0, 10);
+    showNotice(
+      "Ticket date is in the future",
+      `This ticket is dated ${d}. Update the date to reflect when the work was actually performed before ${whichAction}.`,
+      "error"
+    );
+    return true;
+  };
+
   const handleSign = ({ name, date, imageData }) => {
+    if (blockIfFutureDated("collecting a signature")) return;
     s.setSignedBy(name);
     s.setSignedAt(date);
     s.setSignatureImage(imageData);
@@ -147,8 +174,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   const handleSave = () => {
     if (s.sigWiped) {
-      save({ signedBy: null, signedAt: null, signatureImage: null, status: "inField" });
-      s.setStatus("inField");
+      // v28.40 — wipe lands at incomplete (was inField).
+      save({ signedBy: null, signedAt: null, signatureImage: null, status: "incomplete" });
+      s.setStatus("incomplete");
     } else {
       save();
     }
@@ -160,6 +188,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const handleSigNotRequired = () => {
     if (!s.sigNotReqReason) return;
     if (s.signedBy) return; // Don't allow if already signed
+    if (blockIfFutureDated("marking signature not required")) return;
     s.setStatus("sigNotReq");
     setShowSigOptions(false);
     save({ status: "sigNotReq", sigNotReqReason: s.sigNotReqReason, sigNotReqNote: s.sigNotReqNote, signedBy: null, signedAt: null, signatureImage: null });

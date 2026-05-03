@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
-import { C, STATUS_ORDER } from "./config.js";
+import { C } from "./config.js";
 import { useApp } from "./AppContext.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { todoVisible, DEFAULT_PERMS } from "./utils.js";
-import { Btn, computeJobStatus } from "./SharedUI.jsx";
+import { Btn } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
 import DashboardHome from "./DashboardHome.jsx";
 import NewJobModal from "./NewJobModal.jsx";
@@ -52,7 +52,7 @@ import { useJobActions } from "./useJobActions.js";
 // as a coordination layer over the four delegates above. Add a new page,
 // modal, or filter — change one of these surfaces, not all of them.
 
-const VERSION = "v28.39";
+const VERSION = "v28.40";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -133,7 +133,6 @@ function FTIDashboard() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  const [filterStatus, setFilterStatus] = useState("All");
   const [sortMode, setSortMode] = useState("scheduled"); // "scheduled" = scheduled date ASC, WO# DESC tiebreak; "ticket" = WO# DESC; "customer" = customer A→Z, WO# DESC tiebreak
   const [showNewJob, setShowNewJob] = useState(false);
 
@@ -155,6 +154,7 @@ function FTIDashboard() {
     handleDeleteJob,
     handleRestoreJob,
     handleArchiveJob,
+    handleCloseJob,
     handleRestoreTicket,
     handleArchiveTicket,
     handleFlagCancel,
@@ -187,11 +187,14 @@ function FTIDashboard() {
     setExpandedId(jobId);
   };
 
-  const activeJobs = jobs.filter(j => j.status !== "Deleted");
+  // v28.40 — Active dashboard now excludes Completed (closed-out) WOs in
+  // addition to Deleted. Closed WOs live in /archive (handleCloseJob writes
+  // archive_reason="job_closed" and removes from local state). The 3-tier
+  // SCHEDULED/IN PROGRESS/COMPLETED filter on the dashboard is gone — see
+  // CAM Article III Amendment 2 evaluation in the v28.40 commit.
+  const activeJobs = jobs.filter(j => j.status !== "Deleted" && j.status !== "Completed");
   const deletedJobs = jobs.filter(j => j.status === "Deleted");
-  const jobWithComputedStatus = activeJobs.map(j => ({ ...j, _computedStatus: computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) }));
-  const filteredJobs = filterStatus === "All" ? jobWithComputedStatus : jobWithComputedStatus.filter(j => j._computedStatus === filterStatus);
-  const sortedJobs = [...filteredJobs].sort((a, b) => {
+  const sortedJobs = [...activeJobs].sort((a, b) => {
     if (sortMode === "ticket") {
       return (b.id || 0) - (a.id || 0);
     }
@@ -285,8 +288,6 @@ function FTIDashboard() {
             jobs={jobs}
             activeJobs={activeJobs}
             sortedJobs={sortedJobs}
-            filterStatus={filterStatus}
-            setFilterStatus={setFilterStatus}
             sortMode={sortMode}
             setSortMode={setSortMode}
             myActiveTodos={myActiveTodos}
@@ -303,6 +304,7 @@ function FTIDashboard() {
             handleUpdateJob={handleUpdateJob}
             handleDeleteJob={handleDeleteJob}
             handleFlagCancel={handleFlagCancel}
+            handleCloseJob={handleCloseJob}
             setDeletedTickets={setDeletedTickets}
             jsas={jsas}
             setJsas={setJsas}

@@ -1,7 +1,19 @@
 import { useState, useMemo } from "react";
-import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
+import { C } from "./config.js";
 import { formatDate } from "./utils.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
+
+// v28.40 — JOB_STATUS_FILTERS replaces STATUS_ORDER/STATUS_CONFIG. The 3-tier
+// SCHEDULED / IN PROGRESS / COMPLETED was a derived heuristic that didn't
+// reflect actual work state (CAM Article III Amendment 2). The raw job.status
+// column has only a handful of real values: Scheduled (default), Completed
+// (closed-out), flaggedCancel, Deleted (excluded everywhere). This dropdown
+// reflects those raw values for history filtering.
+const JOB_STATUS_FILTERS = [
+  { value: "Scheduled",     label: "ACTIVE",        color: "#1a5fa8", bg: "#e8f0fb" },
+  { value: "Completed",     label: "COMPLETED",     color: "#1a7a3c", bg: "#e6f5ec" },
+  { value: "flaggedCancel", label: "FLAGGED",       color: "#b85c00", bg: "#fdf0e6" },
+];
 
 function JobHistoryPage({ jobs, onNavigateJob }) {
   const [search, setSearch] = useState("");
@@ -44,8 +56,7 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
           <label style={labelStyle}>STATUS</label>
           <select style={{ ...inputStyle, width: 160 }} value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="All">All Statuses</option>
-            {STATUS_ORDER.map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
-            <option value="flaggedCancel">FLAGGED</option>
+            {JOB_STATUS_FILTERS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
         <div>
@@ -75,7 +86,7 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
               <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 13 }}>No jobs match your search.</div>
             )}
             {sorted.map((j, i) => {
-              const cfg = STATUS_CONFIG[j.status] || { color: C.muted, bg: C.steel, label: j.status?.toUpperCase() || "—" };
+              const cfg = JOB_STATUS_FILTERS.find(s => s.value === j.status) || { color: C.muted, bg: C.steel, label: j.status?.toUpperCase() || "—" };
               return (
                 <div key={j.id} onClick={() => onNavigateJob(j.id)}
                   style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 120px 100px 90px", padding: "10px 16px",

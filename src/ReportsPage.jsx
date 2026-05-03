@@ -1,5 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
-import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
+import { C } from "./config.js";
+
+// v28.40 — JOB_STATUS_REPORT replaces the deleted STATUS_ORDER/STATUS_CONFIG
+// for the Operations tab "Work Orders by Status" card. Reflects the raw
+// job.status column rather than the old computed 3-tier badges.
+const JOB_STATUS_REPORT = [
+  { value: "Scheduled", label: "ACTIVE",    color: "#1a5fa8" },
+  { value: "Completed", label: "COMPLETED", color: "#1a7a3c" },
+];
 import { inputStyle, labelStyle, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -195,9 +203,9 @@ function ReportsPage({ jobs, tickets, inventory }) {
 
   // ─── OPERATIONS TAB ───
   const renderOperations = () => {
-    // Jobs by status
+    // Jobs by status (v28.40 — raw status, not computed 3-tier)
     const jobsByStatus = {};
-    STATUS_ORDER.forEach(s => { jobsByStatus[s] = visibleJobs.filter(j => j.status === s).length; });
+    JOB_STATUS_REPORT.forEach(s => { jobsByStatus[s.value] = visibleJobs.filter(j => j.status === s.value).length; });
     const flagged = visibleJobs.filter(j => j.status === "flaggedCancel").length;
 
     // Tickets by type & status
@@ -221,14 +229,13 @@ function ReportsPage({ jobs, tickets, inventory }) {
         {/* Jobs by Status */}
         <div style={cardStyle}>
           <div style={headerStyle}>WORK ORDERS BY STATUS</div>
-          {STATUS_ORDER.map(s => {
-            const cfg = STATUS_CONFIG[s] || { color: C.muted, label: s };
-            const count = jobsByStatus[s] || 0;
+          {JOB_STATUS_REPORT.map(s => {
+            const count = jobsByStatus[s.value] || 0;
             if (count === 0) return null;
             return (
-              <div key={s} style={rowStyle}>
-                <span style={{ color: C.text }}>{cfg.label}</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: cfg.color }}>{count}</span>
+              <div key={s.value} style={rowStyle}>
+                <span style={{ color: C.text }}>{s.label}</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{count}</span>
               </div>
             );
           })}

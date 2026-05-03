@@ -12,8 +12,14 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
 
   const isSalesman = currentUser?.role === "salesman";
 
-  // Tickets eligible for final review: signed, sigNotReq, approved
-  const reviewStatuses = ["signed", "sigNotReq", "approved"];
+  // v28.40 — Final Review now shows ONLY approved tickets. Previously
+  // included signed + sigNotReq, which duplicated those tickets across the
+  // WO surface AND Final Review (CAM Article III Amendment 2 Q6 redundancy).
+  // Workflow is now: lead signs/sigNotReqs (ticket stays on WO until lead
+  // approves) → lead clicks APPROVE (ticket moves to Final Review for owner
+  // to send to QB) → owner sends to accounting (ticket leaves Final Review
+  // and lives in Archive after WO close).
+  const reviewStatuses = ["approved"];
   const allReviewable = tickets.filter(t => reviewStatuses.includes(t.status));
   const visibleTickets = isSalesman
     ? allReviewable.filter(t => {

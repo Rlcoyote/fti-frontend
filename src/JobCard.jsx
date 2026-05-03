@@ -1,22 +1,21 @@
 import { useState, useMemo, useEffect } from "react";
-import { C, STATUS_CONFIG } from "./config.js";
+import { C, TERMINAL_TICKET_STATUSES, WO_TICKET_STATUSES, FINAL_REVIEW_TICKET_STATUSES } from "./config.js";
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
-import { Btn, TicketDot, StatusBadge, TodoBadge, computeJobStatus } from "./SharedUI.jsx";
+import { Btn, TicketDot, TodoBadge, ConfirmModal } from "./SharedUI.jsx";
 import { JobTodoTab } from "./TodoPage.jsx";
 import JobTicketsTab from "./JobTicketsTab.jsx";
 import EditJobModal from "./EditJobModal.jsx";
 import FlowbackModal from "./FlowbackModal.jsx";
 import { useApp } from "./AppContext.jsx";
 
-function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onTicketDeleted, jsas, setJsas }) {
+function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onCloseJob, onTicketDeleted, jsas, setJsas }) {
   const { currentUser, assets, userNames, userIdByName } = useApp();
   const jobTickets = tickets.filter(t => t.jobId === job.id);
-  const computedStatus = computeJobStatus(job, jobTickets);
-  const cfg = STATUS_CONFIG[computedStatus] || STATUS_CONFIG["Scheduled"];
   const [activeTab, setActiveTab] = useState("tickets");
   const [showEditJob, setShowEditJob] = useState(false);
   const [showFlowback, setShowFlowback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
   useEffect(() => {
     const handler = () => setIsMobile(window.innerWidth <= 900);
@@ -27,28 +26,54 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   const ticketTotal = jobTickets.filter(t => t.status !== "voided").reduce((s, t) => s + calcTicketTotal(t), 0);
   const perWellAmount = ticketTotal / (job.wells.length || 1);
   const hasJobPendingComment = jobTickets.some(t => t.hasPendingComment || t.has_pending_comment);
-  const FINAL_STATES = ["sentToQB", "qbVerified", "voided"];
-  const readyToClose = jobTickets.length > 0 && jobTickets.every(t => FINAL_STATES.includes(t.status)) && computedStatus !== "Completed";
 
-  // Derive dot states from actual tickets
+  // v28.40 — completion gate. The button in the top-right slot shows one of
+  // four states based on what's left to do across this WO's tickets:
+  //   ADD TICKETS         (0 tickets — nothing to close)
+  //   TICKETS PENDING     (≥1 ticket still in lead's domain: incomplete/signed/sigNotReq/emailed)
+  //   PENDING ACCOUNTING  (all out of lead's domain but Final Review hasn't sent to QB yet)
+  //   MARK FOR COMPLETION (all tickets terminal — sentToQB / qbVerified / voided)
+  // Only the last state is clickable. Click → confirm modal → archive.
+  const canManage = ["owner", "admin", "manager"].includes(currentUser?.role || "field");
+  const inLeadDomain = jobTickets.filter(t => WO_TICKET_STATUSES.includes(t.status));
+  const inFinalReview = jobTickets.filter(t => FINAL_REVIEW_TICKET_STATUSES.includes(t.status));
+  const inTerminal   = jobTickets.filter(t => TERMINAL_TICKET_STATUSES.includes(t.status));
+  let completion;
+  if (jobTickets.length === 0) {
+    completion = { label: "ADD TICKETS", color: C.muted, bg: C.steel, ready: false };
+  } else if (inLeadDomain.length > 0) {
+    completion = { label: `${inLeadDomain.length} TICKET${inLeadDomain.length !== 1 ? "S" : ""} PENDING`, color: "#8a6500", bg: "#fdf5d8", ready: false };
+  } else if (inFinalReview.length > 0) {
+    completion = { label: "PENDING ACCOUNTING", color: C.blue, bg: "#e8f0fb", ready: false };
+  } else if (inTerminal.length === jobTickets.length) {
+    completion = { label: "MARK FOR COMPLETION", color: C.green, bg: "#e6f5ec", ready: true };
+  } else {
+    completion = { label: "PENDING", color: C.muted, bg: C.steel, ready: false };
+  }
+
+  // Derive dot states from actual tickets. v28.40 — `inField` removed; legacy
+  // rows with that value (if any survived the merge) fall through to incomplete.
   const dotState = (type) => {
     const t = jobTickets.filter(tk => tk.type === type);
     if (t.length === 0) return "none";
     if (t.some(tk => tk.status === "qbVerified")) return "signed";
     if (t.some(tk => tk.status === "sentToQB")) return "signed";
     if (t.some(tk => tk.status === "signed" || tk.status === "sigNotReq")) return "signed";
-    if (t.some(tk => tk.status === "emailed")) return "inField";
-    if (t.some(tk => tk.status === "inField")) return "inField";
+    if (t.some(tk => tk.status === "emailed")) return "incomplete";
     return "incomplete";
   };
 
   const isFlagged = job.status === "flaggedCancel";
+  // v28.40 — left border accent: brand red for active WOs, orange when flagged.
+  // Old code used the computed status color; with the 3-tier taxonomy gone,
+  // the accent now communicates flagged/normal only.
+  const accentColor = isFlagged ? "#b85c00" : C.red;
 
   return (
     <div style={{
       background: isFlagged ? "#fdf0e6" : C.cardBg, border: `1px solid ${isFlagged ? "#b85c00" : C.border}`,
-      borderLeft: `3px solid ${isFlagged ? "#b85c00" : cfg.color}`, borderRadius: 6, marginBottom: 8,
-      boxShadow: isExpanded ? `0 4px 24px ${cfg.color}22` : "none",
+      borderLeft: `3px solid ${accentColor}`, borderRadius: 6, marginBottom: 8,
+      boxShadow: isExpanded ? `0 4px 24px ${accentColor}22` : "none",
       overflow: "hidden", maxWidth: "100%",
     }}>
       {isMobile ? (
@@ -66,10 +91,19 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-            <div style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}44`, borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em" }}>{cfg.label}</div>
-            {readyToClose && (
-              <span style={{ background: "#e6f5ec", color: "#1a7a3c", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #1a7a3c44" }}>READY TO CLOSE</span>
-            )}
+            <button
+              type="button"
+              disabled={!completion.ready || !canManage}
+              onClick={(e) => { e.stopPropagation(); if (completion.ready && canManage) setShowCompleteConfirm(true); }}
+              style={{
+                background: completion.bg, color: completion.color,
+                border: `1px solid ${completion.color}44`, borderRadius: 4,
+                padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
+                cursor: (completion.ready && canManage) ? "pointer" : "default",
+                opacity: (completion.ready && canManage) ? 1 : 0.85,
+                fontFamily: "'Arial', sans-serif",
+              }}
+            >{completion.label}</button>
             {hasJobPendingComment && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -122,17 +156,19 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           {!pendingTodos && <span style={{ fontSize: 11, color: C.muted }}>None pending</span>}
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-          <StatusBadge status={computedStatus} />
-          {readyToClose && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#e6f5ec", color: "#1a7a3c", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #1a7a3c44" }}>
-              READY TO CLOSE
-            </span>
-          )}
-          {computedStatus === "In Progress" && jobTickets.some(t => t.status === "incomplete") && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #e6c20044" }}>
-              {jobTickets.filter(t => t.status === "incomplete").length} INCOMPLETE
-            </span>
-          )}
+          <button
+            type="button"
+            disabled={!completion.ready || !canManage}
+            onClick={(e) => { e.stopPropagation(); if (completion.ready && canManage) setShowCompleteConfirm(true); }}
+            style={{
+              background: completion.bg, color: completion.color,
+              border: `1px solid ${completion.color}44`, borderRadius: 4,
+              padding: "3px 10px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em",
+              cursor: (completion.ready && canManage) ? "pointer" : "default",
+              opacity: (completion.ready && canManage) ? 1 : 0.85,
+              fontFamily: "'Arial', sans-serif",
+            }}
+          >{completion.label}</button>
           {hasJobPendingComment && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
@@ -246,18 +282,10 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
                     { label: "Edit Work Order", action: () => setShowEditJob(true) },
                   ];
-                  // Close Out — only if all tickets are in final state (sent to accounting or voided)
-                  const jTickets = tickets.filter(t => t.jobId === job.id);
-                  const FINAL_STATES = ["sentToQB", "qbVerified", "voided"];
-                  const allFinal = jTickets.length > 0 && jTickets.every(t => FINAL_STATES.includes(t.status));
-                  const pendingTickets = jTickets.filter(t => !FINAL_STATES.includes(t.status));
-                  if (allFinal && canDelete) {
-                    actions.push({ label: "CLOSE OUT WORK ORDER", action: () => { onUpdateJob(job.id, { status: "Completed" }); }, success: true });
-                  } else if (jTickets.length === 0 && canDelete) {
-                    actions.push({ label: "CLOSE OUT — no tickets", action: null, warn: true });
-                  } else if (pendingTickets.length > 0 && canDelete) {
-                    actions.push({ label: `CLOSE OUT — ${pendingTickets.length} ticket${pendingTickets.length !== 1 ? "s" : ""} not finalized`, action: null, warn: true });
-                  }
+                  // v28.40 — CLOSE OUT WORK ORDER moved to the MARK FOR
+                  // COMPLETION button in the WO header. Removed from this
+                  // ACTIONS list to avoid two paths to the same destination
+                  // (Article III Amendment 2 Q6 — redundancy).
                   if (canDelete) {
                     actions.push({ label: "DELETE WORK ORDER", action: () => setShowDeleteConfirm(true), danger: true });
                   } else if (job.status !== "flaggedCancel") {
@@ -303,6 +331,15 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
       )}
       {showEditJob && <EditJobModal job={job} onSave={(updates) => { onUpdateJob(job.id, updates); setShowEditJob(false); }} onClose={() => setShowEditJob(false)} />}
       {showFlowback && <FlowbackModal job={job} onClose={() => setShowFlowback(false)} />}
+      {showCompleteConfirm && (
+        <ConfirmModal
+          title={`Mark Work Order #${job.id} complete?`}
+          message={`All tickets are sent to accounting or voided — the lead's work here is done. The Work Order will move to Archive. This can be undone from Archive if needed.`}
+          yesLabel="Mark Complete"
+          onYes={() => { if (onCloseJob) onCloseJob(job.id); setShowCompleteConfirm(false); }}
+          onCancel={() => setShowCompleteConfirm(false)}
+        />
+      )}
       {showDeleteConfirm && (
         <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowDeleteConfirm(false)}>
           <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>

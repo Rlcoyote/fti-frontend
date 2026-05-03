@@ -152,6 +152,26 @@ export function useJobActions({
     } catch (err) { console.error("Archive job failed:", err); }
   };
 
+  // v28.40 — close-out: lead/manager/admin/owner clicks MARK FOR COMPLETION
+  // on a WO whose tickets are all in terminal states (sentToQB, qbVerified,
+  // voided). Writes archive record with reason="job_closed", which sets
+  // archived_at on the job and removes it from active queries. Distinct
+  // from handleArchiveJob (which is called from DeletedJobsPage to permanently
+  // archive deleted-but-not-yet-purged WOs with reason="deleted").
+  const handleCloseJob = async (jobId) => {
+    if (!["owner", "admin", "manager"].includes(currentUser.role)) return;
+    const job = jobs.find(j => j.id === jobId);
+    try {
+      const r = await fetch(`${API_URL}/archive`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "job_closed" }),
+      });
+      if (!r.ok) { console.error("Close job failed:", r.status, await r.text()); return; }
+      await logAudit("job_closed", "job", jobId, { status: job?.status, customer: job?.customer }, { archive_reason: "job_closed" }, `Work Order #${jobId} closed out by ${currentUser.name}`);
+      setJobs(prev => prev.filter(j => j.id !== jobId));
+    } catch (err) { console.error("Close job failed:", err); }
+  };
+
   const handleRestoreTicket = async (ticketId) => {
     try {
       const r = await fetch(`${API_URL}/tickets/${ticketId}/restore`, { method: "POST" });
@@ -240,6 +260,7 @@ export function useJobActions({
     handleDeleteJob,
     handleRestoreJob,
     handleArchiveJob,
+    handleCloseJob,
     handleRestoreTicket,
     handleArchiveTicket,
     handleFlagCancel,

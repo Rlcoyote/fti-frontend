@@ -1,13 +1,11 @@
-import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
-import { Btn, PipelineSummary, computeJobStatus } from "./SharedUI.jsx";
+import { C } from "./config.js";
+import { Btn } from "./SharedUI.jsx";
 import JobCard from "./JobCard.jsx";
 
 function DashboardHome({
   jobs,
   activeJobs,
   sortedJobs,
-  filterStatus,
-  setFilterStatus,
   sortMode,
   setSortMode,
   myActiveTodos,
@@ -24,6 +22,7 @@ function DashboardHome({
   handleUpdateJob,
   handleDeleteJob,
   handleFlagCancel,
+  handleCloseJob,
   setDeletedTickets,
   jsas,
   setJsas,
@@ -34,7 +33,7 @@ function DashboardHome({
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Work Orders</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-            {activeJobs.length} total · {activeJobs.filter(j => computeJobStatus(j, tickets.filter(t => t.jobId === j.id)) === "In Progress").length} active · Updated just now
+            {activeJobs.length} total · Updated just now
           </div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -45,34 +44,21 @@ function DashboardHome({
         </div>
       </div>
 
-      <PipelineSummary jobs={jobs} tickets={tickets} />
-
+      {/* v28.40 — PipelineSummary + 3-tier status filter pills removed.
+          The 3-tier (SCHEDULED / IN PROGRESS / COMPLETED) failed CAM Article
+          III Amendment 2 — IN PROGRESS was a date-based heuristic, SCHEDULED
+          was redundant with "no tickets touched yet," and the badges were
+          information the ticket dots already conveyed. Active dashboard now
+          shows only non-archived/non-deleted/non-completed WOs by definition;
+          completed WOs live in /archive. */}
       <div className="fti-filter-row" style={{ display: "flex", gap: 0, marginBottom: 16, alignItems: "center", borderBottom: `1px solid ${C.border}` }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 10 }}>FILTER:</span>
-        {/* Sort is the first filter control — it's a filter on ordering, which applies before status selection. */}
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 10 }}>SORT:</span>
         <select value={sortMode} onChange={e => setSortMode(e.target.value)}
           style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg, fontFamily: "'Arial', sans-serif", marginRight: 10, marginBottom: 6 }}>
-          <option value="scheduled">Sort: Scheduled Date</option>
-          <option value="ticket">Sort: Ticket #</option>
-          <option value="customer">Sort: Customer (A → Z)</option>
+          <option value="scheduled">Scheduled Date</option>
+          <option value="ticket">Ticket #</option>
+          <option value="customer">Customer (A → Z)</option>
         </select>
-        {["All", ...STATUS_ORDER].map(s => {
-          const active = filterStatus === s;
-          const cfg = s === "All" ? null : STATUS_CONFIG[s];
-          return (
-            <button key={s} onClick={() => setFilterStatus(s)} style={{
-              background: active ? C.cardBg : "transparent",
-              border: active ? `1px solid ${C.border}` : "1px solid transparent",
-              borderBottom: active ? `1px solid ${C.cardBg}` : "1px solid transparent",
-              borderTopLeftRadius: 4, borderTopRightRadius: 4,
-              borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
-              marginBottom: active ? -1 : 0,
-              color: active ? (s === "All" ? C.blue : cfg?.color) : C.muted,
-              padding: "8px 14px", fontSize: 11,
-              fontWeight: 700, cursor: "pointer", fontFamily: "'Arial', sans-serif",
-            }}>{s === "All" ? "ALL" : cfg.label}</button>
-          );
-        })}
       </div>
 
       {sortedJobs.map(job => (
@@ -88,6 +74,7 @@ function DashboardHome({
           jsas={jsas} setJsas={setJsas}
           onDeleteJob={handleDeleteJob}
           onFlagCancel={handleFlagCancel}
+          onCloseJob={handleCloseJob}
           onTicketDeleted={(ticket) => setDeletedTickets(prev => [...prev, ticket])}
         />
       ))}

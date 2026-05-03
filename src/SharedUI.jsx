@@ -1,4 +1,4 @@
-import { C, STATUS_CONFIG, STATUS_ORDER } from "./config.js";
+import { C } from "./config.js";
 
 // ─── MODAL Z-INDEX LAYERS (v27.67) ────────────────────────────────────────
 // The app stacks modals intentionally: a confirmation-over-an-edit-modal
@@ -29,10 +29,16 @@ export const TICKET_TYPES = {
   "Rental":   { color: "#8a6500", bg: "#fdf5d8", label: "RENTAL",   abbr: "RNT" },
 };
 
+// v28.40 — inField removed. Functionally identical to incomplete (both meant
+// "this ticket needs a signature"). The only path to inField was the
+// sig-wipe-edit on a previously-signed ticket; that path now lands the
+// ticket back at incomplete. inField rows in old data are mapped to
+// incomplete on read (see useTicketState normalizer).
+// draft is also retained but has no current setter — kept to avoid breaking
+// any historical row that may have it.
 export const TICKET_STATUSES = {
   incomplete: { color: "#6b7a99", bg: "#f0f3f8", label: "INCOMPLETE" },
   draft:      { color: "#6b7a99", bg: "#f0f3f8", label: "DRAFT" },
-  inField:    { color: "#8a6500", bg: "#fdf5d8", label: "IN FIELD" },
   emailed:    { color: "#7a3ca0", bg: "#f3eafa", label: "EMAIL FOR SIGNATURE" },
   signed:     { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
   sigNotReq:  { color: "#1a5fa8", bg: "#e8f0fb", label: "SIG NOT REQ" },
@@ -134,9 +140,12 @@ export function NavBadge({ count }) {
   );
 }
 
-// ─── TICKET DOTS & STATUS ─────────────────────────────────────────────────────
+// ─── TICKET DOTS ──────────────────────────────────────────────────────────────
+// v28.40 — `inField` state removed (merged into incomplete). The dot palette
+// keeps three meaningful states: signed (work done), incomplete (needs work),
+// none (no ticket of this type yet).
 export function TicketDot({ label, state }) {
-  const colors = { signed: C.green, inField: "#1a5fa8", incomplete: "#8a6500", draft: "#8a6500", none: "#d0d8e8" };
+  const colors = { signed: C.green, incomplete: "#8a6500", draft: "#8a6500", none: "#d0d8e8" };
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
       <div style={{ width: 10, height: 10, borderRadius: "50%", background: colors[state] || colors.none }} />
@@ -145,44 +154,14 @@ export function TicketDot({ label, state }) {
   );
 }
 
-export function computeJobStatus(job, jobTickets = []) {
-  if (job.status === "Completed") return "Completed";
-  const todayStr = new Date().toLocaleDateString("en-CA");
-  const hasCurrentTicket = jobTickets.some(t => {
-    const td = (t.date || t.ticket_date || "").slice(0, 10);
-    return td && td <= todayStr;
-  });
-  if (hasCurrentTicket) return "In Progress";
-  return "Scheduled";
-}
-
-export function StatusBadge({ status }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG["Scheduled"];
-  return (
-    <span style={{
-      display: "inline-block", padding: "3px 10px", borderRadius: 3,
-      fontSize: 11, fontWeight: 800, letterSpacing: "0.1em",
-      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}33`,
-    }}>{cfg.label}</span>
-  );
-}
-
-export function PipelineSummary({ jobs, tickets }) {
-  return (
-    <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-      {STATUS_ORDER.map(status => {
-        const count = jobs.filter(j => computeJobStatus(j, (tickets || []).filter(t => t.jobId === j.id)) === status).length;
-        const cfg = STATUS_CONFIG[status] || { color: C.muted, label: status };
-        return (
-          <div key={status} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 18, fontWeight: 800, color: cfg.color }}>{count}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>{cfg.label}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+// v28.40 — `computeJobStatus`, `StatusBadge`, `PipelineSummary` removed.
+// The 3-tier WO status (SCHEDULED / IN PROGRESS / COMPLETED) failed CAM
+// Article III Amendment 2 — the date-based "In Progress" rule didn't
+// reflect actual work, the badges were redundant with ticket dots, and
+// SCHEDULED was derivable from "no tickets touched yet." Replaced with
+// binary active/archived: a WO is active until the lead clicks MARK FOR
+// COMPLETION on the WO header (then it's archived via POST /api/archive).
+// No badge on active WOs — the ticket pips are the state.
 
 // ─── TICKET TYPE & STATUS BADGES ──────────────────────────────────────────────
 // v28.28 — fixed minWidth + centered label so RIG UP / RIG DOWN / TESTER /
