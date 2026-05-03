@@ -52,7 +52,7 @@ import { useJobActions } from "./useJobActions.js";
 // as a coordination layer over the four delegates above. Add a new page,
 // modal, or filter — change one of these surfaces, not all of them.
 
-const VERSION = "v28.35";
+const VERSION = "v28.36";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
