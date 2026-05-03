@@ -173,12 +173,17 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                   background: isSigned ? "#f8fbf9" : C.cardBg,
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                    {/* v28.38 — signed rows have a light green (#f8fbf9)
+                        background. C.text and C.muted are light in dark mode,
+                        so we override with explicit dark colors on signed
+                        rows. Unsigned rows keep theme colors (dark cardBg
+                        background, light text, contrast already correct). */}
+                    <div style={{ fontSize: 13, fontWeight: 600, color: isSigned ? "#1a2340" : C.text }}>
                       {c.user_name}
                       {c.is_lead && <span style={{ marginLeft: 8, fontSize: 9, fontWeight: 800, color: "#8a6500" }}>· LEAD</span>}
-                      {isSelf && <span style={{ marginLeft: 8, fontSize: 9, color: C.muted, fontStyle: "italic" }}>· You</span>}
+                      {isSelf && <span style={{ marginLeft: 8, fontSize: 9, color: isSigned ? "#4a5570" : C.muted, fontStyle: "italic" }}>· You</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: isSigned ? "#4a5570" : C.muted, marginTop: 2 }}>
                       <StatusBadge method={c.sign_method} witnessName={c.witness_name} />
                       {c.signed_at && (
                         <span style={{ marginLeft: 8 }}>

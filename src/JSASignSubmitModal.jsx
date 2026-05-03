@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap } from "./SharedUI.jsx";
@@ -20,6 +20,15 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
   const [acknowledged, setAcknowledged] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  // v28.38 — capture GPS when the modal opens, not after biometric. The
+  // native browser prompt previously fired AFTER the user had already
+  // authenticated with Face ID, which felt disjointed (Reggie's complaint:
+  // "this would be better as a modal"). Capturing on mount means the prompt
+  // now appears while the user is reading the attestation — clearly in the
+  // "I'm signing" mental state — and the disclaimer line below explains why.
+  // After the first allow, browsers cache the decision per origin so it
+  // doesn't fire again.
+  const [cachedGps, setCachedGps] = useState({ lat: null, lng: null });
 
   const captureGps = () =>
     new Promise(resolve => {
@@ -30,6 +39,12 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
         { timeout: 4000, enableHighAccuracy: false }
       );
     });
+
+  useEffect(() => {
+    let cancelled = false;
+    captureGps().then(g => { if (!cancelled) setCachedGps(g); });
+    return () => { cancelled = true; };
+  }, []);
 
   const fireSign = async () => {
     if (!acknowledged) { setError("You must acknowledge the attestation to sign"); return; }
@@ -79,15 +94,17 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
         return;
       }
 
-      // 3. Submit signature
-      const gps = await captureGps();
+      // 3. Submit signature — GPS was already captured on modal mount
+      // (see useEffect above). If the user denied permission or the
+      // browser couldn't get a fix, gps is { lat: null, lng: null }
+      // and we sign without coordinates rather than blocking the flow.
       const signRes = await fetch(`${API_URL}/jsas/${jsaId}/sign`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           method: "biometric",
           webauthn_response: assertion,
-          gps_lat: gps.lat,
-          gps_lng: gps.lng,
+          gps_lat: cachedGps.lat,
+          gps_lng: cachedGps.lng,
         }),
       });
       const signData = await signRes.json();
@@ -119,7 +136,7 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
       </div>
 
       <label style={{
-        display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16,
+        display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12,
         fontSize: 12, color: C.text, cursor: "pointer", lineHeight: 1.45,
       }}>
         <input
@@ -133,6 +150,20 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
           I am signing the JSA under penalty of perjury.
         </span>
       </label>
+
+      {/* v28.38 — explain why the browser will ask for location. The native
+          permission prompt fires when the modal opens (useEffect above), so
+          the user sees this disclaimer in the same view as the prompt. After
+          the first allow, the browser caches the decision and doesn't ask
+          again on this device. */}
+      <div style={{
+        fontSize: 11, color: C.muted, lineHeight: 1.45, marginBottom: 16,
+        paddingLeft: 24, fontStyle: "italic",
+      }}>
+        Your browser may ask for location access. Flo-Test records GPS coordinates
+        at sign time as part of the signature audit trail. If you decline, the
+        signature still records — just without coordinates.
+      </div>
 
       {error && (
         <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>

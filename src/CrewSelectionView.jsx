@@ -152,7 +152,12 @@ function CrewSelectionView({
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                {/* v28.38 — lead rows have a yellow (#fdf5d8) background. C.text
+                    and C.muted are light in dark mode, so we override with
+                    explicit dark colors when c.is_lead so the name + role line
+                    are readable on the yellow band. Non-lead rows keep theme
+                    colors. */}
+                <div style={{ fontSize: 13, fontWeight: 600, color: c.is_lead ? "#1a2340" : C.text }}>
                   {c.user_name}
                   {c.is_lead && (
                     <span style={{
@@ -163,7 +168,7 @@ function CrewSelectionView({
                   )}
                 </div>
                 {(c.user_role || c.user_job_title) && (
-                  <div style={{ fontSize: 11, color: C.muted }}>
+                  <div style={{ fontSize: 11, color: c.is_lead ? "#4a5570" : C.muted }}>
                     {c.user_role}{c.user_job_title ? ` · ${c.user_job_title}` : ""}
                   </div>
                 )}

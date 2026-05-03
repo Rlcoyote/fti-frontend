@@ -57,8 +57,12 @@ function TicketHeaderRow({
       </div>
 
       {/* Row 2: dollar total + created-by stamp */}
+      {/* v28.38 — TicketDetail panel sits on a light pastel tcfg.bg (light
+          regardless of theme). C.text is light in dark mode, so the dollar
+          total was unreadable. Forcing dark navy explicitly since the
+          background is always light. */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: C.text }}>
+        <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: "#1a2340" }}>
           {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         {ticket.createdBy && (
