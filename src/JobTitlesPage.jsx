@@ -237,7 +237,12 @@ function JobTitlesPage() {
   );
 }
 
-const thStyle = { padding: "10px 8px", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.muted, textTransform: "uppercase" };
+// v28.43 — getter pattern so color follows theme without a refresh.
+const thStyle = {
+  padding: "10px 8px", fontSize: 11, fontWeight: 800,
+  letterSpacing: "0.06em", textTransform: "uppercase",
+  get color() { return C.muted; },
+};
 const tdStyle = { padding: "10px 8px", verticalAlign: "middle" };
 
 // v28.14 — modal simplified to a single Name field. The Sort Order field

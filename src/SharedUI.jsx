@@ -49,16 +49,29 @@ export const TICKET_STATUSES = {
 };
 
 // ─── SHARED FORM STYLES ───────────────────────────────────────────────────────
+// v28.43 — getter-object pattern. The previous design captured `C.steel`,
+// `C.border`, `C.text`, `C.muted` as STRINGS at module load — meaning the
+// styles never theme-flipped without a hard refresh. Now each theme-bound
+// property is a getter that reads C live; the object spread `{...inputStyle,
+// width: 180}` (used at most call sites) fires the getters at spread time
+// and captures the CURRENT theme's values per render. Direct usage
+// `style={inputStyle}` also works because React reads each property when
+// it applies the style. Zero call-site changes; static-capture class of
+// bug eliminated. CAM Article XXIV — making the bug structurally
+// impossible instead of patching each contrast leak.
 export const inputStyle = {
   width: "100%", boxSizing: "border-box",
-  background: C.steel, border: `1px solid ${C.border}`,
-  color: C.text, padding: "8px 11px", borderRadius: 4,
+  padding: "8px 11px", borderRadius: 4,
   fontSize: 13, fontFamily: "'Arial', sans-serif", outline: "none",
+  get background() { return C.steel; },
+  get border()     { return `1px solid ${C.border}`; },
+  get color()      { return C.text; },
 };
 
 export const labelStyle = {
-  fontSize: 11, fontWeight: 700, color: C.muted,
+  fontSize: 11, fontWeight: 700,
   letterSpacing: "0.08em", marginBottom: 4, display: "block",
+  get color() { return C.muted; },
 };
 
 // ─── SHARED BUTTONS ───────────────────────────────────────────────────────────

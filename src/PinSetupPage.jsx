@@ -171,13 +171,23 @@ function PinSetupPage() {
   );
 }
 
-const centerText = { textAlign: "center", fontSize: 14, color: C.text, fontWeight: 700 };
-const labelStyle = { fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: C.muted, marginBottom: 6 };
+// v28.43 — getter-object pattern (see SharedUI.jsx inputStyle for rationale).
+// Theme-bound colors read C live per access so toggling theme mid-session
+// flips these styles without a hard refresh.
+const centerText = {
+  textAlign: "center", fontSize: 14, fontWeight: 700,
+  get color() { return C.text; },
+};
+const labelStyle = {
+  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 6,
+  get color() { return C.muted; },
+};
 const pinInputStyle = {
   width: "100%", boxSizing: "border-box", textAlign: "center",
   fontSize: 28, fontWeight: 800, letterSpacing: "0.4em",
-  padding: "14px 12px", border: `2px solid ${C.border}`, borderRadius: 6,
+  padding: "14px 12px", borderRadius: 6,
   outline: "none", fontFamily: "'Arial', sans-serif",
+  get border() { return `2px solid ${C.border}`; },
 };
 
 export default PinSetupPage;

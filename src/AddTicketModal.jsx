@@ -393,7 +393,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                   return (
                     <div key={idx} onClick={() => toggleWell(well)} style={{
                       display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", marginBottom: 6,
-                      background: checked ? "#e8f0fb" : C.steel, border: `1px solid ${checked ? C.blue + "44" : C.border}`,
+                      // v28.43 — selected bg uses C.priLowB (theme-aware) instead of
+                      // hardcoded "#e8f0fb". Both modes get a soft blue tint that
+                      // contrasts properly with the row's text color.
+                      background: checked ? C.priLowB : C.steel, border: `1px solid ${checked ? C.blue + "44" : C.border}`,
                       borderRadius: 5, cursor: "pointer",
                     }}>
                       <div style={{ width: 18, height: 18, borderRadius: 3, border: `2px solid ${checked ? C.blue : C.border}`, background: checked ? C.blue : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -415,7 +418,11 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <TicketTypeBadge type={type} />
-                <span style={{ fontSize: 16, fontWeight: 700 }}>New {type} Ticket</span>
+                {/* v28.43 — heading sits on the always-light pastel tcfg.bg
+                    panel (intentional brand decision; doesn't theme-flip).
+                    Force dark text so it's readable in both themes. Mirrors
+                    the v28.42 fix on the wells-confirm heading. */}
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#1a2340" }}>New {type} Ticket</span>
                 <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
                   background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
                   padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
