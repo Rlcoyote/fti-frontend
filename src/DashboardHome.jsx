@@ -1,6 +1,8 @@
-import { C } from "./config.js";
+import { useRef } from "react";
+import { C, API_URL } from "./config.js";
 import { Btn } from "./SharedUI.jsx";
 import JobCard from "./JobCard.jsx";
+import { useApp } from "./AppContext.jsx";
 
 function DashboardHome({
   jobs,
@@ -27,6 +29,29 @@ function DashboardHome({
   jsas,
   setJsas,
 }) {
+  const { currentUser } = useApp();
+  // v28.47 — Tier 2: log WO_viewed events when a user expands a WO. Once
+  // per WO per session — re-expanding the same WO repeatedly is noise we
+  // don't want filling the activity log. The set lives in a ref so it
+  // survives re-renders but resets on full reload (new session).
+  const woViewedRef = useRef(new Set());
+  const handleWoToggle = (jobId) => {
+    const isExpanding = expandedId !== jobId;
+    setExpandedId(expandedId === jobId ? null : jobId);
+    if (isExpanding && currentUser && !woViewedRef.current.has(jobId)) {
+      woViewedRef.current.add(jobId);
+      const job = sortedJobs.find(j => j.id === jobId);
+      fetch(`${API_URL}/activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: currentUser.id, user_name: currentUser.name,
+          action: "wo_viewed", entity_type: "job", entity_id: String(jobId),
+          details: { customer: job?.customer || null, location: job?.location || null },
+        }),
+      }).catch(() => {});
+    }
+  };
   return (
     <div className="fti-dashboard-pad" style={{ padding: "32px 28px" }}>
       <div className="fti-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
@@ -65,7 +90,7 @@ function DashboardHome({
         <JobCard
           key={job.id} job={job}
           isExpanded={expandedId === job.id}
-          onToggle={() => setExpandedId(expandedId === job.id ? null : job.id)}
+          onToggle={() => handleWoToggle(job.id)}
           pendingTodos={pendingByJob[job.id] || 0}
           todos={todos} setTodos={setTodos}
           tickets={tickets} setTickets={setTickets}

@@ -290,12 +290,63 @@ export function AppProvider({ children }) {
   const setCurrentUser = useCallback((user) => {
     if (user) {
       sessionStorage.setItem("fti_user", JSON.stringify(user));
-      // Log login
-      fetch(`${API_URL}/activity`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, user_name: user.name, action: "login" }),
-      }).catch(() => {});
+      // v28.47 — Tier 2: capture GPS at login if the browser permits.
+      // Forensic value: "where was this user when they signed in?" — answers
+      // the after-hours / unusual-IP follow-up question. Geolocation is
+      // async and can be denied; we post the login row immediately with
+      // whatever GPS data we have, then update with coordinates if the
+      // permission resolves quickly. Two writes are noisier than one but
+      // the alternative (delayed login row) costs more in observability.
+      const postLogin = (geoDetails) => {
+        fetch(`${API_URL}/activity`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: user.id, user_name: user.name, action: "login",
+            details: geoDetails || null,
+          }),
+        }).catch(() => {});
+      };
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        // 6-second timeout — login row should land promptly even if the
+        // user takes time to grant the permission. After timeout we post
+        // without GPS; if permission resolves later we write a follow-up
+        // row with the coordinates so the forensic trail still has them.
+        let resolved = false;
+        const fallback = setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          postLogin(null);
+        }, 6000);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (resolved) {
+              // Login row already posted without GPS — write a follow-up.
+              fetch(`${API_URL}/activity`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: user.id, user_name: user.name, action: "login_gps",
+                  details: { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: Math.round(pos.coords.accuracy) },
+                }),
+              }).catch(() => {});
+              return;
+            }
+            resolved = true;
+            clearTimeout(fallback);
+            postLogin({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: Math.round(pos.coords.accuracy) });
+          },
+          (err) => {
+            if (resolved) return;
+            resolved = true;
+            clearTimeout(fallback);
+            postLogin({ gps_error: err.code === 1 ? "denied" : err.code === 2 ? "unavailable" : "timeout" });
+          },
+          { enableHighAccuracy: false, timeout: 5500, maximumAge: 60000 }
+        );
+      } else {
+        postLogin({ gps_error: "no_navigator" });
+      }
     } else {
       sessionStorage.removeItem("fti_user");
     }
