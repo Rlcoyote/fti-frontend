@@ -451,6 +451,18 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
                   savedAt: new Date().toISOString(),
                 });
                 setLastSavedAt(new Date());
+                // v28.42 — refresh origRef to current form values so the
+                // dirty-tracking baseline reflects the just-saved state.
+                // Without this, the CLOSE button (which gates on isDirty())
+                // fires a false-positive "Unsaved Changes" warning even
+                // when the user has saved and made no further edits.
+                origRef.current = {
+                  date, operator, time, designatedDriver,
+                  lat: String(lat || ""), lng: String(lng || ""),
+                  weather: [...weather], ppe: { ...ppe },
+                  signatures: [...signatures], presenterReview,
+                  additionalSteps: additionalSteps.map(s => ({ ...s })),
+                };
                 // v28.07.2 — DO NOT onClose() after save. User stays in
                 // the modal so the FTI CREW BIOMETRIC SIGNATURES section
                 // can be used immediately for self-sign or send-link.
@@ -490,7 +502,18 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
                   // Success: flip parent jsaCompleted (so the ticket-row
                   // badge turns green immediately) then close. v28.41 — was
                   // bare onClose() pre-fix, which left the badge stale until
-                  // a full ticket refetch.
+                  // a full ticket refetch. v28.42 — also refresh origRef
+                  // (defensive: MARK COMPLETE bypasses handleClose so it
+                  // doesn't trigger isDirty, but if the modal flow ever
+                  // changes to keep open after complete, the baseline is
+                  // already aligned).
+                  origRef.current = {
+                    date, operator, time, designatedDriver,
+                    lat: String(lat || ""), lng: String(lng || ""),
+                    weather: [...weather], ppe: { ...ppe },
+                    signatures: [...signatures], presenterReview,
+                    additionalSteps: additionalSteps.map(s => ({ ...s })),
+                  };
                   if (onComplete) onComplete();
                   onClose();
                 } catch {

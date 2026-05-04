@@ -29,3 +29,20 @@ input, textarea, select, button {
   font-family: inherit;
   color: inherit;
 }
+
+/* v28.42 — native date-input calendar icon contrast.
+   Webkit's default ::-webkit-calendar-picker-indicator is a dark glyph that
+   reads fine on white but disappears on the app's dark cardBg. Inline React
+   styles can't reach pseudo-elements, so the rule lives here. The body
+   carries data-theme="dark" / "light" via applyTheme() (config.js:79), and
+   the dark variant inverts the icon. The light variant keeps the default. */
+body[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+body[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.6);
+  cursor: pointer;
+  opacity: 0.85;
+}
+body[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator:hover,
+body[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}

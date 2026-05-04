@@ -24,7 +24,10 @@ function NewJobModal({ onClose, onCreateJob }) {
   const [jobState, setJobState] = useState("");
   const [county, setCounty] = useState("");
   const [showCountyDrop, setShowCountyDrop] = useState(false);
-  const [wellList, setWellList] = useState([""]);
+  // v28.42 — start with two blanks. Most WOs have ≥2 wells, so pre-seeding
+  // saves a click. Auto-grow on last-row fill (see updateWell), drop empties
+  // on submit (see cleanWells filter at line ~187).
+  const [wellList, setWellList] = useState(["", ""]);
   const [wellTBD, setWellTBD] = useState(false);
   const [jobNotes, setJobNotes] = useState("");
   const [afe, setAfe] = useState("");
@@ -122,7 +125,19 @@ function NewJobModal({ onClose, onCreateJob }) {
   };
 
   const addWell = () => { if (wellList.length < 10) setWellList(prev => [...prev, ""]); };
-  const updateWell = (idx, val) => setWellList(prev => prev.map((w, i) => i === idx ? val : w));
+  // v28.42 — auto-grow: typing in the last row spawns a fresh empty below
+  // (up to the 10-row cap). User no longer needs to hit "+ ADD WELL" between
+  // entries. Empty rows drop on submit via cleanWells.
+  const updateWell = (idx, val) => setWellList(prev => {
+    const next = prev.map((w, i) => i === idx ? val : w);
+    const isLastRow = idx === prev.length - 1;
+    const wasEmpty = !prev[idx]?.trim();
+    const becameNonEmpty = !!val.trim();
+    if (isLastRow && wasEmpty && becameNonEmpty && next.length < 10) {
+      next.push("");
+    }
+    return next;
+  });
   const removeWell = (idx) => setWellList(prev => prev.filter((_, i) => i !== idx));
   const handleClose = () => { if (isDirty) { setShowUnsaved(true); } else { onClose(); } };
 

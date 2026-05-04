@@ -277,27 +277,21 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
           </div>
         )}
 
-        {/* JSA button — non-Rental only, after type selected */}
-        {type && type !== "Rental" && (
+        {/* v28.42 — CREATE JSA button removed from this surface. JSA creation
+            now lives only on the ticket-detail modal (post-creation), per
+            CAM Article III Amendment 2 Q6 — two paths to the same destination
+            invite drift. The "Required before signing" gate is enforced at
+            the ticket-row level via t.jsaCompleted (JobTicketsTab needsJSA),
+            so this affordance was redundant. The VIEW / EDIT JSA button for
+            an already-saved JSA stays — it's a useful jump-back. */}
+        {type && type !== "Rental" && existingJSA && (
           <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-            {existingJSA ? (
-              <button type="button" onClick={() => setShowJSA(true)}
-                style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
-                ✓ VIEW / EDIT JSA
-              </button>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <button type="button" onClick={autoSaveForJSA}
-                  style={{ background: "#fff", color: C.red, border: `2px solid ${C.red}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-                  onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}>
-                  CREATE JSA
-                </button>
-                <span style={{ fontSize: 10, color: C.red, fontWeight: 600, fontStyle: "italic" }}>Required before signing</span>
-              </div>
-            )}
+            <button type="button" onClick={() => setShowJSA(true)}
+              style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}>
+              ✓ VIEW / EDIT JSA
+            </button>
           </div>
         )}
 
@@ -378,16 +372,20 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                 <TicketTypeBadge type={type} />
-                <span style={{ fontSize: 16, fontWeight: 700 }}>Assign Wells — New {type} Ticket</span>
+                {/* v28.42 — force dark text on the heading. The pastel tcfg.bg
+                    panel inherits a light background that doesn't flip in
+                    dark mode; light-mode C.text on it is unreadable. Mirrors
+                    the v28.39 TicketHeaderRow contrast sweep pattern. */}
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#1a2340" }}>Assign Wells — New {type} Ticket</span>
                 <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
                   background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
                   padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
                 }}>← CHANGE TYPE</button>
               </div>
-              <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
+              <div style={{ fontSize: 12, color: "#4a5570", marginBottom: 14 }}>Select which wells apply to this ticket.</div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
+                  <label style={{ fontSize: 11, fontWeight: 800, color: "#4a5570", letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
                   <button type="button" onClick={selectAllWells} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer" }}>SELECT ALL</button>
                 </div>
                 {jobWells.map((well, idx) => {
