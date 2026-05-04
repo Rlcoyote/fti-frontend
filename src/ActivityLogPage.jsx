@@ -78,6 +78,19 @@ function ActivityLogPage() {
     return d.toLocaleString("en-US", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
   };
 
+  // v28.45 — after-hours flag. Activity outside the configured ops window
+  // (default 5am–10pm local time) gets a small moon glyph. Useful forensic
+  // signal: "why did Joe log in at 2am?" Owner/admin can adjust the window
+  // later via settings if FTI's ops hours shift. Returns null when the
+  // event is in-window (no chrome).
+  const AFTER_HOURS_START = 22; // 10 PM
+  const AFTER_HOURS_END = 5;    // 5 AM
+  const isAfterHours = (ts) => {
+    if (!ts) return false;
+    const h = new Date(ts).getHours();
+    return h >= AFTER_HOURS_START || h < AFTER_HOURS_END;
+  };
+
   const formatIP = (ip) => {
     if (!ip) return "—";
     // Clean up IPv6 localhost
@@ -233,10 +246,15 @@ function ActivityLogPage() {
                 </div>
                 {filtered.slice(0, 200).map((a, i) => {
                   const ac = actionColor(a.action);
+                  const afterHrs = isAfterHours(a.created_at);
                   return (
                     <div key={a.id} title={a.details ? (typeof a.details === "string" ? a.details : JSON.stringify(a.details, null, 2)) : ""}
                       style={{ display: "grid", gridTemplateColumns: "140px 120px 1fr 120px 1.5fr", padding: "8px 14px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
-                      <div style={{ fontSize: 11, color: C.muted }}>{formatTime(a.created_at)}</div>
+                      <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 6 }}>
+                        {/* v28.45 — after-hours glyph (event outside 5am–10pm local). */}
+                        {afterHrs && <span title="After-hours activity (outside 5am–10pm)" style={{ color: "#b85c00", fontSize: 11 }}>🌙</span>}
+                        {formatTime(a.created_at)}
+                      </div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{a.user_name || "—"}</div>
                       <div>
                         <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: ac.bg, color: ac.color, letterSpacing: "0.04em" }}>{a.action.toUpperCase()}</span>
