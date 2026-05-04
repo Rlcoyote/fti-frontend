@@ -85,8 +85,44 @@ function PeoplePage() {
   // WebAuthn (biometric) self-service modal
   const [showWebauthn, setShowWebauthn] = useState(false);
 
-  // Inline transient toast for non-modal feedback
+  // Inline transient toast for non-modal feedback (rare — most async actions
+  // use the per-row feedback below).
   const [msg, setMsg] = useState("");
+
+  // v28.46 — per-row feedback for async action buttons (RESEND INVITE,
+  // SEND PIN SETUP, RESET PIN, WIPE BIO, DEACTIVATE).
+  //
+  // The pre-fix bug: RESEND INVITE wrote to a top-of-page toast (`msg`),
+  // invisible to a user 45 rows down. Worse, the button gave no in-flight
+  // signal — so a user who didn't see the toast clicked again. And again.
+  // (One auditor received 15 invite emails this way.)
+  //
+  // Structural fix per CAM Article X (Dummy Proof) + the pending
+  // structural-impossibility amendment: feedback lives on the same row as
+  // the button that fired it, AND the button disables while in flight so
+  // double-clicks become physically impossible.
+  //
+  // State shape: { [userId]: { kind: "pending"|"success"|"error", msg: "..." } }
+  const [rowFeedback, setRowFeedback] = useState({});
+
+  // Set or clear feedback for a row. `kind` drives the pill color; "pending"
+  // never auto-clears (only a subsequent success/error replaces it). "success"
+  // and "error" auto-clear after `ttlMs`. The clear is guarded against newer
+  // messages clobbering older ones.
+  const setRowMsg = (userId, kind, message, ttlMs = 4000) => {
+    setRowFeedback(prev => ({ ...prev, [userId]: { kind, msg: message } }));
+    if (kind !== "pending" && ttlMs > 0) {
+      setTimeout(() => {
+        setRowFeedback(prev => {
+          const cur = prev[userId];
+          if (!cur || cur.msg !== message) return prev; // newer msg — leave it
+          const next = { ...prev };
+          delete next[userId];
+          return next;
+        });
+      }, ttlMs);
+    }
+  };
 
   // v28.17 fix — fetchers + their useEffects must come BEFORE the
   // permission early-return below. Hooks must run in the same order on
@@ -120,67 +156,75 @@ function PeoplePage() {
 
   // ─── Lifecycle actions (each fires API + refreshes list / toasts) ────────
 
+  // v28.46 — every async action below sets row-pending before the request and
+  // success/error after, so the user sees feedback right where they clicked.
+  // Pending state also disables every action button on the row (see
+  // rowButtons), making the auditor-got-15-invites scenario structurally
+  // impossible.
+
   const sendPinSetup = async (p) => {
+    setRowMsg(p.id, "pending", "Sending PIN setup…");
     try {
       const r = await fetch(`${API_URL}/employees/${p.id}/send-pin-setup`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        showNotice("Send PIN failed", data.error || "Could not send PIN setup link.", "error");
+        setRowMsg(p.id, "error", data.error || "Could not send PIN setup link.", 6000);
         return;
       }
-      showNotice("PIN setup link sent",
-        `A text message has been sent to ${p.phone || "their phone"}. They tap the link on their phone, register their biometric, set their PIN. Link expires in 7 days, single-use.`);
+      setRowMsg(p.id, "success", `✓ PIN setup link sent to ${p.phone || "phone"}`, 5000);
       fetchPeople();
-    } catch (err) { showNotice("Send PIN failed", err.message, "error"); }
+    } catch (err) { setRowMsg(p.id, "error", err.message || "Send failed", 6000); }
   };
 
   const resetPin = async (p) => {
+    setRowMsg(p.id, "pending", "Resetting PIN…");
     try {
       const r = await fetch(`${API_URL}/employees/${p.id}/reset-pin`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        showNotice("Reset PIN failed", data.error || "Could not reset PIN.", "error");
+        setRowMsg(p.id, "error", data.error || "Could not reset PIN.", 6000);
         return;
       }
-      showNotice("PIN reset",
-        `${p.first_name} ${p.last_name}'s PIN has been cleared. A new setup text is on the way to ${p.phone || "their phone"}.`);
+      setRowMsg(p.id, "success", `✓ PIN reset; new link sent to ${p.phone || "phone"}`, 5000);
       fetchPeople();
-    } catch (err) { showNotice("Reset PIN failed", err.message, "error"); }
+    } catch (err) { setRowMsg(p.id, "error", err.message || "Reset failed", 6000); }
   };
 
   const deactivate = async (p) => {
+    setRowMsg(p.id, "pending", "Deactivating…");
     try {
       const r = await fetch(`${API_URL}/employees/${p.id}/deactivate`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        showNotice("Deactivate failed", data.error || "Could not deactivate.", "error");
+        setRowMsg(p.id, "error", data.error || "Could not deactivate.", 6000);
         return;
       }
-      showNotice("Person deactivated",
-        `${p.first_name} ${p.last_name} has been deactivated. Their PIN link is invalid; their email can be reused for a new person; historical data is preserved.`);
+      setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} deactivated`, 5000);
       fetchPeople();
       refreshUsers();
-    } catch (err) { showNotice("Deactivate failed", err.message, "error"); }
+    } catch (err) { setRowMsg(p.id, "error", err.message || "Deactivate failed", 6000); }
   };
 
   const resendInvite = async (p) => {
+    setRowMsg(p.id, "pending", "Sending invite…");
     try {
       const r = await fetch(`${API_URL}/auth/invite`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: p.id }),
       });
+      const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        const data = await r.json().catch(() => ({}));
-        setMsg(data.error || "Failed to resend invite");
-        setTimeout(() => setMsg(""), 5000);
+        setRowMsg(p.id, "error", data.error || "Failed to resend invite", 8000);
         return;
       }
-      setMsg(`Invite re-sent to ${p.email}.`);
-      setTimeout(() => setMsg(""), 4000);
-    } catch { setMsg("Connection error resending invite"); }
+      setRowMsg(p.id, "success", `✓ Invite sent to ${p.email}`, 5000);
+    } catch (err) {
+      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
+    }
   };
 
   const wipeBio = async (p) => {
+    setRowMsg(p.id, "pending", "Wiping biometric…");
     try {
       const r = await fetch(`${API_URL}/auth/webauthn/admin-disable`, {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -188,13 +232,12 @@ function PeoplePage() {
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
-        showNotice("Wipe biometric failed", data.error || "Could not wipe biometric devices.", "error");
+        setRowMsg(p.id, "error", data.error || "Could not wipe biometric devices.", 6000);
         return;
       }
-      showNotice("Biometric devices wiped",
-        `All registered devices for ${p.first_name} ${p.last_name} cleared. They'll register a new device on next login. All current sessions invalidated.`);
+      setRowMsg(p.id, "success", `✓ Biometric wiped — ${p.first_name} ${p.last_name} re-registers next login`, 5000);
       refreshUsers();
-    } catch { showNotice("Wipe biometric failed", "Connection error.", "error"); }
+    } catch (err) { setRowMsg(p.id, "error", err?.message || "Connection error", 6000); }
   };
 
   const handleAdminResetPassword = async () => {
@@ -271,12 +314,21 @@ function PeoplePage() {
   });
 
   const actionBtnStyle = { background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer", letterSpacing: "0.04em" };
+  // v28.46 — disabled style for buttons while their row's async action is pending.
+  const disabledBtnStyle = { ...actionBtnStyle, opacity: 0.4, cursor: "not-allowed", color: C.muted, border: `1px solid ${C.border}` };
 
   // ─── Per-person row buttons (shared between table + cards) ───────────────
   const rowButtons = (p) => {
     const isSelf = p.id === currentUser?.id;
     const canModify = canModifyUser(currentUser?.role, p.role);
     const buttons = [];
+    // v28.46 — every async-action button on this row disables when ANY
+    // async is pending for this user, so a fast-clicking auditor can't
+    // fire 15 invite emails in a row. The pending state clears as soon
+    // as the success/error pill replaces it, freeing the buttons again.
+    const fb = rowFeedback[p.id];
+    const isPending = fb?.kind === "pending";
+    const asyncBtn = (extra) => isPending ? disabledBtnStyle : { ...actionBtnStyle, ...extra };
 
     if (p.is_active) {
       buttons.push(
@@ -286,20 +338,20 @@ function PeoplePage() {
       );
       if (p.pin_set === false) {
         buttons.push(
-          <button key="send-pin" onClick={() => sendPinSetup(p)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
-            SEND PIN SETUP
+          <button key="send-pin" disabled={isPending} onClick={() => { if (!isPending) sendPinSetup(p); }} style={asyncBtn({ border: `1px solid ${C.blue}44`, color: isPending ? C.muted : C.blue })}>
+            {isPending && fb.msg.startsWith("Sending PIN") ? "SENDING…" : "SEND PIN SETUP"}
           </button>
         );
       } else if (p.pin_set === true) {
         buttons.push(
-          <button key="reset-pin" onClick={() => setConfirmAction({
+          <button key="reset-pin" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
             kind: "reset-pin",
             title: "Reset PIN?",
             message: `${p.first_name} ${p.last_name}'s current PIN will be cleared. A new setup text will be sent to ${p.phone || "their phone"}. The link expires in 7 days and can only be used once.`,
             yesLabel: "Reset PIN",
             onYes: () => resetPin(p),
-          })} style={actionBtnStyle}>
-            RESET PIN
+          }); }} style={asyncBtn({})}>
+            {isPending && fb.msg.startsWith("Resetting PIN") ? "RESETTING…" : "RESET PIN"}
           </button>
         );
       }
@@ -310,19 +362,19 @@ function PeoplePage() {
           </button>
         );
         buttons.push(
-          <button key="resend" onClick={() => resendInvite(p)} style={actionBtnStyle}>
-            RESEND INVITE
+          <button key="resend" disabled={isPending} onClick={() => { if (!isPending) resendInvite(p); }} style={asyncBtn({})}>
+            {isPending && fb.msg.startsWith("Sending invite") ? "SENDING…" : "RESEND INVITE"}
           </button>
         );
         buttons.push(
-          <button key="wipe-bio" onClick={() => setConfirmAction({
+          <button key="wipe-bio" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
             kind: "wipe-bio",
             title: "Wipe biometric devices?",
             message: `Wipe ALL registered biometric devices for ${p.first_name} ${p.last_name}? They'll re-register a device on next login (after entering their password). All current sessions will be invalidated.`,
             yesLabel: "Wipe Bio",
             onYes: () => wipeBio(p),
-          })} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>
-            WIPE BIO
+          }); }} style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>
+            {isPending && fb.msg.startsWith("Wiping biometric") ? "WIPING…" : "WIPE BIO"}
           </button>
         );
       }
@@ -340,20 +392,44 @@ function PeoplePage() {
       }
       if (canModify && !isSelf) {
         buttons.push(
-          <button key="deactivate" onClick={() => setConfirmAction({
+          <button key="deactivate" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
             kind: "deactivate",
             title: "Deactivate this person?",
             message: `${p.first_name} ${p.last_name} will be removed from the active roster. Their PIN link becomes invalid; their email can be reused for a new person; the crew picker will exclude them; historical data on tickets and JSAs is preserved.`,
             yesLabel: "Deactivate",
             onYes: () => deactivate(p),
-          })} style={{ ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>
-            DEACTIVATE
+          }); }} style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>
+            {isPending && fb.msg.startsWith("Deactivating") ? "DEACTIVATING…" : "DEACTIVATE"}
           </button>
         );
       }
       if (!canModify && !isSelf) {
         buttons.push(
           <span key="protected" style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>
+        );
+      }
+      // v28.46 — inline per-row feedback pill. Renders right next to the
+      // buttons so the user sees confirmation at the spot they clicked,
+      // even if they're 45 rows down a long list. Color encodes kind:
+      //   pending → blue tint with hourglass
+      //   success → green tint with ✓
+      //   error   → red tint with ✗ (longer TTL + tooltip with full text)
+      if (fb) {
+        const palette =
+          fb.kind === "success" ? { bg: "#e6f5ec", color: C.green, border: C.green + "44" } :
+          fb.kind === "error"   ? { bg: "#fdecea", color: C.red,   border: C.red + "44" } :
+                                  { bg: "#e8f0fb", color: C.blue,  border: C.blue + "44" };
+        buttons.push(
+          <span key="row-feedback" title={fb.msg} style={{
+            fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3,
+            background: palette.bg, color: palette.color,
+            border: `1px solid ${palette.border}`, whiteSpace: "nowrap",
+            maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis",
+            letterSpacing: "0.04em",
+          }}>
+            {fb.kind === "pending" && "⌛ "}
+            {fb.msg}
+          </span>
         );
       }
     }
