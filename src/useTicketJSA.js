@@ -108,7 +108,8 @@ export default function useTicketJSA(ticket, job, onUpdate) {
         : (typeof candidate === 'number' && candidate > 0 ? String(candidate) : null);
       const merged = { ...jsaData, id: newId };
       setExistingJSA(merged);
-      // Flip hasJSA on the ticket row so the badge refreshes without a full fetch.
+      // v28.41 — flip hasJSA but NOT jsaCompleted. Saving creates a draft;
+      // the badge stays in DRAFT state until MARK COMPLETE fires.
       if (onUpdate) onUpdate(ticket.id, { hasJSA: true, has_jsa: true });
       return merged;
     } catch (err) {
@@ -117,11 +118,20 @@ export default function useTicketJSA(ticket, job, onUpdate) {
     }
   };
 
+  // v28.41 — called by JSAModal after a successful POST /jsas/:id/complete.
+  // Flips jsaCompleted on the parent ticket row so the badge turns green
+  // immediately, without waiting for a full ticket refetch.
+  const handleJsaCompleted = () => {
+    setExistingJSA(prev => prev ? { ...prev, completed_at: new Date().toISOString() } : prev);
+    if (onUpdate) onUpdate(ticket.id, { jsaCompleted: true, jsa_completed: true });
+  };
+
   return {
     existingJSA,
     jsaLoaded,
     showJSA,
     setShowJSA,
     handleJsaSave,
+    handleJsaCompleted,
   };
 }

@@ -53,11 +53,15 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
 
   // Derive dot states from actual tickets. v28.40 — `inField` removed; legacy
   // rows with that value (if any survived the merge) fall through to incomplete.
+  // v28.41 — `approved` was missing from the "work-done" cases, so an approved
+  // ticket showed gold (incomplete) on the dashboard pip even though the lead
+  // had finished it. Added below.
   const dotState = (type) => {
     const t = jobTickets.filter(tk => tk.type === type);
     if (t.length === 0) return "none";
     if (t.some(tk => tk.status === "qbVerified")) return "signed";
     if (t.some(tk => tk.status === "sentToQB")) return "signed";
+    if (t.some(tk => tk.status === "approved")) return "signed";
     if (t.some(tk => tk.status === "signed" || tk.status === "sigNotReq")) return "signed";
     if (t.some(tk => tk.status === "emailed")) return "incomplete";
     return "incomplete";

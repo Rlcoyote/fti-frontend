@@ -336,6 +336,12 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 setExistingJSA({ ...jsaData, id: newId });
               } catch (err) { console.error("JSA save failed:", err); }
             }}
+            onComplete={() => {
+              // v28.41 — mirror useTicketJSA.handleJsaCompleted for the
+              // AddTicketModal flow: reflect completed_at in local state
+              // so subsequent re-opens of the modal see the JSA as complete.
+              setExistingJSA(prev => prev ? { ...prev, completed_at: new Date().toISOString() } : prev);
+            }}
           />
         )}
 

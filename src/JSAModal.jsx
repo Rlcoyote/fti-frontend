@@ -7,7 +7,7 @@ import { useApp } from "./AppContext.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import JSACrewSigners from "./JSACrewSigners.jsx";
 
-function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
+function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   const { settings, currentUser } = useApp();
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
   const [showUnsaved, setShowUnsaved] = useState(false);
@@ -111,35 +111,15 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
   );
   const [additionalSteps, setAdditionalSteps] = useState(jsa?.additionalSteps || [{ step: "", hazard: "", procedure: "" }]);
 
-  // v28.10 — Auto-create a draft JSA on modal mount if none exists. The
-  // form state above is already populated with sensible defaults from
-  // settings + ticket; the draft inherits those values. Without this, the
-  // FTI CREW BIOMETRIC SIGNATURES section would have nothing to attach
-  // signatures to, and the user would have to manually click SAVE JSA
-  // before signing — which leaks the underlying FK constraint
-  // (jsa_crew_signatures.jsa_id REFERENCES jsas.id) into the user's face.
-  // Layer 1 (DB FK) and Layer 2 (API contract) stay correct; Layer 3 (UX)
-  // no longer surfaces the architectural detail. CAM Article VII
-  // Amendment 1 / Article X applied: solve the UX problem with the right
-  // tool (transparent persistence) rather than gating a layer-3 concern
-  // on a layer-1 detail. The ref guards against double-fire if the effect
-  // re-runs before the POST resolves and updates existingJSA.
-  const autoCreateAttempted = useRef(false);
-  useEffect(() => {
-    if (existingJSA?.id) return;
-    if (autoCreateAttempted.current) return;
-    autoCreateAttempted.current = true;
-    (async () => {
-      const validSigs = (signatures || []).filter(Boolean);
-      await onSave({
-        jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
-        lat, lng, weather, ppe, signatures: validSigs,
-        presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
-        savedAt: new Date().toISOString(),
-      });
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingJSA?.id]);
+  // v28.41 — auto-create-on-mount removed. The v28.10 implementation wrote
+  // a draft JSA the moment the modal opened, even when the user closed
+  // without input. That made the ticket-level "✓ JSA" badge show green
+  // for any opened-but-not-actually-completed JSA. The badge now reads
+  // jsa_completed (a real completion signal: jsas.completed_at IS NOT NULL),
+  // and the JSA row is created by the explicit SAVE JSA click below. The
+  // FTI CREW BIOMETRIC SIGNATURES section gates on existingJSA?.id (see
+  // line ~483 below) — it just doesn't render until a save has happened,
+  // and a hint guides the user to click SAVE first.
 
   const weatherOpts = ["clear", "cloudy", "calm", "rain", "mud", "hot", "windy", "freezing", "ice", "snow"];
 
@@ -329,14 +309,20 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
             </div>
           </div>
 
-          {/* FTI Crew Biometric Signatures (v28.07; v28.10 — always render).
-              v28.10 architecture: a draft JSA is auto-created on modal mount
-              if no existingJSA, so JSACrewSigners always has an id to query
-              by. The earlier "Save the JSA first" placeholder is gone — the
-              user no longer has to manually trigger JSA creation before
-              biometric signing. CAM Article VII Amendment 1 / Article X in
-              practice: don't leak the FK constraint into the user's face. */}
-          <JSACrewSigners jsaId={existingJSA?.id} />
+          {/* FTI Crew Biometric Signatures (v28.07; v28.41 — gate on saved JSA).
+              v28.41 reverted v28.10's auto-create-on-mount because it was
+              writing draft JSA rows for any opened modal, producing false-
+              positive "✓ JSA" badges on tickets. The user now clicks SAVE
+              JSA explicitly; until then this section shows a hint instead
+              of an empty signers list pointing at a non-existent jsa.id. */}
+          {existingJSA?.id ? (
+            <JSACrewSigners jsaId={existingJSA.id} />
+          ) : (
+            <div style={{ marginBottom: 14, padding: "12px 14px", background: "#e8f0fb", border: `1px solid ${C.blue}33`, borderRadius: 6, fontSize: 12, color: C.blue }}>
+              <strong>Crew biometric signing</strong> activates after you click <strong>SAVE JSA</strong> below.
+              Saving creates the JSA so crew members can attach their signatures to it.
+            </div>
+          )}
 
           {/* External / Non-FTI Crew Signatures (typed name) — for
               subcontractors and customer reps whose identity FTI cannot
@@ -501,8 +487,11 @@ function JSAModal({ job, ticket, onClose, onSave, existingJSA }) {
                     }
                     return;
                   }
-                  // Success: close the modal. Parent (TicketDetail / AddTicketModal)
-                  // re-fetches JSA on next open and will see completed_at set.
+                  // Success: flip parent jsaCompleted (so the ticket-row
+                  // badge turns green immediately) then close. v28.41 — was
+                  // bare onClose() pre-fix, which left the badge stale until
+                  // a full ticket refetch.
+                  if (onComplete) onComplete();
                   onClose();
                 } catch {
                   setCompleteError("Connection error while marking complete");

@@ -447,6 +447,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             existingJSA={jsa.existingJSA}
             onClose={() => jsa.setShowJSA(false)}
             onSave={jsa.handleJsaSave}
+            onComplete={jsa.handleJsaCompleted}
           />
         )}
 

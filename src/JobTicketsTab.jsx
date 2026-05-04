@@ -190,7 +190,16 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         const isEmailed = !!t.emailedAt;
         const hasPendingComment = !!t.hasPendingComment || !!t.has_pending_comment;
         const cycleEnded = !!t.cycleEnded || !!t.cycle_ended;
-        const needsJSA = !t.hasJSA && !t.voidedAt && t.type !== "Rental"; // JSA required before signature/email/approval (Rental exempt)
+        // v28.41 — gate on jsaCompleted, not hasJSA. A draft JSA (saved but
+        // not MARK COMPLETE'd) is no longer enough to unlock signing/email/
+        // approve. The lead must finalize the JSA via MARK COMPLETE first.
+        const needsJSA = !t.jsaCompleted && !t.voidedAt && t.type !== "Rental";
+        // Three badge states: completed (green ✓), draft (amber pill), none (gray).
+        const jsaBadge = t.jsaCompleted
+          ? { bg: "#e6f5ec", color: C.green, border: C.green + "44", label: "✓ JSA" }
+          : t.hasJSA
+            ? { bg: "#fdf5d8", color: "#8a6500", border: "#e6c20044", label: "JSA — DRAFT" }
+            : { bg: C.steel, color: C.muted, border: C.border, label: "JSA" };
 
         // Button styles
         const btnBase = { borderRadius: 4, padding: "4px 10px", fontSize: 10, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em", border: "none", whiteSpace: "nowrap" };
@@ -261,7 +270,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
                 )}
                 <RentalCountdown ticket={t} />
-                <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
+                <span style={{ background: jsaBadge.bg, color: jsaBadge.color, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${jsaBadge.border}` }}>{jsaBadge.label}</span>
                 {/* Sig button — greyed out if no JSA */}
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
                   <button type="button" style={needsJSA ? btnDisabled : btnAction} disabled={needsJSA}
@@ -367,7 +376,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             {/* Right: action buttons + total — JSA badge is here as part of the
                 workflow progression (required before ticket closure) */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <span style={{ background: t.hasJSA ? "#e6f5ec" : C.steel, color: t.hasJSA ? C.green : C.muted, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${t.hasJSA ? C.green + '44' : C.border}` }}>{t.hasJSA ? "✓ JSA" : "JSA"}</span>
+            <span style={{ background: jsaBadge.bg, color: jsaBadge.color, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${jsaBadge.border}` }}>{jsaBadge.label}</span>
 
             {t.voidedAt ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
