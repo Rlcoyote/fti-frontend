@@ -48,6 +48,41 @@ export const TICKET_STATUSES = {
   voided:     { color: "#B01020", bg: "#fdecea", label: "VOIDED" },
 };
 
+// ─── PASTEL PANEL TEXT TOKENS ─────────────────────────────────────────────────
+// v28.44 — single source of truth for text on always-light pastel panels.
+//
+// THE RULE (auditor-grade):
+//
+//   Most surfaces in the app theme-flip via C.text / C.muted (light text in
+//   dark mode, dark text in light mode). That works because both the
+//   surface color AND the text color flip together.
+//
+//   PASTEL TICKET-TYPE PANELS (TICKET_TYPES[type].bg — RIG UP pink, RIG DOWN
+//   gray, TESTER green, PUMPER blue, RENTAL yellow) are intentionally
+//   always-light per brand. They DO NOT theme-flip. Text on them must use
+//   PANEL_TEXT / PANEL_MUTED / PANEL_FAINT — these are always-dark and read
+//   correctly against the always-light pastel regardless of theme.
+//
+//   WHEN TO USE WHICH:
+//     PANEL_TEXT  — primary text on a pastel panel (titles, totals, body)
+//     PANEL_MUTED — secondary text (labels, subtext, captions)
+//     PANEL_FAINT — tertiary stamps (timestamps, "X of Y" markers)
+//     C.text      — anywhere theme-aware (cards, modals, dashboards)
+//     C.muted     — same, theme-aware
+//
+//   Using C.text on a pastel panel is a bug. Using PANEL_TEXT off a pastel
+//   panel locks text to dark navy regardless of theme — also a bug. The
+//   distinction is "is the surface always-light?" not "is the surface
+//   colored?" — it's specifically the per-type tinted backgrounds.
+//
+// Originally introduced in v28.39 as locals inside TicketHeaderRow.jsx.
+// Promoted here in v28.44 after the same pattern needed to land across
+// LineItemEditor, ReadOnlyLineItems, TicketDetail, and AddTicketModal —
+// instead of copy-pasting consts, give the rule one name and one home.
+export const PANEL_TEXT  = "#1a2340"; // dark navy — primary on pastel
+export const PANEL_MUTED = "#4a5570"; // slate — secondary on pastel
+export const PANEL_FAINT = "#6b7a99"; // lighter slate — tertiary on pastel
+
 // ─── SHARED FORM STYLES ───────────────────────────────────────────────────────
 // v28.43 — getter-object pattern. The previous design captured `C.steel`,
 // `C.border`, `C.text`, `C.muted` as STRINGS at module load — meaning the

@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { TicketTypeBadge, TicketStatusBadge } from "./SharedUI.jsx";
+import { TicketTypeBadge, TicketStatusBadge, PANEL_TEXT, PANEL_MUTED, PANEL_FAINT } from "./SharedUI.jsx";
 import { formatDate, formatShortStamp, shortName } from "./utils.js";
 import TimePicker from "./TimePicker.jsx";
 
@@ -41,15 +41,10 @@ function TicketHeaderRow({
   const lockPillLabel = isFullyLocked ? "QB VERIFIED" : "LOCKED";
 
   // v28.39 — TicketDetail panel sits on a light pastel tcfg.bg (always
-  // light, regardless of theme). C.text and C.muted are themed (light in
-  // dark mode), so every text element on this panel was light-on-light.
-  // Forcing explicit dark colors throughout the header. Inputs (date,
-  // yard select) keep their own theme — they have their own dark
-  // C.cardBg background so theme colors inside them are correct.
-  const PANEL_TEXT = "#1a2340";   // dark navy — primary text on pastel
-  const PANEL_MUTED = "#4a5570";  // slate — secondary text on pastel
-  const PANEL_FAINT = "#6b7a99";  // lighter slate — tertiary stamps
-
+  // light, regardless of theme). v28.44 — PANEL_TEXT / MUTED / FAINT are
+  // now exported from SharedUI as the single source of truth; this file
+  // imports them. Inputs (date, yard select) keep their own theme since
+  // they have their own dark C.cardBg backgrounds.
   return (
     <div style={{ padding: isPageMode ? "14px 16px 12px" : "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
       {/* Row 1: type + status badges + ticket # + lock pill */}

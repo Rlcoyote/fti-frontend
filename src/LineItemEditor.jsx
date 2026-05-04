@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal } from "./utils.js";
-import { Btn, inputStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import CopyLineItemsModal from "./CopyLineItemsModal.jsx";
 
@@ -183,10 +183,13 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
               </div>
             );
           })}
-          {/* Total */}
+          {/* v28.44 — TOTAL row sits directly on the pastel tcfg.bg panel
+              (the per-card mobile rows are on C.cardBg, but this row is
+              outside them). PANEL_MUTED/PANEL_TEXT stay readable on the
+              always-light pastel regardless of theme. See SharedUI rule. */}
           <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginRight: 8 }}>TOTAL</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.1em", marginRight: 8 }}>TOTAL</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: PANEL_TEXT }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </div>
         </div>
       ) : (
@@ -198,7 +201,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
           gap: 4, padding: "6px 0", borderBottom: `1px solid ${C.border}`, marginBottom: 4,
         }}>
           {headers.map(h => (
-            <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>{h}</div>
+            <div key={h} style={{ fontSize: 9, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.1em" }}>{h}</div>
           ))}
         </div>
         {lineItems.map((li, idx) => (
@@ -206,7 +209,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
             display: "grid", gridTemplateColumns: cols,
             gap: 4, padding: "4px 0", borderBottom: `1px solid ${C.border}22`, alignItems: "center",
           }}>
-            <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: PANEL_MUTED, textAlign: "center" }}>
               {idx + 1}
               {isRigDown && allowedCodes && allowedCodes.size > 0 && li.qbCode && !allowedCodes.has(li.qbCode) && (
                 // v27.69: inline warning text instead of title= tooltip (which
@@ -233,7 +236,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                 value={li.days || 1} onChange={e => updateItem(idx, "days", e.target.value === "" ? "" : Number(e.target.value))}
                 onBlur={e => { if (e.target.value === "" || Number(e.target.value) < 1) updateItem(idx, "days", 1); }} />
             )}
-            <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: C.text }}>
+            <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: PANEL_TEXT }}>
               {'$'}{calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <button onClick={() => removeItem(idx)} style={{
@@ -251,8 +254,8 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
           display: "flex", alignItems: "center", gap: 8,
           padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4,
         }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>TOTAL</div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.1em" }}>TOTAL</div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: PANEL_TEXT }}>
             {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>

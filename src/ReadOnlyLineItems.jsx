@@ -1,6 +1,12 @@
 import { C } from "./config.js";
 import { calcLineTotal } from "./utils.js";
+import { PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 
+// v28.44 — read-only line items render directly on the pastel tcfg.bg
+// panel (no own background). Per the SharedUI rule, all text on always-
+// light pastel panels must use PANEL_TEXT / PANEL_MUTED. Theme-colored
+// accents (blue qbCode, etc.) stay theme-aware because they're intended
+// to pop in both modes.
 function ReadOnlyLineItems({ lineItems, ticketType, total }) {
   const isRental = ticketType === "Rental";
   const cols = isRental
@@ -14,7 +20,7 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4, padding: "6px 0", borderBottom: `1px solid ${C.border}`, marginBottom: 4 }}>
         {headers.map(h => (
-          <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>{h}</div>
+          <div key={h} style={{ fontSize: 9, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.1em" }}>{h}</div>
         ))}
       </div>
       {lineItems.map((li, idx) => (
@@ -22,21 +28,21 @@ function ReadOnlyLineItems({ lineItems, ticketType, total }) {
           display: "grid", gridTemplateColumns: cols,
           gap: 4, padding: "5px 0", borderBottom: `1px solid ${C.border}22`,
         }}>
-          <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>{idx + 1}</div>
+          <div style={{ fontSize: 11, color: PANEL_MUTED, textAlign: "center" }}>{idx + 1}</div>
           <div style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>{li.qbCode}</div>
-          <div style={{ fontSize: 11, color: C.text }}>{li.desc}</div>
-          <div style={{ fontSize: 11, textAlign: "right" }}>{'$'}{li.rate}</div>
-          <div style={{ fontSize: 11, textAlign: "right" }}>{li.qty}</div>
-          <div style={{ fontSize: 10, color: C.muted }}>{li.um}</div>
-          {isRental && <div style={{ fontSize: 11, textAlign: "right" }}>{li.days || 1}</div>}
-          <div style={{ fontSize: 11, fontWeight: 700, textAlign: "right" }}>
+          <div style={{ fontSize: 11, color: PANEL_TEXT }}>{li.desc}</div>
+          <div style={{ fontSize: 11, color: PANEL_TEXT, textAlign: "right" }}>{'$'}{li.rate}</div>
+          <div style={{ fontSize: 11, color: PANEL_TEXT, textAlign: "right" }}>{li.qty}</div>
+          <div style={{ fontSize: 10, color: PANEL_MUTED }}>{li.um}</div>
+          {isRental && <div style={{ fontSize: 11, color: PANEL_TEXT, textAlign: "right" }}>{li.days || 1}</div>}
+          <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_TEXT, textAlign: "right" }}>
             {'$'}{calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       ))}
       <div style={{ display: "grid", gridTemplateColumns: cols, gap: 4, padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
         {headers.slice(0, -1).map((_, i) => <div key={i} />)}
-        <div style={{ fontSize: 13, fontWeight: 800, color: C.text, textAlign: "right" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: PANEL_TEXT, textAlign: "right" }}>
           {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
       </div>

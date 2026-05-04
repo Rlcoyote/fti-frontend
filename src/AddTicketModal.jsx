@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
 import { today, parseYards } from "./utils.js";
-import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import JSAModal from "./JSAModal.jsx";
@@ -372,21 +372,23 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
                 <TicketTypeBadge type={type} />
-                {/* v28.42 — force dark text on the heading. The pastel tcfg.bg
-                    panel inherits a light background that doesn't flip in
-                    dark mode; light-mode C.text on it is unreadable. Mirrors
-                    the v28.39 TicketHeaderRow contrast sweep pattern. */}
-                <span style={{ fontSize: 16, fontWeight: 700, color: "#1a2340" }}>Assign Wells — New {type} Ticket</span>
+                {/* v28.44 — heading + ancillary text on the always-light pastel
+                    tcfg.bg panel use PANEL_TEXT/MUTED constants per the
+                    SharedUI rule. PANEL_TEXT/MUTED are always-dark (the
+                    pastel surface is always-light). Replaces the v28.42
+                    inline #1a2340/#4a5570 hex hardcodes — single source of
+                    truth now lives in SharedUI. */}
+                <span style={{ fontSize: 16, fontWeight: 700, color: PANEL_TEXT }}>Assign Wells — New {type} Ticket</span>
                 <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
                   background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
-                  padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
+                  padding: "3px 10px", fontSize: 11, fontWeight: 700, color: PANEL_MUTED, cursor: "pointer", marginLeft: "auto",
                 }}>← CHANGE TYPE</button>
               </div>
-              <div style={{ fontSize: 12, color: "#4a5570", marginBottom: 14 }}>Select which wells apply to this ticket.</div>
+              <div style={{ fontSize: 12, color: PANEL_MUTED, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: "#4a5570", letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
-                  <button type="button" onClick={selectAllWells} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer" }}>SELECT ALL</button>
+                  <label style={{ fontSize: 11, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
+                  <button type="button" onClick={selectAllWells} style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 10px", fontSize: 11, fontWeight: 700, color: PANEL_TEXT, cursor: "pointer" }}>SELECT ALL</button>
                 </div>
                 {jobWells.map((well, idx) => {
                   const checked = assignedWells.includes(well);
@@ -418,14 +420,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <TicketTypeBadge type={type} />
-                {/* v28.43 — heading sits on the always-light pastel tcfg.bg
-                    panel (intentional brand decision; doesn't theme-flip).
-                    Force dark text so it's readable in both themes. Mirrors
-                    the v28.42 fix on the wells-confirm heading. */}
-                <span style={{ fontSize: 16, fontWeight: 700, color: "#1a2340" }}>New {type} Ticket</span>
+                {/* v28.44 — main-form heading on the always-light pastel
+                    tcfg.bg panel uses PANEL_TEXT (single source of truth in
+                    SharedUI). */}
+                <span style={{ fontSize: 16, fontWeight: 700, color: PANEL_TEXT }}>New {type} Ticket</span>
                 <button onClick={() => { setType(null); setWellsConfirmed(false); }} style={{
                   background: "transparent", border: `1px solid ${C.border}`, borderRadius: 4,
-                  padding: "3px 10px", fontSize: 11, fontWeight: 700, color: C.muted, cursor: "pointer", marginLeft: "auto",
+                  padding: "3px 10px", fontSize: 11, fontWeight: 700, color: PANEL_MUTED, cursor: "pointer", marginLeft: "auto",
                 }}>← CHANGE TYPE</button>
               </div>
 
@@ -437,7 +438,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                       <div><label style={labelStyle}>CYCLE (DAYS)</label><input type="number" style={{ ...inputStyle, width: 80 }} value={cycleDays} onChange={e => setCycleDays(e.target.value)} min={1} /></div>
                       <div><label style={labelStyle}>END DATE</label><input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8" }} value={endDate} readOnly /></div>
                     </div>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: PANEL_TEXT, cursor: "pointer" }}>
                       <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
                       Recurring (auto-create next cycle ticket)
                     </label>
@@ -724,7 +725,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 </div>
               )}
 
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
               <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} jobId={jobId} />
               <div style={{ marginTop: 16, marginBottom: 16 }}>
                 <label style={labelStyle}>NOTES</label>

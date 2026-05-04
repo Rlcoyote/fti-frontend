@@ -17,7 +17,7 @@ import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import TicketJobInfo from "./TicketJobInfo.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
-import { inputStyle, TICKET_TYPES } from "./SharedUI.jsx";
+import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import useTicketState from "./useTicketState.js";
 import useTicketJSA from "./useTicketJSA.js";
@@ -356,22 +356,23 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             setMissingPieces={s.setMissingPieces}
           />
 
-          {/* Line items */}
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
+          {/* Line items — v28.44: PANEL_MUTED for the section header
+              (renders directly on the pastel tcfg.bg panel). */}
+          <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
           {!isLocked ? (
             <LineItemEditor lineItems={s.lineItems} setLineItems={s.setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={handleSigWipe} jobId={ticket.jobId} />
           ) : (
             <ReadOnlyLineItems lineItems={s.lineItems} ticketType={ticket.type} total={total} />
           )}
 
-          {/* Notes */}
+          {/* Notes — v28.44: header + read-only display use PANEL_*. */}
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
             {!isFullyLocked ? (
               <textarea style={{ ...inputStyle, width: "100%", minHeight: 60, resize: "vertical", boxSizing: "border-box" }}
                 value={s.notes} onChange={e => s.setNotes(e.target.value)} placeholder="Notes..." />
             ) : (
-              <div style={{ fontSize: 12, color: C.text, padding: "8px 0" }}>{s.notes || "—"}</div>
+              <div style={{ fontSize: 12, color: PANEL_TEXT, padding: "8px 0" }}>{s.notes || "—"}</div>
             )}
           </div>
 
