@@ -100,6 +100,17 @@ function ActivityLogPage() {
     return ip;
   };
 
+  // v28.48 — Tier 3: render IP with city/region appended when available.
+  // Backend services/geoIp.js fills `geo` on each row; null when the IP
+  // is private/loopback or the resolver couldn't identify the range.
+  const formatIPWithGeo = (ip, geo) => {
+    const ipText = formatIP(ip);
+    if (!geo) return ipText;
+    const parts = [geo.city, geo.region].filter(Boolean);
+    if (parts.length === 0) return ipText;
+    return `${ipText} · ${parts.join(", ")}`;
+  };
+
   // Human-friendly duration: "2h 15m", "35m", "1m 12s" — honest about minutes vs hours.
   const formatDuration = (ms) => {
     if (ms == null || ms < 0) return "—";
@@ -260,7 +271,7 @@ function ActivityLogPage() {
                         <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: ac.bg, color: ac.color, letterSpacing: "0.04em" }}>{a.action.toUpperCase()}</span>
                         {a.entity_type && <span style={{ fontSize: 11, color: C.muted, marginLeft: 8 }}>{a.entity_type} {a.entity_id ? `#${a.entity_id}` : ""}</span>}
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{formatIP(a.ip_address)}</div>
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{formatIPWithGeo(a.ip_address, a.geo)}</div>
                       <div style={{ fontSize: 10, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {renderDetails(a.details)}
                       </div>
@@ -302,13 +313,25 @@ function ActivityLogPage() {
                         }
                       </div>
                       <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{formatDuration(duration)}</div>
-                      <div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                         <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, letterSpacing: "0.06em",
                           background: isOpen ? "#e6f5ec" : C.steel,
                           color: isOpen ? C.green : C.muted,
+                          alignSelf: "flex-start",
                         }}>{isOpen ? "OPEN" : "CLOSED"}</span>
+                        {/* v28.48 — Tier 3: concurrent session flag. Backend
+                            sets concurrent_open_count > 1 when this user has
+                            multiple OPEN sessions at the same time. Forensic
+                            tell for credential sharing or token theft. */}
+                        {isOpen && s.concurrent_open_count > 1 && (
+                          <span title={`${s.concurrent_open_count} simultaneous open sessions for ${s.user_name}`} style={{
+                            fontSize: 8, fontWeight: 800, padding: "1px 5px", borderRadius: 3, letterSpacing: "0.06em",
+                            background: "#fdecea", color: C.red, border: `1px solid ${C.red}44`,
+                            alignSelf: "flex-start",
+                          }}>⚠ {s.concurrent_open_count}× CONCURRENT</span>
+                        )}
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{formatIP(s.ip_address)}</div>
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>{formatIPWithGeo(s.ip_address, s.geo)}</div>
                     </div>
                   );
                 })}
