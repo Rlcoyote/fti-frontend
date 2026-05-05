@@ -314,16 +314,21 @@ function ActivityLogPage() {
                       </div>
                       <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{formatDuration(duration)}</div>
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        {/* v28.49 — Three statuses now:
+                              OPEN     (truly active in last 15 min)
+                              ABANDONED (no logout but no recent activity;
+                                        backend synthesized a logout at
+                                        last_seen_at on the previous request)
+                              CLOSED   (explicit logout, or older synthesized one) */}
                         <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, letterSpacing: "0.06em",
-                          background: isOpen ? "#e6f5ec" : C.steel,
-                          color: isOpen ? C.green : C.muted,
+                          background: s.status === "open" ? "#e6f5ec" : s.status === "abandoned" ? "#fdf5d8" : C.steel,
+                          color: s.status === "open" ? C.green : s.status === "abandoned" ? C.orange : C.muted,
                           alignSelf: "flex-start",
-                        }}>{isOpen ? "OPEN" : "CLOSED"}</span>
-                        {/* v28.48 — Tier 3: concurrent session flag. Backend
-                            sets concurrent_open_count > 1 when this user has
-                            multiple OPEN sessions at the same time. Forensic
-                            tell for credential sharing or token theft. */}
-                        {isOpen && s.concurrent_open_count > 1 && (
+                        }}>{s.status === "open" ? "OPEN" : s.status === "abandoned" ? "ABANDONED" : "CLOSED"}</span>
+                        {/* v28.48 — concurrent session flag fires only on
+                            truly OPEN sessions (not abandoned). Counts
+                            other OPEN sessions for the same user. */}
+                        {s.status === "open" && s.concurrent_open_count > 1 && (
                           <span title={`${s.concurrent_open_count} simultaneous open sessions for ${s.user_name}`} style={{
                             fontSize: 8, fontWeight: 800, padding: "1px 5px", borderRadius: 3, letterSpacing: "0.06em",
                             background: "#fdecea", color: C.red, border: `1px solid ${C.red}44`,

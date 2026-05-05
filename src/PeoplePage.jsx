@@ -240,6 +240,26 @@ function PeoplePage() {
     } catch (err) { setRowMsg(p.id, "error", err?.message || "Connection error", 6000); }
   };
 
+  // v28.49 — force every active session for the target user to end. Bumps
+  // their token_version on the backend, invalidating ALL outstanding JWTs.
+  // Distinct from WIPE BIO: the user keeps their biometric credentials and
+  // can sign back in normally. This is the lighter-touch tool for the
+  // "kick this user off all devices NOW" use case.
+  const forceLogout = async (p) => {
+    setRowMsg(p.id, "pending", "Forcing sign-out…");
+    try {
+      const r = await fetch(`${API_URL}/users/${p.id}/force-logout`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setRowMsg(p.id, "error", data.error || "Could not force sign-out.", 6000);
+        return;
+      }
+      setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} signed out of all devices`, 5000);
+    } catch (err) { setRowMsg(p.id, "error", err?.message || "Connection error", 6000); }
+  };
+
   const handleAdminResetPassword = async () => {
     if (!resetPwVal || resetPwVal.length < 6) { setResetPwMsg("Password must be at least 6 characters"); return; }
     if (resetPwVal !== resetPwConfirm) { setResetPwMsg("Passwords don't match"); return; }
@@ -375,6 +395,20 @@ function PeoplePage() {
             onYes: () => wipeBio(p),
           }); }} style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>
             {isPending && fb.msg.startsWith("Wiping biometric") ? "WIPING…" : "WIPE BIO"}
+          </button>
+        );
+        // v28.49 — FORCE SIGN OUT. Ends every active session for the
+        // target without wiping biometric. Owner/admin only; admin
+        // cannot force-logout an owner (backend enforces too).
+        buttons.push(
+          <button key="force-logout" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
+            kind: "force-logout",
+            title: "Force sign-out of all devices?",
+            message: `Sign ${p.first_name} ${p.last_name} out of every device they're currently logged into? Their biometric credentials are preserved — they can sign back in normally. Use this for terminated employees, suspected stolen tokens, or to clear stale concurrent sessions.`,
+            yesLabel: "Force Sign Out",
+            onYes: () => forceLogout(p),
+          }); }} style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.orange}44`, color: C.orange }}>
+            {isPending && fb.msg.startsWith("Forcing sign-out") ? "SIGNING OUT…" : "FORCE SIGN OUT"}
           </button>
         );
       }
