@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
-import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { useApp } from "./AppContext.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
@@ -215,11 +215,21 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   };
 
   // v28.51 — auto-complete when JSACrewSigners reports all required signed.
-  // Replaces the manual MARK COMPLETE button. The fetch is idempotent on
-  // the backend (returns already_complete: true if completed_at is already
-  // set), so re-firing on subsequent re-renders / re-fetches is safe but
-  // the `completing` flag still guards against piling up requests.
-  const handleAllSigned = async () => {
+  // v28.52 — wrapped in useCallback. JSACrewSigners has fetchSigners as a
+  // useCallback with `onAllSigned` in its deps; useEffect re-fires whenever
+  // fetchSigners' identity changes. Pre-v28.52 handleAllSigned was a fresh
+  // function reference on every JSAModal render, so each useEditLock 5-second
+  // poll on TicketDetail (the parent) re-rendered JSAModal, gave a new
+  // onAllSigned reference, invalidated fetchSigners, re-fired the useEffect,
+  // re-fetched required-signers, set state — and the section visibly
+  // flickered every ~5s. Stabilizing the closure with useCallback breaks
+  // that chain. Deps: only the values the closure actually reads + the
+  // setters (which are stable). onComplete is a parent-provided callback;
+  // including it in deps would re-introduce the issue if the parent
+  // doesn't memoize, so we read it via a ref.
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const handleAllSigned = useCallback(async () => {
     if (!existingJSA?.id) return;
     if (existingJSA?.completed_at) return;
     if (completing) return;
@@ -239,26 +249,19 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
         }
         return;
       }
-      // Mirror the v28.42 origRef refresh on MARK COMPLETE success — keeps
-      // the dirty baseline aligned so handleClose doesn't fire a false
-      // "Unsaved Changes" warning after auto-completion.
-      origRef.current = {
-        date, operator, time, designatedDriver,
-        lat: String(lat || ""), lng: String(lng || ""),
-        weather: [...weather], ppe: { ...ppe },
-        signatures: [...signatures], presenterReview,
-        additionalSteps: additionalSteps.map(s => ({ ...s })),
-      };
-      if (onComplete) onComplete();
-      // Don't auto-close — let the user see the "ALL CREW SIGNED" green
-      // banner from JSACrewSigners + the JSA-completed lock-down. They
-      // close manually when ready.
+      // v28.52 — origRef refresh on auto-complete dropped (was in v28.51).
+      // It read all the form fields, which would have forced including
+      // every form-field state in the useCallback deps — defeating the
+      // stable-reference goal. handleClose's dirty-check + upsert path
+      // covers this case anyway: any form edits made before auto-complete
+      // get persisted on close via the v28.51 implicit upsert.
+      if (onCompleteRef.current) onCompleteRef.current();
     } catch {
       setCompleteError("Connection error while auto-completing");
     } finally {
       setCompleting(false);
     }
-  };
+  }, [existingJSA?.id, existingJSA?.completed_at, completing]);
 
   const handleClose = async () => {
     // v28.51 — three close paths:
@@ -404,11 +407,18 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
               )}
               {nearbyHospitals.length > 0 && (
                 <div style={{ marginTop: 8, background: "#fdf0f0", border: `1px solid ${C.red}22`, borderRadius: 4, padding: "6px 10px" }}>
+                  {/* v28.52 — bg #fdf0f0 is always-light pink. Hospital name
+                      + phone used C.text / C.muted which flip light in dark
+                      mode and become invisible on pink. Force PANEL_TEXT /
+                      PANEL_MUTED so the hospital list stays readable in
+                      both themes. Section header + miles + Directions link
+                      keep their brand colors (red/blue) — those read fine
+                      against the pink in either mode. */}
                   <div style={{ fontSize: 9, fontWeight: 800, color: C.red, letterSpacing: "0.08em", marginBottom: 4 }}>NEAREST HOSPITALS</div>
                   {nearbyHospitals.map((h, i) => (
                     <div key={i} style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "2px 0", borderBottom: i < nearbyHospitals.length - 1 ? `1px solid ${C.red}10` : "none" }}>
-                      <span style={{ fontWeight: 700, color: C.text }}>{h.name}</span>
-                      {h.phone && <span style={{ color: C.muted }}>{h.phone}</span>}
+                      <span style={{ fontWeight: 700, color: PANEL_TEXT }}>{h.name}</span>
+                      {h.phone && <span style={{ color: PANEL_MUTED }}>{h.phone}</span>}
                       {h.miles != null && <span style={{ color: C.red, fontWeight: 700 }}>{h.miles} mi</span>}
                       <a href={`https://www.google.com/maps/dir/${lat},${lng}/${h.lat},${h.lng}`} target="_blank" rel="noopener noreferrer"
                         style={{ color: C.blue, fontWeight: 600, textDecoration: "none", fontSize: 10 }}>Directions ↗</a>

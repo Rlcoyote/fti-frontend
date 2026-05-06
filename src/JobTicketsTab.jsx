@@ -270,7 +270,13 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                   <span style={{ background: "#fdf5d8", color: "#8a6500", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, border: "1px solid #e6c20044" }}>CYCLE ENDED</span>
                 )}
                 <RentalCountdown ticket={t} />
-                <span style={{ background: jsaBadge.bg, color: jsaBadge.color, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, border: `1px solid ${jsaBadge.border}` }}>{jsaBadge.label}</span>
+                {/* v28.52 — match btnBase padding/fontSize so the JSA badge
+                    sits at the same vertical height as the action buttons
+                    next to it. Pre-fix: padding "2px 6px" + fontSize 9 made
+                    it visibly shorter than the other badges/buttons in the
+                    row, which Reggie called out as making the row look
+                    nonuniform. */}
+                <span style={{ background: jsaBadge.bg, color: jsaBadge.color, borderRadius: 4, padding: "4px 10px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${jsaBadge.border}` }}>{jsaBadge.label}</span>
                 {/* Sig button — greyed out if no JSA */}
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
                   <button type="button" style={needsJSA ? btnDisabled : btnAction} disabled={needsJSA}
@@ -376,7 +382,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             {/* Right: action buttons + total — JSA badge is here as part of the
                 workflow progression (required before ticket closure) */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <span style={{ background: jsaBadge.bg, color: jsaBadge.color, borderRadius: 4, padding: "2px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${jsaBadge.border}` }}>{jsaBadge.label}</span>
+            <span style={{ background: jsaBadge.bg, color: jsaBadge.color, borderRadius: 4, padding: "4px 10px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: `1px solid ${jsaBadge.border}` }}>{jsaBadge.label}</span>
 
             {t.voidedAt ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, Z_INDEX } from "./SharedUI.jsx";
+import { Btn, Z_INDEX, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 
 // ─── CopyCrewModal (v28.09) ────────────────────────────────────────────────
 // Copy crew (with lead designation preserved) from a sibling Rig Up ticket
@@ -178,7 +178,13 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
                       }}
                     >
                       <div>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{c.user_name}</span>
+                        {/* v28.52 — lead row sits on the always-light yellow
+                            #fdf5d8 bg (set above). C.text/C.muted theme-flip
+                            light in dark mode → invisible on yellow. Force
+                            PANEL_TEXT/MUTED on lead rows so the name + role
+                            stay readable in both themes. Non-lead rows use
+                            C.cardBg (theme-aware) — keep theme colors there. */}
+                        <span style={{ fontSize: 13, fontWeight: 600, color: c.is_lead ? PANEL_TEXT : C.text }}>{c.user_name}</span>
                         {c.is_lead && (
                           <span style={{
                             marginLeft: 8, fontSize: 9, fontWeight: 800, color: "#8a6500",
@@ -187,7 +193,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
                           }}>LEAD</span>
                         )}
                         {c.user_role && (
-                          <span style={{ marginLeft: 6, fontSize: 11, color: C.muted }}>· {c.user_role}</span>
+                          <span style={{ marginLeft: 6, fontSize: 11, color: c.is_lead ? PANEL_MUTED : C.muted }}>· {c.user_role}</span>
                         )}
                       </div>
                       {dup && (
