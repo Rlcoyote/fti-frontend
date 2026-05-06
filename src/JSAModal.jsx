@@ -62,11 +62,20 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   // HH:MM" indicator next to the Save button.
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
-  // v28.10 — MARK COMPLETE state. Separate from saving so the two buttons
-  // can be in flight independently (though the UI disables both while
-  // either is busy to avoid a half-saved/completed race).
+  // v28.10 — MARK COMPLETE state. v28.51 — repurposed for AUTO-complete:
+  // when the last required crew member signs, JSACrewSigners.onAllSigned
+  // fires the same /complete endpoint without a manual button. The
+  // `completing` flag still gates the call so a flurry of fetchSigners
+  // events doesn't fire /complete more than once.
   const [completing, setCompleting] = useState(false);
   const [completeError, setCompleteError] = useState("");
+  // v28.51 — "ENABLE CREW SIGNING" lazy-create state. Pre-v28.51 the user
+  // clicked SAVE JSA at the bottom of the modal to materialize the row;
+  // now they click the button inline with the crew-signing section, which
+  // is closer to where they're trying to act. The JSA is upserted on close
+  // too (handleClose) so any field edits made AFTER the lazy create still
+  // persist. SAVE JSA + MARK COMPLETE buttons are gone.
+  const [enabling, setEnabling] = useState(false);
   const [lat, setLat] = useState(jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat || "");
   const [lng, setLng] = useState(jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng || "");
   const [mapLink, setMapLink] = useState(() => {
@@ -171,9 +180,110 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
     );
   };
 
-  const handleClose = () => {
-    if (isDirty()) setShowUnsaved(true);
-    else onClose();
+  // v28.51 — build the current form's payload. Used by both ENABLE CREW
+  // SIGNING (lazy-create) and the on-close upsert.
+  const buildJsaPayload = () => ({
+    jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
+    lat, lng, weather, ppe, signatures: (signatures || []).filter(Boolean),
+    presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
+    savedAt: new Date().toISOString(),
+  });
+
+  // v28.51 — create the JSA on demand when the user clicks "ENABLE CREW
+  // SIGNING" inside the crew-signing hint. Pre-v28.51 the user had to
+  // scroll to a SAVE JSA button at the bottom of a long modal, which
+  // Reggie called out as cumbersome. Now the action is right next to
+  // where the section will appear.
+  const handleEnableCrewSigning = async () => {
+    if (enabling) return;
+    setEnabling(true);
+    try {
+      await onSave(buildJsaPayload());
+      setLastSavedAt(new Date());
+      // Refresh the dirty baseline now that what's on disk matches what's
+      // in the form, so handleClose's upsert pass doesn't double-write.
+      origRef.current = {
+        date, operator, time, designatedDriver,
+        lat: String(lat || ""), lng: String(lng || ""),
+        weather: [...weather], ppe: { ...ppe },
+        signatures: [...signatures], presenterReview,
+        additionalSteps: additionalSteps.map(s => ({ ...s })),
+      };
+    } finally {
+      setEnabling(false);
+    }
+  };
+
+  // v28.51 — auto-complete when JSACrewSigners reports all required signed.
+  // Replaces the manual MARK COMPLETE button. The fetch is idempotent on
+  // the backend (returns already_complete: true if completed_at is already
+  // set), so re-firing on subsequent re-renders / re-fetches is safe but
+  // the `completing` flag still guards against piling up requests.
+  const handleAllSigned = async () => {
+    if (!existingJSA?.id) return;
+    if (existingJSA?.completed_at) return;
+    if (completing) return;
+    setCompleting(true);
+    setCompleteError("");
+    try {
+      const r = await fetch(`${API_URL}/jsas/${existingJSA.id}/complete`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+      });
+      const j = await r.json().catch(() => null);
+      if (!r.ok) {
+        if (j?.unsigned?.length > 0) {
+          const names = j.unsigned.map(u => u.name).join(', ');
+          setCompleteError(`Cannot complete — these crew members have not signed yet: ${names}`);
+        } else {
+          setCompleteError(j?.error || `Could not auto-complete the JSA (${r.status})`);
+        }
+        return;
+      }
+      // Mirror the v28.42 origRef refresh on MARK COMPLETE success — keeps
+      // the dirty baseline aligned so handleClose doesn't fire a false
+      // "Unsaved Changes" warning after auto-completion.
+      origRef.current = {
+        date, operator, time, designatedDriver,
+        lat: String(lat || ""), lng: String(lng || ""),
+        weather: [...weather], ppe: { ...ppe },
+        signatures: [...signatures], presenterReview,
+        additionalSteps: additionalSteps.map(s => ({ ...s })),
+      };
+      if (onComplete) onComplete();
+      // Don't auto-close — let the user see the "ALL CREW SIGNED" green
+      // banner from JSACrewSigners + the JSA-completed lock-down. They
+      // close manually when ready.
+    } catch {
+      setCompleteError("Connection error while auto-completing");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleClose = async () => {
+    // v28.51 — three close paths:
+    //   1. JSA exists + dirty → silent upsert + close (the lazy-create
+    //      already established a real row; subsequent edits should
+    //      persist without nagging the user — they have no SAVE button
+    //      to click anymore).
+    //   2. No JSA + dirty → warn the user before discarding their typed
+    //      input. They have two real options: cancel and click ENABLE
+    //      CREW SIGNING to persist, or accept the discard.
+    //      Preserves the v28.41 invariant: no silent draft writes from
+    //      a modal the user opened-and-closed without explicit intent.
+    //   3. Clean (no changes since open) → just close.
+    if (existingJSA?.id && isDirty()) {
+      try {
+        await onSave(buildJsaPayload());
+      } catch { /* swallow — don't block close on save failure */ }
+      onClose();
+      return;
+    }
+    if (!existingJSA?.id && isDirty()) {
+      setShowUnsaved(true);
+      return;
+    }
+    onClose();
   };
   // Keep ref fresh so mobile popstate always calls the latest closure.
   handleCloseRef.current = handleClose;
@@ -309,18 +419,24 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
             </div>
           </div>
 
-          {/* FTI Crew Biometric Signatures (v28.07; v28.41 — gate on saved JSA).
-              v28.41 reverted v28.10's auto-create-on-mount because it was
-              writing draft JSA rows for any opened modal, producing false-
-              positive "✓ JSA" badges on tickets. The user now clicks SAVE
-              JSA explicitly; until then this section shows a hint instead
-              of an empty signers list pointing at a non-existent jsa.id. */}
+          {/* FTI Crew Biometric Signatures.
+              v28.41 — gate on saved JSA; killed v28.10's auto-create-on-mount
+                       because it lied about JSA completion in the badge.
+              v28.51 — removed the SAVE JSA + MARK COMPLETE buttons at the
+                       footer of the modal. Lazy-create now happens via the
+                       inline ENABLE CREW SIGNING button right here, where
+                       the user is trying to act. Auto-complete on the last
+                       signature replaces the manual MARK COMPLETE step. */}
           {existingJSA?.id ? (
-            <JSACrewSigners jsaId={existingJSA.id} />
+            <JSACrewSigners jsaId={existingJSA.id} onAllSigned={handleAllSigned} />
           ) : (
-            <div style={{ marginBottom: 14, padding: "12px 14px", background: "#e8f0fb", border: `1px solid ${C.blue}33`, borderRadius: 6, fontSize: 12, color: C.blue }}>
-              <strong>Crew biometric signing</strong> activates after you click <strong>SAVE JSA</strong> below.
-              Saving creates the JSA so crew members can attach their signatures to it.
+            <div style={{ marginBottom: 14, padding: "12px 14px", background: "#e8f0fb", border: `1px solid ${C.blue}33`, borderRadius: 6, fontSize: 12, color: C.blue, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 auto", minWidth: 220 }}>
+                <strong>Crew biometric signing</strong> activates when you enable it. The JSA finalizes automatically when the last required crew member signs — no separate MARK COMPLETE step.
+              </div>
+              <Btn variant="blue" disabled={enabling} onClick={handleEnableCrewSigning}>
+                {enabling ? "ENABLING…" : "ENABLE CREW SIGNING"}
+              </Btn>
             </div>
           )}
 
@@ -437,95 +553,30 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
           ) : null;
         })()}
         <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <Btn
-            disabled={saving || completing}
-            onClick={async () => {
-              if (saving || completing) return;
-              setSaving(true);
-              try {
-                const validSigs = (signatures || []).filter(Boolean);
-                await onSave({
-                  jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
-                  lat, lng, weather, ppe, signatures: validSigs,
-                  presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
-                  savedAt: new Date().toISOString(),
-                });
-                setLastSavedAt(new Date());
-                // v28.42 — refresh origRef to current form values so the
-                // dirty-tracking baseline reflects the just-saved state.
-                // Without this, the CLOSE button (which gates on isDirty())
-                // fires a false-positive "Unsaved Changes" warning even
-                // when the user has saved and made no further edits.
-                origRef.current = {
-                  date, operator, time, designatedDriver,
-                  lat: String(lat || ""), lng: String(lng || ""),
-                  weather: [...weather], ppe: { ...ppe },
-                  signatures: [...signatures], presenterReview,
-                  additionalSteps: additionalSteps.map(s => ({ ...s })),
-                };
-                // v28.07.2 — DO NOT onClose() after save. User stays in
-                // the modal so the FTI CREW BIOMETRIC SIGNATURES section
-                // can be used immediately for self-sign or send-link.
-              } finally {
-                setSaving(false);
-              }
-            }}
-          >{saving ? "SAVING..." : "SAVE JSA"}</Btn>
-          {/* v28.10 — MARK COMPLETE finalizes the JSA. Server-side gating
-              (POST /api/jsas/:id/complete) refuses if any active crew
-              member hasn't signed yet, returning 409 with the unsigned
-              names — surfaced inline below. We don't pre-disable the
-              button client-side based on signers state because that data
-              lives inside JSACrewSigners; trusting the server for the
-              authoritative gate keeps the two surfaces decoupled. */}
-          {existingJSA?.id && !existingJSA?.completed_at && (
-            <Btn
-              variant="blue"
-              disabled={completing || saving}
-              onClick={async () => {
-                if (completing || saving) return;
-                setCompleting(true); setCompleteError("");
-                try {
-                  const r = await fetch(`${API_URL}/jsas/${existingJSA.id}/complete`, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                  });
-                  const j = await r.json().catch(() => null);
-                  if (!r.ok) {
-                    if (j?.unsigned?.length > 0) {
-                      const names = j.unsigned.map(u => u.name).join(', ');
-                      setCompleteError(`Cannot complete — these crew members have not signed yet: ${names}`);
-                    } else {
-                      setCompleteError(j?.error || `Could not complete the JSA (${r.status})`);
-                    }
-                    return;
-                  }
-                  // Success: flip parent jsaCompleted (so the ticket-row
-                  // badge turns green immediately) then close. v28.41 — was
-                  // bare onClose() pre-fix, which left the badge stale until
-                  // a full ticket refetch. v28.42 — also refresh origRef
-                  // (defensive: MARK COMPLETE bypasses handleClose so it
-                  // doesn't trigger isDirty, but if the modal flow ever
-                  // changes to keep open after complete, the baseline is
-                  // already aligned).
-                  origRef.current = {
-                    date, operator, time, designatedDriver,
-                    lat: String(lat || ""), lng: String(lng || ""),
-                    weather: [...weather], ppe: { ...ppe },
-                    signatures: [...signatures], presenterReview,
-                    additionalSteps: additionalSteps.map(s => ({ ...s })),
-                  };
-                  if (onComplete) onComplete();
-                  onClose();
-                } catch {
-                  setCompleteError("Connection error while marking complete");
-                } finally {
-                  setCompleting(false);
-                }
-              }}
-            >{completing ? "COMPLETING..." : "MARK COMPLETE"}</Btn>
-          )}
+          {/* v28.51 — SAVE JSA + MARK COMPLETE buttons removed.
+              SAVE JSA was replaced by:
+                · "ENABLE CREW SIGNING" inline next to the crew section
+                  (lazy-create — see handleEnableCrewSigning)
+                · Implicit upsert on close if existingJSA already exists
+                  and the form has unsaved edits (handleClose).
+              MARK COMPLETE was replaced by auto-complete: when the last
+              required crew member signs, JSACrewSigners.onAllSigned fires
+              handleAllSigned which POSTs /jsas/:id/complete idempotently.
+              Net: one button (CLOSE) instead of three. The cumbersome
+              scroll-to-bottom problem and the SAVE-vs-COMPLETE confusion
+              both go away. */}
           <Btn onClick={handleClose} variant="ghost">CLOSE</Btn>
-          {lastSavedAt && (
+          {existingJSA?.completed_at && (
+            <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>
+              ✓ JSA Complete
+            </span>
+          )}
+          {completing && (
+            <span style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>
+              ⌛ Auto-completing…
+            </span>
+          )}
+          {lastSavedAt && !existingJSA?.completed_at && (
             <span style={{ fontSize: 11, color: C.green, fontWeight: 600, marginLeft: 6 }}>
               ✓ Saved {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </span>
