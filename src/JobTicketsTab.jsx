@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, API_URL, TICKET_STATUS_ORDER, WO_TICKET_STATUSES } from "./config.js";
 import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload, reviseTicketRequest } from "./utils.js";
-import { Btn, TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
+import { Btn, TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 import AddTicketModal from "./AddTicketModal.jsx";
@@ -212,6 +212,15 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
         const isActiveTicket = viewTicket?.id === t.id;
 
+        // v28.53 — when the card bg is forced always-light (active ticket
+        // highlight #e8f0fb or sent-to-QB faded #f5f5f5), bare text on the
+        // card surface must use PANEL_TEXT/MUTED. Otherwise C.text/muted
+        // theme-flips and goes invisible in dark mode on the always-light
+        // surface — same bug class as the v28.44 pastel-panel sweep.
+        const cardIsLight = isActiveTicket || isSent;
+        const cardText = cardIsLight ? PANEL_TEXT : C.text;
+        const cardMuted = cardIsLight ? PANEL_MUTED : C.muted;
+
         return (
           <div key={t.id} style={{
             background: isActiveTicket ? "#e8f0fb" : isSent ? "#f5f5f5" : C.cardBg,
@@ -232,15 +241,15 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                     <TicketTypeBadge type={t.type} />
-                    <span style={{ fontSize: 9, color: C.muted, fontWeight: 600, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
+                    <span style={{ fontSize: 9, color: cardMuted, fontWeight: 600, whiteSpace: "nowrap" }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
                   </div>
                   <div>
-                    <div style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Job Date</div>
-                    <div style={{ fontSize: 11, color: C.text, fontWeight: 600 }}>{formatDate(t.date)}</div>
+                    <div style={{ fontSize: 8, color: cardMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>Job Date</div>
+                    <div style={{ fontSize: 11, color: cardText, fontWeight: 600 }}>{formatDate(t.date)}</div>
                     {t.createdBy && (
                       <>
-                        <div style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 5 }}>Created by</div>
-                        <div style={{ fontSize: 10, color: C.text, fontWeight: 600 }}>{t.createdBy}</div>
+                        <div style={{ fontSize: 8, color: cardMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginTop: 5 }}>Created by</div>
+                        <div style={{ fontSize: 10, color: cardText, fontWeight: 600 }}>{t.createdBy}</div>
                         {t.createdAt && (
                           <div style={{ fontSize: 9, color: "#a0aec8" }}>
                             {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
@@ -258,7 +267,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                     )}
                   </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: cardText }}>
                   {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
@@ -343,18 +352,18 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               {/* Ticket badge + # stacked */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 70 }}>
                 <TicketTypeBadge type={t.type} />
-                <span style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap", fontWeight: 600 }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
+                <span style={{ fontSize: 10, color: cardMuted, whiteSpace: "nowrap", fontWeight: 600 }}>#{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}</span>
               </div>
               {/* Scheduled job date — separate from creation time so the bold date can't be confused with "when it was saved" */}
               <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 90 }}>
-                <span style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Job Date</span>
-                <span style={{ fontSize: 11, color: C.text, fontWeight: 600, whiteSpace: "nowrap" }}>{formatDate(t.date)}</span>
+                <span style={{ fontSize: 8, color: cardMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Job Date</span>
+                <span style={{ fontSize: 11, color: cardText, fontWeight: 600, whiteSpace: "nowrap" }}>{formatDate(t.date)}</span>
               </div>
               {/* Created by: name + full date/time of creation. Paired together so the timestamp is unambiguously the audit stamp, not the job date. */}
               {t.createdBy && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 130 }}>
-                  <span style={{ fontSize: 8, color: C.muted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Created by</span>
-                  <span style={{ fontSize: 11, color: C.text, fontWeight: 600, whiteSpace: "nowrap" }}>{t.createdBy}</span>
+                  <span style={{ fontSize: 8, color: cardMuted, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap" }}>Created by</span>
+                  <span style={{ fontSize: 11, color: cardText, fontWeight: 600, whiteSpace: "nowrap" }}>{t.createdBy}</span>
                   {t.createdAt && (
                     <span style={{ fontSize: 9, color: "#a0aec8", whiteSpace: "nowrap" }}>
                       {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
@@ -386,7 +395,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
             {t.voidedAt ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Voided</span>
+                <span style={{ fontSize: 12, color: cardMuted, fontStyle: "italic" }}>Voided</span>
                 {["owner", "admin"].includes(currentUser?.role) && (
                   <button type="button" onClick={async (e) => {
                     e.stopPropagation();
@@ -463,7 +472,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             </>)}
 
               {/* Total */}
-              <span style={{ fontSize: 13, fontWeight: 800, color: C.text, marginLeft: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: cardText, marginLeft: 6 }}>
                 {'$'}{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
               {/* Delete — only if not sent to QB */}

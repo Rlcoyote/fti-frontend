@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { C, TERMINAL_TICKET_STATUSES, WO_TICKET_STATUSES, FINAL_REVIEW_TICKET_STATUSES } from "./config.js";
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
-import { Btn, TicketDot, TodoBadge, ConfirmModal } from "./SharedUI.jsx";
+import { Btn, TicketDot, TodoBadge, ConfirmModal, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { JobTodoTab } from "./TodoPage.jsx";
 import JobTicketsTab from "./JobTicketsTab.jsx";
 import EditJobModal from "./EditJobModal.jsx";
@@ -224,17 +224,17 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   const hasAny = pocName || pocPhone || pocEmail || companyCode || costCenter || po || afe;
                   if (!hasAny) return null;
                   const kvRowStyle = { marginBottom: 6, display: "flex", gap: 6, flexWrap: "wrap" };
-                  const keyStyle = { fontSize: 11, color: C.muted };
-                  const valStyle = { fontSize: 11, color: C.text, fontWeight: 600 };
+                  const keyStyle = { fontSize: 11, color: PANEL_MUTED };
+                  const valStyle = { fontSize: 11, color: PANEL_TEXT, fontWeight: 600 };
                   return (
                     <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WO DETAILS</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>WO DETAILS</div>
                       {pocName && (
                         <div style={{ marginBottom: 8 }}>
-                          <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Point of Contact</div>
-                          <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{pocName}</div>
-                          {pocPhone && <div style={{ fontSize: 11, color: C.text }}>{pocPhone}</div>}
-                          {pocEmail && <div style={{ fontSize: 11, color: C.text }}>{pocEmail}</div>}
+                          <div style={{ fontSize: 10, color: PANEL_MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Point of Contact</div>
+                          <div style={{ fontSize: 12, color: PANEL_TEXT, fontWeight: 600 }}>{pocName}</div>
+                          {pocPhone && <div style={{ fontSize: 11, color: PANEL_TEXT }}>{pocPhone}</div>}
+                          {pocEmail && <div style={{ fontSize: 11, color: PANEL_TEXT }}>{pocEmail}</div>}
                         </div>
                       )}
                       {companyCode && <div style={kvRowStyle}><span style={keyStyle}>Company Code:</span><span style={valStyle}>{companyCode}</span></div>}
@@ -245,10 +245,10 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   );
                 })()}
                 {/* WELLS — even split of all non-voided ticket totals across assigned wells. */}
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WELLS</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>WELLS</div>
                 {job.wells.map((well, i) => (
                   <div key={i} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{well.well_name || well}</div>
+                    <div style={{ fontSize: 12, color: PANEL_TEXT, fontWeight: 600 }}>{well.well_name || well}</div>
                     <div style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>
                       ${perWellAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
@@ -256,28 +256,28 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>CREW</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>CREW</div>
                 {job.crew.map((c, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: C.text }}>{c.name}</span>
-                    <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>{c.role}</span>
+                    <span style={{ fontSize: 12, color: PANEL_TEXT }}>{c.name}</span>
+                    <span style={{ fontSize: 11, color: PANEL_MUTED, fontStyle: "italic" }}>{c.role}</span>
                   </div>
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ASSETS</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>ASSETS</div>
                 {(assets || []).filter(a => a.assigned_job_id === job.id).map(a => (
-                  <div key={a.id} style={{ fontSize: 12, color: C.text, marginBottom: 5, display: "flex", gap: 6 }}>
+                  <div key={a.id} style={{ fontSize: 12, color: PANEL_TEXT, marginBottom: 5, display: "flex", gap: 6 }}>
                     <span style={{ color: "#8a6500", fontSize: 8, marginTop: 4 }}>◆</span>
                     <span>{a.name}{a.unit_number ? ` (${a.unit_number})` : ""}</span>
                   </div>
                 ))}
                 {(assets || []).filter(a => a.assigned_job_id === job.id).length === 0 && (
-                  <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>None deployed</div>
+                  <div style={{ fontSize: 11, color: PANEL_MUTED, fontStyle: "italic" }}>None deployed</div>
                 )}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
                 {(() => {
                   const role = currentUser?.role || "field";
                   const canDelete = ["owner", "admin", "manager"].includes(role);
@@ -300,7 +300,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   <button key={i} onClick={(e) => { e.stopPropagation(); if (btn.action) btn.action(); }} style={{
                     display: "block", width: "100%", background: btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : btn.success ? "#e6f5ec" : "transparent",
                     border: `1px solid ${btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : C.border}`,
-                    color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : btn.action ? C.text : C.muted,
+                    color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : btn.action ? PANEL_TEXT : PANEL_MUTED,
                     padding: "7px 12px", borderRadius: 4, fontSize: 12,
                     cursor: btn.action ? "pointer" : "default", textAlign: "left", marginBottom: 6,
                     fontFamily: "'Arial', sans-serif", opacity: btn.action ? 1 : 0.5,
@@ -315,7 +315,7 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           )}
             {job.notes && (
               <div style={{ padding: "0 18px 14px", background: "#f7f9fc" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
                 <div style={{ fontSize: 12, color: C.text, whiteSpace: "pre-wrap", background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 4, padding: "8px 12px" }}>{job.notes}</div>
               </div>
             )}

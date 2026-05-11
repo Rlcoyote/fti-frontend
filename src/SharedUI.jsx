@@ -48,8 +48,10 @@ export const TICKET_STATUSES = {
   voided:     { color: "#B01020", bg: "#fdecea", label: "VOIDED" },
 };
 
-// ─── PASTEL PANEL TEXT TOKENS ─────────────────────────────────────────────────
-// v28.44 — single source of truth for text on always-light pastel panels.
+// ─── ALWAYS-LIGHT PANEL TEXT TOKENS ───────────────────────────────────────────
+// v28.44 introduced these for pastel ticket-type panels. v28.53 broadened
+// the rule: these tokens apply to ANY always-light surface, not just the
+// per-type tinted ones.
 //
 // THE RULE (auditor-grade):
 //
@@ -57,28 +59,40 @@ export const TICKET_STATUSES = {
 //   dark mode, dark text in light mode). That works because both the
 //   surface color AND the text color flip together.
 //
-//   PASTEL TICKET-TYPE PANELS (TICKET_TYPES[type].bg — RIG UP pink, RIG DOWN
-//   gray, TESTER green, PUMPER blue, RENTAL yellow) are intentionally
-//   always-light per brand. They DO NOT theme-flip. Text on them must use
-//   PANEL_TEXT / PANEL_MUTED / PANEL_FAINT — these are always-dark and read
-//   correctly against the always-light pastel regardless of theme.
+//   ANY ALWAYS-LIGHT SURFACE — text on it must use PANEL_TEXT / PANEL_MUTED /
+//   PANEL_FAINT. These tokens are always-dark and read correctly against any
+//   light surface regardless of theme. C.text on an always-light surface
+//   goes invisible in dark mode (light-on-light) — that's the bug class.
+//
+//   Always-light surfaces in this app include (non-exhaustive):
+//     - PASTEL TICKET-TYPE PANELS (TICKET_TYPES[type].bg — RIG UP pink,
+//       RIG DOWN gray, TESTER green, PUMPER blue, RENTAL yellow)
+//     - CARD-BODY SURFACES that are hex-coded light (#f7f9fc dashboard
+//       expansion area; #f5f5f5 sent-to-QB ticket card; #e8f0fb active
+//       ticket highlight; #f0f3f8 readonly form fields; #f8f9fa photo
+//       tile backdrop)
+//     - HOSPITAL / LEAD-ROW / OTHER STATUS SURFACES that intentionally
+//       stay light per design (#fdf0f0, #fdf5d8 lead, etc.)
 //
 //   WHEN TO USE WHICH:
-//     PANEL_TEXT  — primary text on a pastel panel (titles, totals, body)
+//     PANEL_TEXT  — primary text on an always-light surface
 //     PANEL_MUTED — secondary text (labels, subtext, captions)
 //     PANEL_FAINT — tertiary stamps (timestamps, "X of Y" markers)
 //     C.text      — anywhere theme-aware (cards, modals, dashboards)
 //     C.muted     — same, theme-aware
 //
-//   Using C.text on a pastel panel is a bug. Using PANEL_TEXT off a pastel
-//   panel locks text to dark navy regardless of theme — also a bug. The
-//   distinction is "is the surface always-light?" not "is the surface
-//   colored?" — it's specifically the per-type tinted backgrounds.
+//   Using C.text on an always-light surface is a bug. Using PANEL_TEXT on
+//   a theme-aware surface locks text dark regardless of theme — also a bug.
+//   The distinction is "does this surface stay light in dark mode?" — if
+//   yes, PANEL_*. If it flips with the theme, C.text/C.muted.
 //
-// Originally introduced in v28.39 as locals inside TicketHeaderRow.jsx.
-// Promoted here in v28.44 after the same pattern needed to land across
-// LineItemEditor, ReadOnlyLineItems, TicketDetail, and AddTicketModal —
-// instead of copy-pasting consts, give the rule one name and one home.
+// History: introduced v28.39 as locals in TicketHeaderRow.jsx. Promoted to
+// SharedUI v28.44 (LineItemEditor, ReadOnlyLineItems, TicketDetail,
+// AddTicketModal sweep). Broadened v28.53 (JobCard details panel,
+// JobTicketsTab active/sent cards, AddTicketModal readonly end-date,
+// PhotoStrip filename caption) after the original "pastel-only" wording
+// proved too narrow — the same bug landed on sibling always-light surfaces
+// the v28.44 sweep didn't cover.
 export const PANEL_TEXT  = "#1a2340"; // dark navy — primary on pastel
 export const PANEL_MUTED = "#4a5570"; // slate — secondary on pastel
 export const PANEL_FAINT = "#6b7a99"; // lighter slate — tertiary on pastel

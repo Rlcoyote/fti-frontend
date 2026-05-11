@@ -436,7 +436,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
                       <div><label style={labelStyle}>START DATE</label><input type="date" style={{ ...inputStyle, width: 160 }} value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
                       <div><label style={labelStyle}>CYCLE (DAYS)</label><input type="number" style={{ ...inputStyle, width: 80 }} value={cycleDays} onChange={e => setCycleDays(e.target.value)} min={1} /></div>
-                      <div><label style={labelStyle}>END DATE</label><input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8" }} value={endDate} readOnly /></div>
+                      <div><label style={labelStyle}>END DATE</label><input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8", color: PANEL_TEXT }} value={endDate} readOnly /></div>
                     </div>
                     <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: PANEL_TEXT, cursor: "pointer" }}>
                       <input type="checkbox" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />

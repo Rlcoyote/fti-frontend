@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
+import { PANEL_MUTED } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── PHOTO UTILITIES ──────────────────────────────────────────────────────────
@@ -113,7 +114,7 @@ function PhotoStrip({ ticketId, isLocked }) {
                 <button onClick={() => handleDelete(p.id)}
                   style={{ position: "absolute", top: 2, right: 2, background: "#00000088", color: "#fff", border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>✕</button>
               )}
-              <div style={{ fontSize: 9, color: C.muted, padding: "2px 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 80 }}>{p.filename}</div>
+              <div style={{ fontSize: 9, color: PANEL_MUTED, padding: "2px 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 80 }}>{p.filename}</div>
             </div>
           ))}
         </div>
