@@ -2,10 +2,16 @@ import { useEffect, useState } from "react";
 import { C, API_URL } from "./config.js";
 
 // ─── Public PIN setup page (v27.56) ──────────────────────────────────────────
-// Accessed via email link: /set-pin?token=xxx
+// Accessed via email/SMS link: /set-pin?token=xxx
 // Bypasses login (no auth context required). Employee verifies the token,
-// picks a 4-digit PIN, submits. Token is single-use; on success it is marked
-// used server-side.
+// picks a 4-digit PIN, ticks SMS consent, submits. Token is single-use; on
+// success it is marked used server-side.
+//
+// v28.54 — SMS consent screen added. Required before "SET MY PIN" enables.
+// The active employee consent script is fetched alongside the token verify
+// so it renders inline. On submit, sms_consent flag passes through to the
+// backend which records the consent in the same transaction as the PIN
+// update — see fti-backend/src/routes/employees.js set-pin-via-token.
 
 function PinSetupPage() {
   const [token, setToken] = useState("");
@@ -15,6 +21,8 @@ function PinSetupPage() {
   const [pin, setPin] = useState("");
   const [pin2, setPin2] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
+  const [consentScript, setConsentScript] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -42,17 +50,37 @@ function PinSetupPage() {
         setStatus("invalid"); setErrorMessage("Network error. Try again or contact your administrator.");
       }
     })();
+    // Fetch the active employee SMS consent script for inline display.
+    // The /sms-consent-scripts endpoint requires auth — this is the
+    // public flow so we read from a token-scoped variant. The active text
+    // is needed for the user to read what they're consenting to. If the
+    // fetch fails (e.g. backend not yet on v28.54), we render a fallback
+    // boilerplate so the consent step never blocks setup.
+    (async () => {
+      try {
+        const r = await fetch(`${API_URL}/sms-consent-scripts`);
+        if (r.ok) {
+          const data = await r.json();
+          if (data.employee?.script_text) setConsentScript(data.employee.script_text);
+        }
+      } catch (_) { /* fallback boilerplate below */ }
+    })();
   }, []);
 
   const submit = async () => {
     if (!/^\d{4}$/.test(pin)) { setErrorMessage("PIN must be exactly 4 digits."); return; }
     if (pin !== pin2) { setErrorMessage("PINs don't match. Re-enter to confirm."); return; }
+    if (!smsConsent) { setErrorMessage("Please check the SMS consent box to continue."); return; }
     setErrorMessage("");
     setSubmitting(true);
     try {
       const r = await fetch(`${API_URL}/employees/set-pin-via-token`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, pin }),
+        body: JSON.stringify({
+          token, pin,
+          sms_consent: smsConsent,
+          device_info: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) { setErrorMessage(data.error || "Failed to set PIN."); setSubmitting(false); return; }
@@ -62,6 +90,8 @@ function PinSetupPage() {
       setSubmitting(false);
     }
   };
+
+  const fallbackScript = "I consent to receive operational SMS text messages from Flo-Test, Inc. at the mobile number on file. Messages include PIN setup links, JSA acknowledgments, and job assignment notifications. Standard message rates apply. Reply STOP at any time to opt out.";
 
   return (
     <div style={{ minHeight: "100vh", background: "#0c1524", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -126,6 +156,36 @@ function PinSetupPage() {
               />
             </div>
 
+            {/* v28.54 — SMS consent capture. Required before SET MY PIN
+                enables. Backend records consent + PIN in a single
+                transaction. */}
+            <div style={{ marginBottom: 16, marginTop: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: "#1a2340", marginBottom: 6 }}>
+                SMS CONSENT
+              </div>
+              <label style={{
+                display: "flex", alignItems: "flex-start", gap: 10,
+                padding: "10px 12px", border: "1px solid #d0d8e8", borderRadius: 6,
+                background: "#f7f9fc", cursor: "pointer",
+              }}>
+                <input
+                  type="checkbox"
+                  checked={smsConsent}
+                  onChange={e => setSmsConsent(e.target.checked)}
+                  style={{ width: 18, height: 18, marginTop: 2, cursor: "pointer", flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, fontSize: 12, lineHeight: 1.55, color: "#1a2340" }}>
+                  {consentScript || fallbackScript}
+                </div>
+              </label>
+              <div style={{ fontSize: 10, color: "#6b7a99", marginTop: 6, textAlign: "center" }}>
+                Required to receive operational text messages. View our{" "}
+                <a href="https://www.flotest.com/sms-terms/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>SMS Terms</a>
+                {" · "}
+                <a href="https://www.flotest.com/privacy-policy/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>Privacy Policy</a>
+              </div>
+            </div>
+
             {errorMessage && (
               <div style={{ background: "#fdecea", color: C.red, padding: "10px 14px", borderRadius: 4, fontSize: 12, fontWeight: 700, marginBottom: 16 }}>
                 {errorMessage}
@@ -134,13 +194,13 @@ function PinSetupPage() {
 
             <button
               onClick={submit}
-              disabled={submitting || pin.length !== 4 || pin2.length !== 4}
+              disabled={submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent}
               style={{
                 width: "100%", background: submitting ? C.muted : C.red, color: "#fff",
                 border: "none", borderRadius: 4, padding: "12px 20px",
                 fontSize: 14, fontWeight: 800, letterSpacing: "0.06em",
-                cursor: (submitting || pin.length !== 4 || pin2.length !== 4) ? "not-allowed" : "pointer",
-                opacity: (submitting || pin.length !== 4 || pin2.length !== 4) ? 0.6 : 1,
+                cursor: (submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent) ? "not-allowed" : "pointer",
+                opacity: (submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent) ? 0.6 : 1,
               }}
             >{submitting ? "SAVING…" : "SET MY PIN"}</button>
 

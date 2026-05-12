@@ -3,6 +3,7 @@ import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 
 function NewJobModal({ onClose, onCreateJob }) {
   const { customers, users, refreshCustomers } = useApp();
@@ -41,6 +42,11 @@ function NewJobModal({ onClose, onCreateJob }) {
   const [approverEmail, setApproverEmail] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  // v28.54 — A2P 10DLC consent intents. Captured here in form state, posted
+  // by useJobActions.handleCreateJob AFTER the WO insert returns success
+  // (never record consent for a job that wasn't actually created).
+  const [pocConsentIntent, setPocConsentIntent] = useState(false);
+  const [approverConsentIntent, setApproverConsentIntent] = useState(false);
   const [companyCode, setCompanyCode] = useState("");
   const [costCenter, setCostCenter] = useState("");
   const [po, setPo] = useState("");
@@ -218,6 +224,10 @@ function NewJobModal({ onClose, onCreateJob }) {
       hoursLogged: 0, estimatedCost: 0, jsaComplete: false,
       contactFirst, contactLast, email, phone,
       approver, approverLast, approverPhone, approverEmail,
+      // v28.54 — consent intents travel with the job payload. The action
+      // layer (useJobActions.handleCreateJob) reads these AFTER the WO
+      // insert returns success and POSTs them to /api/sms-consents.
+      pocConsentIntent, approverConsentIntent,
       companyCode, costCenter, po,
       googlePin: googlePin || null,
       pinLat: pinLat || null,
@@ -375,6 +385,12 @@ function NewJobModal({ onClose, onCreateJob }) {
               <label style={labelStyle}>PHONE *</label>
               <input style={{ ...inputStyle, borderColor: errors.phone ? C.red : C.border }} value={phone} onChange={e => { setPhone(formatPhone(e.target.value)); setErrors(prev => ({...prev, phone: null})); }} placeholder="555-555-5555" />
               {errors.phone && <div data-error="phone" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>⚠ {errors.phone}</div>}
+              <SmsConsentCheckbox
+                phone={phone}
+                recipientType="customer_rep"
+                consentIntent={pocConsentIntent}
+                setConsentIntent={setPocConsentIntent}
+              />
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>
@@ -416,6 +432,12 @@ function NewJobModal({ onClose, onCreateJob }) {
             <div>
               <label style={labelStyle}>PHONE</label>
               <input style={inputStyle} value={approverPhone} onChange={e => setApproverPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
+              <SmsConsentCheckbox
+                phone={approverPhone}
+                recipientType="customer_rep"
+                consentIntent={approverConsentIntent}
+                setConsentIntent={setApproverConsentIntent}
+              />
             </div>
             <div>
               <label style={labelStyle}>EMAIL</label>

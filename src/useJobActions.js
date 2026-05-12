@@ -1,5 +1,6 @@
 import { API_URL } from "./config.js";
 import { mapTicketFromApi } from "./utils.js";
+import { recordConsent } from "./smsConsent.js";
 
 // ─── useJobActions (v28.05) ─────────────────────────────────────────────────
 // Job/ticket CRUD handlers. Previously inlined in FTIDashboard.jsx as ~211
@@ -97,6 +98,32 @@ export function useJobActions({
         setJobs(prev => [mappedJob, ...prev]);
         setShowNewJob(false);
         setExpandedId(saved.id);
+
+        // v28.54 — record any SMS consent intents captured during the new-
+        // WO flow. Posted AFTER the WO insert returns success so we never
+        // record consent for a job that wasn't actually created. Failures
+        // here are logged but don't break the WO save — consent capture
+        // is best-effort at this stage.
+        if (newJob.pocConsentIntent && newJob.phone) {
+          try {
+            await recordConsent({
+              phone_number: newJob.phone,
+              recipient_type: "customer_rep",
+              consent_method: "verbal",
+              context: `job_setup:${saved.id}`,
+            });
+          } catch (err) { console.warn("POC SMS consent record failed:", err); }
+        }
+        if (newJob.approverConsentIntent && newJob.approverPhone) {
+          try {
+            await recordConsent({
+              phone_number: newJob.approverPhone,
+              recipient_type: "customer_rep",
+              consent_method: "verbal",
+              context: `job_setup:${saved.id}:approver`,
+            });
+          } catch (err) { console.warn("Approver SMS consent record failed:", err); }
+        }
       }
     } catch (err) { console.error("Create job failed:", err); }
   };
@@ -250,6 +277,31 @@ export function useJobActions({
       if (updates.crew) payload.crew = updates.crew.map(c => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
       await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Work Order #${id} edited by ${currentUser.name}`);
+
+      // v28.54 — record SMS consents for any newly-captured phones. Posted
+      // AFTER the WO update returns to keep "consent for a real job"
+      // invariant. recordConsent is idempotent — if the phone already has
+      // an active consent on file, it returns the existing row unchanged.
+      if (updates.pocConsentIntent && updates.poc_phone) {
+        try {
+          await recordConsent({
+            phone_number: updates.poc_phone,
+            recipient_type: "customer_rep",
+            consent_method: "verbal",
+            context: `job_edit:${id}`,
+          });
+        } catch (err) { console.warn("POC SMS consent record failed:", err); }
+      }
+      if (updates.approverConsentIntent && updates.approver_phone) {
+        try {
+          await recordConsent({
+            phone_number: updates.approver_phone,
+            recipient_type: "customer_rep",
+            consent_method: "verbal",
+            context: `job_edit:${id}:approver`,
+          });
+        } catch (err) { console.warn("Approver SMS consent record failed:", err); }
+      }
     } catch (err) { console.error("Job update failed:", err); }
     setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j));
   };

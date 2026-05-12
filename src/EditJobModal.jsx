@@ -3,6 +3,7 @@ import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { useApp } from "./AppContext.jsx";
+import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 
 function EditJobModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
@@ -37,6 +38,11 @@ function EditJobModal({ job, onSave, onClose }) {
   const [approverLast, setApproverLast] = useState(job.approverLast || job.approver_last || "");
   const [approverPhone, setApproverPhone] = useState(job.approverPhone || job.approver_phone || "");
   const [approverEmail, setApproverEmail] = useState(job.approverEmail || job.approver_email || "");
+  // v28.54 — consent intents for SMS consent capture during edit. Triggered
+  // when the user changes a phone number to one that has no existing
+  // consent. Posted by useJobActions.handleUpdateJob after the PUT succeeds.
+  const [pocConsentIntent, setPocConsentIntent] = useState(false);
+  const [approverConsentIntent, setApproverConsentIntent] = useState(false);
   const [companyCode, setCompanyCode] = useState(job.companyCode || job.company_code || "");
   const [costCenter, setCostCenter] = useState(job.costCenter || job.cost_center || "");
   const [po, setPo] = useState(job.po || job.po_number || "");
@@ -180,21 +186,41 @@ function EditJobModal({ job, onSave, onClose }) {
 
       {/* Point of Contact */}
       {sectionHead("POINT OF CONTACT")}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 4 }}>
         <div><label style={labelStyle}>FIRST</label><input style={inputStyle} value={contactFirst} onChange={e => setContactFirst(e.target.value)} /></div>
         <div><label style={labelStyle}>LAST</label><input style={inputStyle} value={contactLast} onChange={e => setContactLast(e.target.value)} /></div>
-        <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={pocPhone} onChange={e => setPocPhone(formatPhone(e.target.value))} placeholder="555-555-5555" /></div>
+        <div>
+          <label style={labelStyle}>PHONE</label>
+          <input style={inputStyle} value={pocPhone} onChange={e => setPocPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
+          <SmsConsentCheckbox
+            phone={pocPhone}
+            recipientType="customer_rep"
+            consentIntent={pocConsentIntent}
+            setConsentIntent={setPocConsentIntent}
+          />
+        </div>
         <div><label style={labelStyle}>EMAIL</label><input style={inputStyle} value={pocEmail} onChange={e => setPocEmail(e.target.value)} placeholder="email@co.com" /></div>
       </div>
+      <div style={{ marginBottom: 12 }}></div>
 
       {/* Approver */}
       {sectionHead("APPROVER")}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 4 }}>
         <div><label style={labelStyle}>FIRST</label><input style={inputStyle} value={approver} onChange={e => setApprover(e.target.value)} /></div>
         <div><label style={labelStyle}>LAST</label><input style={inputStyle} value={approverLast} onChange={e => setApproverLast(e.target.value)} /></div>
-        <div><label style={labelStyle}>PHONE</label><input style={inputStyle} value={approverPhone} onChange={e => setApproverPhone(formatPhone(e.target.value))} placeholder="555-555-5555" /></div>
+        <div>
+          <label style={labelStyle}>PHONE</label>
+          <input style={inputStyle} value={approverPhone} onChange={e => setApproverPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
+          <SmsConsentCheckbox
+            phone={approverPhone}
+            recipientType="customer_rep"
+            consentIntent={approverConsentIntent}
+            setConsentIntent={setApproverConsentIntent}
+          />
+        </div>
         <div><label style={labelStyle}>EMAIL</label><input style={inputStyle} value={approverEmail} onChange={e => setApproverEmail(e.target.value)} placeholder="email@co.com" /></div>
       </div>
+      <div style={{ marginBottom: 12 }}></div>
 
       {/* Billing */}
       {sectionHead("BILLING")}
@@ -285,6 +311,9 @@ function EditJobModal({ job, onSave, onClose }) {
             poc_phone: pocPhone, poc_email: pocEmail,
             approver: approver, approver_last: approverLast,
             approver_phone: approverPhone, approver_email: approverEmail,
+            // v28.54 — consent intents passed through to handleUpdateJob
+            // for post-save consent recording.
+            pocConsentIntent, approverConsentIntent,
             company_code: companyCode, cost_center: costCenter, po_number: po,
             google_pin: editGooglePin || null,
             pin_lat: editPinLat || null,
