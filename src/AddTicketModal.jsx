@@ -8,6 +8,7 @@ import JSAModal from "./JSAModal.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import CrewSelectionView from "./CrewSelectionView.jsx";
 import CopyCrewModal from "./CopyCrewModal.jsx";
+import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
@@ -361,34 +362,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         }
         onClick={isMobile ? undefined : (e) => e.stopPropagation()}
       >
-        {showUnsaved && (
-          <div
-            style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-            onClick={() => setShowUnsaved(false)}
-          >
-            <div
-              style={{
-                background: C.cardBg,
-                border: `1px solid ${C.border}`,
-                borderTop: `4px solid ${C.red}`,
-                borderRadius: 8,
-                padding: 28,
-                width: 400,
-                maxWidth: "90vw",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This ticket has not been saved. Are you sure you want to close?</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={onClose}>YES, DISCARD</Btn>
-                <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>
-                  KEEP EDITING
-                </Btn>
-              </div>
-            </div>
-          </div>
-        )}
+        {showUnsaved && <AddTicketUnsavedConfirm onDiscard={onClose} onDismiss={() => setShowUnsaved(false)} />}
 
         {/* Job info banner — always visible once type selected */}
         {type && job && (
