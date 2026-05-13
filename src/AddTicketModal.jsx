@@ -52,7 +52,20 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const [lineItems, setLineItems] = useState([]);
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(() => (job?.dateStarted ? String(job.dateStarted).slice(0, 10) : today()));
-  const [startDate, setStartDate] = useState(today());
+  // v28.70 — Rental tickets default to WO scheduled date + 1 day, not
+  // today(). Reasoning: Day 1 rental is captured on the Rig Up ticket
+  // (which uses WO scheduled date directly). Ongoing Rental starts the
+  // day after the RU is rigged up. The prior default of today() was
+  // inconsistent with how every other ticket type inherits the WO
+  // scheduled date (see line above this — `date` does inherit) and
+  // forced the user to manually change the date every time they created
+  // a Rental ticket scheduled for a future job.
+  const [startDate, setStartDate] = useState(() => {
+    if (!job?.dateStarted) return today();
+    const d = new Date(String(job.dateStarted).slice(0, 10) + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    return d.toLocaleDateString("en-CA");
+  });
   const [cycleDays, setCycleDays] = useState(28);
   const [isRecurring, setIsRecurring] = useState(true);
   const [showUnsaved, setShowUnsaved] = useState(false);
