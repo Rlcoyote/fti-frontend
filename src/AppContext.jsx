@@ -11,24 +11,24 @@ import { NoticeModal } from "./SharedUI.jsx";
 // If the token is missing (not logged in, or before /auth/login completes),
 // no header is attached — backend reads/mutations stay as-is.
 (function installFetchAuthWrapper() {
-  if (typeof window === 'undefined' || window.__ftiFetchWrapped) return;
+  if (typeof window === "undefined" || window.__ftiFetchWrapped) return;
   const origFetch = window.fetch.bind(window);
   window.fetch = (input, init = {}) => {
     try {
-      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      const url = typeof input === "string" ? input : (input && input.url) || "";
       if (url.startsWith(API_URL)) {
-        const raw = sessionStorage.getItem('fti_user');
+        const raw = sessionStorage.getItem("fti_user");
         if (raw) {
           const parsed = JSON.parse(raw);
           const token = parsed && parsed.token;
           if (token) {
-            const headers = new Headers(init.headers || (typeof input !== 'string' ? input.headers : undefined));
-            if (!headers.has('Authorization')) headers.set('Authorization', `Bearer ${token}`);
+            const headers = new Headers(init.headers || (typeof input !== "string" ? input.headers : undefined));
+            if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
             init = { ...init, headers };
           }
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Fetch wrapper must never break the actual request — fail open.
     }
     return origFetch(input, init);
@@ -142,15 +142,15 @@ export function AppProvider({ children }) {
         sessionStorage.removeItem("fti_user");
         setCurrentUserState(null);
         setGlobalUser("");
-        window.location.href = '/';
+        window.location.href = "/";
       }, IDLE_MS);
     };
     const events = ["mousedown", "keydown", "touchstart", "scroll"];
-    events.forEach(e => window.addEventListener(e, resetTimer, { passive: true }));
+    events.forEach((e) => window.addEventListener(e, resetTimer, { passive: true }));
     resetTimer();
     return () => {
       clearTimeout(timer);
-      events.forEach(e => window.removeEventListener(e, resetTimer));
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
     };
   }, [currentUser]);
 
@@ -167,7 +167,7 @@ export function AppProvider({ children }) {
   const refreshUsers = useCallback(async () => {
     try {
       const r = await fetch(`${API_URL}/users`);
-      if (r.ok) setUsers(await r.json() || []);
+      if (r.ok) setUsers((await r.json()) || []);
     } catch (err) {
       console.error("AppContext: users fetch failed", err);
     }
@@ -176,7 +176,7 @@ export function AppProvider({ children }) {
   const refreshCustomers = useCallback(async () => {
     try {
       const r = await fetch(`${API_URL}/customers`);
-      if (r.ok) setCustomers(await r.json() || []);
+      if (r.ok) setCustomers((await r.json()) || []);
     } catch (err) {
       console.error("AppContext: customers fetch failed", err);
     }
@@ -197,7 +197,7 @@ export function AppProvider({ children }) {
   const refreshAssets = useCallback(async () => {
     try {
       const r = await fetch(`${API_URL}/assets`);
-      if (r.ok) setAssets(await r.json() || []);
+      if (r.ok) setAssets((await r.json()) || []);
     } catch (err) {
       console.error("AppContext: assets fetch failed", err);
     }
@@ -232,17 +232,12 @@ export function AppProvider({ children }) {
     }
     let cancelled = false;
     setLoading(true);
-    Promise.all([
-      refreshSettings(),
-      refreshUsers(),
-      refreshCustomers(),
-      refreshQbItems(),
-      refreshAssets(),
-      refreshRoles(),
-    ]).finally(() => {
+    Promise.all([refreshSettings(), refreshUsers(), refreshCustomers(), refreshQbItems(), refreshAssets(), refreshRoles()]).finally(() => {
       if (!cancelled) setLoading(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles]);
 
   // ── Heartbeat — keeps the logged-in user visible in /activity/online while the app is open.
@@ -261,7 +256,9 @@ export function AppProvider({ children }) {
     };
     ping(); // fire once immediately so session-restored users appear online without waiting 10 min
     const interval = setInterval(ping, 10 * 60 * 1000);
-    const onVisible = () => { if (document.visibilityState === "visible") ping(); };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") ping();
+    };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(interval);
@@ -270,21 +267,24 @@ export function AppProvider({ children }) {
   }, [currentUser?.id, currentUser?.name]);
 
   // ── Activity logging ──
-  const logActivity = useCallback((action, entityType, entityId, details) => {
-    // Fire-and-forget — don't block UI for logging
-    fetch(`${API_URL}/activity`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: currentUser?.id || null,
-        user_name: currentUser?.name || null,
-        action,
-        entity_type: entityType || null,
-        entity_id: entityId ? String(entityId) : null,
-        details: details || null,
-      }),
-    }).catch(() => {}); // silent fail — logging should never break the app
-  }, [currentUser]);
+  const logActivity = useCallback(
+    (action, entityType, entityId, details) => {
+      // Fire-and-forget — don't block UI for logging
+      fetch(`${API_URL}/activity`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: currentUser?.id || null,
+          user_name: currentUser?.name || null,
+          action,
+          entity_type: entityType || null,
+          entity_id: entityId ? String(entityId) : null,
+          details: details || null,
+        }),
+      }).catch(() => {}); // silent fail — logging should never break the app
+    },
+    [currentUser],
+  );
 
   // ── Auth mutations ──
   const setCurrentUser = useCallback((user) => {
@@ -302,7 +302,9 @@ export function AppProvider({ children }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id: user.id, user_name: user.name, action: "login",
+            user_id: user.id,
+            user_name: user.name,
+            action: "login",
             details: geoDetails || null,
           }),
         }).catch(() => {});
@@ -326,7 +328,9 @@ export function AppProvider({ children }) {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  user_id: user.id, user_name: user.name, action: "login_gps",
+                  user_id: user.id,
+                  user_name: user.name,
+                  action: "login_gps",
                   details: { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: Math.round(pos.coords.accuracy) },
                 }),
               }).catch(() => {});
@@ -342,7 +346,7 @@ export function AppProvider({ children }) {
             clearTimeout(fallback);
             postLogin({ gps_error: err.code === 1 ? "denied" : err.code === 2 ? "unavailable" : "timeout" });
           },
-          { enableHighAccuracy: false, timeout: 5500, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 5500, maximumAge: 60000 },
         );
       } else {
         postLogin({ gps_error: "no_navigator" });
@@ -363,33 +367,71 @@ export function AppProvider({ children }) {
       }).catch(() => {});
     }
     setCurrentUser(null);
-    window.location.href = '/';
+    window.location.href = "/";
   }, [setCurrentUser, currentUser]);
 
   // ── Derived ──
   const { userNames, userIdByName } = useMemo(() => {
-    const names = users.map(u => u.name);
+    const names = users.map((u) => u.name);
     const idByName = {};
-    users.forEach(u => { idByName[u.name] = u.id; });
+    users.forEach((u) => {
+      idByName[u.name] = u.id;
+    });
     return { userNames: names, userIdByName: idByName };
   }, [users]);
 
-  const value = useMemo(() => ({
-    currentUser, setCurrentUser, logout, logActivity,
-    settings, users, customers, qbItems, assets, roles,
-    userNames, userIdByName,
-    loading,
-    refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles,
-    showNotice,
-    theme, setTheme, toggleTheme,
-  }), [
-    currentUser, setCurrentUser, logout, logActivity,
-    settings, users, customers, qbItems, assets, roles,
-    userNames, userIdByName, loading,
-    refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles,
-    showNotice,
-    theme, setTheme, toggleTheme,
-  ]);
+  const value = useMemo(
+    () => ({
+      currentUser,
+      setCurrentUser,
+      logout,
+      logActivity,
+      settings,
+      users,
+      customers,
+      qbItems,
+      assets,
+      roles,
+      userNames,
+      userIdByName,
+      loading,
+      refreshSettings,
+      refreshUsers,
+      refreshCustomers,
+      refreshQbItems,
+      refreshAssets,
+      refreshRoles,
+      showNotice,
+      theme,
+      setTheme,
+      toggleTheme,
+    }),
+    [
+      currentUser,
+      setCurrentUser,
+      logout,
+      logActivity,
+      settings,
+      users,
+      customers,
+      qbItems,
+      assets,
+      roles,
+      userNames,
+      userIdByName,
+      loading,
+      refreshSettings,
+      refreshUsers,
+      refreshCustomers,
+      refreshQbItems,
+      refreshAssets,
+      refreshRoles,
+      showNotice,
+      theme,
+      setTheme,
+      toggleTheme,
+    ],
+  );
 
   // Show splash while the initial fetch is in flight post-login. Pre-login
   // (currentUser === null) we render children immediately so LoginScreen

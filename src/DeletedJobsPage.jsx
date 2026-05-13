@@ -49,7 +49,7 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
     }
     // Fill in active-WO records for groups that don't have one yet.
     for (const g of byJob.values()) {
-      if (!g.jobRecord) g.jobRecord = jobs.find(j => j.id === g.jobId) || null;
+      if (!g.jobRecord) g.jobRecord = jobs.find((j) => j.id === g.jobId) || null;
     }
     // Sort: fully-deleted WOs first, then active; within each, by jobId desc.
     return Array.from(byJob.values()).sort((a, b) => {
@@ -60,7 +60,7 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
 
   const totalTickets = deletedTickets.length;
   const totalWOs = groups.length;
-  const fullyDeletedWOs = groups.filter(g => g.woDeleted).length;
+  const fullyDeletedWOs = groups.filter((g) => g.woDeleted).length;
   const selectedCount = selectedJobs.size + selectedTickets.size;
 
   const exitSelectMode = () => {
@@ -70,34 +70,34 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
   };
 
   const toggleJob = (id) => {
-    setSelectedJobs(prev => {
+    setSelectedJobs((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
   const toggleTicket = (id) => {
-    setSelectedTickets(prev => {
+    setSelectedTickets((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
   const archiveSelected = async () => {
     for (const jid of [...selectedJobs]) {
-      // eslint-disable-next-line no-await-in-loop
       await handleArchiveJob(jid);
     }
     for (const tid of [...selectedTickets]) {
-      // eslint-disable-next-line no-await-in-loop
       await handleArchiveTicket(tid);
     }
     setConfirmOpen(false);
     exitSelectMode();
   };
 
-  const ticketLineTotal = (t) => (t.lineItems || []).reduce((s, li) => s + ((li.rate || 0) * (li.qty || 0) * (li.days || 1)), 0);
+  const ticketLineTotal = (t) => (t.lineItems || []).reduce((s, li) => s + (li.rate || 0) * (li.qty || 0) * (li.days || 1), 0);
 
   const checkboxStyle = { width: 17, height: 17, accentColor: C.blue, cursor: "pointer", flexShrink: 0 };
 
@@ -105,27 +105,43 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
     const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type };
     const leftBorder = flavor === "cascaded" ? `3px solid ${C.red}99` : `3px solid ${tcfg.color}`;
     return (
-      <div key={t.id} style={{
-        background: C.cardBg, border: `1px solid ${C.border}`, borderLeft: leftBorder,
-        borderRadius: 4, padding: "10px 14px", marginBottom: 6,
-        display: "flex", alignItems: "center", gap: 10,
-      }}>
-        {selectMode && (
-          <input type="checkbox" checked={selectedTickets.has(t.id)} onChange={() => toggleTicket(t.id)} style={checkboxStyle} />
-        )}
+      <div
+        key={t.id}
+        style={{
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
+          borderLeft: leftBorder,
+          borderRadius: 4,
+          padding: "10px 14px",
+          marginBottom: 6,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        {selectMode && <input type="checkbox" checked={selectedTickets.has(t.id)} onChange={() => toggleTicket(t.id)} style={checkboxStyle} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-              #{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""}
+              #{t.jobId}
+              {t.ticketNumber ? `-${t.ticketNumber}` : ""}
             </span>
-            <span style={{
-              fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
-              color: tcfg.color, background: tcfg.bg || "#fff",
-              border: `1px solid ${tcfg.color}44`,
-              borderRadius: 3, padding: "2px 7px",
-            }}>{tcfg.label || t.type}</span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                color: tcfg.color,
+                background: tcfg.bg || "#fff",
+                border: `1px solid ${tcfg.color}44`,
+                borderRadius: 3,
+                padding: "2px 7px",
+              }}
+            >
+              {tcfg.label || t.type}
+            </span>
             <span style={{ fontSize: 12, color: C.muted }}>{formatDate(t.date)}</span>
-            {(t.lineItems?.length > 0) && (
+            {t.lineItems?.length > 0 && (
               <span style={{ fontSize: 11, color: C.muted }}>
                 · {t.lineItems.length} item{t.lineItems.length !== 1 ? "s" : ""} · ${ticketLineTotal(t).toFixed(2)}
               </span>
@@ -133,8 +149,14 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-          <Btn small variant="blue" onClick={() => handleRestoreTicket(t.id)}>Restore</Btn>
-          {canArchive && <Btn small onClick={() => handleArchiveTicket(t.id)}>Archive</Btn>}
+          <Btn small variant="blue" onClick={() => handleRestoreTicket(t.id)}>
+            Restore
+          </Btn>
+          {canArchive && (
+            <Btn small onClick={() => handleArchiveTicket(t.id)}>
+              Archive
+            </Btn>
+          )}
         </div>
       </div>
     );
@@ -148,32 +170,57 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
     const loc = job?.location || "";
 
     return (
-      <div key={g.jobId} style={{
-        background: g.woDeleted ? C.priHighB : C.lightSteel,
-        border: `1px solid ${g.woDeleted ? C.red + "44" : C.border}`,
-        borderRadius: 8, padding: "14px 18px", marginBottom: 14,
-      }}>
+      <div
+        key={g.jobId}
+        style={{
+          background: g.woDeleted ? C.priHighB : C.lightSteel,
+          border: `1px solid ${g.woDeleted ? C.red + "44" : C.border}`,
+          borderRadius: 8,
+          padding: "14px 18px",
+          marginBottom: 14,
+        }}
+      >
         {/* Group header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-          {selectMode && g.woDeleted && (
-            <input type="checkbox" checked={selectedJobs.has(g.jobId)} onChange={() => toggleJob(g.jobId)} style={checkboxStyle} />
-          )}
+          {selectMode && g.woDeleted && <input type="checkbox" checked={selectedJobs.has(g.jobId)} onChange={() => toggleJob(g.jobId)} style={checkboxStyle} />}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>
               Work Order #{g.jobId}
-              {g.woDeleted
-                ? <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", color: C.red, background: "#fdecea", border: `1px solid ${C.red}44`, borderRadius: 3, padding: "2px 7px" }}>WO DELETED</span>
-                : <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: C.muted }}>WO is active</span>
-              }
+              {g.woDeleted ? (
+                <span
+                  style={{
+                    marginLeft: 8,
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    color: C.red,
+                    background: "#fdecea",
+                    border: `1px solid ${C.red}44`,
+                    borderRadius: 3,
+                    padding: "2px 7px",
+                  }}
+                >
+                  WO DELETED
+                </span>
+              ) : (
+                <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", color: C.muted }}>WO is active</span>
+              )}
             </div>
-            <div style={{ fontSize: 13, color: C.muted }}>{cust}{loc ? ` — ${loc}` : ""}</div>
+            <div style={{ fontSize: 13, color: C.muted }}>
+              {cust}
+              {loc ? ` — ${loc}` : ""}
+            </div>
           </div>
           {g.woDeleted && (
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
               <Btn small variant="blue" onClick={() => handleRestoreJob(g.jobId)}>
                 Restore WO{cascadedCount > 0 ? ` + ${cascadedCount} Ticket${cascadedCount !== 1 ? "s" : ""}` : ""}
               </Btn>
-              {canArchive && <Btn small onClick={() => handleArchiveJob(g.jobId)}>Archive WO</Btn>}
+              {canArchive && (
+                <Btn small onClick={() => handleArchiveJob(g.jobId)}>
+                  Archive WO
+                </Btn>
+              )}
             </div>
           )}
         </div>
@@ -186,7 +233,7 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
                 DELETED WITH THE WO ({cascadedCount})
               </div>
             )}
-            {g.cascaded.map(t => ticketRow(t, "cascaded"))}
+            {g.cascaded.map((t) => ticketRow(t, "cascaded"))}
           </div>
         )}
 
@@ -198,15 +245,13 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
                 INDIVIDUALLY DELETED ({individualCount})
               </div>
             )}
-            {g.individual.map(t => ticketRow(t, "individual"))}
+            {g.individual.map((t) => ticketRow(t, "individual"))}
           </div>
         )}
 
         {/* Fully-deleted WO with no tickets — rare but possible */}
         {cascadedCount === 0 && individualCount === 0 && (
-          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>
-            This WO had no tickets at the time of deletion.
-          </div>
+          <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>This WO had no tickets at the time of deletion.</div>
         )}
       </div>
     );
@@ -220,7 +265,9 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
         {canArchive && (totalTickets > 0 || fullyDeletedWOs > 0) && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {!selectMode ? (
-              <Btn variant="ghost" onClick={() => setSelectMode(true)}>Select</Btn>
+              <Btn variant="ghost" onClick={() => setSelectMode(true)}>
+                Select
+              </Btn>
             ) : (
               <>
                 <button
@@ -230,13 +277,21 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
                   style={{
                     background: selectedCount === 0 ? C.steel : C.red,
                     color: selectedCount === 0 ? C.muted : C.white,
-                    border: "none", borderRadius: 4, padding: "8px 16px",
-                    fontSize: 12, fontWeight: 800, letterSpacing: "0.04em",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "8px 16px",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: "0.04em",
                     cursor: selectedCount === 0 ? "not-allowed" : "pointer",
                     opacity: selectedCount === 0 ? 0.6 : 1,
                   }}
-                >Archive ({selectedCount})</button>
-                <Btn variant="ghost" small onClick={exitSelectMode}>Cancel</Btn>
+                >
+                  Archive ({selectedCount})
+                </button>
+                <Btn variant="ghost" small onClick={exitSelectMode}>
+                  Cancel
+                </Btn>
               </>
             )}
           </div>
@@ -259,18 +314,30 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
           onClick={() => setConfirmOpen(false)}
         >
           <div
-            style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}
-            onClick={e => e.stopPropagation()}
+            style={{
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderTop: `4px solid ${C.red}`,
+              borderRadius: 8,
+              padding: 28,
+              width: 460,
+              maxWidth: "90vw",
+            }}
+            onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>
               Archive {selectedCount} Selected Item{selectedCount !== 1 ? "s" : ""}?
             </div>
             <ul style={{ fontSize: 13, color: C.text, marginTop: 0, marginBottom: 16, paddingLeft: 20, lineHeight: 1.6 }}>
               {selectedJobs.size > 0 && (
-                <li><strong>{selectedJobs.size}</strong> work order{selectedJobs.size !== 1 ? "s" : ""}</li>
+                <li>
+                  <strong>{selectedJobs.size}</strong> work order{selectedJobs.size !== 1 ? "s" : ""}
+                </li>
               )}
               {selectedTickets.size > 0 && (
-                <li><strong>{selectedTickets.size}</strong> ticket{selectedTickets.size !== 1 ? "s" : ""}</li>
+                <li>
+                  <strong>{selectedTickets.size}</strong> ticket{selectedTickets.size !== 1 ? "s" : ""}
+                </li>
               )}
             </ul>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
@@ -278,7 +345,9 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={archiveSelected}>Confirm — Archive {selectedCount}</Btn>
-              <Btn variant="ghost" onClick={() => setConfirmOpen(false)}>Cancel</Btn>
+              <Btn variant="ghost" onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </Btn>
             </div>
           </div>
         </div>
@@ -286,6 +355,5 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
     </div>
   );
 }
-
 
 export default DeletedJobsPage;

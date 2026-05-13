@@ -2,7 +2,7 @@ import { API_URL, getCurrentUser } from "./config.js";
 
 export const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local time
 
-export const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
+export const formatDate = (d) => (d ? String(d).slice(0, 10) : "—");
 
 // v27.66: the backend keeps adding ticket columns and this mapper has to stay
 // in sync. MAPPED_KEYS is the canonical list of snake_case columns we expect;
@@ -11,65 +11,139 @@ export const formatDate = (d) => d ? String(d).slice(0, 10) : "—";
 // Catches "new column added, frontend forgot to map it" scenarios without
 // forcing a runtime assertion in production.
 const TICKET_MAPPED_KEYS = new Set([
-  'id', 'job_id', 'type', 'status', 'date',
-  'signed_by', 'signed_at', 'signature_img', 'sig_not_req_reason', 'sig_not_req_note',
-  'notes', 'emailed_at', 'email_to', 'has_pending_comment', 'missing_pieces',
-  'locked', 'ticket_number', 'start_date', 'end_date', 'cycle_days', 'is_recurring',
-  'voided_at', 'replaced_by', 'revision_of', 'cycle_ended',
-  'deleted_at', 'deleted_with_wo', 'job_status',
-  'has_jsa', 'jsa_completed', 'assigned_wells', 'google_pin', 'pin_lat', 'pin_lng',
-  'lv_yard', 'arrival_time', 'due_on_loc', 'job_start_time', 'job_end_time', 'ret_yard',
-  'time_zone', 'mileage_begin', 'mileage_end',
-  'created_by_name', 'created_at', 'site_mgr_first', 'site_mgr_last', 'site_mgr_phone', 'site_mgr_email',
-  'archived_at', 'yard_location_index',
+  "id",
+  "job_id",
+  "type",
+  "status",
+  "date",
+  "signed_by",
+  "signed_at",
+  "signature_img",
+  "sig_not_req_reason",
+  "sig_not_req_note",
+  "notes",
+  "emailed_at",
+  "email_to",
+  "has_pending_comment",
+  "missing_pieces",
+  "locked",
+  "ticket_number",
+  "start_date",
+  "end_date",
+  "cycle_days",
+  "is_recurring",
+  "voided_at",
+  "replaced_by",
+  "revision_of",
+  "cycle_ended",
+  "deleted_at",
+  "deleted_with_wo",
+  "job_status",
+  "has_jsa",
+  "jsa_completed",
+  "assigned_wells",
+  "google_pin",
+  "pin_lat",
+  "pin_lng",
+  "lv_yard",
+  "arrival_time",
+  "due_on_loc",
+  "job_start_time",
+  "job_end_time",
+  "ret_yard",
+  "time_zone",
+  "mileage_begin",
+  "mileage_end",
+  "created_by_name",
+  "created_at",
+  "site_mgr_first",
+  "site_mgr_last",
+  "site_mgr_phone",
+  "site_mgr_email",
+  "archived_at",
+  "yard_location_index",
   // Join aliases that aren't exposed on the mapped object but are returned
   // by the API and we knowingly ignore:
-  'job_num', 'created_by', 'updated_at',
+  "job_num",
+  "created_by",
+  "updated_at",
   // Line items are nested — handled separately
-  'lineItems', 'line_items',
+  "lineItems",
+  "line_items",
 ]);
 let __ticketDriftWarned = false;
 function __checkTicketDrift(t) {
-  if (__ticketDriftWarned || typeof t !== 'object' || !t) return;
-  const unknown = Object.keys(t).filter(k => !TICKET_MAPPED_KEYS.has(k));
+  if (__ticketDriftWarned || typeof t !== "object" || !t) return;
+  const unknown = Object.keys(t).filter((k) => !TICKET_MAPPED_KEYS.has(k));
   if (unknown.length > 0) {
     __ticketDriftWarned = true;
-    // eslint-disable-next-line no-console
-    console.warn('[mapTicketFromApi] Backend returned keys not in the mapper — update TICKET_MAPPED_KEYS / mapTicketFromApi:', unknown);
+
+    console.warn("[mapTicketFromApi] Backend returned keys not in the mapper — update TICKET_MAPPED_KEYS / mapTicketFromApi:", unknown);
   }
 }
 
 export const mapTicketFromApi = (t) => {
   __checkTicketDrift(t);
   return {
-  id: t.id, jobId: t.job_id, type: t.type, status: t.status, date: t.date,
-  signedBy: t.signed_by, signedAt: t.signed_at, signatureImage: t.signature_img,
-  sigNotReqReason: t.sig_not_req_reason, sigNotReqNote: t.sig_not_req_note,
-  notes: t.notes, emailedAt: t.emailed_at || null, emailTo: t.email_to || null,
-  hasPendingComment: t.has_pending_comment || false, missingPieces: t.missing_pieces,
-  locked: t.locked, ticketNumber: t.ticket_number || null,
-  startDate: t.start_date || null, endDate: t.end_date || null,
-  cycleDays: t.cycle_days || 28, isRecurring: t.is_recurring || false,
-  voidedAt: t.voided_at || null, replacedBy: t.replaced_by || null,
-  revisionOf: t.revision_of || null, cycleEnded: t.cycle_ended || false,
-  deletedAt: t.deleted_at || null, deletedWithWo: t.deleted_with_wo || false,
-  jobStatus: t.job_status || null,
-  hasJSA: t.has_jsa || false, jsaCompleted: t.jsa_completed || false, assignedWells: t.assigned_wells || [],
-  googlePin: t.google_pin || null, pinLat: t.pin_lat || null, pinLng: t.pin_lng || null,
-  lvYard: t.lv_yard || "", arrivalTime: t.arrival_time || "",
-  dueOnLoc: t.due_on_loc || "", jobStartTime: t.job_start_time || "",
-  jobEndTime: t.job_end_time || "", retYard: t.ret_yard || "",
-  timeZone: t.time_zone || "",
-  mileageBegin: t.mileage_begin ?? null, mileageEnd: t.mileage_end ?? null,
-  createdBy: t.created_by_name || null, createdAt: t.created_at || null,
-  siteMgrFirst: t.site_mgr_first || "", siteMgrLast: t.site_mgr_last || "",
-  siteMgrPhone: t.site_mgr_phone || "", siteMgrEmail: t.site_mgr_email || "",
-  archivedAt: t.archived_at || null,
-  yardLocationIndex: t.yard_location_index || 1,
-  lineItems: (t.lineItems || t.line_items || []).map(li => ({
-    qbCode: li.qb_code, desc: li.description, rate: Number(li.rate),
-    qty: Number(li.qty), um: li.unit_measure, days: Number(li.days) || 1,
-  })),
+    id: t.id,
+    jobId: t.job_id,
+    type: t.type,
+    status: t.status,
+    date: t.date,
+    signedBy: t.signed_by,
+    signedAt: t.signed_at,
+    signatureImage: t.signature_img,
+    sigNotReqReason: t.sig_not_req_reason,
+    sigNotReqNote: t.sig_not_req_note,
+    notes: t.notes,
+    emailedAt: t.emailed_at || null,
+    emailTo: t.email_to || null,
+    hasPendingComment: t.has_pending_comment || false,
+    missingPieces: t.missing_pieces,
+    locked: t.locked,
+    ticketNumber: t.ticket_number || null,
+    startDate: t.start_date || null,
+    endDate: t.end_date || null,
+    cycleDays: t.cycle_days || 28,
+    isRecurring: t.is_recurring || false,
+    voidedAt: t.voided_at || null,
+    replacedBy: t.replaced_by || null,
+    revisionOf: t.revision_of || null,
+    cycleEnded: t.cycle_ended || false,
+    deletedAt: t.deleted_at || null,
+    deletedWithWo: t.deleted_with_wo || false,
+    jobStatus: t.job_status || null,
+    hasJSA: t.has_jsa || false,
+    jsaCompleted: t.jsa_completed || false,
+    assignedWells: t.assigned_wells || [],
+    googlePin: t.google_pin || null,
+    pinLat: t.pin_lat || null,
+    pinLng: t.pin_lng || null,
+    lvYard: t.lv_yard || "",
+    arrivalTime: t.arrival_time || "",
+    dueOnLoc: t.due_on_loc || "",
+    jobStartTime: t.job_start_time || "",
+    jobEndTime: t.job_end_time || "",
+    retYard: t.ret_yard || "",
+    timeZone: t.time_zone || "",
+    mileageBegin: t.mileage_begin ?? null,
+    mileageEnd: t.mileage_end ?? null,
+    createdBy: t.created_by_name || null,
+    createdAt: t.created_at || null,
+    siteMgrFirst: t.site_mgr_first || "",
+    siteMgrLast: t.site_mgr_last || "",
+    siteMgrPhone: t.site_mgr_phone || "",
+    siteMgrEmail: t.site_mgr_email || "",
+    archivedAt: t.archived_at || null,
+    yardLocationIndex: t.yard_location_index || 1,
+    lineItems: (t.lineItems || t.line_items || []).map((li) => ({
+      qbCode: li.qb_code,
+      desc: li.description,
+      rate: Number(li.rate),
+      qty: Number(li.qty),
+      um: li.unit_measure,
+      days: Number(li.days) || 1,
+    })),
   };
 };
 
@@ -81,15 +155,21 @@ export const parseYards = (settings) => {
   if (!settings) return [{ ...BLANK_YARD }];
   let arr = [];
   if (settings.yards) {
-    try { arr = JSON.parse(settings.yards); } catch { arr = []; }
+    try {
+      arr = JSON.parse(settings.yards);
+    } catch {
+      arr = [];
+    }
   }
   if (!Array.isArray(arr) || arr.length === 0) {
-    arr = [{
-      name: "Yard #1",
-      address: settings.yard_address || "",
-      lat: settings.yard_lat || "",
-      lng: settings.yard_lng || "",
-    }];
+    arr = [
+      {
+        name: "Yard #1",
+        address: settings.yard_address || "",
+        lat: settings.yard_lat || "",
+        lng: settings.yard_lng || "",
+      },
+    ];
   }
   return arr;
 };
@@ -152,8 +232,13 @@ export const buildTicketPayload = (updates) => {
   if (updates.siteMgrEmail !== undefined) p.site_mgr_email = updates.siteMgrEmail;
   if (updates.yardLocationIndex !== undefined) p.yard_location_index = updates.yardLocationIndex;
   if (updates.lineItems) {
-    p.lineItems = updates.lineItems.map(li => ({
-      qb_code: li.qbCode, description: li.desc, rate: li.rate, qty: li.qty, unit_measure: li.um, days: li.days || 1,
+    p.lineItems = updates.lineItems.map((li) => ({
+      qb_code: li.qbCode,
+      description: li.desc,
+      rate: li.rate,
+      qty: li.qty,
+      unit_measure: li.um,
+      days: li.days || 1,
     }));
   }
   return p;
@@ -164,8 +249,10 @@ export const updateTicketApi = async (id, updates, setTickets) => {
   const payload = buildTicketPayload(updates);
   try {
     await fetch(`${API_URL}/tickets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-  } catch (err) { console.error("Ticket update failed:", err); }
-  setTickets(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+  } catch (err) {
+    console.error("Ticket update failed:", err);
+  }
+  setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 };
 
 // Shared helper: POST /tickets/:id/revise + refetch + map the new ticket.
@@ -177,7 +264,8 @@ export const updateTicketApi = async (id, updates, setTickets) => {
 export const reviseTicketRequest = async ({ ticket, reason, alsoCreateNew = false, setTickets, showNotice }) => {
   try {
     const r = await fetch(`${API_URL}/tickets/${ticket.id}/revise`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ voided_reason: reason || null, also_create_new: !!alsoCreateNew }),
     });
     if (!r.ok) {
@@ -189,30 +277,39 @@ export const reviseTicketRequest = async ({ ticket, reason, alsoCreateNew = fals
     // Fire-and-forget void-notification email (non-blocking on error).
     try {
       const nr = await fetch(`${API_URL}/signature/void-notify/${ticket.id}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ new_ticket_number: saved.ticket_number, new_ticket_id: saved.id }),
       });
       if (!nr.ok) console.error("Void notify non-2xx:", nr.status);
-    } catch (e) {
+    } catch (_e) {
       showNotice?.("Notification Email Failed", "The ticket was voided successfully, but the notification email failed to send.", "error");
     }
     // Refetch the WO's tickets (including voided) so local state matches server.
     const tr = await fetch(`${API_URL}/tickets?job_id=${ticket.jobId}&include_voided=true`);
     if (!tr.ok) {
-      showNotice?.("Voided — Refresh Needed", "The ticket was voided, but the list could not be refreshed automatically. Close and reopen the tab to see the current state.", "error");
+      showNotice?.(
+        "Voided — Refresh Needed",
+        "The ticket was voided, but the list could not be refreshed automatically. Close and reopen the tab to see the current state.",
+        "error",
+      );
       return { success: true, refreshed: false };
     }
     const data = await tr.json();
     const mapped = data.map(mapTicketFromApi);
     if (setTickets) {
-      setTickets(prev => {
-        const otherJobs = prev.filter(tk => tk.jobId !== ticket.jobId);
+      setTickets((prev) => {
+        const otherJobs = prev.filter((tk) => tk.jobId !== ticket.jobId);
         return [...otherJobs, ...mapped];
       });
     }
-    const newTicket = alsoCreateNew && saved.id != null ? (mapped.find(tk => tk.id === saved.id) || null) : null;
+    const newTicket = alsoCreateNew && saved.id != null ? mapped.find((tk) => tk.id === saved.id) || null : null;
     if (alsoCreateNew && saved.id != null && !newTicket) {
-      showNotice?.("Voided — New Revision Created", `Ticket was voided and revision #${saved.ticket_number} was created, but could not be opened automatically. Find it in the ticket list.`, "ok");
+      showNotice?.(
+        "Voided — New Revision Created",
+        `Ticket was voided and revision #${saved.ticket_number} was created, but could not be opened automatically. Find it in the ticket list.`,
+        "ok",
+      );
     }
     return { success: true, refreshed: true, newTicket, ticketNumber: saved.ticket_number };
   } catch (err) {
@@ -270,12 +367,57 @@ export const PERMISSION_CATEGORIES = [
 // Default permissions by role. Used as the fallback when a user's permissions
 // column is empty or unset (new user, or migration gap).
 export const DEFAULT_PERMS = {
-  owner: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
-  admin: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true])),
-  manager: Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, !["manage_users", "view_activity_log"].includes(p.key)])),
-  lead: { view_jobs: true, edit_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: true, view_reports: true, view_archive: false, view_activity_log: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
-  salesman: { view_jobs: true, edit_jobs: false, edit_tickets: false, sign_tickets: false, view_inventory: false, view_reports: false, view_archive: false, view_activity_log: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
-  field: { view_jobs: true, edit_tickets: true, sign_tickets: true, view_inventory: false, view_reports: false, view_archive: false, view_activity_log: false, edit_jobs: false, delete_jobs: false, approve_tickets: false, send_to_qb: false, void_tickets: false, manage_users: false, edit_inventory: false },
+  owner: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true])),
+  admin: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true])),
+  manager: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, !["manage_users", "view_activity_log"].includes(p.key)])),
+  lead: {
+    view_jobs: true,
+    edit_jobs: true,
+    edit_tickets: true,
+    sign_tickets: true,
+    view_inventory: true,
+    view_reports: true,
+    view_archive: false,
+    view_activity_log: false,
+    delete_jobs: false,
+    approve_tickets: false,
+    send_to_qb: false,
+    void_tickets: false,
+    manage_users: false,
+    edit_inventory: false,
+  },
+  salesman: {
+    view_jobs: true,
+    edit_jobs: false,
+    edit_tickets: false,
+    sign_tickets: false,
+    view_inventory: false,
+    view_reports: false,
+    view_archive: false,
+    view_activity_log: false,
+    delete_jobs: false,
+    approve_tickets: false,
+    send_to_qb: false,
+    void_tickets: false,
+    manage_users: false,
+    edit_inventory: false,
+  },
+  field: {
+    view_jobs: true,
+    edit_tickets: true,
+    sign_tickets: true,
+    view_inventory: false,
+    view_reports: false,
+    view_archive: false,
+    view_activity_log: false,
+    edit_jobs: false,
+    delete_jobs: false,
+    approve_tickets: false,
+    send_to_qb: false,
+    void_tickets: false,
+    manage_users: false,
+    edit_inventory: false,
+  },
 };
 
 // Returns role templates from app_settings if customized, otherwise falls back to DEFAULT_PERMS.
@@ -289,9 +431,11 @@ export function getRoleTemplates(settings) {
         if (role === "owner") continue; // owner is immutable
         base[role] = custom[role];
       }
-    } catch { /* parse error — fall back to defaults */ }
+    } catch {
+      /* parse error — fall back to defaults */
+    }
   }
   // Owner is always all-true
-  base.owner = Object.fromEntries(PERMISSION_CATEGORIES.map(p => [p.key, true]));
+  base.owner = Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true]));
   return base;
 }

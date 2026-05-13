@@ -107,10 +107,12 @@ function LoginScreen() {
       // v28.03 — magic-link device enrollment landing.
       window.history.replaceState({}, document.title, window.location.pathname);
       (async () => {
-        setEnrollmentLoading(true); setError("");
+        setEnrollmentLoading(true);
+        setError("");
         try {
           const r = await fetch(`${API_URL}/auth/webauthn/enroll-options`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: enrollTokenParam, user_id: uid }),
           });
           const data = await r.json();
@@ -138,12 +140,14 @@ function LoginScreen() {
       }
       window.history.replaceState({}, document.title, window.location.pathname);
       (async () => {
-        setJsaSignLoading(true); setError("");
+        setJsaSignLoading(true);
+        setError("");
         try {
           // v28.20 — jsa_id is UUID per schema.sql; pass the URL param string
           // through verbatim, do not coerce to integer.
           const r = await fetch(`${API_URL}/jsas/sign-options`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: jsaSignTokenParam, user_id: uid, jsa_id: jsaIdParam }),
           });
           const data = await r.json();
@@ -159,7 +163,6 @@ function LoginScreen() {
         }
       })();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Suggest a device label based on user agent — user can edit before registering.
@@ -181,7 +184,10 @@ function LoginScreen() {
   const completeAuthentication = async () => {
     if (!pendingAuthentication) return;
     const { pending_token: pendingToken, authentication_options: authOptions } = pendingAuthentication;
-    setError(""); setLinkSentMsg(""); setAuthFailedShowLinkOption(false); setLoading(true);
+    setError("");
+    setLinkSentMsg("");
+    setAuthFailedShowLinkOption(false);
+    setLoading(true);
     let assertion;
     try {
       assertion = await startAuthentication({ optionsJSON: authOptions });
@@ -200,7 +206,8 @@ function LoginScreen() {
     }
     try {
       const r = await fetch(`${API_URL}/auth/webauthn/auth-verify`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pending_token: pendingToken, response: assertion }),
       });
       const data = await r.json();
@@ -233,10 +240,13 @@ function LoginScreen() {
   const requestDeviceLink = async () => {
     if (!pendingAuthentication) return;
     const { pending_token: pendingToken } = pendingAuthentication;
-    setLoading(true); setError(""); setLinkSentMsg("");
+    setLoading(true);
+    setError("");
+    setLinkSentMsg("");
     try {
       const r = await fetch(`${API_URL}/auth/webauthn/request-device-link`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pending_token: pendingToken }),
       });
       const data = await r.json();
@@ -260,29 +270,30 @@ function LoginScreen() {
   // signs the JSA and shows a success state.
   const completeJsaSign = async () => {
     if (!jsaSignLanding) return;
-    setError(""); setLoading(true);
+    setError("");
+    setLoading(true);
     try {
       let assertion;
       try {
         assertion = await startAuthentication({ optionsJSON: jsaSignLanding.authentication_options });
       } catch (browserErr) {
-        const msg = browserErr?.name === "NotAllowedError"
-          ? "Biometric did not complete. Tap CONFIRM again."
-          : browserErr?.message || "Biometric cancelled";
+        const msg = browserErr?.name === "NotAllowedError" ? "Biometric did not complete. Tap CONFIRM again." : browserErr?.message || "Biometric cancelled";
         setError(msg);
         return;
       }
-      const captureGps = () => new Promise(resolve => {
-        if (!navigator.geolocation) return resolve({ lat: null, lng: null });
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-          () => resolve({ lat: null, lng: null }),
-          { timeout: 4000, enableHighAccuracy: false }
-        );
-      });
+      const captureGps = () =>
+        new Promise((resolve) => {
+          if (!navigator.geolocation) return resolve({ lat: null, lng: null });
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+            () => resolve({ lat: null, lng: null }),
+            { timeout: 4000, enableHighAccuracy: false },
+          );
+        });
       const gps = await captureGps();
       const r = await fetch(`${API_URL}/jsas/${jsaSignLanding.jsa_id}/sign`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           method: "biometric",
           webauthn_response: assertion,
@@ -310,20 +321,23 @@ function LoginScreen() {
   const completeDeviceEnrollment = async () => {
     if (!enrollmentLanding) return;
     const label = (deviceLabel || "").trim() || suggestDeviceLabel();
-    setError(""); setLoading(true);
+    setError("");
+    setLoading(true);
     try {
       let attResp;
       try {
         attResp = await startRegistration({ optionsJSON: enrollmentLanding.registration_options });
       } catch (browserErr) {
-        const msg = browserErr?.name === "InvalidStateError"
-          ? "This device is already registered for your account."
-          : browserErr?.message || "Biometric registration cancelled";
+        const msg =
+          browserErr?.name === "InvalidStateError"
+            ? "This device is already registered for your account."
+            : browserErr?.message || "Biometric registration cancelled";
         setError(msg);
         return;
       }
       const r = await fetch(`${API_URL}/auth/webauthn/enroll-verify`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pending_token: enrollmentLanding.pending_token, response: attResp, device_label: label }),
       });
       const data = await r.json();
@@ -348,20 +362,20 @@ function LoginScreen() {
     if (!pendingRegistration) return;
     const { pending_token, registration_options } = pendingRegistration;
     const label = (deviceLabel || "").trim() || suggestDeviceLabel();
-    setError(""); setLoading(true);
+    setError("");
+    setLoading(true);
     try {
       let attResp;
       try {
         attResp = await startRegistration({ optionsJSON: registration_options });
       } catch (browserErr) {
-        const msg = browserErr?.name === "InvalidStateError"
-          ? "This device is already registered."
-          : browserErr?.message || "Biometric registration cancelled";
+        const msg = browserErr?.name === "InvalidStateError" ? "This device is already registered." : browserErr?.message || "Biometric registration cancelled";
         setError(msg);
         return;
       }
       const r = await fetch(`${API_URL}/auth/webauthn/register-verify`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pending_token, response: attResp, device_label: label }),
       });
       const data = await r.json();
@@ -385,17 +399,22 @@ function LoginScreen() {
     // Read directly from DOM as fallback in case Chrome autofill bypassed onChange
     const emailVal = email.trim() || document.querySelector('input[type="email"]')?.value?.trim() || "";
     const pwVal = password || document.querySelector('input[type="password"]')?.value || "";
-    if (!emailVal || !pwVal) { setError("Email and password required"); return; }
+    if (!emailVal || !pwVal) {
+      setError("Email and password required");
+      return;
+    }
     if (!webauthnSupported) {
       setError("Your browser doesn't support biometric sign-in. Use a modern browser (Chrome, Safari, Edge, Firefox).");
       return;
     }
     if (!email.trim() && emailVal) setEmail(emailVal);
     if (!password && pwVal) setPassword(pwVal);
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const r = await fetch(`${API_URL}/auth/login`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailVal.toLowerCase(), password: pwVal }),
       });
       const data = await r.json();
@@ -427,7 +446,9 @@ function LoginScreen() {
       setError("Unexpected login response. Contact your administrator.");
     } catch {
       setError("Connection error — check internet");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const cancelRegistration = () => {
@@ -437,34 +458,64 @@ function LoginScreen() {
   };
 
   const handleForgot = async () => {
-    if (!email.trim()) { setError("Enter your email first"); return; }
-    setLoading(true); setError(""); setMsg("");
+    if (!email.trim()) {
+      setError("Enter your email first");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setMsg("");
     try {
       const r = await fetch(`${API_URL}/auth/forgot-password`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
       const data = await r.json();
       setMsg(data.message || "Check your email for a reset link.");
-    } catch { setError("Connection error"); }
-    finally { setLoading(false); }
+    } catch {
+      setError("Connection error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = async () => {
-    if (!newPw || !confirmPw) { setError("Both fields required"); return; }
-    if (newPw !== confirmPw) { setError("Passwords don't match"); return; }
-    if (newPw.length < 6) { setError("Password must be at least 6 characters"); return; }
-    setLoading(true); setError(""); setMsg("");
+    if (!newPw || !confirmPw) {
+      setError("Both fields required");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setError("Passwords don't match");
+      return;
+    }
+    if (newPw.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setMsg("");
     try {
       const r = await fetch(`${API_URL}/auth/reset-password`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: resetUid, token: resetToken, password: newPw }),
       });
       const data = await r.json();
-      if (r.ok) { setMsg(data.message); setMode("login"); setResetToken(null); setResetUid(null); }
-      else { setError(data.error || "Reset failed"); }
-    } catch { setError("Connection error"); }
-    finally { setLoading(false); }
+      if (r.ok) {
+        setMsg(data.message);
+        setMode("login");
+        setResetToken(null);
+        setResetUid(null);
+      } else {
+        setError(data.error || "Reset failed");
+      }
+    } catch {
+      setError("Connection error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const showJsaSignStep = mode === "login" && !!jsaSignLanding;
@@ -474,29 +525,62 @@ function LoginScreen() {
   const showLoginForm = mode === "login" && !pendingRegistration && !pendingAuthentication && !enrollmentLanding && !jsaSignLanding;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}>
+    <div
+      style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}
+    >
       <div style={{ background: C.cardBg, borderRadius: 8, padding: 40, width: 380, maxWidth: "90vw", borderTop: `4px solid ${C.red}` }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{
-            width: 56, height: 56, border: `3px solid ${C.red}`, borderRadius: "50%",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: C.blue, fontSize: 18, fontWeight: 900, color: C.white,
-            margin: "0 auto 12px", boxShadow: `0 0 20px ${C.red}44`,
-          }}>FTI</div>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              border: `3px solid ${C.red}`,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: C.blue,
+              fontSize: 18,
+              fontWeight: 900,
+              color: C.white,
+              margin: "0 auto 12px",
+              boxShadow: `0 0 20px ${C.red}44`,
+            }}
+          >
+            FTI
+          </div>
           <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "0.1em" }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
             {mode === "login"
-              ? (showJsaSignStep ? "SIGN THE JSA" : showEnrollmentStep ? "REGISTER THIS DEVICE" : showRegistrationStep ? "REGISTER THIS DEVICE" : showAuthenticationStep ? "CONFIRM WITH BIOMETRIC" : "OPERATIONS DASHBOARD")
-              : mode === "forgot" ? "PASSWORD RESET" : "SET NEW PASSWORD"}
-            {" "}<span style={{ color: C.white, fontWeight: 700 }}>v28.56</span>
+              ? showJsaSignStep
+                ? "SIGN THE JSA"
+                : showEnrollmentStep
+                  ? "REGISTER THIS DEVICE"
+                  : showRegistrationStep
+                    ? "REGISTER THIS DEVICE"
+                    : showAuthenticationStep
+                      ? "CONFIRM WITH BIOMETRIC"
+                      : "OPERATIONS DASHBOARD"
+              : mode === "forgot"
+                ? "PASSWORD RESET"
+                : "SET NEW PASSWORD"}{" "}
+            <span style={{ color: C.white, fontWeight: 700 }}>v28.57</span>
           </div>
         </div>
 
         {!webauthnSupported && (
-          <div style={{
-            background: "#fdecea", border: `1px solid ${C.red}33`, color: C.red,
-            padding: "10px 14px", borderRadius: 4, fontSize: 12, marginBottom: 16, fontWeight: 600,
-          }}>
+          <div
+            style={{
+              background: "#fdecea",
+              border: `1px solid ${C.red}33`,
+              color: C.red,
+              padding: "10px 14px",
+              borderRadius: 4,
+              fontSize: 12,
+              marginBottom: 16,
+              fontWeight: 600,
+            }}
+          >
             Your browser doesn't support biometric sign-in. Use Chrome, Safari, Edge, or Firefox.
           </div>
         )}
@@ -505,24 +589,61 @@ function LoginScreen() {
           <>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@flotest.com" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+              <input
+                style={inputStyle}
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@flotest.com"
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              />
             </div>
             <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>PASSWORD</label>
-              <input style={inputStyle} type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••" onKeyDown={e => e.key === "Enter" && handleLogin()} />
+              <input
+                style={inputStyle}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••"
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+              />
             </div>
             <div style={{ textAlign: "right", marginBottom: 16 }}>
-              <span onClick={() => { setMode("forgot"); setError(""); setMsg(""); }} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Forgot password?</span>
+              <span
+                onClick={() => {
+                  setMode("forgot");
+                  setError("");
+                  setMsg("");
+                }}
+                style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}
+              >
+                Forgot password?
+              </span>
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
             {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
-            <button onClick={handleLogin} disabled={loading || !webauthnSupported} style={{
-              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
-              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
-              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1,
-            }}>{loading ? "SIGNING IN..." : "SIGN IN"}</button>
+            <button
+              onClick={handleLogin}
+              disabled={loading || !webauthnSupported}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: C.red,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+                letterSpacing: "0.06em",
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? "SIGNING IN..." : "SIGN IN"}
+            </button>
             <div style={{ fontSize: 10, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.4 }}>
               After your password, you'll confirm with Touch ID, Face ID, or Windows Hello.
             </div>
@@ -537,99 +658,177 @@ function LoginScreen() {
         {showJsaSignStep && !jsaSignDone && (
           <>
             <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
-              Hi <strong>{jsaSignLanding.user_name}</strong>. You've been asked to sign the
-              JSA for <strong>{jsaSignLanding.jsa.customer_name || 'this ticket'}</strong>
-              {jsaSignLanding.jsa.ticket_date ? <> on <strong>{new Date(jsaSignLanding.jsa.ticket_date).toLocaleDateString()}</strong></> : null}
+              Hi <strong>{jsaSignLanding.user_name}</strong>. You've been asked to sign the JSA for{" "}
+              <strong>{jsaSignLanding.jsa.customer_name || "this ticket"}</strong>
+              {jsaSignLanding.jsa.ticket_date ? (
+                <>
+                  {" "}
+                  on <strong>{new Date(jsaSignLanding.jsa.ticket_date).toLocaleDateString()}</strong>
+                </>
+              ) : null}
               {jsaSignLanding.jsa.ticket_number ? <> — Ticket #{jsaSignLanding.jsa.ticket_number}</> : null}.
             </div>
-            <div style={{
-              fontSize: 12, color: C.muted, marginBottom: 16, padding: "10px 12px",
-              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
-            }}>
-              By tapping CONFIRM WITH BIOMETRIC, you attest under penalty of perjury
-              that you have read and understood the JSA, that you participated in the
-              JSA meeting, and that this is your legally binding signature.
+            <div
+              style={{
+                fontSize: 12,
+                color: C.muted,
+                marginBottom: 16,
+                padding: "10px 12px",
+                background: C.steel,
+                border: `1px solid ${C.border}`,
+                borderRadius: 4,
+                lineHeight: 1.5,
+              }}
+            >
+              By tapping CONFIRM WITH BIOMETRIC, you attest under penalty of perjury that you have read and understood the JSA, that you participated in the JSA
+              meeting, and that this is your legally binding signature.
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            <button onClick={completeJsaSign} disabled={loading} style={{
-              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
-              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
-              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
-            }}>{loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}</button>
+            <button
+              onClick={completeJsaSign}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: C.red,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+                letterSpacing: "0.06em",
+                opacity: loading ? 0.6 : 1,
+                marginBottom: 12,
+              }}
+            >
+              {loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}
+            </button>
           </>
         )}
 
         {showJsaSignStep && jsaSignDone && (
           <>
-            <div style={{
-              padding: "14px 16px", background: "#e6f5ec",
-              border: `1px solid #00633a44`, borderRadius: 4, marginBottom: 16,
-              fontSize: 14, fontWeight: 700, color: "#00633a", textAlign: "center",
-            }}>
-              ✓ JSA signed.<br/>
-              <span style={{ fontSize: 12, fontWeight: 400, color: C.text }}>
-                Your signature has been recorded. You can close this window.
-              </span>
+            <div
+              style={{
+                padding: "14px 16px",
+                background: "#e6f5ec",
+                border: `1px solid #00633a44`,
+                borderRadius: 4,
+                marginBottom: 16,
+                fontSize: 14,
+                fontWeight: 700,
+                color: "#00633a",
+                textAlign: "center",
+              }}
+            >
+              ✓ JSA signed.
+              <br />
+              <span style={{ fontSize: 12, fontWeight: 400, color: C.text }}>Your signature has been recorded. You can close this window.</span>
             </div>
           </>
         )}
 
-        {jsaSignLoading && !jsaSignLanding && (
-          <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>
-            Opening sign link...
-          </div>
-        )}
+        {jsaSignLoading && !jsaSignLanding && <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>Opening sign link...</div>}
 
         {showAuthenticationStep && (
           <>
-            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
-              Password verified. Tap below to confirm with your biometric.
-            </div>
-            <div style={{
-              fontSize: 12, color: C.muted, marginBottom: 16, padding: "10px 12px",
-              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
-            }}>
+            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>Password verified. Tap below to confirm with your biometric.</div>
+            <div
+              style={{
+                fontSize: 12,
+                color: C.muted,
+                marginBottom: 16,
+                padding: "10px 12px",
+                background: C.steel,
+                border: `1px solid ${C.border}`,
+                borderRadius: 4,
+                lineHeight: 1.5,
+              }}
+            >
               Your device will prompt for Touch ID, Face ID, Windows Hello, or your saved passkey.
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
             {linkSentMsg && (
-              <div style={{
-                background: "#e6f5ec", border: `1px solid ${C.green}33`, color: C.green,
-                padding: "10px 14px", borderRadius: 4, fontSize: 12, marginBottom: 12, fontWeight: 600, textAlign: "center",
-              }}>
+              <div
+                style={{
+                  background: "#e6f5ec",
+                  border: `1px solid ${C.green}33`,
+                  color: C.green,
+                  padding: "10px 14px",
+                  borderRadius: 4,
+                  fontSize: 12,
+                  marginBottom: 12,
+                  fontWeight: 600,
+                  textAlign: "center",
+                }}
+              >
                 {linkSentMsg}
               </div>
             )}
-            <button onClick={completeAuthentication} disabled={loading} style={{
-              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
-              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
-              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
-            }}>{loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}</button>
+            <button
+              onClick={completeAuthentication}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: C.red,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+                letterSpacing: "0.06em",
+                opacity: loading ? 0.6 : 1,
+                marginBottom: 12,
+              }}
+            >
+              {loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}
+            </button>
 
             {/* v28.03 — magic-link CTA. Shown after a failed biometric attempt
                 (NotAllowedError typically means "no matching passkey on this
                 device"). One tap → email link → register on this device. */}
             {authFailedShowLinkOption && !linkSentMsg && (
-              <div style={{
-                marginBottom: 12, padding: "12px 14px",
-                background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
-              }}>
+              <div
+                style={{
+                  marginBottom: 12,
+                  padding: "12px 14px",
+                  background: C.steel,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 4,
+                }}
+              >
                 <div style={{ fontSize: 12, color: C.text, marginBottom: 10, lineHeight: 1.5 }}>
                   Is this a new device that hasn't been registered yet? We can email you a one-time link to register it.
                 </div>
-                <button onClick={requestDeviceLink} disabled={loading} style={{
-                  width: "100%", padding: "10px 0", background: "transparent",
-                  border: `1px solid ${C.blue}`, color: C.blue, borderRadius: 4,
-                  fontSize: 13, fontWeight: 700, cursor: loading ? "default" : "pointer",
-                  letterSpacing: "0.04em", opacity: loading ? 0.6 : 1,
-                }}>
+                <button
+                  onClick={requestDeviceLink}
+                  disabled={loading}
+                  style={{
+                    width: "100%",
+                    padding: "10px 0",
+                    background: "transparent",
+                    border: `1px solid ${C.blue}`,
+                    color: C.blue,
+                    borderRadius: 4,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: loading ? "default" : "pointer",
+                    letterSpacing: "0.04em",
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                >
                   {loading ? "SENDING..." : "SEND REGISTRATION LINK TO MY EMAIL"}
                 </button>
               </div>
             )}
 
             <div style={{ textAlign: "center" }}>
-              <span onClick={cancelAuthentication} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back</span>
+              <span onClick={cancelAuthentication} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>
+                Back
+              </span>
             </div>
           </>
         )}
@@ -644,39 +843,61 @@ function LoginScreen() {
             <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
               Welcome, <strong>{enrollmentLanding.user_name}</strong>. Register this device to sign in here going forward.
             </div>
-            <div style={{
-              fontSize: 12, color: C.muted, marginBottom: 14, padding: "10px 12px",
-              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
-            }}>
-              When you tap below, this device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves the device — only a public key is stored on the server.
+            <div
+              style={{
+                fontSize: 12,
+                color: C.muted,
+                marginBottom: 14,
+                padding: "10px 12px",
+                background: C.steel,
+                border: `1px solid ${C.border}`,
+                borderRadius: 4,
+                lineHeight: 1.5,
+              }}
+            >
+              When you tap below, this device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves the device — only a public key is
+              stored on the server.
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>NAME THIS DEVICE</label>
               <input
                 style={inputStyle}
                 value={deviceLabel}
-                onChange={e => setDeviceLabel(e.target.value.slice(0, 60))}
+                onChange={(e) => setDeviceLabel(e.target.value.slice(0, 60))}
                 maxLength={60}
                 placeholder="iPhone, MacBook, etc."
-                onKeyDown={e => e.key === "Enter" && !loading && completeDeviceEnrollment()}
+                onKeyDown={(e) => e.key === "Enter" && !loading && completeDeviceEnrollment()}
                 autoFocus
               />
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            <button onClick={completeDeviceEnrollment} disabled={loading} style={{
-              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
-              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
-              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
-            }}>{loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}</button>
+            <button
+              onClick={completeDeviceEnrollment}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: C.red,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+                letterSpacing: "0.06em",
+                opacity: loading ? 0.6 : 1,
+                marginBottom: 12,
+              }}
+            >
+              {loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}
+            </button>
           </>
         )}
 
         {/* Loading state for the enrollment-options fetch. Shown briefly while
             the URL-param effect resolves before showEnrollmentStep flips on. */}
         {enrollmentLoading && !enrollmentLanding && (
-          <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>
-            Opening registration link...
-          </div>
+          <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>Opening registration link...</div>
         )}
 
         {showRegistrationStep && (
@@ -684,33 +905,58 @@ function LoginScreen() {
             <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
               First time signing in. Register this device's biometric so you can use it next time.
             </div>
-            <div style={{
-              fontSize: 12, color: C.muted, marginBottom: 14, padding: "10px 12px",
-              background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, lineHeight: 1.5,
-            }}>
-              When you click below, your device will prompt for Touch ID, Face ID, or Windows Hello.
-              The biometric never leaves this device — only a public key is stored on the server.
+            <div
+              style={{
+                fontSize: 12,
+                color: C.muted,
+                marginBottom: 14,
+                padding: "10px 12px",
+                background: C.steel,
+                border: `1px solid ${C.border}`,
+                borderRadius: 4,
+                lineHeight: 1.5,
+              }}
+            >
+              When you click below, your device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves this device — only a public key
+              is stored on the server.
             </div>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>NAME THIS DEVICE</label>
               <input
                 style={inputStyle}
                 value={deviceLabel}
-                onChange={e => setDeviceLabel(e.target.value.slice(0, 60))}
+                onChange={(e) => setDeviceLabel(e.target.value.slice(0, 60))}
                 maxLength={60}
                 placeholder="iPhone, MacBook, etc."
-                onKeyDown={e => e.key === "Enter" && !loading && completeFirstRegistration()}
+                onKeyDown={(e) => e.key === "Enter" && !loading && completeFirstRegistration()}
                 autoFocus
               />
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            <button onClick={completeFirstRegistration} disabled={loading} style={{
-              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
-              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
-              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
-            }}>{loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}</button>
+            <button
+              onClick={completeFirstRegistration}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: C.red,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+                letterSpacing: "0.06em",
+                opacity: loading ? 0.6 : 1,
+                marginBottom: 12,
+              }}
+            >
+              {loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}
+            </button>
             <div style={{ textAlign: "center" }}>
-              <span onClick={cancelRegistration} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back</span>
+              <span onClick={cancelRegistration} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>
+                Back
+              </span>
             </div>
           </>
         )}
@@ -719,18 +965,48 @@ function LoginScreen() {
           <>
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>EMAIL</label>
-              <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@flotest.com" onKeyDown={e => e.key === "Enter" && handleForgot()} />
+              <input
+                style={inputStyle}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@flotest.com"
+                onKeyDown={(e) => e.key === "Enter" && handleForgot()}
+              />
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
             {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
-            <button onClick={handleForgot} disabled={loading} style={{
-              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
-              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
-              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1, marginBottom: 12,
-            }}>{loading ? "SENDING..." : "SEND RESET LINK"}</button>
+            <button
+              onClick={handleForgot}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: C.red,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+                letterSpacing: "0.06em",
+                opacity: loading ? 0.6 : 1,
+                marginBottom: 12,
+              }}
+            >
+              {loading ? "SENDING..." : "SEND RESET LINK"}
+            </button>
             <div style={{ textAlign: "center" }}>
-              <span onClick={() => { setMode("login"); setError(""); setMsg(""); }} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>Back to login</span>
+              <span
+                onClick={() => {
+                  setMode("login");
+                  setError("");
+                  setMsg("");
+                }}
+                style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}
+              >
+                Back to login
+              </span>
             </div>
           </>
         )}
@@ -739,27 +1015,45 @@ function LoginScreen() {
           <>
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>NEW PASSWORD</label>
-              <input style={inputStyle} type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
-                placeholder="Min 6 characters" />
+              <input style={inputStyle} type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Min 6 characters" />
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>CONFIRM PASSWORD</label>
-              <input style={inputStyle} type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
-                placeholder="Re-enter password" onKeyDown={e => e.key === "Enter" && handleReset()} />
+              <input
+                style={inputStyle}
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                placeholder="Re-enter password"
+                onKeyDown={(e) => e.key === "Enter" && handleReset()}
+              />
             </div>
             {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
             {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
-            <button onClick={handleReset} disabled={loading} style={{
-              width: "100%", padding: "12px 0", background: C.red, color: C.white, border: "none",
-              borderRadius: 4, fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer",
-              letterSpacing: "0.06em", opacity: loading ? 0.6 : 1,
-            }}>{loading ? "RESETTING..." : "SET NEW PASSWORD"}</button>
+            <button
+              onClick={handleReset}
+              disabled={loading}
+              style={{
+                width: "100%",
+                padding: "12px 0",
+                background: C.red,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+                letterSpacing: "0.06em",
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? "RESETTING..." : "SET NEW PASSWORD"}
+            </button>
           </>
         )}
       </div>
     </div>
   );
 }
-
 
 export default LoginScreen;

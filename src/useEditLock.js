@@ -23,7 +23,8 @@ function useEditLock(type, id, currentUser, onAutoSave) {
     if (!id || !currentUser?.id) return;
     try {
       const r = await fetch(`${API_URL}/edit-lock/${type}/${id}/lock`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name }),
       });
       const data = await r.json();
@@ -33,12 +34,19 @@ function useEditLock(type, id, currentUser, onAutoSave) {
         resetInactivity();
       } else {
         lockAcquired.current = false;
-        setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", lockedAt: data.locked_at || null, requestedByName: null, hasLock: false });
+        setLockState({
+          isLocked: true,
+          lockedBy: data.locked_by,
+          lockedByName: data.locked_by_name || "Another user",
+          lockedAt: data.locked_at || null,
+          requestedByName: null,
+          hasLock: false,
+        });
       }
     } catch {
       // Fail-open: if lock endpoint unreachable, allow editing
       lockAcquired.current = true;
-      setLockState(prev => ({ ...prev, hasLock: true }));
+      setLockState((prev) => ({ ...prev, hasLock: true }));
     }
   };
 
@@ -48,21 +56,27 @@ function useEditLock(type, id, currentUser, onAutoSave) {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     try {
       await fetch(`${API_URL}/edit-lock/${type}/${id}/unlock`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: currentUser.id }),
       });
-    } catch {}
-    setLockState(prev => ({ ...prev, hasLock: false }));
+    } catch {
+      /* network error — local state already reflects intent; lock cleanup is best-effort */
+    }
+    setLockState((prev) => ({ ...prev, hasLock: false }));
   };
 
   const requestEdit = async () => {
     if (!id || !currentUser?.id) return;
     try {
       await fetch(`${API_URL}/edit-lock/${type}/${id}/request-edit`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: currentUser.id }),
       });
-    } catch {}
+    } catch {
+      /* network error — local state already reflects intent; lock cleanup is best-effort */
+    }
   };
 
   // Owner/admin override for phantom/stale locks. Clears the lock server-side regardless of
@@ -72,7 +86,8 @@ function useEditLock(type, id, currentUser, onAutoSave) {
     if (!["owner", "admin"].includes(currentUser?.role)) return;
     try {
       await fetch(`${API_URL}/edit-lock/${type}/${id}/force-unlock`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           requester_role: currentUser.role,
           requester_id: currentUser.id,
@@ -81,17 +96,22 @@ function useEditLock(type, id, currentUser, onAutoSave) {
       });
       // Immediately reacquire for ourselves so the UI flips to editable state.
       await acquireLock();
-    } catch {}
+    } catch {
+      /* network error — local state already reflects intent; lock cleanup is best-effort */
+    }
   };
 
   const dismissRequest = async () => {
     if (!id || !currentUser?.id) return;
     try {
       await fetch(`${API_URL}/edit-lock/${type}/${id}/dismiss-request`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
-    } catch {}
-    setLockState(prev => ({ ...prev, requestedByName: null }));
+    } catch {
+      /* network error — local state already reflects intent; lock cleanup is best-effort */
+    }
+    setLockState((prev) => ({ ...prev, requestedByName: null }));
   };
 
   const pollStatus = async () => {
@@ -101,17 +121,26 @@ function useEditLock(type, id, currentUser, onAutoSave) {
       const data = await r.json();
       if (lockAcquired.current) {
         // I have the lock — check if someone requested
-        setLockState(prev => ({ ...prev, requestedByName: data.requested_by_name || null }));
+        setLockState((prev) => ({ ...prev, requestedByName: data.requested_by_name || null }));
       } else {
         // I don't have the lock — check if it's been released
         if (!data.is_locked) {
           // Lock released — try to acquire
           acquireLock();
         } else {
-          setLockState({ isLocked: true, lockedBy: data.locked_by, lockedByName: data.locked_by_name || "Another user", lockedAt: data.locked_at || null, requestedByName: null, hasLock: false });
+          setLockState({
+            isLocked: true,
+            lockedBy: data.locked_by,
+            lockedByName: data.locked_by_name || "Another user",
+            lockedAt: data.locked_at || null,
+            requestedByName: null,
+            hasLock: false,
+          });
         }
       }
-    } catch {}
+    } catch {
+      /* network error — local state already reflects intent; lock cleanup is best-effort */
+    }
   };
 
   useEffect(() => {
@@ -134,6 +163,5 @@ function useEditLock(type, id, currentUser, onAutoSave) {
 
   return { ...lockState, releaseLock, requestEdit, dismissRequest, forceUnlock, resetInactivity };
 }
-
 
 export default useEditLock;

@@ -33,7 +33,9 @@ const todayYmd = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 const formatPhone = (raw) => {
-  const d = String(raw || "").replace(/\D/g, "").slice(0, 10);
+  const d = String(raw || "")
+    .replace(/\D/g, "")
+    .slice(0, 10);
   if (d.length === 0) return "";
   if (d.length <= 3) return `(${d}`;
   if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
@@ -51,7 +53,6 @@ const SESSION_TIMEOUT_OPTIONS = [
 
 function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [], onClose, onSaved }) {
   const isOwnerLocked = mode === "edit" && initial.role === "owner";
-  const isOwnerSelf = isOwnerLocked; // current owner editing own row also locked from role change
 
   const [firstName, setFirstName] = useState(initial.first_name || "");
   const [lastName, setLastName] = useState(initial.last_name || "");
@@ -60,15 +61,9 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
   const [role, setRole] = useState(initial.role || "field");
   const [qbId, setQbId] = useState(initial.qb_employee_id || "");
   const [jobTitle, setJobTitle] = useState(initial.job_title || "");
-  const [hourlyRate, setHourlyRate] = useState(
-    initial.hourly_rate != null ? String(initial.hourly_rate) : ""
-  );
-  const [hireDate, setHireDate] = useState(
-    initial.hire_date ? String(initial.hire_date).slice(0, 10) : ""
-  );
-  const [sessionTimeout, setSessionTimeout] = useState(
-    typeof initial.session_timeout_minutes === "number" ? initial.session_timeout_minutes : 30
-  );
+  const [hourlyRate, setHourlyRate] = useState(initial.hourly_rate != null ? String(initial.hourly_rate) : "");
+  const [hireDate, setHireDate] = useState(initial.hire_date ? String(initial.hire_date).slice(0, 10) : "");
+  const [sessionTimeout, setSessionTimeout] = useState(typeof initial.session_timeout_minutes === "number" ? initial.session_timeout_minutes : 30);
   // New-only: send PIN setup link via SMS immediately after create (v28.22)
   const [sendPinAfterCreate, setSendPinAfterCreate] = useState(true);
 
@@ -78,7 +73,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
   // Active job titles dropdown source. The list excludes inactive titles
   // entirely; if the current employee has a deactivated title stored on
   // their record, the dropdown will be blank and they must pick another.
-  const titleNames = (jobTitles || []).filter(t => t.is_active).map(t => t.name);
+  const titleNames = (jobTitles || []).filter((t) => t.is_active).map((t) => t.name);
   const initialTitleKnown = initial.job_title && titleNames.includes(initial.job_title);
 
   const validate = () => {
@@ -103,7 +98,10 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
 
   const handleSubmit = async () => {
     const err = validate();
-    if (err) { setFormError(err); return; }
+    if (err) {
+      setFormError(err);
+      return;
+    }
     setFormError("");
     setSubmitting(true);
     try {
@@ -139,10 +137,13 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
       if (mode === "edit" && savedId && sessionTimeout !== initial.session_timeout_minutes) {
         try {
           await fetch(`${API_URL}/users/${savedId}`, {
-            method: "PUT", headers: { "Content-Type": "application/json" },
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ session_timeout_minutes: sessionTimeout }),
           });
-        } catch { /* non-blocking */ }
+        } catch {
+          /* non-blocking */
+        }
       }
 
       // Send PIN setup text immediately on create (new mode + checkbox).
@@ -151,18 +152,22 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
       if (mode === "new" && sendPinAfterCreate && savedId) {
         try {
           await fetch(`${API_URL}/employees/${savedId}/send-pin-setup`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
           });
-        } catch { /* non-blocking */ }
+        } catch {
+          /* non-blocking */
+        }
       }
 
       const successTitle = mode === "new" ? "Person added" : "Person updated";
       const personName = `${payload.first_name} ${payload.last_name}`;
-      const successMsg = mode === "new"
-        ? (sendPinAfterCreate
+      const successMsg =
+        mode === "new"
+          ? sendPinAfterCreate
             ? `${personName} added — a PIN setup text was sent to their phone. They tap the link, register biometric, set PIN. Link expires in 7 days, single-use.`
-            : `${personName} added. Use the "Send PIN Setup" button on their row when you're ready to issue their PIN.`)
-        : `${personName} updated.`;
+            : `${personName} added. Use the "Send PIN Setup" button on their row when you're ready to issue their PIN.`
+          : `${personName} updated.`;
       onSaved(successTitle, successMsg);
     } catch (err) {
       setFormError("Save failed: " + err.message);
@@ -173,23 +178,44 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
   // Section header style — visual separators inside the modal body so
   // PROFILE and ACCESS read as distinct groups without nested tabs.
   const sectionHeader = {
-    fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.1em",
-    textTransform: "uppercase", padding: "8px 0 6px",
-    borderBottom: `1px solid ${C.border}`, marginBottom: 12, marginTop: 4,
+    fontSize: 11,
+    fontWeight: 800,
+    color: C.muted,
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    padding: "8px 0 6px",
+    borderBottom: `1px solid ${C.border}`,
+    marginBottom: 12,
+    marginTop: 4,
   };
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, background: "#00000088",
-      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300,
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#00000088",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 300,
+      }}
+    >
       {/* Modal shell — backdrop click intentionally does NOT close (CAM
           Article X). Click Cancel to dismiss. */}
-      <div style={{
-        background: C.cardBg, border: `1px solid ${C.border}`,
-        borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28,
-        width: 600, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto",
-      }}>
+      <div
+        style={{
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
+          borderTop: `4px solid ${C.blue}`,
+          borderRadius: 8,
+          padding: 28,
+          width: 600,
+          maxWidth: "95vw",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
+      >
         <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>
           {mode === "new" ? "Add Person" : `Edit ${initial.first_name || ""} ${initial.last_name || ""}`.trim()}
         </div>
@@ -199,15 +225,15 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
           <div>
             <label style={labelStyle}>First Name *</label>
-            <input style={inputStyle} value={firstName} onChange={e => setFirstName(e.target.value)} />
+            <input style={inputStyle} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
           </div>
           <div>
             <label style={labelStyle}>Last Name *</label>
-            <input style={inputStyle} value={lastName} onChange={e => setLastName(e.target.value)} />
+            <input style={inputStyle} value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
           <div>
             <label style={labelStyle}>Email *</label>
-            <input type="email" style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} />
+            <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div>
             <label style={labelStyle}>Phone *</label>
@@ -216,19 +242,23 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
               inputMode="numeric"
               style={inputStyle}
               value={phone}
-              onChange={e => setPhone(formatPhone(e.target.value))}
+              onChange={(e) => setPhone(formatPhone(e.target.value))}
               placeholder="(XXX) XXX-XXXX"
             />
           </div>
           <div>
             <label style={labelStyle}>QB Employee ID *</label>
-            <input style={inputStyle} value={qbId} onChange={e => setQbId(e.target.value)} placeholder="e.g. E-001" />
+            <input style={inputStyle} value={qbId} onChange={(e) => setQbId(e.target.value)} placeholder="e.g. E-001" />
           </div>
           <div>
             <label style={labelStyle}>Job Title *</label>
-            <select style={inputStyle} value={jobTitle} onChange={e => setJobTitle(e.target.value)}>
+            <select style={inputStyle} value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}>
               <option value="">— Select —</option>
-              {titleNames.map(name => <option key={name} value={name}>{name}</option>)}
+              {titleNames.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
             </select>
             {titleNames.length === 0 && (
               <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 600 }}>
@@ -243,7 +273,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
           </div>
           <div>
             <label style={labelStyle}>Hire Date *</label>
-            <input type="date" style={inputStyle} value={hireDate} max={todayYmd()} onChange={e => setHireDate(e.target.value)} />
+            <input type="date" style={inputStyle} value={hireDate} max={todayYmd()} onChange={(e) => setHireDate(e.target.value)} />
           </div>
           <div>
             <label style={labelStyle}>Hourly Rate (optional, max ${MAX_HOURLY_RATE})</label>
@@ -254,7 +284,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
               max={MAX_HOURLY_RATE}
               style={inputStyle}
               value={hourlyRate}
-              onChange={e => setHourlyRate(e.target.value)}
+              onChange={(e) => setHourlyRate(e.target.value)}
               placeholder="(optional)"
             />
           </div>
@@ -266,25 +296,35 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
           <div>
             <label style={labelStyle}>Role *</label>
             {isOwnerLocked ? (
-              <div style={{
-                ...inputStyle,
-                background: C.steel, color: C.muted,
-                fontStyle: "italic", padding: "8px 10px",
-              }}>
+              <div
+                style={{
+                  ...inputStyle,
+                  background: C.steel,
+                  color: C.muted,
+                  fontStyle: "italic",
+                  padding: "8px 10px",
+                }}
+              >
                 owner (locked — change via scripts/change-owner-role.js)
               </div>
             ) : (
-              <select style={inputStyle} value={role} onChange={e => setRole(e.target.value)}>
-                {roleOptions.map(r => <option key={r} value={r}>{r}</option>)}
+              <select style={inputStyle} value={role} onChange={(e) => setRole(e.target.value)}>
+                {roleOptions.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
               </select>
             )}
           </div>
           {mode === "edit" && (
             <div>
               <label style={labelStyle}>Session Timeout</label>
-              <select style={inputStyle} value={sessionTimeout} onChange={e => setSessionTimeout(parseInt(e.target.value))}>
-                {SESSION_TIMEOUT_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
+              <select style={inputStyle} value={sessionTimeout} onChange={(e) => setSessionTimeout(parseInt(e.target.value))}>
+                {SESSION_TIMEOUT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -293,36 +333,48 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
 
         {/* New-mode-only: PIN setup SMS checkbox (v28.22 — SMS, not email) */}
         {mode === "new" && (
-          <label style={{
-            display: "flex", alignItems: "center", gap: 10,
-            background: "#e8f0fb", padding: "10px 14px", borderRadius: 6,
-            fontSize: 12, color: C.text, cursor: "pointer", marginBottom: 14,
-          }}>
-            <input
-              type="checkbox"
-              checked={sendPinAfterCreate}
-              onChange={e => setSendPinAfterCreate(e.target.checked)}
-              style={{ accentColor: C.blue }}
-            />
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: "#e8f0fb",
+              padding: "10px 14px",
+              borderRadius: 6,
+              fontSize: 12,
+              color: C.text,
+              cursor: "pointer",
+              marginBottom: 14,
+            }}
+          >
+            <input type="checkbox" checked={sendPinAfterCreate} onChange={(e) => setSendPinAfterCreate(e.target.checked)} style={{ accentColor: C.blue }} />
             Text PIN setup link to their phone immediately after creating the person
           </label>
         )}
 
         {formError && (
-          <div style={{
-            marginTop: 8, padding: "10px 14px",
-            background: "#fdecea", color: C.red, borderRadius: 6,
-            fontSize: 13, fontWeight: 700,
-          }}>
+          <div
+            style={{
+              marginTop: 8,
+              padding: "10px 14px",
+              background: "#fdecea",
+              color: C.red,
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
             {formError}
           </div>
         )}
 
         <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
           <Btn variant="blue" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Saving…" : (mode === "new" ? "Create Person" : "Save Changes")}
+            {submitting ? "Saving…" : mode === "new" ? "Create Person" : "Save Changes"}
           </Btn>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn variant="ghost" onClick={onClose}>
+            Cancel
+          </Btn>
         </div>
       </div>
     </div>

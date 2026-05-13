@@ -57,16 +57,13 @@ const VERSION = "v28.52";
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
   const userRole = currentUser.role; // owner | admin | manager | lead | salesman | field
-  const isAdmin = ["owner", "admin"].includes(userRole);
   const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
   const isField = userRole === "field";
   // Permission-based access — reads from user's permissions, falls back to role defaults.
   // Owner ALWAYS gets everything regardless of what's in the DB.
   // When DB permissions exist, merge on top of role defaults so new keys get defaults.
-  const perms = userRole === "owner"
-    ? DEFAULT_PERMS.owner
-    : { ...(DEFAULT_PERMS[userRole] || {}), ...(currentUser.permissions || {}) };
-  const can = (key) => !!(perms[key]);
+  const perms = userRole === "owner" ? DEFAULT_PERMS.owner : { ...(DEFAULT_PERMS[userRole] || {}), ...(currentUser.permissions || {}) };
+  const can = (key) => !!perms[key];
 
   // ── One-time mobile CSS injection ──
   useEffect(() => {
@@ -117,8 +114,8 @@ function FTIDashboard() {
     if (p.startsWith("/deleted")) return "deleted";
     if (p.startsWith("/archive")) return "archive";
     if (p.startsWith("/people")) return "people";
-    if (p.startsWith("/users")) return "people";       // v28.17 alias for legacy bookmarks
-    if (p.startsWith("/employees")) return "people";   // v28.17 alias for legacy bookmarks
+    if (p.startsWith("/users")) return "people"; // v28.17 alias for legacy bookmarks
+    if (p.startsWith("/employees")) return "people"; // v28.17 alias for legacy bookmarks
     return "dashboard";
   })();
   const navigateToPage = (path) => navigate(path);
@@ -138,12 +135,18 @@ function FTIDashboard() {
 
   // ── Page-level data (jobs, tickets, todos, inventory, deletedTickets, jsas) ──
   const {
-    jobs, setJobs,
-    tickets, setTickets,
-    deletedTickets, setDeletedTickets,
-    todos, setTodos,
-    inventory, setInventory,
-    jsas, setJsas,
+    jobs,
+    setJobs,
+    tickets,
+    setTickets,
+    deletedTickets,
+    setDeletedTickets,
+    todos,
+    setTodos,
+    inventory,
+    setInventory,
+    jsas,
+    setJsas,
     loading,
     refreshDeletedTickets,
   } = usePageData();
@@ -160,9 +163,11 @@ function FTIDashboard() {
     handleFlagCancel,
     handleUpdateJob,
   } = useJobActions({
-    jobs, setJobs,
+    jobs,
+    setJobs,
     setTickets,
-    deletedTickets, setDeletedTickets,
+    deletedTickets,
+    setDeletedTickets,
     refreshDeletedTickets,
     setExpandedId,
     currentUser,
@@ -172,13 +177,15 @@ function FTIDashboard() {
   });
 
   // ── Derived state for dashboard list rendering + nav badges ──
-  const myActiveTodos = todos.filter(t => todoVisible(t) && !t.completed);
+  const myActiveTodos = todos.filter((t) => todoVisible(t) && !t.completed);
 
   const pendingByJob = useMemo(() => {
     const map = {};
-    todos.filter(t => t.jobId && !t.completed && todoVisible(t)).forEach(t => {
-      map[t.jobId] = (map[t.jobId] || 0) + 1;
-    });
+    todos
+      .filter((t) => t.jobId && !t.completed && todoVisible(t))
+      .forEach((t) => {
+        map[t.jobId] = (map[t.jobId] || 0) + 1;
+      });
     return map;
   }, [todos]);
 
@@ -192,8 +199,8 @@ function FTIDashboard() {
   // archive_reason="job_closed" and removes from local state). The 3-tier
   // SCHEDULED/IN PROGRESS/COMPLETED filter on the dashboard is gone — see
   // CAM Article III Amendment 2 evaluation in the v28.40 commit.
-  const activeJobs = jobs.filter(j => j.status !== "Deleted" && j.status !== "Completed");
-  const deletedJobs = jobs.filter(j => j.status === "Deleted");
+  const activeJobs = jobs.filter((j) => j.status !== "Deleted" && j.status !== "Completed");
+  const deletedJobs = jobs.filter((j) => j.status === "Deleted");
   const sortedJobs = [...activeJobs].sort((a, b) => {
     if (sortMode === "ticket") {
       return (b.id || 0) - (a.id || 0);
@@ -215,8 +222,20 @@ function FTIDashboard() {
 
   // v28.19 — "Users" removed from the top nav. People management is
   // admin-cadence work and lives in the gear menu only ("People" → /people).
-  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Assets", "Crew", "Safety", "Final Review", "Reports", "Deleted", "Archive"];
-  const NAV_ITEMS = ALL_NAV_ITEMS.filter(i => {
+  const ALL_NAV_ITEMS = [
+    "All Tickets",
+    "Work Order History",
+    "Action Items",
+    "Inventory",
+    "Assets",
+    "Crew",
+    "Safety",
+    "Final Review",
+    "Reports",
+    "Deleted",
+    "Archive",
+  ];
+  const NAV_ITEMS = ALL_NAV_ITEMS.filter((i) => {
     if (i === "Inventory" && !can("view_inventory")) return false;
     if (i === "Assets" && !can("view_inventory")) return false;
     if (i === "Work Order History" && !can("view_jobs")) return false;
@@ -232,12 +251,26 @@ function FTIDashboard() {
   return (
     <div style={{ minHeight: "100vh", background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
       {/* MOBILE HAMBURGER (floating button bottom-right) */}
-      <div className="fti-hamburger" onClick={() => setDrawerOpen(true)} style={{
-        position: "fixed", bottom: 24, right: 20, zIndex: 1000,
-        width: 52, height: 52, borderRadius: "50%", background: C.red,
-        boxShadow: "0 4px 16px #00000044", cursor: "pointer",
-        flexDirection: "column", gap: 5, alignItems: "center", justifyContent: "center",
-      }}>
+      <div
+        className="fti-hamburger"
+        onClick={() => setDrawerOpen(true)}
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 20,
+          zIndex: 1000,
+          width: 52,
+          height: 52,
+          borderRadius: "50%",
+          background: C.red,
+          boxShadow: "0 4px 16px #00000044",
+          cursor: "pointer",
+          flexDirection: "column",
+          gap: 5,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
         <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
         <div style={{ width: 22, height: 2, background: C.white, borderRadius: 2 }} />
@@ -283,35 +316,41 @@ function FTIDashboard() {
 
       {/* PAGES — routed */}
       <Routes>
-        <Route path="/" element={
-          <DashboardHome
-            jobs={jobs}
-            activeJobs={activeJobs}
-            sortedJobs={sortedJobs}
-            sortMode={sortMode}
-            setSortMode={setSortMode}
-            myActiveTodos={myActiveTodos}
-            tickets={tickets}
-            setTickets={setTickets}
-            todos={todos}
-            setTodos={setTodos}
-            expandedId={expandedId}
-            setExpandedId={setExpandedId}
-            pendingByJob={pendingByJob}
-            navigateToJob={navigateToJob}
-            navigateToPage={navigateToPage}
-            setShowNewJob={setShowNewJob}
-            handleUpdateJob={handleUpdateJob}
-            handleDeleteJob={handleDeleteJob}
-            handleFlagCancel={handleFlagCancel}
-            handleCloseJob={handleCloseJob}
-            setDeletedTickets={setDeletedTickets}
-            jsas={jsas}
-            setJsas={setJsas}
-          />
-        } />
+        <Route
+          path="/"
+          element={
+            <DashboardHome
+              jobs={jobs}
+              activeJobs={activeJobs}
+              sortedJobs={sortedJobs}
+              sortMode={sortMode}
+              setSortMode={setSortMode}
+              myActiveTodos={myActiveTodos}
+              tickets={tickets}
+              setTickets={setTickets}
+              todos={todos}
+              setTodos={setTodos}
+              expandedId={expandedId}
+              setExpandedId={setExpandedId}
+              pendingByJob={pendingByJob}
+              navigateToJob={navigateToJob}
+              navigateToPage={navigateToPage}
+              setShowNewJob={setShowNewJob}
+              handleUpdateJob={handleUpdateJob}
+              handleDeleteJob={handleDeleteJob}
+              handleFlagCancel={handleFlagCancel}
+              handleCloseJob={handleCloseJob}
+              setDeletedTickets={setDeletedTickets}
+              jsas={jsas}
+              setJsas={setJsas}
+            />
+          }
+        />
         <Route path="/all-tickets" element={<AllTicketsPage tickets={tickets} setTickets={setTickets} jobs={jobs} />} />
-        <Route path="/todos" element={<TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />} />
+        <Route
+          path="/todos"
+          element={<TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />}
+        />
         {can("view_jobs") && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
@@ -322,7 +361,22 @@ function FTIDashboard() {
         {can("view_reports") && <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />}
         {can("view_inventory") && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
         {can("view_inventory") && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
-        {can("delete_jobs") && <Route path="/deleted" element={<DeletedJobsPage deletedJobs={deletedJobs} deletedTickets={deletedTickets} jobs={jobs} handleRestoreJob={handleRestoreJob} handleArchiveJob={handleArchiveJob} handleRestoreTicket={handleRestoreTicket} handleArchiveTicket={handleArchiveTicket} />} />}
+        {can("delete_jobs") && (
+          <Route
+            path="/deleted"
+            element={
+              <DeletedJobsPage
+                deletedJobs={deletedJobs}
+                deletedTickets={deletedTickets}
+                jobs={jobs}
+                handleRestoreJob={handleRestoreJob}
+                handleArchiveJob={handleArchiveJob}
+                handleRestoreTicket={handleRestoreTicket}
+                handleArchiveTicket={handleArchiveTicket}
+              />
+            }
+          />
+        )}
         {can("view_archive") && <Route path="/archive" element={<ArchivePage />} />}
         {/* v28.17 — One canonical /people route. /users and /employees
             redirect for legacy bookmark compatibility. */}
@@ -341,15 +395,29 @@ function FTIDashboard() {
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
       {showCompanyDocs && <CompanyDocumentsModal onClose={() => setShowCompanyDocs(false)} />}
       {showLogoutConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }} onClick={() => setShowLogoutConfirm(false)}>
-          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 380, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+        <div
+          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}
+          onClick={() => setShowLogoutConfirm(false)}
+        >
+          <div
+            style={{
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderTop: `4px solid ${C.red}`,
+              borderRadius: 8,
+              padding: 28,
+              width: 380,
+              maxWidth: "90vw",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Sign Out?</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>
-              You will be signed out and returned to the login screen.
-            </div>
+            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>You will be signed out and returned to the login screen.</div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn onClick={logout}>SIGN OUT</Btn>
-              <Btn variant="ghost" onClick={() => setShowLogoutConfirm(false)}>CANCEL</Btn>
+              <Btn variant="ghost" onClick={() => setShowLogoutConfirm(false)}>
+                CANCEL
+              </Btn>
             </div>
           </div>
         </div>

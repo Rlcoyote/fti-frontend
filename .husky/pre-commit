@@ -1,0 +1,9 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh" 2>/dev/null || true
+
+# v28.57 — pre-commit gate per CAM Article XXXI. Blocks commits that fail
+# lint or format checks on staged files. Bypass requires --no-verify (a
+# discipline marker, not a default).
+
+cd "$(dirname "$0")/.."
+npx lint-staged

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { C, TERMINAL_TICKET_STATUSES, WO_TICKET_STATUSES, FINAL_REVIEW_TICKET_STATUSES } from "./config.js";
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
 import { Btn, TicketDot, TodoBadge, ConfirmModal, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
@@ -8,9 +8,27 @@ import EditJobModal from "./EditJobModal.jsx";
 import FlowbackModal from "./FlowbackModal.jsx";
 import { useApp } from "./AppContext.jsx";
 
-function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tickets, setTickets, jobs, onNavigateJob, onUpdateJob, onDeleteJob, onFlagCancel, onCloseJob, onTicketDeleted, jsas, setJsas }) {
+function JobCard({
+  job,
+  isExpanded,
+  onToggle,
+  pendingTodos,
+  todos,
+  setTodos,
+  tickets,
+  setTickets,
+  jobs,
+  onNavigateJob: _onNavigateJob,
+  onUpdateJob,
+  onDeleteJob,
+  onFlagCancel,
+  onCloseJob,
+  onTicketDeleted,
+  jsas: _jsas,
+  setJsas: _setJsas,
+}) {
   const { currentUser, assets, userNames, userIdByName } = useApp();
-  const jobTickets = tickets.filter(t => t.jobId === job.id);
+  const jobTickets = tickets.filter((t) => t.jobId === job.id);
   const [activeTab, setActiveTab] = useState("tickets");
   const [showEditJob, setShowEditJob] = useState(false);
   const [showFlowback, setShowFlowback] = useState(false);
@@ -23,9 +41,9 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
     return () => window.removeEventListener("resize", handler);
   }, []);
   // Billable total excludes voided tickets. Used for per-well display in the WELLS section below.
-  const ticketTotal = jobTickets.filter(t => t.status !== "voided").reduce((s, t) => s + calcTicketTotal(t), 0);
+  const ticketTotal = jobTickets.filter((t) => t.status !== "voided").reduce((s, t) => s + calcTicketTotal(t), 0);
   const perWellAmount = ticketTotal / (job.wells.length || 1);
-  const hasJobPendingComment = jobTickets.some(t => t.hasPendingComment || t.has_pending_comment);
+  const hasJobPendingComment = jobTickets.some((t) => t.hasPendingComment || t.has_pending_comment);
 
   // v28.40 — completion gate. The button in the top-right slot shows one of
   // four states based on what's left to do across this WO's tickets:
@@ -35,9 +53,9 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   //   MARK FOR COMPLETION (all tickets terminal — sentToQB / qbVerified / voided)
   // Only the last state is clickable. Click → confirm modal → archive.
   const canManage = ["owner", "admin", "manager"].includes(currentUser?.role || "field");
-  const inLeadDomain = jobTickets.filter(t => WO_TICKET_STATUSES.includes(t.status));
-  const inFinalReview = jobTickets.filter(t => FINAL_REVIEW_TICKET_STATUSES.includes(t.status));
-  const inTerminal   = jobTickets.filter(t => TERMINAL_TICKET_STATUSES.includes(t.status));
+  const inLeadDomain = jobTickets.filter((t) => WO_TICKET_STATUSES.includes(t.status));
+  const inFinalReview = jobTickets.filter((t) => FINAL_REVIEW_TICKET_STATUSES.includes(t.status));
+  const inTerminal = jobTickets.filter((t) => TERMINAL_TICKET_STATUSES.includes(t.status));
   let completion;
   if (jobTickets.length === 0) {
     completion = { label: "ADD TICKETS", color: C.muted, bg: C.steel, ready: false };
@@ -57,13 +75,13 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   // ticket showed gold (incomplete) on the dashboard pip even though the lead
   // had finished it. Added below.
   const dotState = (type) => {
-    const t = jobTickets.filter(tk => tk.type === type);
+    const t = jobTickets.filter((tk) => tk.type === type);
     if (t.length === 0) return "none";
-    if (t.some(tk => tk.status === "qbVerified")) return "signed";
-    if (t.some(tk => tk.status === "sentToQB")) return "signed";
-    if (t.some(tk => tk.status === "approved")) return "signed";
-    if (t.some(tk => tk.status === "signed" || tk.status === "sigNotReq")) return "signed";
-    if (t.some(tk => tk.status === "emailed")) return "incomplete";
+    if (t.some((tk) => tk.status === "qbVerified")) return "signed";
+    if (t.some((tk) => tk.status === "sentToQB")) return "signed";
+    if (t.some((tk) => tk.status === "approved")) return "signed";
+    if (t.some((tk) => tk.status === "signed" || tk.status === "sigNotReq")) return "signed";
+    if (t.some((tk) => tk.status === "emailed")) return "incomplete";
     return "incomplete";
   };
 
@@ -74,141 +92,256 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
   const accentColor = isFlagged ? "#b85c00" : C.red;
 
   return (
-    <div style={{
-      background: isFlagged ? "#fdf0e6" : C.cardBg, border: `1px solid ${isFlagged ? "#b85c00" : C.border}`,
-      borderLeft: `3px solid ${accentColor}`, borderRadius: 6, marginBottom: 8,
-      boxShadow: isExpanded ? `0 4px 24px ${accentColor}22` : "none",
-      overflow: "hidden", maxWidth: "100%",
-    }}>
+    <div
+      style={{
+        background: isFlagged ? "#fdf0e6" : C.cardBg,
+        border: `1px solid ${isFlagged ? "#b85c00" : C.border}`,
+        borderLeft: `3px solid ${accentColor}`,
+        borderRadius: 6,
+        marginBottom: 8,
+        boxShadow: isExpanded ? `0 4px 24px ${accentColor}22` : "none",
+        overflow: "hidden",
+        maxWidth: "100%",
+      }}
+    >
       {isMobile ? (
         // Mobile: compact single row
-        <div onClick={onToggle} style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "12px 14px", cursor: "pointer", userSelect: "none",
-        }}>
+        <div
+          onClick={onToggle}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 14px",
+            cursor: "pointer",
+            userSelect: "none",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #{job.id}</div>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{job.customer}</div>
               <div style={{ fontSize: 11, color: C.muted }}>{job.location}</div>
-              {job.createdBy && <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 1 }}>{shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}</div>}
+              {job.createdBy && (
+                <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 1 }}>
+                  {shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}
+                </div>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             <button
               type="button"
               disabled={!completion.ready || !canManage}
-              onClick={(e) => { e.stopPropagation(); if (completion.ready && canManage) setShowCompleteConfirm(true); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (completion.ready && canManage) setShowCompleteConfirm(true);
+              }}
               style={{
-                background: completion.bg, color: completion.color,
-                border: `1px solid ${completion.color}44`, borderRadius: 4,
-                padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em",
-                cursor: (completion.ready && canManage) ? "pointer" : "default",
-                opacity: (completion.ready && canManage) ? 1 : 0.85,
+                background: completion.bg,
+                color: completion.color,
+                border: `1px solid ${completion.color}44`,
+                borderRadius: 4,
+                padding: "2px 8px",
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                cursor: completion.ready && canManage ? "pointer" : "default",
+                opacity: completion.ready && canManage ? 1 : 0.85,
                 fontFamily: "'Arial', sans-serif",
               }}
-            >{completion.label}</button>
+            >
+              {completion.label}
+            </button>
             {hasJobPendingComment && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "1px 6px", fontSize: 9, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 3,
+                  background: "#fdecea",
+                  color: "#B01020",
+                  borderRadius: 4,
+                  padding: "1px 6px",
+                  fontSize: 9,
+                  fontWeight: 800,
+                  letterSpacing: "0.04em",
+                  border: "1px solid #B0102044",
+                }}
+              >
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
                 COMMENT
               </span>
             )}
-            <div style={{ fontSize: 11, color: C.muted }}>{job.wells.length} {job.wells.length === 1 ? "well" : "wells"}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>
+              {job.wells.length} {job.wells.length === 1 ? "well" : "wells"}
+            </div>
           </div>
         </div>
       ) : (
         // Desktop: full grid
-        <div onClick={onToggle} className="fti-job-card-header" style={{
-          display: "grid", gridTemplateColumns: "80px 1fr 1fr 140px 160px 120px 90px",
-          alignItems: "center", padding: "14px 18px",
-          cursor: "pointer", gap: 12, userSelect: "none", overflow: "hidden",
-        }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #</div>
-          <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{job.id}</div>
-          {job.createdBy && <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 2 }}>{shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}</div>}
-        </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>CUSTOMER</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{job.customer}</div>
-          <div style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{job.location}</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>WELLS</div>
-          <div style={{ fontSize: 13, color: C.text }}>{job.wells.length} {job.wells.length === 1 ? "well" : "wells"}</div>
-          <div style={{ fontSize: 11, color: C.muted }}>{job.wells[0]?.well_name || job.wells[0]}{job.wells.length > 1 ? ` +${job.wells.length - 1}` : ""}</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>SCHEDULED DATE</div>
-          <div style={{ fontSize: 13, color: C.text }}>{formatDate(job.dateStarted)}</div>
-          <div style={{ fontSize: 11, color: C.muted }}>{job.hoursLogged}h logged</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>TICKETS</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
-            <TicketDot label="RU" state={dotState("Rig Up")} />
-            <TicketDot label="TST" state={dotState("Tester")} />
-            <TicketDot label="PMP" state={dotState("Pumper")} />
-            <TicketDot label="RNT" state={dotState("Rental")} />
-            <TicketDot label="RD" state={dotState("Rig Down")} />
+        <div
+          onClick={onToggle}
+          className="fti-job-card-header"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "80px 1fr 1fr 140px 160px 120px 90px",
+            alignItems: "center",
+            padding: "14px 18px",
+            cursor: "pointer",
+            gap: 12,
+            userSelect: "none",
+            overflow: "hidden",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{job.id}</div>
+            {job.createdBy && (
+              <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 2 }}>
+                {shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}
+              </div>
+            )}
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>CUSTOMER</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{job.customer}</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{job.location}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>WELLS</div>
+            <div style={{ fontSize: 13, color: C.text }}>
+              {job.wells.length} {job.wells.length === 1 ? "well" : "wells"}
+            </div>
+            <div style={{ fontSize: 11, color: C.muted }}>
+              {job.wells[0]?.well_name || job.wells[0]}
+              {job.wells.length > 1 ? ` +${job.wells.length - 1}` : ""}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 2 }}>SCHEDULED DATE</div>
+            <div style={{ fontSize: 13, color: C.text }}>{formatDate(job.dateStarted)}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>{job.hoursLogged}h logged</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>TICKETS</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+              <TicketDot label="RU" state={dotState("Rig Up")} />
+              <TicketDot label="TST" state={dotState("Tester")} />
+              <TicketDot label="PMP" state={dotState("Pumper")} />
+              <TicketDot label="RNT" state={dotState("Rental")} />
+              <TicketDot label="RD" state={dotState("Rig Down")} />
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TASKS</div>
+            <TodoBadge count={pendingTodos} />
+            {!pendingTodos && <span style={{ fontSize: 11, color: C.muted }}>None pending</span>}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+            <button
+              type="button"
+              disabled={!completion.ready || !canManage}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (completion.ready && canManage) setShowCompleteConfirm(true);
+              }}
+              style={{
+                background: completion.bg,
+                color: completion.color,
+                border: `1px solid ${completion.color}44`,
+                borderRadius: 4,
+                padding: "3px 10px",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.1em",
+                cursor: completion.ready && canManage ? "pointer" : "default",
+                opacity: completion.ready && canManage ? 1 : 0.85,
+                fontFamily: "'Arial', sans-serif",
+              }}
+            >
+              {completion.label}
+            </button>
+            {hasJobPendingComment && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  background: "#fdecea",
+                  color: "#B01020",
+                  borderRadius: 4,
+                  padding: "2px 8px",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.04em",
+                  border: "1px solid #B0102044",
+                }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                COMMENT
+              </span>
+            )}
+            <span
+              style={{
+                color: C.muted,
+                fontSize: 12,
+                display: "inline-block",
+                transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            >
+              ▾
+            </span>
           </div>
         </div>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TASKS</div>
-          <TodoBadge count={pendingTodos} />
-          {!pendingTodos && <span style={{ fontSize: 11, color: C.muted }}>None pending</span>}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-          <button
-            type="button"
-            disabled={!completion.ready || !canManage}
-            onClick={(e) => { e.stopPropagation(); if (completion.ready && canManage) setShowCompleteConfirm(true); }}
-            style={{
-              background: completion.bg, color: completion.color,
-              border: `1px solid ${completion.color}44`, borderRadius: 4,
-              padding: "3px 10px", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em",
-              cursor: (completion.ready && canManage) ? "pointer" : "default",
-              opacity: (completion.ready && canManage) ? 1 : 0.85,
-              fontFamily: "'Arial', sans-serif",
-            }}
-          >{completion.label}</button>
-          {hasJobPendingComment && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
-              COMMENT
-            </span>
-          )}
-          <span style={{ color: C.muted, fontSize: 12, display: "inline-block", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</span>
-        </div>
-      </div>
-      )}{/* end desktop header */}
+      )}
+      {/* end desktop header */}
 
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", justifyContent: "center", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
-            {[["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`], ["details", "DETAILS"], ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`]].map(([tab, label]) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} style={{
-                background: activeTab === tab ? C.cardBg : "transparent", border: "none",
-                borderBottom: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
-                borderTop: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
-                borderLeft: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
-                borderRight: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
-                borderTopLeftRadius: activeTab === tab ? 4 : 0,
-                borderTopRightRadius: activeTab === tab ? 4 : 0,
-                marginBottom: activeTab === tab ? -1 : 0,
-                color: activeTab === tab ? C.text : C.muted,
-                padding: "10px 16px", fontSize: 12, fontWeight: 700,
-                cursor: "pointer", letterSpacing: "0.06em",
-              }}>{label}</button>
+            {[
+              ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`],
+              ["details", "DETAILS"],
+              ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`],
+            ].map(([tab, label]) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  background: activeTab === tab ? C.cardBg : "transparent",
+                  border: "none",
+                  borderBottom: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
+                  borderTop: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
+                  borderLeft: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
+                  borderRight: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
+                  borderTopLeftRadius: activeTab === tab ? 4 : 0,
+                  borderTopRightRadius: activeTab === tab ? 4 : 0,
+                  marginBottom: activeTab === tab ? -1 : 0,
+                  color: activeTab === tab ? C.text : C.muted,
+                  padding: "10px 16px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                {label}
+              </button>
             ))}
           </div>
 
           {activeTab === "details" && (
-            <div style={{
-              padding: "18px 18px 20px", display: "grid",
-              gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 24, background: "#f7f9fc",
-            }}>
+            <div
+              style={{
+                padding: "18px 18px 20px",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr 1fr",
+                gap: 24,
+                background: "#f7f9fc",
+              }}
+            >
               <div>
                 {/* WO DETAILS — synopsis from the WO creation form. Fields hidden when empty. Order follows WO creation form. */}
                 {(() => {
@@ -231,16 +364,38 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                       <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>WO DETAILS</div>
                       {pocName && (
                         <div style={{ marginBottom: 8 }}>
-                          <div style={{ fontSize: 10, color: PANEL_MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>Point of Contact</div>
+                          <div style={{ fontSize: 10, color: PANEL_MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>
+                            Point of Contact
+                          </div>
                           <div style={{ fontSize: 12, color: PANEL_TEXT, fontWeight: 600 }}>{pocName}</div>
                           {pocPhone && <div style={{ fontSize: 11, color: PANEL_TEXT }}>{pocPhone}</div>}
                           {pocEmail && <div style={{ fontSize: 11, color: PANEL_TEXT }}>{pocEmail}</div>}
                         </div>
                       )}
-                      {companyCode && <div style={kvRowStyle}><span style={keyStyle}>Company Code:</span><span style={valStyle}>{companyCode}</span></div>}
-                      {costCenter && <div style={kvRowStyle}><span style={keyStyle}>Cost Center:</span><span style={valStyle}>{costCenter}</span></div>}
-                      {po && <div style={kvRowStyle}><span style={keyStyle}>PO:</span><span style={valStyle}>{po}</span></div>}
-                      {afe && <div style={kvRowStyle}><span style={keyStyle}>AFE:</span><span style={{ fontSize: 11, color: "#1a5fa8", fontWeight: 700 }}>{afe}</span></div>}
+                      {companyCode && (
+                        <div style={kvRowStyle}>
+                          <span style={keyStyle}>Company Code:</span>
+                          <span style={valStyle}>{companyCode}</span>
+                        </div>
+                      )}
+                      {costCenter && (
+                        <div style={kvRowStyle}>
+                          <span style={keyStyle}>Cost Center:</span>
+                          <span style={valStyle}>{costCenter}</span>
+                        </div>
+                      )}
+                      {po && (
+                        <div style={kvRowStyle}>
+                          <span style={keyStyle}>PO:</span>
+                          <span style={valStyle}>{po}</span>
+                        </div>
+                      )}
+                      {afe && (
+                        <div style={kvRowStyle}>
+                          <span style={keyStyle}>AFE:</span>
+                          <span style={{ fontSize: 11, color: "#1a5fa8", fontWeight: 700 }}>{afe}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -266,13 +421,18 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>ASSETS</div>
-                {(assets || []).filter(a => a.assigned_job_id === job.id).map(a => (
-                  <div key={a.id} style={{ fontSize: 12, color: PANEL_TEXT, marginBottom: 5, display: "flex", gap: 6 }}>
-                    <span style={{ color: "#8a6500", fontSize: 8, marginTop: 4 }}>◆</span>
-                    <span>{a.name}{a.unit_number ? ` (${a.unit_number})` : ""}</span>
-                  </div>
-                ))}
-                {(assets || []).filter(a => a.assigned_job_id === job.id).length === 0 && (
+                {(assets || [])
+                  .filter((a) => a.assigned_job_id === job.id)
+                  .map((a) => (
+                    <div key={a.id} style={{ fontSize: 12, color: PANEL_TEXT, marginBottom: 5, display: "flex", gap: 6 }}>
+                      <span style={{ color: "#8a6500", fontSize: 8, marginTop: 4 }}>◆</span>
+                      <span>
+                        {a.name}
+                        {a.unit_number ? ` (${a.unit_number})` : ""}
+                      </span>
+                    </div>
+                  ))}
+                {(assets || []).filter((a) => a.assigned_job_id === job.id).length === 0 && (
                   <div style={{ fontSize: 11, color: PANEL_MUTED, fontStyle: "italic" }}>None deployed</div>
                 )}
               </div>
@@ -297,28 +457,64 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                   }
                   return actions;
                 })().map((btn, i) => (
-                  <button key={i} onClick={(e) => { e.stopPropagation(); if (btn.action) btn.action(); }} style={{
-                    display: "block", width: "100%", background: btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : btn.success ? "#e6f5ec" : "transparent",
-                    border: `1px solid ${btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : C.border}`,
-                    color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : btn.action ? PANEL_TEXT : PANEL_MUTED,
-                    padding: "7px 12px", borderRadius: 4, fontSize: 12,
-                    cursor: btn.action ? "pointer" : "default", textAlign: "left", marginBottom: 6,
-                    fontFamily: "'Arial', sans-serif", opacity: btn.action ? 1 : 0.5,
-                    fontWeight: btn.danger || btn.warn || btn.success ? 800 : 400,
-                  }}
-                    onMouseEnter={e => { if (btn.action) { e.target.style.borderColor = C.red; e.target.style.background = btn.danger ? "#f5c6cb" : "#fbeaec"; }}}
-                    onMouseLeave={e => { e.target.style.borderColor = btn.danger ? C.red : btn.warn ? "#8a6500" : C.border; e.target.style.background = btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : "transparent"; }}
-                  >{btn.label}{!btn.action ? " (coming soon)" : ""}</button>
+                  <button
+                    key={i}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (btn.action) btn.action();
+                    }}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      background: btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : btn.success ? "#e6f5ec" : "transparent",
+                      border: `1px solid ${btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : C.border}`,
+                      color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : btn.action ? PANEL_TEXT : PANEL_MUTED,
+                      padding: "7px 12px",
+                      borderRadius: 4,
+                      fontSize: 12,
+                      cursor: btn.action ? "pointer" : "default",
+                      textAlign: "left",
+                      marginBottom: 6,
+                      fontFamily: "'Arial', sans-serif",
+                      opacity: btn.action ? 1 : 0.5,
+                      fontWeight: btn.danger || btn.warn || btn.success ? 800 : 400,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (btn.action) {
+                        e.target.style.borderColor = C.red;
+                        e.target.style.background = btn.danger ? "#f5c6cb" : "#fbeaec";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.borderColor = btn.danger ? C.red : btn.warn ? "#8a6500" : C.border;
+                      e.target.style.background = btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : "transparent";
+                    }}
+                  >
+                    {btn.label}
+                    {!btn.action ? " (coming soon)" : ""}
+                  </button>
                 ))}
               </div>
             </div>
           )}
-            {job.notes && (
-              <div style={{ padding: "0 18px 14px", background: "#f7f9fc" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
-                <div style={{ fontSize: 12, color: C.text, whiteSpace: "pre-wrap", background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 4, padding: "8px 12px" }}>{job.notes}</div>
+          {job.notes && (
+            <div style={{ padding: "0 18px 14px", background: "#f7f9fc" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: C.text,
+                  whiteSpace: "pre-wrap",
+                  background: C.cardBg,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 4,
+                  padding: "8px 12px",
+                }}
+              >
+                {job.notes}
               </div>
-            )}
+            </div>
+          )}
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
@@ -333,20 +529,46 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
           )}
         </div>
       )}
-      {showEditJob && <EditJobModal job={job} onSave={(updates) => { onUpdateJob(job.id, updates); setShowEditJob(false); }} onClose={() => setShowEditJob(false)} />}
+      {showEditJob && (
+        <EditJobModal
+          job={job}
+          onSave={(updates) => {
+            onUpdateJob(job.id, updates);
+            setShowEditJob(false);
+          }}
+          onClose={() => setShowEditJob(false)}
+        />
+      )}
       {showFlowback && <FlowbackModal job={job} onClose={() => setShowFlowback(false)} />}
       {showCompleteConfirm && (
         <ConfirmModal
           title={`Mark Work Order #${job.id} complete?`}
           message={`All tickets are sent to accounting or voided — the lead's work here is done. The Work Order will move to Archive. This can be undone from Archive if needed.`}
           yesLabel="Mark Complete"
-          onYes={() => { if (onCloseJob) onCloseJob(job.id); setShowCompleteConfirm(false); }}
+          onYes={() => {
+            if (onCloseJob) onCloseJob(job.id);
+            setShowCompleteConfirm(false);
+          }}
           onCancel={() => setShowCompleteConfirm(false)}
         />
       )}
       {showDeleteConfirm && (
-        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 420, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+        <div
+          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            style={{
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderTop: `4px solid ${C.red}`,
+              borderRadius: 8,
+              padding: 28,
+              width: 420,
+              maxWidth: "90vw",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div style={{ fontSize: 16, fontWeight: 800, color: C.red, marginBottom: 12 }}>
               {["owner", "admin", "manager"].includes(currentUser?.role) ? "Delete Work Order?" : "Flag for Cancellation?"}
             </div>
@@ -359,15 +581,21 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
                 : "This work order will be flagged for review. A manager or admin will need to approve the cancellation."}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={() => {
-                if (["owner", "admin", "manager"].includes(currentUser?.role)) {
-                  onDeleteJob(job.id);
-                } else {
-                  onFlagCancel(job.id);
-                }
-                setShowDeleteConfirm(false);
-              }}>{["owner", "admin", "manager"].includes(currentUser?.role) ? "YES, DELETE" : "YES, FLAG IT"}</Btn>
-              <Btn onClick={() => setShowDeleteConfirm(false)} variant="ghost">CANCEL</Btn>
+              <Btn
+                onClick={() => {
+                  if (["owner", "admin", "manager"].includes(currentUser?.role)) {
+                    onDeleteJob(job.id);
+                  } else {
+                    onFlagCancel(job.id);
+                  }
+                  setShowDeleteConfirm(false);
+                }}
+              >
+                {["owner", "admin", "manager"].includes(currentUser?.role) ? "YES, DELETE" : "YES, FLAG IT"}
+              </Btn>
+              <Btn onClick={() => setShowDeleteConfirm(false)} variant="ghost">
+                CANCEL
+              </Btn>
             </div>
           </div>
         </div>
@@ -375,6 +603,5 @@ function JobCard({ job, isExpanded, onToggle, pendingTodos, todos, setTodos, tic
     </div>
   );
 }
-
 
 export default JobCard;

@@ -110,10 +110,10 @@ function PeoplePage() {
   // and "error" auto-clear after `ttlMs`. The clear is guarded against newer
   // messages clobbering older ones.
   const setRowMsg = (userId, kind, message, ttlMs = 4000) => {
-    setRowFeedback(prev => ({ ...prev, [userId]: { kind, msg: message } }));
+    setRowFeedback((prev) => ({ ...prev, [userId]: { kind, msg: message } }));
     if (kind !== "pending" && ttlMs > 0) {
       setTimeout(() => {
-        setRowFeedback(prev => {
+        setRowFeedback((prev) => {
           const cur = prev[userId];
           if (!cur || cur.msg !== message) return prev; // newer msg — leave it
           const next = { ...prev };
@@ -136,7 +136,9 @@ function PeoplePage() {
     try {
       const r = await fetch(`${API_URL}/employees${includeInactive ? "?include_inactive=true" : ""}`);
       if (r.ok) setPeople(await r.json());
-    } catch (err) { console.error("Fetch people failed:", err); }
+    } catch (err) {
+      console.error("Fetch people failed:", err);
+    }
     setLoading(false);
   };
 
@@ -144,11 +146,17 @@ function PeoplePage() {
     try {
       const r = await fetch(`${API_URL}/job-titles`);
       if (r.ok) setJobTitles(await r.json());
-    } catch { /* non-blocking */ }
+    } catch {
+      /* non-blocking */
+    }
   };
 
-  useEffect(() => { fetchPeople(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeInactive]);
-  useEffect(() => { fetchJobTitles(); }, []);
+  useEffect(() => {
+    fetchPeople();
+  }, [includeInactive]);
+  useEffect(() => {
+    fetchJobTitles();
+  }, []);
 
   if (!isOwnerOrAdmin) {
     return <div style={{ padding: 32, color: C.muted }}>You need owner or admin access to view this page.</div>;
@@ -173,7 +181,9 @@ function PeoplePage() {
       }
       setRowMsg(p.id, "success", `✓ PIN setup link sent to ${p.phone || "phone"}`, 5000);
       fetchPeople();
-    } catch (err) { setRowMsg(p.id, "error", err.message || "Send failed", 6000); }
+    } catch (err) {
+      setRowMsg(p.id, "error", err.message || "Send failed", 6000);
+    }
   };
 
   const resetPin = async (p) => {
@@ -187,7 +197,9 @@ function PeoplePage() {
       }
       setRowMsg(p.id, "success", `✓ PIN reset; new link sent to ${p.phone || "phone"}`, 5000);
       fetchPeople();
-    } catch (err) { setRowMsg(p.id, "error", err.message || "Reset failed", 6000); }
+    } catch (err) {
+      setRowMsg(p.id, "error", err.message || "Reset failed", 6000);
+    }
   };
 
   const deactivate = async (p) => {
@@ -202,14 +214,17 @@ function PeoplePage() {
       setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} deactivated`, 5000);
       fetchPeople();
       refreshUsers();
-    } catch (err) { setRowMsg(p.id, "error", err.message || "Deactivate failed", 6000); }
+    } catch (err) {
+      setRowMsg(p.id, "error", err.message || "Deactivate failed", 6000);
+    }
   };
 
   const resendInvite = async (p) => {
     setRowMsg(p.id, "pending", "Sending invite…");
     try {
       const r = await fetch(`${API_URL}/auth/invite`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: p.id }),
       });
       const data = await r.json().catch(() => ({}));
@@ -227,7 +242,8 @@ function PeoplePage() {
     setRowMsg(p.id, "pending", "Wiping biometric…");
     try {
       const r = await fetch(`${API_URL}/auth/webauthn/admin-disable`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: p.id }),
       });
       const data = await r.json().catch(() => ({}));
@@ -237,7 +253,9 @@ function PeoplePage() {
       }
       setRowMsg(p.id, "success", `✓ Biometric wiped — ${p.first_name} ${p.last_name} re-registers next login`, 5000);
       refreshUsers();
-    } catch (err) { setRowMsg(p.id, "error", err?.message || "Connection error", 6000); }
+    } catch (err) {
+      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
+    }
   };
 
   // v28.49 — force every active session for the target user to end. Bumps
@@ -249,7 +267,8 @@ function PeoplePage() {
     setRowMsg(p.id, "pending", "Forcing sign-out…");
     try {
       const r = await fetch(`${API_URL}/users/${p.id}/force-logout`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) {
@@ -257,15 +276,24 @@ function PeoplePage() {
         return;
       }
       setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} signed out of all devices`, 5000);
-    } catch (err) { setRowMsg(p.id, "error", err?.message || "Connection error", 6000); }
+    } catch (err) {
+      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
+    }
   };
 
   const handleAdminResetPassword = async () => {
-    if (!resetPwVal || resetPwVal.length < 6) { setResetPwMsg("Password must be at least 6 characters"); return; }
-    if (resetPwVal !== resetPwConfirm) { setResetPwMsg("Passwords don't match"); return; }
+    if (!resetPwVal || resetPwVal.length < 6) {
+      setResetPwMsg("Password must be at least 6 characters");
+      return;
+    }
+    if (resetPwVal !== resetPwConfirm) {
+      setResetPwMsg("Passwords don't match");
+      return;
+    }
     try {
       const r = await fetch(`${API_URL}/auth/admin-reset-password`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: resetPwUser.id, password: resetPwVal, requester_role: currentUser.role }),
       });
       if (!r.ok) {
@@ -275,41 +303,76 @@ function PeoplePage() {
       }
       const targetName = `${resetPwUser.first_name || resetPwUser.name || ""} ${resetPwUser.last_name || ""}`.trim();
       setResetPwUser(null);
-      setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg("");
+      setResetPwVal("");
+      setResetPwConfirm("");
+      setResetPwMsg("");
       setMsg(`Password reset for ${targetName}.`);
       setTimeout(() => setMsg(""), 4000);
-    } catch { setResetPwMsg("Error resetting password"); }
+    } catch {
+      setResetPwMsg("Error resetting password");
+    }
   };
 
   const handleChangePw = async () => {
-    if (!changePwCurrent) { setChangePwMsg("Enter your current password"); return; }
-    if (!changePwNew || changePwNew.length < 6) { setChangePwMsg("New password must be at least 6 characters"); return; }
-    if (changePwNew !== changePwConfirm) { setChangePwMsg("Passwords don't match"); return; }
+    if (!changePwCurrent) {
+      setChangePwMsg("Enter your current password");
+      return;
+    }
+    if (!changePwNew || changePwNew.length < 6) {
+      setChangePwMsg("New password must be at least 6 characters");
+      return;
+    }
+    if (changePwNew !== changePwConfirm) {
+      setChangePwMsg("Passwords don't match");
+      return;
+    }
     try {
       const r = await fetch(`${API_URL}/auth/change-password`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: currentUser.id, current_password: changePwCurrent, new_password: changePwNew }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setChangePwMsg(d?.error || "Failed"); return; }
+      if (!r.ok) {
+        setChangePwMsg(d?.error || "Failed");
+        return;
+      }
       setShowChangePw(false);
-      setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg("");
+      setChangePwCurrent("");
+      setChangePwNew("");
+      setChangePwConfirm("");
+      setChangePwMsg("");
       setMsg("Password changed.");
       setTimeout(() => setMsg(""), 3000);
-    } catch { setChangePwMsg("Connection error"); }
+    } catch {
+      setChangePwMsg("Connection error");
+    }
   };
 
   // ─── Filter the roster locally ───────────────────────────────────────────
   const filtered = (() => {
     if (!search.trim()) return people;
     const q = search.trim().toLowerCase();
-    return people.filter(p =>
-      String(p.first_name || "").toLowerCase().includes(q) ||
-      String(p.last_name || "").toLowerCase().includes(q) ||
-      String(p.email || "").toLowerCase().includes(q) ||
-      String(p.qb_employee_id || "").toLowerCase().includes(q) ||
-      String(p.job_title || "").toLowerCase().includes(q) ||
-      String(p.role || "").toLowerCase().includes(q)
+    return people.filter(
+      (p) =>
+        String(p.first_name || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.last_name || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.email || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.qb_employee_id || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.job_title || "")
+          .toLowerCase()
+          .includes(q) ||
+        String(p.role || "")
+          .toLowerCase()
+          .includes(q),
     );
   })();
 
@@ -319,21 +382,37 @@ function PeoplePage() {
     return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
   };
 
-  const roleBg = r => r === "owner" ? "#fdecea" : r === "admin" ? "#e8f0fb" : r === "manager" ? "#e6f5ec" : r === "lead" ? "#fdf5d8" : r === "salesman" ? "#f3eafa" : "#f0f3f8";
-  const roleColor = r => r === "owner" ? C.red : r === "admin" ? C.blue : r === "manager" ? C.green : r === "lead" ? "#8a6500" : r === "salesman" ? "#7a3ca0" : C.muted;
+  const roleBg = (r) =>
+    r === "owner" ? "#fdecea" : r === "admin" ? "#e8f0fb" : r === "manager" ? "#e6f5ec" : r === "lead" ? "#fdf5d8" : r === "salesman" ? "#f3eafa" : "#f0f3f8";
+  const roleColor = (r) =>
+    r === "owner" ? C.red : r === "admin" ? C.blue : r === "manager" ? C.green : r === "lead" ? "#8a6500" : r === "salesman" ? "#7a3ca0" : C.muted;
 
   const tabBtnStyle = (isActive) => ({
     background: isActive ? C.cardBg : "transparent",
     border: isActive ? `1px solid ${C.border}` : "1px solid transparent",
     borderBottom: isActive ? `1px solid ${C.cardBg}` : "1px solid transparent",
-    borderTopLeftRadius: 4, borderTopRightRadius: 4,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
     marginBottom: isActive ? -1 : 0,
     color: isActive ? C.blue : C.muted,
-    padding: "8px 18px", fontSize: 12,
-    fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em",
+    padding: "8px 18px",
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+    letterSpacing: "0.06em",
   });
 
-  const actionBtnStyle = { background: "transparent", border: `1px solid ${C.border}`, color: C.muted, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3, cursor: "pointer", letterSpacing: "0.04em" };
+  const actionBtnStyle = {
+    background: "transparent",
+    border: `1px solid ${C.border}`,
+    color: C.muted,
+    fontSize: 10,
+    fontWeight: 700,
+    padding: "3px 8px",
+    borderRadius: 3,
+    cursor: "pointer",
+    letterSpacing: "0.04em",
+  };
   // v28.46 — disabled style for buttons while their row's async action is pending.
   const disabledBtnStyle = { ...actionBtnStyle, opacity: 0.4, cursor: "not-allowed", color: C.muted, border: `1px solid ${C.border}` };
 
@@ -348,98 +427,165 @@ function PeoplePage() {
     // as the success/error pill replaces it, freeing the buttons again.
     const fb = rowFeedback[p.id];
     const isPending = fb?.kind === "pending";
-    const asyncBtn = (extra) => isPending ? disabledBtnStyle : { ...actionBtnStyle, ...extra };
+    const asyncBtn = (extra) => (isPending ? disabledBtnStyle : { ...actionBtnStyle, ...extra });
 
     if (p.is_active) {
       buttons.push(
         <button key="edit" onClick={() => setEditing(p)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
           EDIT
-        </button>
+        </button>,
       );
       if (p.pin_set === false) {
         buttons.push(
-          <button key="send-pin" disabled={isPending} onClick={() => { if (!isPending) sendPinSetup(p); }} style={asyncBtn({ border: `1px solid ${C.blue}44`, color: isPending ? C.muted : C.blue })}>
+          <button
+            key="send-pin"
+            disabled={isPending}
+            onClick={() => {
+              if (!isPending) sendPinSetup(p);
+            }}
+            style={asyncBtn({ border: `1px solid ${C.blue}44`, color: isPending ? C.muted : C.blue })}
+          >
             {isPending && fb.msg.startsWith("Sending PIN") ? "SENDING…" : "SEND PIN SETUP"}
-          </button>
+          </button>,
         );
       } else if (p.pin_set === true) {
         buttons.push(
-          <button key="reset-pin" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
-            kind: "reset-pin",
-            title: "Reset PIN?",
-            message: `${p.first_name} ${p.last_name}'s current PIN will be cleared. A new setup text will be sent to ${p.phone || "their phone"}. The link expires in 7 days and can only be used once.`,
-            yesLabel: "Reset PIN",
-            onYes: () => resetPin(p),
-          }); }} style={asyncBtn({})}>
+          <button
+            key="reset-pin"
+            disabled={isPending}
+            onClick={() => {
+              if (!isPending)
+                setConfirmAction({
+                  kind: "reset-pin",
+                  title: "Reset PIN?",
+                  message: `${p.first_name} ${p.last_name}'s current PIN will be cleared. A new setup text will be sent to ${p.phone || "their phone"}. The link expires in 7 days and can only be used once.`,
+                  yesLabel: "Reset PIN",
+                  onYes: () => resetPin(p),
+                });
+            }}
+            style={asyncBtn({})}
+          >
             {isPending && fb.msg.startsWith("Resetting PIN") ? "RESETTING…" : "RESET PIN"}
-          </button>
+          </button>,
         );
       }
       if (canModify && !isSelf) {
         buttons.push(
-          <button key="reset-pw" onClick={() => { setResetPwUser(p); setResetPwVal(""); setResetPwConfirm(""); setResetPwMsg(""); }} style={actionBtnStyle}>
+          <button
+            key="reset-pw"
+            onClick={() => {
+              setResetPwUser(p);
+              setResetPwVal("");
+              setResetPwConfirm("");
+              setResetPwMsg("");
+            }}
+            style={actionBtnStyle}
+          >
             RESET PW
-          </button>
+          </button>,
         );
         buttons.push(
-          <button key="resend" disabled={isPending} onClick={() => { if (!isPending) resendInvite(p); }} style={asyncBtn({})}>
+          <button
+            key="resend"
+            disabled={isPending}
+            onClick={() => {
+              if (!isPending) resendInvite(p);
+            }}
+            style={asyncBtn({})}
+          >
             {isPending && fb.msg.startsWith("Sending invite") ? "SENDING…" : "RESEND INVITE"}
-          </button>
+          </button>,
         );
         buttons.push(
-          <button key="wipe-bio" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
-            kind: "wipe-bio",
-            title: "Wipe biometric devices?",
-            message: `Wipe ALL registered biometric devices for ${p.first_name} ${p.last_name}? They'll re-register a device on next login (after entering their password). All current sessions will be invalidated.`,
-            yesLabel: "Wipe Bio",
-            onYes: () => wipeBio(p),
-          }); }} style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>
+          <button
+            key="wipe-bio"
+            disabled={isPending}
+            onClick={() => {
+              if (!isPending)
+                setConfirmAction({
+                  kind: "wipe-bio",
+                  title: "Wipe biometric devices?",
+                  message: `Wipe ALL registered biometric devices for ${p.first_name} ${p.last_name}? They'll re-register a device on next login (after entering their password). All current sessions will be invalidated.`,
+                  yesLabel: "Wipe Bio",
+                  onYes: () => wipeBio(p),
+                });
+            }}
+            style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}
+          >
             {isPending && fb.msg.startsWith("Wiping biometric") ? "WIPING…" : "WIPE BIO"}
-          </button>
+          </button>,
         );
         // v28.49 — FORCE SIGN OUT. Ends every active session for the
         // target without wiping biometric. Owner/admin only; admin
         // cannot force-logout an owner (backend enforces too).
         buttons.push(
-          <button key="force-logout" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
-            kind: "force-logout",
-            title: "Force sign-out of all devices?",
-            message: `Sign ${p.first_name} ${p.last_name} out of every device they're currently logged into? Their biometric credentials are preserved — they can sign back in normally. Use this for terminated employees, suspected stolen tokens, or to clear stale concurrent sessions.`,
-            yesLabel: "Force Sign Out",
-            onYes: () => forceLogout(p),
-          }); }} style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.orange}44`, color: C.orange }}>
+          <button
+            key="force-logout"
+            disabled={isPending}
+            onClick={() => {
+              if (!isPending)
+                setConfirmAction({
+                  kind: "force-logout",
+                  title: "Force sign-out of all devices?",
+                  message: `Sign ${p.first_name} ${p.last_name} out of every device they're currently logged into? Their biometric credentials are preserved — they can sign back in normally. Use this for terminated employees, suspected stolen tokens, or to clear stale concurrent sessions.`,
+                  yesLabel: "Force Sign Out",
+                  onYes: () => forceLogout(p),
+                });
+            }}
+            style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.orange}44`, color: C.orange }}
+          >
             {isPending && fb.msg.startsWith("Forcing sign-out") ? "SIGNING OUT…" : "FORCE SIGN OUT"}
-          </button>
+          </button>,
         );
       }
       if (isSelf) {
         buttons.push(
-          <button key="change-pw" onClick={() => { setShowChangePw(true); setChangePwCurrent(""); setChangePwNew(""); setChangePwConfirm(""); setChangePwMsg(""); }} style={actionBtnStyle}>
+          <button
+            key="change-pw"
+            onClick={() => {
+              setShowChangePw(true);
+              setChangePwCurrent("");
+              setChangePwNew("");
+              setChangePwConfirm("");
+              setChangePwMsg("");
+            }}
+            style={actionBtnStyle}
+          >
             CHANGE PW
-          </button>
+          </button>,
         );
         buttons.push(
           <button key="manage-devices" onClick={() => setShowWebauthn(true)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
             MANAGE DEVICES
-          </button>
+          </button>,
         );
       }
       if (canModify && !isSelf) {
         buttons.push(
-          <button key="deactivate" disabled={isPending} onClick={() => { if (!isPending) setConfirmAction({
-            kind: "deactivate",
-            title: "Deactivate this person?",
-            message: `${p.first_name} ${p.last_name} will be removed from the active roster. Their PIN link becomes invalid; their email can be reused for a new person; the crew picker will exclude them; historical data on tickets and JSAs is preserved.`,
-            yesLabel: "Deactivate",
-            onYes: () => deactivate(p),
-          }); }} style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}>
+          <button
+            key="deactivate"
+            disabled={isPending}
+            onClick={() => {
+              if (!isPending)
+                setConfirmAction({
+                  kind: "deactivate",
+                  title: "Deactivate this person?",
+                  message: `${p.first_name} ${p.last_name} will be removed from the active roster. Their PIN link becomes invalid; their email can be reused for a new person; the crew picker will exclude them; historical data on tickets and JSAs is preserved.`,
+                  yesLabel: "Deactivate",
+                  onYes: () => deactivate(p),
+                });
+            }}
+            style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}
+          >
             {isPending && fb.msg.startsWith("Deactivating") ? "DEACTIVATING…" : "DEACTIVATE"}
-          </button>
+          </button>,
         );
       }
       if (!canModify && !isSelf) {
         buttons.push(
-          <span key="protected" style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>Protected</span>
+          <span key="protected" style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>
+            Protected
+          </span>,
         );
       }
       // v28.46 — inline per-row feedback pill. Renders right next to the
@@ -450,20 +596,33 @@ function PeoplePage() {
       //   error   → red tint with ✗ (longer TTL + tooltip with full text)
       if (fb) {
         const palette =
-          fb.kind === "success" ? { bg: "#e6f5ec", color: C.green, border: C.green + "44" } :
-          fb.kind === "error"   ? { bg: "#fdecea", color: C.red,   border: C.red + "44" } :
-                                  { bg: "#e8f0fb", color: C.blue,  border: C.blue + "44" };
+          fb.kind === "success"
+            ? { bg: "#e6f5ec", color: C.green, border: C.green + "44" }
+            : fb.kind === "error"
+              ? { bg: "#fdecea", color: C.red, border: C.red + "44" }
+              : { bg: "#e8f0fb", color: C.blue, border: C.blue + "44" };
         buttons.push(
-          <span key="row-feedback" title={fb.msg} style={{
-            fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 3,
-            background: palette.bg, color: palette.color,
-            border: `1px solid ${palette.border}`, whiteSpace: "nowrap",
-            maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis",
-            letterSpacing: "0.04em",
-          }}>
+          <span
+            key="row-feedback"
+            title={fb.msg}
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "3px 8px",
+              borderRadius: 3,
+              background: palette.bg,
+              color: palette.color,
+              border: `1px solid ${palette.border}`,
+              whiteSpace: "nowrap",
+              maxWidth: 320,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              letterSpacing: "0.04em",
+            }}
+          >
             {fb.kind === "pending" && "⌛ "}
             {fb.msg}
-          </span>
+          </span>,
         );
       }
     }
@@ -481,23 +640,34 @@ function PeoplePage() {
           </div>
         </div>
         {activeTab === "roster" && (
-          <Btn variant="blue" onClick={() => setEditing("new")}>+ Add Person</Btn>
+          <Btn variant="blue" onClick={() => setEditing("new")}>
+            + Add Person
+          </Btn>
         )}
       </div>
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 0, marginBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-        <button onClick={() => setActiveTab("roster")} style={tabBtnStyle(activeTab === "roster")}>ROSTER</button>
-        <button onClick={() => setActiveTab("permissions")} style={tabBtnStyle(activeTab === "permissions")}>PERMISSIONS MATRIX</button>
+        <button onClick={() => setActiveTab("roster")} style={tabBtnStyle(activeTab === "roster")}>
+          ROSTER
+        </button>
+        <button onClick={() => setActiveTab("permissions")} style={tabBtnStyle(activeTab === "permissions")}>
+          PERMISSIONS MATRIX
+        </button>
       </div>
 
       {msg && (
-        <div style={{
-          padding: "8px 14px", marginBottom: 14,
-          background: msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") ? "#fdecea" : "#e6f5ec",
-          color: msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") ? C.red : C.green,
-          borderRadius: 4, fontSize: 12, fontWeight: 700,
-        }}>
+        <div
+          style={{
+            padding: "8px 14px",
+            marginBottom: 14,
+            background: msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") ? "#fdecea" : "#e6f5ec",
+            color: msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") ? C.red : C.green,
+            borderRadius: 4,
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
           {msg}
         </div>
       )}
@@ -509,11 +679,11 @@ function PeoplePage() {
             <input
               style={{ ...inputStyle, maxWidth: 360 }}
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name, email, QB ID, role, or title..."
             />
             <label style={{ fontSize: 12, color: C.muted, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <input type="checkbox" checked={includeInactive} onChange={e => setIncludeInactive(e.target.checked)} style={{ accentColor: C.blue }} />
+              <input type="checkbox" checked={includeInactive} onChange={(e) => setIncludeInactive(e.target.checked)} style={{ accentColor: C.blue }} />
               Show inactive
             </label>
             <div style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>
@@ -530,12 +700,16 @@ function PeoplePage() {
           ) : isMobile ? (
             // ── Mobile: cards ──
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {filtered.map(p => (
-                <div key={p.id} style={{
-                  background: p.is_active ? C.cardBg : "#f6f6f8",
-                  border: `1px solid ${C.border}`, borderRadius: 6,
-                  padding: 12,
-                }}>
+              {filtered.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    background: p.is_active ? C.cardBg : "#f6f6f8",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 6,
+                    padding: 12,
+                  }}
+                >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
@@ -545,16 +719,26 @@ function PeoplePage() {
                         {p.email} · {formatPhoneDisplay(p.phone)}
                       </div>
                     </div>
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: roleBg(p.role), color: roleColor(p.role), letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        padding: "2px 8px",
+                        borderRadius: 3,
+                        background: roleBg(p.role),
+                        color: roleColor(p.role),
+                        letterSpacing: "0.06em",
+                        textTransform: "uppercase",
+                      }}
+                    >
                       {p.role}
                     </span>
                   </div>
                   <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>
-                    {p.job_title || "—"} · QB {p.qb_employee_id || "—"} · PIN {p.pin_set ? <span style={{ color: C.green, fontWeight: 700 }}>SET</span> : "not set"}
+                    {p.job_title || "—"} · QB {p.qb_employee_id || "—"} · PIN{" "}
+                    {p.pin_set ? <span style={{ color: C.green, fontWeight: 700 }}>SET</span> : "not set"}
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {rowButtons(p)}
-                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{rowButtons(p)}</div>
                 </div>
               ))}
             </div>
@@ -576,32 +760,49 @@ function PeoplePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(p => (
+                  {filtered.map((p) => (
                     <tr key={p.id} style={{ borderBottom: `1px solid ${C.border}`, background: p.is_active ? "transparent" : "#f6f6f8" }}>
-                      <td style={tdStyle}><strong>{p.first_name} {p.last_name}</strong></td>
+                      <td style={tdStyle}>
+                        <strong>
+                          {p.first_name} {p.last_name}
+                        </strong>
+                      </td>
                       <td style={tdStyle}>{p.email}</td>
                       <td style={tdStyle}>{formatPhoneDisplay(p.phone)}</td>
                       <td style={tdStyle}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 3, background: roleBg(p.role), color: roleColor(p.role), letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 3,
+                            background: roleBg(p.role),
+                            color: roleColor(p.role),
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                          }}
+                        >
                           {p.role}
                         </span>
                       </td>
                       <td style={tdStyle}>{p.job_title || <span style={{ color: C.muted }}>—</span>}</td>
                       <td style={tdStyle}>{p.qb_employee_id || <span style={{ color: C.muted }}>—</span>}</td>
                       <td style={tdStyle}>
-                        {p.pin_set
-                          ? <span style={{ color: C.green, fontWeight: 700, fontSize: 11 }}>SET</span>
-                          : <span style={{ color: C.muted, fontSize: 11 }}>not set</span>}
+                        {p.pin_set ? (
+                          <span style={{ color: C.green, fontWeight: 700, fontSize: 11 }}>SET</span>
+                        ) : (
+                          <span style={{ color: C.muted, fontSize: 11 }}>not set</span>
+                        )}
                       </td>
                       <td style={tdStyle}>
-                        {p.is_active
-                          ? <span style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>ACTIVE</span>
-                          : <span style={{ color: C.muted, fontSize: 11 }}>INACTIVE</span>}
+                        {p.is_active ? (
+                          <span style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>ACTIVE</span>
+                        ) : (
+                          <span style={{ color: C.muted, fontSize: 11 }}>INACTIVE</span>
+                        )}
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                          {rowButtons(p)}
-                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>{rowButtons(p)}</div>
                       </td>
                     </tr>
                   ))}
@@ -621,7 +822,7 @@ function PeoplePage() {
           mode={editing === "new" ? "new" : "edit"}
           initial={editing === "new" ? {} : editing}
           jobTitles={jobTitles}
-          roleOptions={roles?.allowedForEmployee || ROLE_OPTIONS.filter(r => r.value !== "owner").map(r => r.value)}
+          roleOptions={roles?.allowedForEmployee || ROLE_OPTIONS.filter((r) => r.value !== "owner").map((r) => r.value)}
           onClose={() => setEditing(null)}
           onSaved={(title, message) => {
             setEditing(null);
@@ -649,24 +850,32 @@ function PeoplePage() {
 
       {/* ─── Admin reset password modal ─── */}
       {resetPwUser && (
-        <ModalWrap
-          title={`Reset Password — ${resetPwUser.first_name} ${resetPwUser.last_name}`}
-          onClose={() => setResetPwUser(null)}
-          width={380}
-        >
+        <ModalWrap title={`Reset Password — ${resetPwUser.first_name} ${resetPwUser.last_name}`} onClose={() => setResetPwUser(null)} width={380}>
           {/* Hidden username for password manager autofill behavior */}
-          <input type="text" name="username" value={resetPwUser.email} readOnly autoComplete="username"
-            style={{ display: "none" }} />
+          <input type="text" name="username" value={resetPwUser.email} readOnly autoComplete="username" style={{ display: "none" }} />
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>NEW PASSWORD</label>
-            <input type="password" autoComplete="new-password" style={inputStyle} value={resetPwVal}
-              onChange={e => setResetPwVal(e.target.value)} placeholder="Min 6 characters" />
+            <input
+              type="password"
+              autoComplete="new-password"
+              style={inputStyle}
+              value={resetPwVal}
+              onChange={(e) => setResetPwVal(e.target.value)}
+              placeholder="Min 6 characters"
+            />
           </div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>CONFIRM PASSWORD</label>
-            <input type="password" autoComplete="new-password" style={inputStyle} value={resetPwConfirm}
-              onChange={e => setResetPwConfirm(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleAdminResetPassword(); }} />
+            <input
+              type="password"
+              autoComplete="new-password"
+              style={inputStyle}
+              value={resetPwConfirm}
+              onChange={(e) => setResetPwConfirm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAdminResetPassword();
+              }}
+            />
           </div>
           {resetPwMsg && (
             <div style={{ padding: "8px 12px", background: "#fdecea", color: C.red, fontSize: 12, fontWeight: 700, borderRadius: 4, marginBottom: 12 }}>
@@ -674,8 +883,12 @@ function PeoplePage() {
             </div>
           )}
           <div style={{ display: "flex", gap: 10 }}>
-            <Btn variant="blue" onClick={handleAdminResetPassword}>SET PASSWORD</Btn>
-            <Btn variant="ghost" onClick={() => setResetPwUser(null)}>CANCEL</Btn>
+            <Btn variant="blue" onClick={handleAdminResetPassword}>
+              SET PASSWORD
+            </Btn>
+            <Btn variant="ghost" onClick={() => setResetPwUser(null)}>
+              CANCEL
+            </Btn>
           </div>
         </ModalWrap>
       )}
@@ -685,19 +898,37 @@ function PeoplePage() {
         <ModalWrap title="Change Your Password" onClose={() => setShowChangePw(false)} width={380}>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>CURRENT PASSWORD</label>
-            <input type="password" autoComplete="current-password" style={inputStyle} value={changePwCurrent}
-              onChange={e => setChangePwCurrent(e.target.value)} />
+            <input
+              type="password"
+              autoComplete="current-password"
+              style={inputStyle}
+              value={changePwCurrent}
+              onChange={(e) => setChangePwCurrent(e.target.value)}
+            />
           </div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>NEW PASSWORD</label>
-            <input type="password" autoComplete="new-password" style={inputStyle} value={changePwNew}
-              onChange={e => setChangePwNew(e.target.value)} placeholder="Min 6 characters" />
+            <input
+              type="password"
+              autoComplete="new-password"
+              style={inputStyle}
+              value={changePwNew}
+              onChange={(e) => setChangePwNew(e.target.value)}
+              placeholder="Min 6 characters"
+            />
           </div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>CONFIRM NEW PASSWORD</label>
-            <input type="password" autoComplete="new-password" style={inputStyle} value={changePwConfirm}
-              onChange={e => setChangePwConfirm(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleChangePw(); }} />
+            <input
+              type="password"
+              autoComplete="new-password"
+              style={inputStyle}
+              value={changePwConfirm}
+              onChange={(e) => setChangePwConfirm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleChangePw();
+              }}
+            />
           </div>
           {changePwMsg && (
             <div style={{ padding: "8px 12px", background: "#fdecea", color: C.red, fontSize: 12, fontWeight: 700, borderRadius: 4, marginBottom: 12 }}>
@@ -705,19 +936,19 @@ function PeoplePage() {
             </div>
           )}
           <div style={{ display: "flex", gap: 10 }}>
-            <Btn variant="blue" onClick={handleChangePw}>CHANGE PASSWORD</Btn>
-            <Btn variant="ghost" onClick={() => setShowChangePw(false)}>CANCEL</Btn>
+            <Btn variant="blue" onClick={handleChangePw}>
+              CHANGE PASSWORD
+            </Btn>
+            <Btn variant="ghost" onClick={() => setShowChangePw(false)}>
+              CANCEL
+            </Btn>
           </div>
         </ModalWrap>
       )}
 
       {/* ─── WebAuthn (biometric) self-service modal ─── */}
       {showWebauthn && (
-        <WebAuthnSetupModal
-          userName={currentUser?.name || "your account"}
-          onClose={() => setShowWebauthn(false)}
-          onStateChange={() => refreshUsers()}
-        />
+        <WebAuthnSetupModal userName={currentUser?.name || "your account"} onClose={() => setShowWebauthn(false)} onStateChange={() => refreshUsers()} />
       )}
     </div>
   );
@@ -725,9 +956,14 @@ function PeoplePage() {
 
 // v28.43 — getter pattern so color follows theme without a refresh.
 const thStyle = {
-  padding: "10px 8px", fontSize: 11, fontWeight: 800,
-  letterSpacing: "0.06em", textTransform: "uppercase",
-  get color() { return C.muted; },
+  padding: "10px 8px",
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  get color() {
+    return C.muted;
+  },
 };
 const tdStyle = { padding: "10px 8px", verticalAlign: "middle" };
 

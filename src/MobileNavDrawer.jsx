@@ -9,14 +9,18 @@ function ThemeDrawerItem() {
   const { theme, toggleTheme } = useApp();
   const isDark = theme === "dark";
   return (
-    <div onClick={toggleTheme} style={{
-      display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
-      cursor: "pointer",
-    }}>
+    <div
+      onClick={toggleTheme}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "14px 24px",
+        cursor: "pointer",
+      }}
+    >
       <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{isDark ? "☀" : "☾"}</span>
-      <span style={{ fontSize: 15, color: "#b0bdd4", fontWeight: 400 }}>
-        {isDark ? "Light Mode" : "Dark Mode"}
-      </span>
+      <span style={{ fontSize: 15, color: "#b0bdd4", fontWeight: 400 }}>{isDark ? "Light Mode" : "Dark Mode"}</span>
     </div>
   );
 }
@@ -88,21 +92,33 @@ const NAV_ICONS = {
 
 function DrawerItem({ icon, label, active, onClick, badge, badgeColor }) {
   return (
-    <div onClick={onClick} style={{
-      display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
-      background: active ? "#ffffff11" : "transparent",
-      borderLeft: active ? `3px solid ${C.red}` : "3px solid transparent",
-      cursor: "pointer",
-    }}>
+    <div
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        padding: "14px 24px",
+        background: active ? "#ffffff11" : "transparent",
+        borderLeft: active ? `3px solid ${C.red}` : "3px solid transparent",
+        cursor: "pointer",
+      }}
+    >
       <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{icon}</span>
       <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.white : "#b0bdd4" }}>
         {label}
         {badge != null && badge > 0 && (
-          <span style={{
-            marginLeft: 8,
-            background: badgeColor || C.red, color: C.white,
-            borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 800,
-          }}>
+          <span
+            style={{
+              marginLeft: 8,
+              background: badgeColor || C.red,
+              color: C.white,
+              borderRadius: 10,
+              padding: "1px 7px",
+              fontSize: 11,
+              fontWeight: 800,
+            }}
+          >
             {badge}
           </span>
         )}
@@ -118,7 +134,7 @@ function MobileNavDrawer({
   navigate,
   navItems,
   currentUser,
-  isManager,
+  isManager: _isManager,
   isField,
   can,
   myActiveTodosCount,
@@ -133,40 +149,59 @@ function MobileNavDrawer({
   return (
     <>
       {/* BACKDROP */}
-      {drawerOpen && (
-        <div
-          onClick={() => setDrawerOpen(false)}
-          style={{ position: "fixed", inset: 0, background: "#00000066", zIndex: 1001 }}
-        />
-      )}
+      {drawerOpen && <div onClick={() => setDrawerOpen(false)} style={{ position: "fixed", inset: 0, background: "#00000066", zIndex: 1001 }} />}
 
       {/* DRAWER */}
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1002,
-        background: C.darkBlue, borderTop: `3px solid ${C.red}`,
-        borderRadius: "16px 16px 0 0",
-        transform: drawerOpen ? "translateY(0)" : "translateY(100%)",
-        transition: "transform 0.3s ease",
-        padding: "20px 0 40px", maxHeight: "80vh", overflowY: "auto",
-      }}>
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1002,
+          background: C.darkBlue,
+          borderTop: `3px solid ${C.red}`,
+          borderRadius: "16px 16px 0 0",
+          transform: drawerOpen ? "translateY(0)" : "translateY(100%)",
+          transition: "transform 0.3s ease",
+          padding: "20px 0 40px",
+          maxHeight: "80vh",
+          overflowY: "auto",
+        }}
+      >
         <div style={{ width: 40, height: 4, background: "#ffffff33", borderRadius: 2, margin: "0 auto 20px" }} />
 
         {/* USER HEADER */}
         <div style={{ padding: "0 20px 16px", borderBottom: `1px solid #ffffff22`, marginBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: "50%", background: C.red,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 16, fontWeight: 800, color: C.white,
-            }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: C.red,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 16,
+                fontWeight: 800,
+                color: C.white,
+              }}
+            >
               {currentUser.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: C.white }}>{currentUser.name}</div>
-              <div style={{
-                fontSize: 11, color: "#a0aec8",
-                textTransform: "uppercase", letterSpacing: "0.08em",
-              }}>{currentUser.role}</div>
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "#a0aec8",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {currentUser.role}
+              </div>
             </div>
           </div>
         </div>
@@ -176,24 +211,36 @@ function MobileNavDrawer({
           icon="⌂"
           label="Dashboard"
           active={page === "dashboard"}
-          onClick={() => { navigate("/"); setDrawerOpen(false); }}
+          onClick={() => {
+            navigate("/");
+            setDrawerOpen(false);
+          }}
         />
 
         {/* NAV ITEMS */}
-        {navItems.map(item => {
+        {navItems.map((item) => {
           if (item === "Work Order History" && isField) return null;
           if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
           const active = PAGE_MAP[item] === page;
           let badge, badgeColor;
-          if (item === "Action Items") { badge = myActiveTodosCount; badgeColor = C.red; }
-          if (item === "Deleted") { badge = deletedTotalCount; badgeColor = "#ffffff33"; }
+          if (item === "Action Items") {
+            badge = myActiveTodosCount;
+            badgeColor = C.red;
+          }
+          if (item === "Deleted") {
+            badge = deletedTotalCount;
+            badgeColor = "#ffffff33";
+          }
           return (
             <DrawerItem
               key={item}
               icon={NAV_ICONS[item]}
               label={item}
               active={active}
-              onClick={() => { navigate(ROUTE_MAP[item]); setDrawerOpen(false); }}
+              onClick={() => {
+                navigate(ROUTE_MAP[item]);
+                setDrawerOpen(false);
+              }}
               badge={badge}
               badgeColor={badgeColor}
             />
@@ -203,25 +250,71 @@ function MobileNavDrawer({
         {/* GEAR ITEMS — admin / owner only */}
         {/* v28.17 — Permissions item removed; permissions matrix lives as a tab inside /people. */}
         {currentUser.role === "owner" && (
-          <DrawerItem icon="⚙" label="Yard Locations" onClick={() => { setDrawerOpen(false); setShowSettings(true); }} />
+          <DrawerItem
+            icon="⚙"
+            label="Yard Locations"
+            onClick={() => {
+              setDrawerOpen(false);
+              setShowSettings(true);
+            }}
+          />
         )}
         {currentUser.role === "owner" && (
-          <DrawerItem icon="🚨" label="Emergency Information" onClick={() => { setDrawerOpen(false); setShowEmergencyContacts(true); }} />
+          <DrawerItem
+            icon="🚨"
+            label="Emergency Information"
+            onClick={() => {
+              setDrawerOpen(false);
+              setShowEmergencyContacts(true);
+            }}
+          />
         )}
-        <DrawerItem icon="👤" label="Contacts" onClick={() => { setDrawerOpen(false); navigate("/contacts"); }} />
-        <DrawerItem icon="📁" label="Field Resources" onClick={() => { setDrawerOpen(false); setShowCompanyDocs(true); }} />
+        <DrawerItem
+          icon="👤"
+          label="Contacts"
+          onClick={() => {
+            setDrawerOpen(false);
+            navigate("/contacts");
+          }}
+        />
+        <DrawerItem
+          icon="📁"
+          label="Field Resources"
+          onClick={() => {
+            setDrawerOpen(false);
+            setShowCompanyDocs(true);
+          }}
+        />
         {can("view_activity_log") && (
-          <DrawerItem icon="📋" label="Activity Log" onClick={() => { setDrawerOpen(false); navigate("/activity"); }} />
+          <DrawerItem
+            icon="📋"
+            label="Activity Log"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/activity");
+            }}
+          />
         )}
 
         {/* THEME TOGGLE (v28.25) */}
         <ThemeDrawerItem />
 
         {/* SIGN OUT */}
-        <div onClick={() => { setDrawerOpen(false); setShowLogoutConfirm(true); }} style={{
-          display: "flex", alignItems: "center", gap: 14, padding: "14px 24px",
-          borderTop: `1px solid #ffffff22`, marginTop: 8, cursor: "pointer",
-        }}>
+        <div
+          onClick={() => {
+            setDrawerOpen(false);
+            setShowLogoutConfirm(true);
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            padding: "14px 24px",
+            borderTop: `1px solid #ffffff22`,
+            marginTop: 8,
+            cursor: "pointer",
+          }}
+        >
           <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>⏻</span>
           <span style={{ fontSize: 15, color: C.red, fontWeight: 700 }}>Sign Out</span>
         </div>

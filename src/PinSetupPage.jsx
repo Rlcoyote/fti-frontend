@@ -28,11 +28,16 @@ function PinSetupPage() {
     const params = new URLSearchParams(window.location.search);
     const t = params.get("token") || "";
     setToken(t);
-    if (!t) { setStatus("invalid"); setErrorMessage("No setup token in the link."); return; }
+    if (!t) {
+      setStatus("invalid");
+      setErrorMessage("No setup token in the link.");
+      return;
+    }
     (async () => {
       try {
         const r = await fetch(`${API_URL}/employees/verify-setup-token`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: t }),
         });
         const data = await r.json().catch(() => ({}));
@@ -40,14 +45,18 @@ function PinSetupPage() {
           setName(data.name || "");
           setStatus("ready");
         } else if (r.status === 410 && data.error?.includes("expired")) {
-          setStatus("expired"); setErrorMessage(data.error);
+          setStatus("expired");
+          setErrorMessage(data.error);
         } else if (r.status === 410 && data.error?.includes("used")) {
-          setStatus("used"); setErrorMessage(data.error);
+          setStatus("used");
+          setErrorMessage(data.error);
         } else {
-          setStatus("invalid"); setErrorMessage(data.error || "Invalid link");
+          setStatus("invalid");
+          setErrorMessage(data.error || "Invalid link");
         }
-      } catch (err) {
-        setStatus("invalid"); setErrorMessage("Network error. Try again or contact your administrator.");
+      } catch (_err) {
+        setStatus("invalid");
+        setErrorMessage("Network error. Try again or contact your administrator.");
       }
     })();
     // Fetch the active employee SMS consent script for inline display.
@@ -63,35 +72,53 @@ function PinSetupPage() {
           const data = await r.json();
           if (data.employee?.script_text) setConsentScript(data.employee.script_text);
         }
-      } catch (_) { /* fallback boilerplate below */ }
+      } catch (_) {
+        /* fallback boilerplate below */
+      }
     })();
   }, []);
 
   const submit = async () => {
-    if (!/^\d{4}$/.test(pin)) { setErrorMessage("PIN must be exactly 4 digits."); return; }
-    if (pin !== pin2) { setErrorMessage("PINs don't match. Re-enter to confirm."); return; }
-    if (!smsConsent) { setErrorMessage("Please check the SMS consent box to continue."); return; }
+    if (!/^\d{4}$/.test(pin)) {
+      setErrorMessage("PIN must be exactly 4 digits.");
+      return;
+    }
+    if (pin !== pin2) {
+      setErrorMessage("PINs don't match. Re-enter to confirm.");
+      return;
+    }
+    if (!smsConsent) {
+      setErrorMessage("Please check the SMS consent box to continue.");
+      return;
+    }
     setErrorMessage("");
     setSubmitting(true);
     try {
       const r = await fetch(`${API_URL}/employees/set-pin-via-token`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          token, pin,
+          token,
+          pin,
           sms_consent: smsConsent,
           device_info: typeof navigator !== "undefined" ? navigator.userAgent : null,
         }),
       });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) { setErrorMessage(data.error || "Failed to set PIN."); setSubmitting(false); return; }
+      if (!r.ok) {
+        setErrorMessage(data.error || "Failed to set PIN.");
+        setSubmitting(false);
+        return;
+      }
       setStatus("done");
-    } catch (err) {
+    } catch (_err) {
       setErrorMessage("Network error. Try again.");
       setSubmitting(false);
     }
   };
 
-  const fallbackScript = "I consent to receive operational SMS text messages from Flo-Test, Inc. at the mobile number on file. Messages include PIN setup links, JSA acknowledgments, and job assignment notifications. Standard message rates apply. Reply STOP at any time to opt out.";
+  const fallbackScript =
+    "I consent to receive operational SMS text messages from Flo-Test, Inc. at the mobile number on file. Messages include PIN setup links, JSA acknowledgments, and job assignment notifications. Standard message rates apply. Reply STOP at any time to opt out.";
 
   return (
     <div style={{ minHeight: "100vh", background: "#0c1524", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -107,7 +134,8 @@ function PinSetupPage() {
           <div>
             <div style={{ ...centerText, color: C.red, marginBottom: 10 }}>Invalid link</div>
             <div style={{ fontSize: 13, color: C.muted, textAlign: "center", lineHeight: 1.6 }}>
-              {errorMessage || "This PIN setup link couldn't be verified."}<br/>
+              {errorMessage || "This PIN setup link couldn't be verified."}
+              <br />
               Contact your administrator to request a new one.
             </div>
           </div>
@@ -141,18 +169,26 @@ function PinSetupPage() {
             <div style={{ marginBottom: 14 }}>
               <div style={labelStyle}>NEW PIN (4 DIGITS)</div>
               <input
-                type="password" inputMode="numeric" pattern="\d{4}" maxLength={4}
-                style={pinInputStyle} value={pin}
-                onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                type="password"
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                style={pinInputStyle}
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 autoFocus
               />
             </div>
             <div style={{ marginBottom: 20 }}>
               <div style={labelStyle}>CONFIRM PIN</div>
               <input
-                type="password" inputMode="numeric" pattern="\d{4}" maxLength={4}
-                style={pinInputStyle} value={pin2}
-                onChange={e => setPin2(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                type="password"
+                inputMode="numeric"
+                pattern="\d{4}"
+                maxLength={4}
+                style={pinInputStyle}
+                value={pin2}
+                onChange={(e) => setPin2(e.target.value.replace(/\D/g, "").slice(0, 4))}
               />
             </div>
 
@@ -160,29 +196,41 @@ function PinSetupPage() {
                 enables. Backend records consent + PIN in a single
                 transaction. */}
             <div style={{ marginBottom: 16, marginTop: 4 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: "#1a2340", marginBottom: 6 }}>
-                SMS CONSENT
-              </div>
-              <label style={{
-                display: "flex", alignItems: "flex-start", gap: 10,
-                padding: "10px 12px", border: "1px solid #d0d8e8", borderRadius: 6,
-                background: "#f7f9fc", cursor: "pointer",
-              }}>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: "#1a2340", marginBottom: 6 }}>SMS CONSENT</div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  padding: "10px 12px",
+                  border: "1px solid #d0d8e8",
+                  borderRadius: 6,
+                  background: "#f7f9fc",
+                  cursor: "pointer",
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={smsConsent}
-                  onChange={e => setSmsConsent(e.target.checked)}
+                  onChange={(e) => setSmsConsent(e.target.checked)}
                   style={{ width: 18, height: 18, marginTop: 2, cursor: "pointer", flexShrink: 0 }}
                 />
-                <div style={{ flex: 1, fontSize: 12, lineHeight: 1.55, color: "#1a2340" }}>
-                  {consentScript || fallbackScript}
-                </div>
+                <div style={{ flex: 1, fontSize: 12, lineHeight: 1.55, color: "#1a2340" }}>{consentScript || fallbackScript}</div>
               </label>
               <div style={{ fontSize: 10, color: "#6b7a99", marginTop: 6, textAlign: "center" }}>
                 Required to receive operational text messages. View our{" "}
-                <a href="https://www.flotest.com/sms-terms/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>SMS Terms</a>
+                <a href="https://www.flotest.com/sms-terms/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>
+                  SMS Terms
+                </a>
                 {" · "}
-                <a href="https://www.flotest.com/privacy-policy/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>Privacy Policy</a>
+                <a
+                  href="https://www.flotest.com/privacy-policy/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: C.blue, textDecoration: "underline" }}
+                >
+                  Privacy Policy
+                </a>
               </div>
             </div>
 
@@ -196,13 +244,21 @@ function PinSetupPage() {
               onClick={submit}
               disabled={submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent}
               style={{
-                width: "100%", background: submitting ? C.muted : C.red, color: "#fff",
-                border: "none", borderRadius: 4, padding: "12px 20px",
-                fontSize: 14, fontWeight: 800, letterSpacing: "0.06em",
-                cursor: (submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent) ? "not-allowed" : "pointer",
-                opacity: (submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent) ? 0.6 : 1,
+                width: "100%",
+                background: submitting ? C.muted : C.red,
+                color: "#fff",
+                border: "none",
+                borderRadius: 4,
+                padding: "12px 20px",
+                fontSize: 14,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                cursor: submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent ? "not-allowed" : "pointer",
+                opacity: submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent ? 0.6 : 1,
               }}
-            >{submitting ? "SAVING…" : "SET MY PIN"}</button>
+            >
+              {submitting ? "SAVING…" : "SET MY PIN"}
+            </button>
 
             <div style={{ fontSize: 11, color: C.muted, textAlign: "center", marginTop: 18, lineHeight: 1.6 }}>
               Your PIN is stored encrypted. Administrators cannot see it.
@@ -217,13 +273,24 @@ function PinSetupPage() {
               You're all set. You can close this window — you'll use your PIN when you sign your first JSA on the job.
             </div>
             <button
-              onClick={() => { window.location.href = "/"; }}
-              style={{
-                width: "100%", background: C.blue, color: "#fff",
-                border: "none", borderRadius: 4, padding: "12px 20px",
-                fontSize: 13, fontWeight: 800, letterSpacing: "0.06em", cursor: "pointer",
+              onClick={() => {
+                window.location.href = "/";
               }}
-            >GO TO LOGIN</button>
+              style={{
+                width: "100%",
+                background: C.blue,
+                color: "#fff",
+                border: "none",
+                borderRadius: 4,
+                padding: "12px 20px",
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                cursor: "pointer",
+              }}
+            >
+              GO TO LOGIN
+            </button>
           </div>
         )}
       </div>
@@ -235,19 +302,36 @@ function PinSetupPage() {
 // Theme-bound colors read C live per access so toggling theme mid-session
 // flips these styles without a hard refresh.
 const centerText = {
-  textAlign: "center", fontSize: 14, fontWeight: 700,
-  get color() { return C.text; },
+  textAlign: "center",
+  fontSize: 14,
+  fontWeight: 700,
+  get color() {
+    return C.text;
+  },
 };
 const labelStyle = {
-  fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 6,
-  get color() { return C.muted; },
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  marginBottom: 6,
+  get color() {
+    return C.muted;
+  },
 };
 const pinInputStyle = {
-  width: "100%", boxSizing: "border-box", textAlign: "center",
-  fontSize: 28, fontWeight: 800, letterSpacing: "0.4em",
-  padding: "14px 12px", borderRadius: 6,
-  outline: "none", fontFamily: "'Arial', sans-serif",
-  get border() { return `2px solid ${C.border}`; },
+  width: "100%",
+  boxSizing: "border-box",
+  textAlign: "center",
+  fontSize: 28,
+  fontWeight: 800,
+  letterSpacing: "0.4em",
+  padding: "14px 12px",
+  borderRadius: 6,
+  outline: "none",
+  fontFamily: "'Arial', sans-serif",
+  get border() {
+    return `2px solid ${C.border}`;
+  },
 };
 
 export default PinSetupPage;

@@ -39,20 +39,29 @@ function JobTitlesPage() {
     try {
       const r = await fetch(`${API_URL}/job-titles${includeInactive ? "?include_inactive=true" : ""}`);
       if (r.ok) setTitles(await r.json());
-    } catch (err) { console.error("Fetch job titles failed:", err); }
+    } catch (err) {
+      console.error("Fetch job titles failed:", err);
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchTitles(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [includeInactive]);
+  useEffect(() => {
+    fetchTitles();
+  }, [includeInactive]);
 
   const deactivate = async (title) => {
     try {
       const r = await fetch(`${API_URL}/job-titles/${title.id}/deactivate`, { method: "POST" });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) { showNotice("Deactivate failed", data.error || "Could not deactivate.", "error"); return; }
+      if (!r.ok) {
+        showNotice("Deactivate failed", data.error || "Could not deactivate.", "error");
+        return;
+      }
       showNotice("Title deactivated", `"${title.name}" will no longer appear in the Employees dropdown. Existing employees keep their stored title unchanged.`);
       fetchTitles();
-    } catch (err) { showNotice("Deactivate failed", err.message, "error"); }
+    } catch (err) {
+      showNotice("Deactivate failed", err.message, "error");
+    }
   };
 
   // Drag handlers — HTML5 native drag-and-drop. Owner/admin only (canEdit
@@ -64,7 +73,11 @@ function JobTitlesPage() {
     setDraggedId(id);
     e.dataTransfer.effectAllowed = "move";
     // Some browsers require setData to enable drag-image rendering.
-    try { e.dataTransfer.setData("text/plain", String(id)); } catch { /* not blocking */ }
+    try {
+      e.dataTransfer.setData("text/plain", String(id));
+    } catch {
+      /* not blocking */
+    }
   };
   const onDragOver = (id) => (e) => {
     e.preventDefault();
@@ -72,7 +85,10 @@ function JobTitlesPage() {
     if (draggedId !== null && draggedId !== id) setDragOverId(id);
   };
   const onDragLeave = () => setDragOverId(null);
-  const onDragEnd = () => { setDraggedId(null); setDragOverId(null); };
+  const onDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+  };
   const onDrop = (targetId) => async (e) => {
     e.preventDefault();
     const sourceId = draggedId;
@@ -83,8 +99,8 @@ function JobTitlesPage() {
     // Compute the new local ordering. Splice the source out, insert it
     // before the drop target. The backend receives sequential sort_order
     // values matching this order — internal numbers, never user-visible.
-    const fromIdx = titles.findIndex(t => t.id === sourceId);
-    const toIdx = titles.findIndex(t => t.id === targetId);
+    const fromIdx = titles.findIndex((t) => t.id === sourceId);
+    const toIdx = titles.findIndex((t) => t.id === targetId);
     if (fromIdx < 0 || toIdx < 0) return;
     const next = [...titles];
     const [moved] = next.splice(fromIdx, 1);
@@ -127,15 +143,18 @@ function JobTitlesPage() {
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Job Titles</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
-            Drives the Job Title dropdown on the Employees form. Drag rows to reorder. Deactivating a title preserves all historical employee data — it just removes the option going forward.
+            Drives the Job Title dropdown on the Employees form. Drag rows to reorder. Deactivating a title preserves all historical employee data — it just
+            removes the option going forward.
           </div>
         </div>
-        <Btn variant="blue" onClick={() => setEditing("new")}>+ Add Title</Btn>
+        <Btn variant="blue" onClick={() => setEditing("new")}>
+          + Add Title
+        </Btn>
       </div>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
         <label style={{ fontSize: 12, color: C.muted, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-          <input type="checkbox" checked={includeInactive} onChange={e => setIncludeInactive(e.target.checked)} style={{ accentColor: C.blue }} />
+          <input type="checkbox" checked={includeInactive} onChange={(e) => setIncludeInactive(e.target.checked)} style={{ accentColor: C.blue }} />
           Show inactive
         </label>
         <div style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>
@@ -158,7 +177,7 @@ function JobTitlesPage() {
             </tr>
           </thead>
           <tbody>
-            {titles.map(t => {
+            {titles.map((t) => {
               const isDragging = draggedId === t.id;
               const isDropTarget = dragOverId === t.id && draggedId !== null && draggedId !== t.id;
               return (
@@ -172,11 +191,7 @@ function JobTitlesPage() {
                   onDrop={onDrop(t.id)}
                   style={{
                     borderBottom: `1px solid ${C.border}`,
-                    background: !t.is_active
-                      ? "#f6f6f8"
-                      : isDropTarget
-                        ? "#e8f0fb"
-                        : "transparent",
+                    background: !t.is_active ? "#f6f6f8" : isDropTarget ? "#e8f0fb" : "transparent",
                     opacity: isDragging ? 0.4 : 1,
                     cursor: canEdit && t.is_active ? "grab" : "default",
                     transition: "background 80ms ease",
@@ -185,21 +200,38 @@ function JobTitlesPage() {
                   <td style={{ ...tdStyle, width: 36, color: C.muted, fontSize: 18, textAlign: "center", userSelect: "none" }}>
                     {canEdit && t.is_active ? "≡" : ""}
                   </td>
-                  <td style={tdStyle}><strong>{t.name}</strong></td>
                   <td style={tdStyle}>
-                    {t.is_active
-                      ? <span style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>ACTIVE</span>
-                      : <span style={{ color: C.muted, fontSize: 11 }}>INACTIVE</span>}
+                    <strong>{t.name}</strong>
+                  </td>
+                  <td style={tdStyle}>
+                    {t.is_active ? (
+                      <span style={{ color: C.green, fontSize: 11, fontWeight: 700 }}>ACTIVE</span>
+                    ) : (
+                      <span style={{ color: C.muted, fontSize: 11 }}>INACTIVE</span>
+                    )}
                   </td>
                   <td style={{ ...tdStyle, textAlign: "right" }}>
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      {t.is_active && <Btn small variant="ghost" onClick={() => setEditing(t)}>Edit</Btn>}
-                      {t.is_active && <Btn small onClick={() => setConfirmAction({
-                        title: "Deactivate Title?",
-                        message: `"${t.name}" will be removed from the Employees dropdown. Existing employees with this title stored on their profile are NOT affected — only the dropdown is.`,
-                        yesLabel: "Deactivate",
-                        onYes: () => deactivate(t),
-                      })}>Deactivate</Btn>}
+                      {t.is_active && (
+                        <Btn small variant="ghost" onClick={() => setEditing(t)}>
+                          Edit
+                        </Btn>
+                      )}
+                      {t.is_active && (
+                        <Btn
+                          small
+                          onClick={() =>
+                            setConfirmAction({
+                              title: "Deactivate Title?",
+                              message: `"${t.name}" will be removed from the Employees dropdown. Existing employees with this title stored on their profile are NOT affected — only the dropdown is.`,
+                              yesLabel: "Deactivate",
+                              onYes: () => deactivate(t),
+                            })
+                          }
+                        >
+                          Deactivate
+                        </Btn>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -214,7 +246,11 @@ function JobTitlesPage() {
           mode={editing === "new" ? "new" : "edit"}
           initial={editing === "new" ? {} : editing}
           onClose={() => setEditing(null)}
-          onSaved={(title, message) => { setEditing(null); showNotice(title, message); fetchTitles(); }}
+          onSaved={(title, message) => {
+            setEditing(null);
+            showNotice(title, message);
+            fetchTitles();
+          }}
         />
       )}
 
@@ -239,9 +275,14 @@ function JobTitlesPage() {
 
 // v28.43 — getter pattern so color follows theme without a refresh.
 const thStyle = {
-  padding: "10px 8px", fontSize: 11, fontWeight: 800,
-  letterSpacing: "0.06em", textTransform: "uppercase",
-  get color() { return C.muted; },
+  padding: "10px 8px",
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  get color() {
+    return C.muted;
+  },
 };
 const tdStyle = { padding: "10px 8px", verticalAlign: "middle" };
 
@@ -255,7 +296,10 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
   const [formError, setFormError] = useState("");
 
   const submit = async () => {
-    if (!name.trim()) { setFormError("Name is required."); return; }
+    if (!name.trim()) {
+      setFormError("Name is required.");
+      return;
+    }
     setFormError("");
     setSubmitting(true);
     try {
@@ -264,8 +308,15 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
       const method = mode === "new" ? "POST" : "PUT";
       const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) { setFormError(data.error || "Save failed."); setSubmitting(false); return; }
-      onSaved(mode === "new" ? "Title added" : "Title updated", `"${data.name}" ${mode === "new" ? "has been added to the Employees dropdown" : "has been updated"}.`);
+      if (!r.ok) {
+        setFormError(data.error || "Save failed.");
+        setSubmitting(false);
+        return;
+      }
+      onSaved(
+        mode === "new" ? "Title added" : "Title updated",
+        `"${data.name}" ${mode === "new" ? "has been added to the Employees dropdown" : "has been updated"}.`,
+      );
     } catch (err) {
       setFormError("Save failed: " + err.message);
       setSubmitting(false);
@@ -274,10 +325,18 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28, width: 440, maxWidth: "95vw" }}>
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>
-          {mode === "new" ? "Add Job Title" : `Edit "${initial.name}"`}
-        </div>
+      <div
+        style={{
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
+          borderTop: `4px solid ${C.blue}`,
+          borderRadius: 8,
+          padding: 28,
+          width: 440,
+          maxWidth: "95vw",
+        }}
+      >
+        <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>{mode === "new" ? "Add Job Title" : `Edit "${initial.name}"`}</div>
         <div style={{ display: "grid", gap: 14 }}>
           <div>
             <div style={labelStyle}>Name *</div>
@@ -285,9 +344,11 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
               autoFocus
               style={inputStyle}
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Flowback Supervisor"
-              onKeyDown={e => { if (e.key === "Enter" && !submitting) submit(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !submitting) submit();
+              }}
             />
           </div>
         </div>
@@ -299,8 +360,12 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
         )}
 
         <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-          <Btn variant="blue" onClick={submit} disabled={submitting}>{submitting ? "Saving…" : (mode === "new" ? "Add Title" : "Save Changes")}</Btn>
-          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+          <Btn variant="blue" onClick={submit} disabled={submitting}>
+            {submitting ? "Saving…" : mode === "new" ? "Add Title" : "Save Changes"}
+          </Btn>
+          <Btn variant="ghost" onClick={onClose}>
+            Cancel
+          </Btn>
         </div>
       </div>
     </div>

@@ -59,12 +59,11 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
   // Stop camera on unmount or when leaving the photo step
   useEffect(() => {
     return () => stopCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopCamera = () => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
   };
@@ -100,11 +99,16 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
 
   // PIN verification (step 1)
   const submitPin = async () => {
-    if (pin.length !== PIN_LENGTH) { setError(`PIN must be ${PIN_LENGTH} digits`); return; }
-    setError(""); setPinVerifying(true);
+    if (pin.length !== PIN_LENGTH) {
+      setError(`PIN must be ${PIN_LENGTH} digits`);
+      return;
+    }
+    setError("");
+    setPinVerifying(true);
     try {
       const r = await fetch(`${API_URL}/jsas/${jsaId}/verify-pin`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: target.user_id, pin }),
       });
       const data = await r.json().catch(() => ({}));
@@ -152,12 +156,21 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
     setError("");
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (!video || !canvas) { setError("Camera not ready — wait a moment and try again."); return; }
-    const vw = video.videoWidth, vh = video.videoHeight;
-    if (!vw || !vh) { setError("Camera is still warming up — try again in a second."); return; }
+    if (!video || !canvas) {
+      setError("Camera not ready — wait a moment and try again.");
+      return;
+    }
+    const vw = video.videoWidth,
+      vh = video.videoHeight;
+    if (!vw || !vh) {
+      setError("Camera is still warming up — try again in a second.");
+      return;
+    }
     const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(vw, vh));
-    const w = Math.round(vw * scale), h = Math.round(vh * scale);
-    canvas.width = w; canvas.height = h;
+    const w = Math.round(vw * scale),
+      h = Math.round(vh * scale);
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0, w, h);
     const dataUrl = canvas.toDataURL("image/jpeg", PHOTO_QUALITY);
@@ -171,23 +184,28 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
   };
 
   const captureGps = () =>
-    new Promise(resolve => {
+    new Promise((resolve) => {
       if (!navigator.geolocation) return resolve({ lat: null, lng: null });
       navigator.geolocation.getCurrentPosition(
-        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
         () => resolve({ lat: null, lng: null }),
-        { timeout: 4000, enableHighAccuracy: false }
+        { timeout: 4000, enableHighAccuracy: false },
       );
     });
 
   // Step 3 — lead bio + atomic submit
   const finalize = async () => {
-    if (!acknowledged) { setError("Both signer and witness must acknowledge the attestation"); return; }
-    setStep("submitting"); setError("");
+    if (!acknowledged) {
+      setError("Both signer and witness must acknowledge the attestation");
+      return;
+    }
+    setStep("submitting");
+    setError("");
     try {
       // 1. Auth options for the LEAD (currentUser)
       const optsRes = await fetch(`${API_URL}/jsas/${jsaId}/auth-options-self`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
       const optsData = await optsRes.json();
@@ -211,7 +229,8 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
       // 3. Atomic submit
       const gps = await captureGps();
       const r = await fetch(`${API_URL}/jsas/${jsaId}/sign-pin-witnessed`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_id: target.user_id,
           pin,
@@ -238,13 +257,21 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
   // ─── UI ───────────────────────────────────────────────────────────────────
 
   const stepBadge = (s, label, idx) => (
-    <div style={{
-      flex: 1, padding: "6px 10px", textAlign: "center",
-      background: step === s ? C.blue : (stepIndex(step) > idx ? "#e6f5ec" : C.steel),
-      color: step === s ? C.white : (stepIndex(step) > idx ? "#00633a" : C.muted),
-      fontSize: 11, fontWeight: 800, letterSpacing: "0.06em",
-      borderRight: idx < 2 ? `1px solid ${C.cardBg}` : "none",
-    }}>{idx + 1}. {label}</div>
+    <div
+      style={{
+        flex: 1,
+        padding: "6px 10px",
+        textAlign: "center",
+        background: step === s ? C.blue : stepIndex(step) > idx ? "#e6f5ec" : C.steel,
+        color: step === s ? C.white : stepIndex(step) > idx ? "#00633a" : C.muted,
+        fontSize: 11,
+        fontWeight: 800,
+        letterSpacing: "0.06em",
+        borderRight: idx < 2 ? `1px solid ${C.cardBg}` : "none",
+      }}
+    >
+      {idx + 1}. {label}
+    </div>
   );
 
   const stepIndex = (s) => ({ pin: 0, photo: 1, witness: 2, submitting: 2 })[s] ?? 0;
@@ -262,8 +289,7 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
       {step === "pin" && (
         <>
           <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, marginBottom: 14 }}>
-            Hand this device to <strong>{targetName}</strong>. They enter their {PIN_LENGTH}-digit PIN
-            below to begin signing.
+            Hand this device to <strong>{targetName}</strong>. They enter their {PIN_LENGTH}-digit PIN below to begin signing.
           </div>
           <label style={labelStyle}>{targetName.toUpperCase()}'S PIN</label>
           <input
@@ -273,8 +299,10 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
             autoFocus
             maxLength={PIN_LENGTH}
             value={pin}
-            onChange={e => setPin(e.target.value.replace(/\D/g, "").slice(0, PIN_LENGTH))}
-            onKeyDown={e => { if (e.key === "Enter" && pin.length === PIN_LENGTH && !pinVerifying) submitPin(); }}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, PIN_LENGTH))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && pin.length === PIN_LENGTH && !pinVerifying) submitPin();
+            }}
             placeholder={"•".repeat(PIN_LENGTH)}
             style={{ ...inputStyle, fontSize: 24, letterSpacing: "0.5em", textAlign: "center", marginBottom: 14 }}
           />
@@ -283,14 +311,14 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
               {remainingAttempts} attempt{remainingAttempts === 1 ? "" : "s"} remaining before lead-override fallback.
             </div>
           )}
-          {error && (
-            <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{error}</div>
-          )}
+          {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{error}</div>}
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={submitPin} disabled={pin.length !== PIN_LENGTH || pinVerifying}>
               {pinVerifying ? "VERIFYING..." : "NEXT"}
             </Btn>
-            <Btn variant="ghost" onClick={onClose}>CANCEL</Btn>
+            <Btn variant="ghost" onClick={onClose}>
+              CANCEL
+            </Btn>
           </div>
         </>
       )}
@@ -299,41 +327,56 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
       {step === "photo" && (
         <>
           <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, marginBottom: 14 }}>
-            Aim the camera at <strong>{targetName}</strong> and capture a photo for the forensic
-            record. The photo is stored only with this JSA signature — not shared elsewhere.
+            Aim the camera at <strong>{targetName}</strong> and capture a photo for the forensic record. The photo is stored only with this JSA signature — not
+            shared elsewhere.
           </div>
-          <div style={{
-            position: "relative", width: "100%", aspectRatio: "4 / 3",
-            background: "#000", borderRadius: 4, overflow: "hidden", marginBottom: 12,
-          }}>
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              aspectRatio: "4 / 3",
+              background: "#000",
+              borderRadius: 4,
+              overflow: "hidden",
+              marginBottom: 12,
+            }}
+          >
             {!photoDataUrl ? (
-              <video ref={videoRef} autoPlay playsInline muted
-                style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
-              <img src={photoDataUrl} alt="captured"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={photoDataUrl} alt="captured" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             )}
           </div>
           <canvas ref={canvasRef} style={{ display: "none" }} />
-          {cameraError && (
-            <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
-              {cameraError}
-            </div>
-          )}
-          {error && (
-            <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{error}</div>
-          )}
+          {cameraError && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{cameraError}</div>}
+          {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{error}</div>}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {!photoDataUrl ? (
               <>
-                <Btn onClick={capturePhoto} disabled={!!cameraError}>CAPTURE</Btn>
-                {cameraError && <Btn variant="ghost" onClick={startCamera}>RETRY CAMERA</Btn>}
-                <Btn variant="ghost" onClick={() => { stopCamera(); setStep("pin"); }}>BACK</Btn>
+                <Btn onClick={capturePhoto} disabled={!!cameraError}>
+                  CAPTURE
+                </Btn>
+                {cameraError && (
+                  <Btn variant="ghost" onClick={startCamera}>
+                    RETRY CAMERA
+                  </Btn>
+                )}
+                <Btn
+                  variant="ghost"
+                  onClick={() => {
+                    stopCamera();
+                    setStep("pin");
+                  }}
+                >
+                  BACK
+                </Btn>
               </>
             ) : (
               <>
                 <Btn onClick={() => setStep("witness")}>NEXT</Btn>
-                <Btn variant="ghost" onClick={retakePhoto}>RETAKE</Btn>
+                <Btn variant="ghost" onClick={retakePhoto}>
+                  RETAKE
+                </Btn>
               </>
             )}
           </div>
@@ -344,40 +387,54 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
       {(step === "witness" || step === "submitting") && (
         <>
           <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, marginBottom: 12 }}>
-            Final step — your biometric (as crew lead) anchors this signature forensically.
-            Read the attestation below, both parties acknowledge, then tap CONFIRM to trigger
-            your Face ID / Touch ID prompt.
+            Final step — your biometric (as crew lead) anchors this signature forensically. Read the attestation below, both parties acknowledge, then tap
+            CONFIRM to trigger your Face ID / Touch ID prompt.
           </div>
 
-          <div style={{
-            background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
-            padding: 12, marginBottom: 14, fontSize: 11, color: C.text, lineHeight: 1.5,
-          }}>
+          <div
+            style={{
+              background: C.steel,
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              padding: 12,
+              marginBottom: 14,
+              fontSize: 11,
+              color: C.text,
+              lineHeight: 1.5,
+            }}
+          >
             <strong>Attestation (stored verbatim with the signature):</strong>
             <div style={{ marginTop: 8, fontStyle: "italic" }}>{attestationDisplay}</div>
           </div>
 
-          <label style={{
-            display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 16,
-            fontSize: 12, color: C.text, cursor: "pointer", lineHeight: 1.45,
-          }}>
-            <input type="checkbox" checked={acknowledged} onChange={e => setAcknowledged(e.target.checked)} style={{ marginTop: 2 }} />
+          <label
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 10,
+              marginBottom: 16,
+              fontSize: 12,
+              color: C.text,
+              cursor: "pointer",
+              lineHeight: 1.45,
+            }}
+          >
+            <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} style={{ marginTop: 2 }} />
             <span>
-              <strong>{targetName}</strong> and <strong>{leadName}</strong> both acknowledge the
-              attestation above. By tapping CONFIRM, this signature is submitted under penalty
-              of perjury by both parties.
+              <strong>{targetName}</strong> and <strong>{leadName}</strong> both acknowledge the attestation above. By tapping CONFIRM, this signature is
+              submitted under penalty of perjury by both parties.
             </span>
           </label>
 
-          {error && (
-            <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{error}</div>
-          )}
+          {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{error}</div>}
 
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={finalize} disabled={!acknowledged || step === "submitting"}>
               {step === "submitting" ? "WAITING FOR LEAD BIOMETRIC..." : "CONFIRM WITH LEAD BIOMETRIC"}
             </Btn>
-            <Btn variant="ghost" onClick={() => setStep("photo")} disabled={step === "submitting"}>BACK</Btn>
+            <Btn variant="ghost" onClick={() => setStep("photo")} disabled={step === "submitting"}>
+              BACK
+            </Btn>
           </div>
         </>
       )}

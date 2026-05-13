@@ -1,37 +1,39 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { C } from "./config.js";
 
 // v28.40 — JOB_STATUS_REPORT replaces the deleted STATUS_ORDER/STATUS_CONFIG
 // for the Operations tab "Work Orders by Status" card. Reflects the raw
 // job.status column rather than the old computed 3-tier badges.
 const JOB_STATUS_REPORT = [
-  { value: "Scheduled", label: "ACTIVE",    color: "#1a5fa8" },
+  { value: "Scheduled", label: "ACTIVE", color: "#1a5fa8" },
   { value: "Completed", label: "COMPLETED", color: "#1a7a3c" },
 ];
 import { inputStyle, labelStyle, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function ReportsPage({ jobs, tickets, inventory }) {
-  const { currentUser, users } = useApp();
+  const { currentUser } = useApp();
   const now = new Date();
   const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   const [dateFrom, setDateFrom] = useState(monthStart);
   const [dateTo, setDateTo] = useState("");
   const [tab, setTab] = useState("revenue");
   const [winW, setWinW] = useState(window.innerWidth);
-  useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
+  useEffect(() => {
+    const h = () => setWinW(window.innerWidth);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
   const rptGrid = winW < 900 ? "1fr" : "1fr 1fr";
 
   const isSalesman = currentUser?.role === "salesman";
 
   // Filter jobs for salesman — only jobs where they are the salesman
-  const visibleJobs = isSalesman
-    ? jobs.filter(j => j.salesman === currentUser?.name && j.status !== "Deleted")
-    : jobs.filter(j => j.status !== "Deleted");
-  const visibleJobIds = new Set(visibleJobs.map(j => j.id));
+  const visibleJobs = isSalesman ? jobs.filter((j) => j.salesman === currentUser?.name && j.status !== "Deleted") : jobs.filter((j) => j.status !== "Deleted");
+  const visibleJobIds = new Set(visibleJobs.map((j) => j.id));
 
   // Filter tickets by date range and visibility
-  const filteredTickets = tickets.filter(t => {
+  const filteredTickets = tickets.filter((t) => {
     if (!visibleJobIds.has(t.jobId)) return false;
     if (dateFrom && t.date && t.date < dateFrom) return false;
     if (dateTo && t.date && t.date > dateTo) return false;
@@ -43,14 +45,16 @@ function ReportsPage({ jobs, tickets, inventory }) {
     if (!s) return null;
     const m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (!m) return null;
-    let h = parseInt(m[1]), min = parseInt(m[2]);
+    let h = parseInt(m[1]),
+      min = parseInt(m[2]);
     const p = m[3].toUpperCase();
     if (p === "PM" && h !== 12) h += 12;
     if (p === "AM" && h === 12) h = 0;
     return h * 60 + min;
   };
   const diffMinutes = (start, end) => {
-    const s = parseTime(start), e = parseTime(end);
+    const s = parseTime(start),
+      e = parseTime(end);
     if (s === null || e === null) return null;
     let d = e - s;
     if (d < 0) d += 1440; // overnight
@@ -58,7 +62,8 @@ function ReportsPage({ jobs, tickets, inventory }) {
   };
   const fmtHrs = (mins) => {
     if (mins === null || mins === undefined) return "—";
-    const h = Math.floor(mins / 60), m = mins % 60;
+    const h = Math.floor(mins / 60),
+      m = mins % 60;
     return `${h}h ${m}m`;
   };
   const fmtMoney = (n) => "$" + (n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -70,7 +75,15 @@ function ReportsPage({ jobs, tickets, inventory }) {
   const totalRevenue = filteredTickets.reduce((s, t) => s + ticketTotal(t), 0);
 
   const cardStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6, padding: "20px 24px", marginBottom: 16 };
-  const headerStyle = { fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: "0.06em", marginBottom: 12, borderBottom: `2px solid ${C.red}`, paddingBottom: 8 };
+  const headerStyle = {
+    fontSize: 13,
+    fontWeight: 800,
+    color: C.text,
+    letterSpacing: "0.06em",
+    marginBottom: 12,
+    borderBottom: `2px solid ${C.red}`,
+    paddingBottom: 8,
+  };
   const rowStyle = { display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22`, fontSize: 13 };
   const tabs = [
     { key: "revenue", label: "Revenue" },
@@ -84,8 +97,8 @@ function ReportsPage({ jobs, tickets, inventory }) {
   const renderRevenue = () => {
     // By customer
     const revByCustomer = {};
-    filteredTickets.forEach(t => {
-      const job = visibleJobs.find(j => j.id === t.jobId);
+    filteredTickets.forEach((t) => {
+      const job = visibleJobs.find((j) => j.id === t.jobId);
       const cust = job?.customer || "Unknown";
       revByCustomer[cust] = (revByCustomer[cust] || 0) + ticketTotal(t);
     });
@@ -93,8 +106,8 @@ function ReportsPage({ jobs, tickets, inventory }) {
 
     // By salesman
     const revBySalesman = {};
-    filteredTickets.forEach(t => {
-      const job = visibleJobs.find(j => j.id === t.jobId);
+    filteredTickets.forEach((t) => {
+      const job = visibleJobs.find((j) => j.id === t.jobId);
       const sm = job?.salesman || "Unassigned";
       revBySalesman[sm] = (revBySalesman[sm] || 0) + ticketTotal(t);
     });
@@ -102,8 +115,8 @@ function ReportsPage({ jobs, tickets, inventory }) {
 
     // By state/county
     const revByRegion = {};
-    filteredTickets.forEach(t => {
-      const job = visibleJobs.find(j => j.id === t.jobId);
+    filteredTickets.forEach((t) => {
+      const job = visibleJobs.find((j) => j.id === t.jobId);
       const region = [job?.jobState || job?.job_state, job?.county].filter(Boolean).join(" — ") || "Unknown";
       revByRegion[region] = (revByRegion[region] || 0) + ticketTotal(t);
     });
@@ -111,22 +124,21 @@ function ReportsPage({ jobs, tickets, inventory }) {
 
     // By ticket type
     const revByType = {};
-    filteredTickets.forEach(t => {
+    filteredTickets.forEach((t) => {
       revByType[t.type] = (revByType[t.type] || 0) + ticketTotal(t);
     });
     const revTypeSorted = Object.entries(revByType).sort((a, b) => b[1] - a[1]);
 
     // By month
     const revByMonth = {};
-    filteredTickets.forEach(t => {
+    filteredTickets.forEach((t) => {
       const mo = t.date ? t.date.slice(0, 7) : "Unknown";
       revByMonth[mo] = (revByMonth[mo] || 0) + ticketTotal(t);
     });
     const revMonthSorted = Object.entries(revByMonth).sort((a, b) => a[0].localeCompare(b[0]));
 
     // Customer concentration
-    const topCustPct = revCustSorted.length > 0 && totalRevenue > 0
-      ? ((revCustSorted[0][1] / totalRevenue) * 100).toFixed(1) : 0;
+    const topCustPct = revCustSorted.length > 0 && totalRevenue > 0 ? ((revCustSorted[0][1] / totalRevenue) * 100).toFixed(1) : 0;
 
     // Average ticket value
     const avgTicket = filteredTickets.length > 0 ? totalRevenue / filteredTickets.length : 0;
@@ -135,17 +147,45 @@ function ReportsPage({ jobs, tickets, inventory }) {
       <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         {/* Summary Cards */}
         <div style={{ ...cardStyle, gridColumn: "1 / -1", display: "flex", gap: 32, flexWrap: "wrap" }}>
-          <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>TOTAL REVENUE</div><div style={{ fontSize: 24, fontWeight: 800, color: C.green }}>{fmtMoney(totalRevenue)}</div></div>
-          <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>TICKETS</div><div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{filteredTickets.length}</div></div>
-          <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>AVG TICKET VALUE</div><div style={{ fontSize: 24, fontWeight: 800, color: C.blue }}>{fmtMoney(avgTicket)}</div></div>
-          <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>TOP CUSTOMER %</div><div style={{ fontSize: 24, fontWeight: 800, color: parseFloat(topCustPct) > 50 ? C.red : C.text }}>{topCustPct}%</div></div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>TOTAL REVENUE</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.green }}>{fmtMoney(totalRevenue)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>TICKETS</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{filteredTickets.length}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>AVG TICKET VALUE</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: C.blue }}>{fmtMoney(avgTicket)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>TOP CUSTOMER %</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: parseFloat(topCustPct) > 50 ? C.red : C.text }}>{topCustPct}%</div>
+          </div>
         </div>
 
         {/* By Customer */}
         <div style={cardStyle}>
           <div style={headerStyle}>BY CUSTOMER</div>
           {revCustSorted.map(([c, r]) => (
-            <div key={c} style={rowStyle}><span style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1, marginRight: 8 }}>{c}</span><span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(r)}</span></div>
+            <div key={c} style={rowStyle}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: C.text,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  minWidth: 0,
+                  flex: 1,
+                  marginRight: 8,
+                }}
+              >
+                {c}
+              </span>
+              <span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(r)}</span>
+            </div>
           ))}
           {revCustSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No data</div>}
         </div>
@@ -154,7 +194,23 @@ function ReportsPage({ jobs, tickets, inventory }) {
         <div style={cardStyle}>
           <div style={headerStyle}>BY SALESMAN</div>
           {revSmSorted.map(([s, r]) => (
-            <div key={s} style={rowStyle}><span style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1, marginRight: 8 }}>{s}</span><span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(r)}</span></div>
+            <div key={s} style={rowStyle}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: C.text,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  minWidth: 0,
+                  flex: 1,
+                  marginRight: 8,
+                }}
+              >
+                {s}
+              </span>
+              <span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(r)}</span>
+            </div>
           ))}
           {revSmSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No data</div>}
         </div>
@@ -163,7 +219,23 @@ function ReportsPage({ jobs, tickets, inventory }) {
         <div style={cardStyle}>
           <div style={headerStyle}>BY STATE / COUNTY</div>
           {revRegionSorted.map(([r, v]) => (
-            <div key={r} style={rowStyle}><span style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0, flex: 1, marginRight: 8 }}>{r}</span><span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(v)}</span></div>
+            <div key={r} style={rowStyle}>
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: C.text,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  minWidth: 0,
+                  flex: 1,
+                  marginRight: 8,
+                }}
+              >
+                {r}
+              </span>
+              <span style={{ fontWeight: 800, color: C.green, whiteSpace: "nowrap" }}>{fmtMoney(v)}</span>
+            </div>
           ))}
           {revRegionSorted.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No data</div>}
         </div>
@@ -174,7 +246,10 @@ function ReportsPage({ jobs, tickets, inventory }) {
           {revTypeSorted.map(([t, r]) => {
             const cfg = TICKET_TYPES[t] || { color: C.muted, label: t };
             return (
-              <div key={t} style={rowStyle}><span style={{ fontWeight: 700, color: cfg.color }}>{cfg.label || t}</span><span style={{ fontWeight: 800, color: C.green }}>{fmtMoney(r)}</span></div>
+              <div key={t} style={rowStyle}>
+                <span style={{ fontWeight: 700, color: cfg.color }}>{cfg.label || t}</span>
+                <span style={{ fontWeight: 800, color: C.green }}>{fmtMoney(r)}</span>
+              </div>
             );
           })}
         </div>
@@ -205,31 +280,35 @@ function ReportsPage({ jobs, tickets, inventory }) {
   const renderOperations = () => {
     // Jobs by status (v28.40 — raw status, not computed 3-tier)
     const jobsByStatus = {};
-    JOB_STATUS_REPORT.forEach(s => { jobsByStatus[s.value] = visibleJobs.filter(j => j.status === s.value).length; });
-    const flagged = visibleJobs.filter(j => j.status === "flaggedCancel").length;
+    JOB_STATUS_REPORT.forEach((s) => {
+      jobsByStatus[s.value] = visibleJobs.filter((j) => j.status === s.value).length;
+    });
+    const flagged = visibleJobs.filter((j) => j.status === "flaggedCancel").length;
 
     // Tickets by type & status
     const ticketsByType = {};
-    filteredTickets.forEach(t => {
+    filteredTickets.forEach((t) => {
       if (!ticketsByType[t.type]) ticketsByType[t.type] = {};
       ticketsByType[t.type][t.status] = (ticketsByType[t.type][t.status] || 0) + 1;
     });
 
     // Aging: signed but not sent to QB
-    const agingTickets = filteredTickets.filter(t => ["signed", "sigNotReq", "approved"].includes(t.status));
-    const agingByAge = agingTickets.map(t => {
-      const job = visibleJobs.find(j => j.id === t.jobId);
-      const daysSigned = t.signedAt ? Math.floor((Date.now() - new Date(t.signedAt).getTime()) / 86400000) : null;
-      const daysCreated = t.date ? Math.floor((Date.now() - new Date(t.date).getTime()) / 86400000) : null;
-      return { ...t, customer: job?.customer || "Unknown", age: daysSigned ?? daysCreated ?? 0 };
-    }).sort((a, b) => b.age - a.age);
+    const agingTickets = filteredTickets.filter((t) => ["signed", "sigNotReq", "approved"].includes(t.status));
+    const agingByAge = agingTickets
+      .map((t) => {
+        const job = visibleJobs.find((j) => j.id === t.jobId);
+        const daysSigned = t.signedAt ? Math.floor((Date.now() - new Date(t.signedAt).getTime()) / 86400000) : null;
+        const daysCreated = t.date ? Math.floor((Date.now() - new Date(t.date).getTime()) / 86400000) : null;
+        return { ...t, customer: job?.customer || "Unknown", age: daysSigned ?? daysCreated ?? 0 };
+      })
+      .sort((a, b) => b.age - a.age);
 
     return (
       <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         {/* Jobs by Status */}
         <div style={cardStyle}>
           <div style={headerStyle}>WORK ORDERS BY STATUS</div>
-          {JOB_STATUS_REPORT.map(s => {
+          {JOB_STATUS_REPORT.map((s) => {
             const count = jobsByStatus[s.value] || 0;
             if (count === 0) return null;
             return (
@@ -262,7 +341,11 @@ function ReportsPage({ jobs, tickets, inventory }) {
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {Object.entries(statuses).map(([status, count]) => {
                     const scfg = TICKET_STATUSES[status] || { color: C.muted, bg: C.steel, label: status };
-                    return <span key={status} style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: scfg.bg, color: scfg.color }}>{scfg.label} ({count})</span>;
+                    return (
+                      <span key={status} style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: scfg.bg, color: scfg.color }}>
+                        {scfg.label} ({count})
+                      </span>
+                    );
                   })}
                 </div>
               </div>
@@ -274,7 +357,7 @@ function ReportsPage({ jobs, tickets, inventory }) {
         <div style={{ ...cardStyle, gridColumn: "1 / -1" }}>
           <div style={headerStyle}>OUTSTANDING — SIGNED BUT NOT SENT TO ACCOUNTING ({agingByAge.length})</div>
           {agingByAge.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>All caught up</div>}
-          {agingByAge.slice(0, 20).map(t => (
+          {agingByAge.slice(0, 20).map((t) => (
             <div key={t.id} style={{ ...rowStyle, alignItems: "center" }}>
               <span style={{ fontWeight: 600 }}>#{t.ticketNumber || t.id}</span>
               <span style={{ color: C.muted }}>{t.customer}</span>
@@ -291,10 +374,9 @@ function ReportsPage({ jobs, tickets, inventory }) {
   const renderCrew = () => {
     // Build crew hours from tickets
     const crewHours = {};
-    const activeUsers = (users || []).filter(u => u.is_active !== false);
 
-    filteredTickets.forEach(t => {
-      const job = visibleJobs.find(j => j.id === t.jobId);
+    filteredTickets.forEach((t) => {
+      const job = visibleJobs.find((j) => j.id === t.jobId);
       if (!job?.crew) return;
       const lv = getField(t, "lvYard", "lv_yard");
       const ret = getField(t, "retYard", "ret_yard");
@@ -306,7 +388,7 @@ function ReportsPage({ jobs, tickets, inventory }) {
       const mEnd = parseFloat(t.mileageEnd ?? t.mileage_end) || 0;
       const miles = mEnd > mBegin ? mEnd - mBegin : 0;
 
-      job.crew.forEach(c => {
+      job.crew.forEach((c) => {
         if (!crewHours[c.name]) crewHours[c.name] = { totalMins: 0, onLocMins: 0, miles: 0, tickets: 0, days: new Set() };
         if (overall !== null) crewHours[c.name].totalMins += overall;
         if (onLoc !== null) crewHours[c.name].onLocMins += onLoc;
@@ -332,12 +414,16 @@ function ReportsPage({ jobs, tickets, inventory }) {
       <div>
         <div style={{ ...cardStyle, overflowX: "auto" }}>
           <div style={headerStyle}>CREW HOURS &amp; MILEAGE</div>
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Based on ticket time fields (LV Yard → Ret Yard). Business days in range: {bizDays}</div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
+            Based on ticket time fields (LV Yard → Ret Yard). Business days in range: {bizDays}
+          </div>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.darkBlue }}>
-                {["CREW MEMBER", "TICKETS", "TOTAL HOURS", "ON LOCATION", "DRIVE TIME", "MILES", "DAYS WORKED", "UTILIZATION"].map(h => (
-                  <th key={h} style={{ padding: "8px 10px", fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.06em", textAlign: "left" }}>{h}</th>
+                {["CREW MEMBER", "TICKETS", "TOTAL HOURS", "ON LOCATION", "DRIVE TIME", "MILES", "DAYS WORKED", "UTILIZATION"].map((h) => (
+                  <th key={h} style={{ padding: "8px 10px", fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.06em", textAlign: "left" }}>
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -355,12 +441,18 @@ function ReportsPage({ jobs, tickets, inventory }) {
                     <td style={{ padding: "8px 10px", color: C.muted }}>{fmtHrs(driveMins > 0 ? driveMins : null)}</td>
                     <td style={{ padding: "8px 10px", color: C.text }}>{d.miles > 0 ? `${d.miles.toFixed(0)} mi` : "—"}</td>
                     <td style={{ padding: "8px 10px", color: C.text }}>{daysWorked}</td>
-                    <td style={{ padding: "8px 10px", fontWeight: 700, color: parseInt(util) > 80 ? C.green : parseInt(util) < 40 ? C.red : C.text }}>{util}%</td>
+                    <td style={{ padding: "8px 10px", fontWeight: 700, color: parseInt(util) > 80 ? C.green : parseInt(util) < 40 ? C.red : C.text }}>
+                      {util}%
+                    </td>
                   </tr>
                 );
               })}
               {crewSorted.length === 0 && (
-                <tr><td colSpan={8} style={{ padding: 16, textAlign: "center", color: C.muted }}>No time data recorded for this period</td></tr>
+                <tr>
+                  <td colSpan={8} style={{ padding: 16, textAlign: "center", color: C.muted }}>
+                    No time data recorded for this period
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -372,18 +464,26 @@ function ReportsPage({ jobs, tickets, inventory }) {
   // ─── EFFICIENCY TAB ───
   const renderEfficiency = () => {
     // On-time arrival: Arrival vs Location Time
-    let onTimeCount = 0, lateCount = 0, earlyCount = 0, noDataCount = 0;
+    let onTimeCount = 0,
+      lateCount = 0,
+      earlyCount = 0,
+      noDataCount = 0;
     const lateTix = [];
-    filteredTickets.forEach(t => {
+    filteredTickets.forEach((t) => {
       const arr = parseTime(getField(t, "arrivalTime", "arrival_time"));
       const due = parseTime(getField(t, "dueOnLoc", "due_on_loc"));
-      if (arr === null || due === null) { noDataCount++; return; }
+      if (arr === null || due === null) {
+        noDataCount++;
+        return;
+      }
       const diff = arr - due;
-      if (diff <= 0) { earlyCount++; }
-      else if (diff <= 15) { onTimeCount++; }
-      else {
+      if (diff <= 0) {
+        earlyCount++;
+      } else if (diff <= 15) {
+        onTimeCount++;
+      } else {
         lateCount++;
-        const job = visibleJobs.find(j => j.id === t.jobId);
+        const job = visibleJobs.find((j) => j.id === t.jobId);
         lateTix.push({ ticket: t.ticketNumber || t.id, customer: job?.customer || "Unknown", late: diff, date: t.date });
       }
     });
@@ -392,12 +492,17 @@ function ReportsPage({ jobs, tickets, inventory }) {
 
     // Average times by ticket type
     const avgByType = {};
-    filteredTickets.forEach(t => {
+    filteredTickets.forEach((t) => {
       const overall = diffMinutes(getField(t, "lvYard", "lv_yard"), getField(t, "retYard", "ret_yard"));
       const onLoc = diffMinutes(getField(t, "arrivalTime", "arrival_time"), getField(t, "jobEndTime", "job_end_time"));
       if (!avgByType[t.type]) avgByType[t.type] = { overallTotal: 0, onLocTotal: 0, count: 0 };
-      if (overall !== null) { avgByType[t.type].overallTotal += overall; avgByType[t.type].count++; }
-      if (onLoc !== null) { avgByType[t.type].onLocTotal += onLoc; }
+      if (overall !== null) {
+        avgByType[t.type].overallTotal += overall;
+        avgByType[t.type].count++;
+      }
+      if (onLoc !== null) {
+        avgByType[t.type].onLocTotal += onLoc;
+      }
     });
 
     return (
@@ -407,17 +512,32 @@ function ReportsPage({ jobs, tickets, inventory }) {
           <div style={headerStyle}>ON-TIME ARRIVAL</div>
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Arrival vs Location Time. Within 15 min = on time.</div>
           <div style={{ display: "flex", gap: 24, marginBottom: 16, flexWrap: "wrap" }}>
-            <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>ON TIME</div><div style={{ fontSize: 28, fontWeight: 800, color: parseFloat(onTimePct) >= 90 ? C.green : parseFloat(onTimePct) >= 70 ? "#b85c00" : C.red }}>{onTimePct}%</div></div>
-            <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>EARLY/ON TIME</div><div style={{ fontSize: 20, fontWeight: 800, color: C.green }}>{earlyCount + onTimeCount}</div></div>
-            <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>LATE</div><div style={{ fontSize: 20, fontWeight: 800, color: C.red }}>{lateCount}</div></div>
-            <div><div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>NO DATA</div><div style={{ fontSize: 20, fontWeight: 800, color: C.muted }}>{noDataCount}</div></div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>ON TIME</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: parseFloat(onTimePct) >= 90 ? C.green : parseFloat(onTimePct) >= 70 ? "#b85c00" : C.red }}>
+                {onTimePct}%
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>EARLY/ON TIME</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: C.green }}>{earlyCount + onTimeCount}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>LATE</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: C.red }}>{lateCount}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted }}>NO DATA</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: C.muted }}>{noDataCount}</div>
+            </div>
           </div>
           {lateTix.length > 0 && (
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 6 }}>LATE ARRIVALS</div>
-              {lateTix.slice(0, 10).map(l => (
+              {lateTix.slice(0, 10).map((l) => (
                 <div key={l.ticket} style={{ ...rowStyle, fontSize: 11 }}>
-                  <span>#{l.ticket}</span><span style={{ color: C.muted }}>{l.customer}</span>
+                  <span>#{l.ticket}</span>
+                  <span style={{ color: C.muted }}>{l.customer}</span>
                   <span style={{ color: C.muted }}>{l.date}</span>
                   <span style={{ fontWeight: 700, color: C.red }}>+{l.late} min</span>
                 </div>
@@ -435,10 +555,18 @@ function ReportsPage({ jobs, tickets, inventory }) {
             const avgOnLoc = d.count > 0 ? Math.round(d.onLocTotal / d.count) : null;
             return (
               <div key={type} style={{ marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${C.border}22` }}>
-                <div style={{ fontSize: 12, fontWeight: 800, color: cfg.color, marginBottom: 4 }}>{cfg.label || type} ({d.count} tickets)</div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: cfg.color, marginBottom: 4 }}>
+                  {cfg.label || type} ({d.count} tickets)
+                </div>
                 <div style={{ display: "flex", gap: 20, fontSize: 11 }}>
-                  <span><span style={{ color: C.muted }}>Avg Total: </span><strong>{fmtHrs(avgOverall)}</strong></span>
-                  <span><span style={{ color: C.muted }}>Avg On Loc: </span><strong style={{ color: C.blue }}>{fmtHrs(avgOnLoc)}</strong></span>
+                  <span>
+                    <span style={{ color: C.muted }}>Avg Total: </span>
+                    <strong>{fmtHrs(avgOverall)}</strong>
+                  </span>
+                  <span>
+                    <span style={{ color: C.muted }}>Avg On Loc: </span>
+                    <strong style={{ color: C.blue }}>{fmtHrs(avgOnLoc)}</strong>
+                  </span>
                 </div>
               </div>
             );
@@ -451,20 +579,22 @@ function ReportsPage({ jobs, tickets, inventory }) {
 
   // ─── INVENTORY TAB ───
   const renderInventory = () => {
-    const invOut = inventory.filter(i => i.inYard < i.qtyOwned).sort((a, b) => (b.qtyOwned - b.inYard) - (a.qtyOwned - a.inYard));
+    const invOut = inventory.filter((i) => i.inYard < i.qtyOwned).sort((a, b) => b.qtyOwned - b.inYard - (a.qtyOwned - a.inYard));
     const totalOut = invOut.reduce((s, i) => s + (i.qtyOwned - i.inYard), 0);
-    const lowStock = inventory.filter(i => i.inYard < 4 && i.inYard > 0);
+    const lowStock = inventory.filter((i) => i.inYard < 4 && i.inYard > 0);
 
     return (
       <div style={{ display: "grid", gridTemplateColumns: rptGrid, gap: 16 }}>
         <div style={cardStyle}>
           <div style={headerStyle}>IN FIELD ({totalOut} items out)</div>
           {invOut.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>All inventory in yard</div>}
-          {invOut.map(i => {
+          {invOut.map((i) => {
             const out = i.qtyOwned - i.inYard;
             return (
               <div key={i.id} style={rowStyle}>
-                <span style={{ fontSize: 12, color: C.text }}>{i.size} {i.item}</span>
+                <span style={{ fontSize: 12, color: C.text }}>
+                  {i.size} {i.item}
+                </span>
                 <div style={{ display: "flex", gap: 12 }}>
                   <span style={{ fontSize: 11, color: C.muted }}>{i.customer || "—"}</span>
                   <span style={{ fontSize: 12, fontWeight: 800, color: C.red }}>{out} out</span>
@@ -477,9 +607,11 @@ function ReportsPage({ jobs, tickets, inventory }) {
           <div style={headerStyle}>LOW STOCK WARNING ({lowStock.length})</div>
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>Items with fewer than 4 in yard</div>
           {lowStock.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No low stock items</div>}
-          {lowStock.map(i => (
+          {lowStock.map((i) => (
             <div key={i.id} style={{ ...rowStyle, background: "#fdf5d8", borderRadius: 3, padding: "6px 8px", marginBottom: 2 }}>
-              <span style={{ fontSize: 12, color: C.text }}>{i.size} {i.item}</span>
+              <span style={{ fontSize: 12, color: C.text }}>
+                {i.size} {i.item}
+              </span>
               <span style={{ fontSize: 12, fontWeight: 800, color: "#8a6500" }}>{i.inYard} in yard</span>
             </div>
           ))}
@@ -502,15 +634,31 @@ function ReportsPage({ jobs, tickets, inventory }) {
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div>
             <label style={labelStyle}>FROM</label>
-            <input type="date" style={{ ...inputStyle, width: 140 }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            <input type="date" style={{ ...inputStyle, width: 140 }} value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           </div>
           <div>
             <label style={labelStyle}>TO</label>
-            <input type="date" style={{ ...inputStyle, width: 140 }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            <input type="date" style={{ ...inputStyle, width: 140 }} value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </div>
           {(dateFrom || dateTo) && (
-            <button onClick={() => { setDateFrom(""); setDateTo(""); }}
-              style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, padding: "8px 12px", borderRadius: 4, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>CLEAR</button>
+            <button
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+              }}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                color: C.muted,
+                padding: "8px 12px",
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              CLEAR
+            </button>
           )}
         </div>
       </div>
@@ -518,13 +666,25 @@ function ReportsPage({ jobs, tickets, inventory }) {
       {/* Tabs — horizontally scrollable on mobile */}
       <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", marginBottom: 20, borderBottom: `2px solid ${C.border}` }}>
         <div style={{ display: "flex", gap: 0, minWidth: "max-content" }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
+          {tabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
               style={{
-                background: "transparent", border: "none", borderBottom: tab === t.key ? `3px solid ${C.red}` : "3px solid transparent",
-                padding: "10px 14px", fontSize: 11, fontWeight: 800, letterSpacing: "0.06em",
-                color: tab === t.key ? C.text : C.muted, cursor: "pointer", whiteSpace: "nowrap",
-              }}>{t.label}</button>
+                background: "transparent",
+                border: "none",
+                borderBottom: tab === t.key ? `3px solid ${C.red}` : "3px solid transparent",
+                padding: "10px 14px",
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                color: tab === t.key ? C.text : C.muted,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
       </div>
@@ -538,7 +698,5 @@ function ReportsPage({ jobs, tickets, inventory }) {
     </div>
   );
 }
-
-
 
 export default ReportsPage;

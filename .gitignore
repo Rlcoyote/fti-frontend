@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# v28.57 — .github/workflows excluded until GitHub PAT gains `workflow`
+# scope. CI workflow exists locally but is not yet enforced via CI.
+.github/

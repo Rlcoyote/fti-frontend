@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { C } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 
@@ -67,29 +67,38 @@ function SignaturePad({ onSign, onCancel }) {
       <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>CUSTOMER SIGNATURE</div>
       <div style={{ marginBottom: 10 }}>
         <label style={labelStyle}>PRINTED NAME *</label>
-        <input style={{ ...inputStyle, width: 280 }} value={signerName} onChange={e => setSignerName(e.target.value)} placeholder="Customer name..." />
+        <input style={{ ...inputStyle, width: 280 }} value={signerName} onChange={(e) => setSignerName(e.target.value)} placeholder="Customer name..." />
       </div>
       <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Sign below:</div>
       <div style={{ background: C.white, border: `2px solid ${hasDrawn ? C.green : C.border}`, borderRadius: 4, touchAction: "none", lineHeight: 0 }}>
         <canvas
           ref={canvasRef}
-          width={600} height={150}
+          width={600}
+          height={150}
           style={{ display: "block", width: "100%", height: "auto" }}
-          onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
-          onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
+          onMouseDown={onDown}
+          onMouseMove={onMove}
+          onMouseUp={onUp}
+          onMouseLeave={onUp}
+          onTouchStart={onDown}
+          onTouchMove={onMove}
+          onTouchEnd={onUp}
         />
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-        <Btn variant="blue" onClick={submit}>SUBMIT SIGNATURE</Btn>
-        <Btn variant="ghost" small onClick={clear}>CLEAR</Btn>
-        <Btn variant="ghost" small onClick={onCancel}>CANCEL</Btn>
+        <Btn variant="blue" onClick={submit}>
+          SUBMIT SIGNATURE
+        </Btn>
+        <Btn variant="ghost" small onClick={clear}>
+          CLEAR
+        </Btn>
+        <Btn variant="ghost" small onClick={onCancel}>
+          CANCEL
+        </Btn>
       </div>
-      {(!hasDrawn || !signerName.trim()) && (
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>* Name and signature required</div>
-      )}
+      {(!hasDrawn || !signerName.trim()) && <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>* Name and signature required</div>}
     </div>
   );
 }
-
 
 export default SignaturePad;

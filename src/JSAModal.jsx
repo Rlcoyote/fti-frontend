@@ -19,19 +19,23 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   useEffect(() => {
     if (!isMobile) return;
     window.history.pushState({ jsaOpen: true }, "");
-    const handlePop = () => { handleCloseRef.current?.(); };
+    const handlePop = () => {
+      handleCloseRef.current?.();
+    };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, [isMobile]);
   const emergencyContacts = useMemo(() => {
-    try { const c = JSON.parse(settings?.emergency_contacts || "[]"); return Array.isArray(c) ? c : []; }
-    catch { return []; }
+    try {
+      const c = JSON.parse(settings?.emergency_contacts || "[]");
+      return Array.isArray(c) ? c : [];
+    } catch {
+      return [];
+    }
   }, [settings]);
   const jsa = existingJSA;
   const ticketNum = ticket ? `${job.id}${ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}` : job.id;
-  const wellsList = ticket?.assignedWells?.length > 0
-    ? ticket.assignedWells
-    : (job.wells || []).map(w => typeof w === "string" ? w : w.well_name || w);
+  const wellsList = ticket?.assignedWells?.length > 0 ? ticket.assignedWells : (job.wells || []).map((w) => (typeof w === "string" ? w : w.well_name || w));
   // Postgres DATE columns can come back as full ISO timestamps (e.g.
   // "2026-04-25T00:00:00.000Z"); <input type="date"> only accepts YYYY-MM-DD
   // and silently drops anything longer, leaving the field blank. Slice both
@@ -51,8 +55,8 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   useEffect(() => {
     if (!ticket?.id) return;
     fetch(`${API_URL}/tickets/${ticket.id}/crew`)
-      .then(r => r.ok ? r.json() : [])
-      .then(rows => setTicketCrewForDD(Array.isArray(rows) ? rows : []))
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => setTicketCrewForDD(Array.isArray(rows) ? rows : []))
       .catch(() => setTicketCrewForDD([]));
   }, [ticket?.id]);
 
@@ -60,7 +64,6 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   // after save (so the FTI CREW BIOMETRIC SIGNATURES section becomes
   // immediately usable on a fresh JSA). lastSavedAt powers the "Saved
   // HH:MM" indicator next to the Save button.
-  const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   // v28.10 — MARK COMPLETE state. v28.51 — repurposed for AUTO-complete:
   // when the last required crew member signs, JSACrewSigners.onAllSigned
@@ -81,17 +84,20 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   const [mapLink, setMapLink] = useState(() => {
     const la = jsa?.lat || jsa?.latitude || ticket?.pinLat || ticket?.pin_lat || job?.pinLat || job?.pin_lat;
     const ln = jsa?.lng || jsa?.longitude || ticket?.pinLng || ticket?.pin_lng || job?.pinLng || job?.pin_lng;
-    return (la && ln) ? `${la}, ${ln}` : "";
+    return la && ln ? `${la}, ${ln}` : "";
   });
   const [mapResolving, setMapResolving] = useState(false);
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
 
   // Auto-fetch nearest hospitals when coordinates are available
   useEffect(() => {
-    if (!lat || !lng) { setNearbyHospitals([]); return; }
+    if (!lat || !lng) {
+      setNearbyHospitals([]);
+      return;
+    }
     fetch(`${API_URL}/safety/nearest-hospital?lat=${lat}&lng=${lng}`)
-      .then(r => r.ok ? r.json() : { hospitals: [] })
-      .then(d => setNearbyHospitals(d.hospitals || []))
+      .then((r) => (r.ok ? r.json() : { hospitals: [] }))
+      .then((d) => setNearbyHospitals(d.hospitals || []))
       .catch(() => setNearbyHospitals([]));
   }, [lat, lng]);
 
@@ -103,8 +109,8 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   useEffect(() => {
     if (!lat || !lng || jsa?.weather?.length > 0) return; // don't overwrite existing JSA weather
     fetch(`${API_URL}/safety/weather?lat=${lat}&lng=${lng}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(d => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
         if (d?.tags?.length > 0) {
           setWeather(d.tags);
           setWeatherAutoTags(d.tags);
@@ -115,8 +121,9 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   }, [lat, lng]);
   const [ppe, setPpe] = useState(jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false });
   const [signatures, setSignatures] = useState(jsa?.signatures || [""]);
-  const [presenterReview, setPresenterReview] = useState(jsa?.presenterReview ||
-    "STOP WORK AUTHORITY. Slips Trips Falls. Keep Walkways Clear. Confined Spaces & Pinch Points. Hands Visible at all times. Eye Safety. 100% Tie Off Policy. Location of Emergency First Aid Kit and how to find the nearest hospital. Importance of a good attitude. Good Communication is key!"
+  const [presenterReview, setPresenterReview] = useState(
+    jsa?.presenterReview ||
+      "STOP WORK AUTHORITY. Slips Trips Falls. Keep Walkways Clear. Confined Spaces & Pinch Points. Hands Visible at all times. Eye Safety. 100% Tie Off Policy. Location of Emergency First Aid Kit and how to find the nearest hospital. Importance of a good attitude. Good Communication is key!",
   );
   const [additionalSteps, setAdditionalSteps] = useState(jsa?.additionalSteps || [{ step: "", hazard: "", procedure: "" }]);
 
@@ -133,15 +140,35 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   const weatherOpts = ["clear", "cloudy", "calm", "rain", "mud", "hot", "windy", "freezing", "ice", "snow"];
 
   const PRE_FILLED_STEPS = [
-    { step: "Driving to/from or in and around location", hazard: "Driving too fast. Backing without a spotter. Being unaware of surroundings. Using a cell phone while operating a vehicle.", procedure: "Communicate with those around you using signals/lights/horn. Do not use cell phone while driving. Eliminate distractions." },
+    {
+      step: "Driving to/from or in and around location",
+      hazard: "Driving too fast. Backing without a spotter. Being unaware of surroundings. Using a cell phone while operating a vehicle.",
+      procedure: "Communicate with those around you using signals/lights/horn. Do not use cell phone while driving. Eliminate distractions.",
+    },
     { step: "SDS", hazard: "Chemical Exposure", procedure: "SDS electronically or physically available on site." },
-    { step: "Worksite & PPE inspection of all equipment", hazard: "Slips, trips, falls, pinch points, enclosed areas, poor lighting, H2S. Defective, absent, or dirty PPE.", procedure: "Repair, replace or clean necessary items. Remove debris. Identify PPE needed & safe handling procedures." },
-    { step: "Receive authorization to begin work", hazard: "Onsite Operations Supervisor not aware of work being performed or permits not completed.", procedure: "Receive authorization from the person in charge. Complete all applicable Permits to Work." },
-    { step: "Conduct Safety Meeting with all onsite workers", hazard: "Jobsite workers not knowing what activity is about to take place. Hazardous conditions not observed by personnel.", procedure: "Review with all personnel & sign off on safety meeting sheet. Allow others to voice concerns, comments, questions." },
-    { step: "Begin job slowly. Watch for personnel not paying attention.", hazard: "Quick movements can result in poor awareness of surrounding personnel and can easily cause unintentional reactions.", procedure: "Work slow and steady. If situations require quick movements, alert everyone before moving." },
+    {
+      step: "Worksite & PPE inspection of all equipment",
+      hazard: "Slips, trips, falls, pinch points, enclosed areas, poor lighting, H2S. Defective, absent, or dirty PPE.",
+      procedure: "Repair, replace or clean necessary items. Remove debris. Identify PPE needed & safe handling procedures.",
+    },
+    {
+      step: "Receive authorization to begin work",
+      hazard: "Onsite Operations Supervisor not aware of work being performed or permits not completed.",
+      procedure: "Receive authorization from the person in charge. Complete all applicable Permits to Work.",
+    },
+    {
+      step: "Conduct Safety Meeting with all onsite workers",
+      hazard: "Jobsite workers not knowing what activity is about to take place. Hazardous conditions not observed by personnel.",
+      procedure: "Review with all personnel & sign off on safety meeting sheet. Allow others to voice concerns, comments, questions.",
+    },
+    {
+      step: "Begin job slowly. Watch for personnel not paying attention.",
+      hazard: "Quick movements can result in poor awareness of surrounding personnel and can easily cause unintentional reactions.",
+      procedure: "Work slow and steady. If situations require quick movements, alert everyone before moving.",
+    },
   ];
 
-  const toggleWeather = (w) => setWeather(prev => prev.includes(w) ? prev.filter(x => x !== w) : [...prev, w]);
+  const toggleWeather = (w) => setWeather((prev) => (prev.includes(w) ? prev.filter((x) => x !== w) : [...prev, w]));
 
   // Dirty-state detection for close confirmation. Captures the state the JSA opened with.
   // Weather is clean if it matches either the original OR the auto-populated tags (auto-pop fires after mount).
@@ -155,7 +182,9 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
     weather: jsa?.weather || [],
     ppe: jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false },
     signatures: jsa?.signatures || [""],
-    presenterReview: jsa?.presenterReview || "STOP WORK AUTHORITY. Slips Trips Falls. Keep Walkways Clear. Confined Spaces & Pinch Points. Hands Visible at all times. Eye Safety. 100% Tie Off Policy. Location of Emergency First Aid Kit and how to find the nearest hospital. Importance of a good attitude. Good Communication is key!",
+    presenterReview:
+      jsa?.presenterReview ||
+      "STOP WORK AUTHORITY. Slips Trips Falls. Keep Walkways Clear. Confined Spaces & Pinch Points. Hands Visible at all times. Eye Safety. 100% Tie Off Policy. Location of Emergency First Aid Kit and how to find the nearest hospital. Importance of a good attitude. Good Communication is key!",
     additionalSteps: jsa?.additionalSteps || [{ step: "", hazard: "", procedure: "" }],
   });
 
@@ -183,9 +212,20 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   // v28.51 — build the current form's payload. Used by both ENABLE CREW
   // SIGNING (lazy-create) and the on-close upsert.
   const buildJsaPayload = () => ({
-    jobId: job.id, ticketId: ticket?.id || null, date, time, operator, wellName, designatedDriver,
-    lat, lng, weather, ppe, signatures: (signatures || []).filter(Boolean),
-    presenterReview, additionalSteps: additionalSteps.filter(s => s.step || s.hazard || s.procedure),
+    jobId: job.id,
+    ticketId: ticket?.id || null,
+    date,
+    time,
+    operator,
+    wellName,
+    designatedDriver,
+    lat,
+    lng,
+    weather,
+    ppe,
+    signatures: (signatures || []).filter(Boolean),
+    presenterReview,
+    additionalSteps: additionalSteps.filter((s) => s.step || s.hazard || s.procedure),
     savedAt: new Date().toISOString(),
   });
 
@@ -203,11 +243,17 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
       // Refresh the dirty baseline now that what's on disk matches what's
       // in the form, so handleClose's upsert pass doesn't double-write.
       origRef.current = {
-        date, operator, time, designatedDriver,
-        lat: String(lat || ""), lng: String(lng || ""),
-        weather: [...weather], ppe: { ...ppe },
-        signatures: [...signatures], presenterReview,
-        additionalSteps: additionalSteps.map(s => ({ ...s })),
+        date,
+        operator,
+        time,
+        designatedDriver,
+        lat: String(lat || ""),
+        lng: String(lng || ""),
+        weather: [...weather],
+        ppe: { ...ppe },
+        signatures: [...signatures],
+        presenterReview,
+        additionalSteps: additionalSteps.map((s) => ({ ...s })),
       };
     } finally {
       setEnabling(false);
@@ -237,12 +283,13 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
     setCompleteError("");
     try {
       const r = await fetch(`${API_URL}/jsas/${existingJSA.id}/complete`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
       const j = await r.json().catch(() => null);
       if (!r.ok) {
         if (j?.unsigned?.length > 0) {
-          const names = j.unsigned.map(u => u.name).join(', ');
+          const names = j.unsigned.map((u) => u.name).join(", ");
           setCompleteError(`Cannot complete — these crew members have not signed yet: ${names}`);
         } else {
           setCompleteError(j?.error || `Could not auto-complete the JSA (${r.status})`);
@@ -278,7 +325,9 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
     if (existingJSA?.id && isDirty()) {
       try {
         await onSave(buildJsaPayload());
-      } catch { /* swallow — don't block close on save failure */ }
+      } catch {
+        /* swallow — don't block close on save failure */
+      }
       onClose();
       return;
     }
@@ -292,33 +341,62 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   handleCloseRef.current = handleClose;
 
   return (
-    <div style={isMobile
-      ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
-      : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
-    } onClick={isMobile ? undefined : handleClose}>
-      <div style={isMobile
-        ? { background: C.cardBg, borderTop: `4px solid ${C.text}`, minHeight: "100%" }
-        : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.text}`, borderRadius: 8, padding: 0, width: 900, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
-      } onClick={isMobile ? undefined : e => e.stopPropagation()}>
+    <div
+      style={
+        isMobile
+          ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+          : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+      }
+      onClick={isMobile ? undefined : handleClose}
+    >
+      <div
+        style={
+          isMobile
+            ? { background: C.cardBg, borderTop: `4px solid ${C.text}`, minHeight: "100%" }
+            : {
+                background: C.cardBg,
+                border: `1px solid ${C.border}`,
+                borderTop: `4px solid ${C.text}`,
+                borderRadius: 8,
+                padding: 0,
+                width: 900,
+                maxWidth: "95vw",
+                maxHeight: "90vh",
+                overflowY: "auto",
+              }
+        }
+        onClick={isMobile ? undefined : (e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em" }}>FLO-TEST, INC. — JSA</div>
-            <div style={{ fontSize: 11, color: C.muted }}>#{ticketNum} — Tailgate Safety Meeting · {job.customer}{ticket ? ` · ${ticket.type}` : ""}</div>
+            <div style={{ fontSize: 11, color: C.muted }}>
+              #{ticketNum} — Tailgate Safety Meeting · {job.customer}
+              {ticket ? ` · ${ticket.type}` : ""}
+            </div>
           </div>
           <div style={{ fontSize: 11, textAlign: "right" }}>
             {/* Emergency contacts deliberately bold red for immediate-recognition
                 visibility — these are safety-critical phone numbers. Per Art X:
                 dummy-proof in field conditions (2 AM windstorm). */}
-            {emergencyContacts.length > 0
-              ? emergencyContacts.map((c, i) => (
-                  <div key={i} style={{ fontWeight: 800, color: C.red }}>{c.label}: {c.phone}</div>
-                ))
-              : <div style={{ fontWeight: 800, color: C.red }}>AIRLIFE: 800-627-2376</div>
-            }
+            {emergencyContacts.length > 0 ? (
+              emergencyContacts.map((c, i) => (
+                <div key={i} style={{ fontWeight: 800, color: C.red }}>
+                  {c.label}: {c.phone}
+                </div>
+              ))
+            ) : (
+              <div style={{ fontWeight: 800, color: C.red }}>AIRLIFE: 800-627-2376</div>
+            )}
             {currentUser?.role === "owner" && (
-              <div onClick={(e) => { e.stopPropagation(); setShowEmergencyEdit(true); }}
-                style={{ fontSize: 10, color: C.blue, cursor: "pointer", marginTop: 4, fontWeight: 600 }}>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowEmergencyEdit(true);
+                }}
+                style={{ fontSize: 10, color: C.blue, cursor: "pointer", marginTop: 4, fontWeight: 600 }}
+              >
                 Edit Emergency Info
               </div>
             )}
@@ -328,9 +406,18 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
         <div style={{ padding: "16px 24px" }}>
           {/* Top fields */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
-            <div><label style={labelStyle}>DATE</label><input type="date" style={inputStyle} value={date} onChange={e => setDate(e.target.value)} /></div>
-            <div><label style={labelStyle}>TIME</label><TimePicker value={time} onChange={setTime} startHour={6} startPeriod="AM" /></div>
-            <div><label style={labelStyle}>OPERATOR</label><input style={inputStyle} value={operator} onChange={e => setOperator(e.target.value)} /></div>
+            <div>
+              <label style={labelStyle}>DATE</label>
+              <input type="date" style={inputStyle} value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>TIME</label>
+              <TimePicker value={time} onChange={setTime} startHour={6} startPeriod="AM" />
+            </div>
+            <div>
+              <label style={labelStyle}>OPERATOR</label>
+              <input style={inputStyle} value={operator} onChange={(e) => setOperator(e.target.value)} />
+            </div>
           </div>
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>WELLS</label>
@@ -341,15 +428,12 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
             <div>
               <label style={labelStyle}>DESIGNATED DRIVER</label>
               {ticketCrewForDD.length > 0 ? (
-                <select
-                  style={inputStyle}
-                  value={designatedDriver}
-                  onChange={e => setDesignatedDriver(e.target.value)}
-                >
+                <select style={inputStyle} value={designatedDriver} onChange={(e) => setDesignatedDriver(e.target.value)}>
                   <option value="">— pick driver —</option>
-                  {ticketCrewForDD.map(c => (
+                  {ticketCrewForDD.map((c) => (
                     <option key={c.user_id} value={c.user_name}>
-                      {c.user_name}{c.is_lead ? " (Lead)" : ""}
+                      {c.user_name}
+                      {c.is_lead ? " (Lead)" : ""}
                     </option>
                   ))}
                 </select>
@@ -357,50 +441,70 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
                 <input
                   style={inputStyle}
                   value={designatedDriver}
-                  onChange={e => setDesignatedDriver(e.target.value)}
+                  onChange={(e) => setDesignatedDriver(e.target.value)}
                   placeholder="Add ticket crew first to populate dropdown"
                 />
               )}
             </div>
             <div>
               <label style={labelStyle}>LOCATION PIN (Paste Google Maps link or coordinates)</label>
-              <input style={inputStyle} value={mapLink} onChange={e => {
-                const val = e.target.value;
-                setMapLink(val);
-                // Try local parsing first
-                let matched = false;
-                const patterns = [
-                  /[?&@]q?=?([-\d.]+)[,\s]+([-\d.]+)/,
-                  /@([-\d.]+),([-\d.]+)/,
-                  /\/([-]?\d{1,3}\.\d+),([-]?\d{1,3}\.\d+)/,
-                ];
-                for (const p of patterns) {
-                  const m = val.match(p);
-                  if (m) { setLat(m[1]); setLng(m[2]); matched = true; break; }
-                }
-                const rawMatch = val.trim().match(/^([-]?\d{1,3}\.\d+)[,\s]+([-]?\d{1,3}\.\d+)$/);
-                if (!matched && rawMatch) { setLat(rawMatch[1]); setLng(rawMatch[2]); matched = true; }
-                // If it's a URL but no coords found, call backend resolver
-                if (!matched && (val.includes("maps.app.goo.gl") || val.includes("goo.gl/maps") || val.includes("google.com/maps"))) {
-                  setMapResolving(true);
-                  fetch(`${API_URL}/jobs/resolve-map-pin`, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ url: val }),
-                  })
-                    .then(r => r.json())
-                    .then(data => {
-                      if (data.lat && data.lng) { setLat(data.lat); setLng(data.lng); }
-                      setMapResolving(false);
+              <input
+                style={inputStyle}
+                value={mapLink}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setMapLink(val);
+                  // Try local parsing first
+                  let matched = false;
+                  const patterns = [/[?&@]q?=?([-\d.]+)[,\s]+([-\d.]+)/, /@([-\d.]+),([-\d.]+)/, /\/([-]?\d{1,3}\.\d+),([-]?\d{1,3}\.\d+)/];
+                  for (const p of patterns) {
+                    const m = val.match(p);
+                    if (m) {
+                      setLat(m[1]);
+                      setLng(m[2]);
+                      matched = true;
+                      break;
+                    }
+                  }
+                  const rawMatch = val.trim().match(/^([-]?\d{1,3}\.\d+)[,\s]+([-]?\d{1,3}\.\d+)$/);
+                  if (!matched && rawMatch) {
+                    setLat(rawMatch[1]);
+                    setLng(rawMatch[2]);
+                    matched = true;
+                  }
+                  // If it's a URL but no coords found, call backend resolver
+                  if (!matched && (val.includes("maps.app.goo.gl") || val.includes("goo.gl/maps") || val.includes("google.com/maps"))) {
+                    setMapResolving(true);
+                    fetch(`${API_URL}/jobs/resolve-map-pin`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ url: val }),
                     })
-                    .catch(() => setMapResolving(false));
-                }
-              }} placeholder="Paste Google Maps link or lat, lon" />
+                      .then((r) => r.json())
+                      .then((data) => {
+                        if (data.lat && data.lng) {
+                          setLat(data.lat);
+                          setLng(data.lng);
+                        }
+                        setMapResolving(false);
+                      })
+                      .catch(() => setMapResolving(false));
+                  }
+                }}
+                placeholder="Paste Google Maps link or lat, lon"
+              />
               {mapResolving && <div style={{ fontSize: 11, color: C.blue, marginTop: 4, fontWeight: 600 }}>Resolving location...</div>}
               {!mapResolving && lat && lng && (
                 <div style={{ marginTop: 6, display: "flex", gap: 12, alignItems: "center", fontSize: 11 }}>
-                  <span style={{ color: C.green, fontWeight: 700 }}>✓ Lat: {lat} &nbsp; Lon: {lng}</span>
-                  <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer"
-                    style={{ color: C.blue, fontWeight: 600, textDecoration: "none" }}>
+                  <span style={{ color: C.green, fontWeight: 700 }}>
+                    ✓ Lat: {lat} &nbsp; Lon: {lng}
+                  </span>
+                  <a
+                    href={`https://www.google.com/maps?q=${lat},${lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: C.blue, fontWeight: 600, textDecoration: "none" }}
+                  >
                     View on Google Maps ↗
                   </a>
                 </div>
@@ -416,12 +520,29 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
                       against the pink in either mode. */}
                   <div style={{ fontSize: 9, fontWeight: 800, color: C.red, letterSpacing: "0.08em", marginBottom: 4 }}>NEAREST HOSPITALS</div>
                   {nearbyHospitals.map((h, i) => (
-                    <div key={i} style={{ fontSize: 11, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", padding: "2px 0", borderBottom: i < nearbyHospitals.length - 1 ? `1px solid ${C.red}10` : "none" }}>
+                    <div
+                      key={i}
+                      style={{
+                        fontSize: 11,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        flexWrap: "wrap",
+                        padding: "2px 0",
+                        borderBottom: i < nearbyHospitals.length - 1 ? `1px solid ${C.red}10` : "none",
+                      }}
+                    >
                       <span style={{ fontWeight: 700, color: PANEL_TEXT }}>{h.name}</span>
                       {h.phone && <span style={{ color: PANEL_MUTED }}>{h.phone}</span>}
                       {h.miles != null && <span style={{ color: C.red, fontWeight: 700 }}>{h.miles} mi</span>}
-                      <a href={`https://www.google.com/maps/dir/${lat},${lng}/${h.lat},${h.lng}`} target="_blank" rel="noopener noreferrer"
-                        style={{ color: C.blue, fontWeight: 600, textDecoration: "none", fontSize: 10 }}>Directions ↗</a>
+                      <a
+                        href={`https://www.google.com/maps/dir/${lat},${lng}/${h.lat},${h.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: C.blue, fontWeight: 600, textDecoration: "none", fontSize: 10 }}
+                      >
+                        Directions ↗
+                      </a>
                     </div>
                   ))}
                 </div>
@@ -440,9 +561,25 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
           {existingJSA?.id ? (
             <JSACrewSigners jsaId={existingJSA.id} onAllSigned={handleAllSigned} />
           ) : (
-            <div style={{ marginBottom: 14, padding: "12px 14px", background: "#e8f0fb", border: `1px solid ${C.blue}33`, borderRadius: 6, fontSize: 12, color: C.blue, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div
+              style={{
+                marginBottom: 14,
+                padding: "12px 14px",
+                background: "#e8f0fb",
+                border: `1px solid ${C.blue}33`,
+                borderRadius: 6,
+                fontSize: 12,
+                color: C.blue,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
               <div style={{ flex: "1 1 auto", minWidth: 220 }}>
-                <strong>Crew biometric signing</strong> activates when you enable it. The JSA finalizes automatically when the last required crew member signs — no separate MARK COMPLETE step.
+                <strong>Crew biometric signing</strong> activates when you enable it. The JSA finalizes automatically when the last required crew member signs —
+                no separate MARK COMPLETE step.
               </div>
               <Btn variant="blue" disabled={enabling} onClick={handleEnableCrewSigning}>
                 {enabling ? "ENABLING…" : "ENABLE CREW SIGNING"}
@@ -458,26 +595,67 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
             <label style={labelStyle}>EXTERNAL / NON-FTI SIGNATURES (subcontractors, customer reps — typed name only)</label>
             {signatures.map((s, i) => (
               <div key={i} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
-                <input style={{ ...inputStyle, flex: 1 }} value={s} onChange={e => { const ns = [...signatures]; ns[i] = e.target.value; setSignatures(ns); }} placeholder={`External signer ${i + 1} — typed name`} />
-                {signatures.length > 1 && <button onClick={() => setSignatures(prev => prev.filter((_, j) => j !== i))} style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16 }}>×</button>}
+                <input
+                  style={{ ...inputStyle, flex: 1 }}
+                  value={s}
+                  onChange={(e) => {
+                    const ns = [...signatures];
+                    ns[i] = e.target.value;
+                    setSignatures(ns);
+                  }}
+                  placeholder={`External signer ${i + 1} — typed name`}
+                />
+                {signatures.length > 1 && (
+                  <button
+                    onClick={() => setSignatures((prev) => prev.filter((_, j) => j !== i))}
+                    style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16 }}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             ))}
-            <Btn small variant="ghost" onClick={() => setSignatures(prev => [...prev, ""])}>+ ADD EXTERNAL SIGNATURE</Btn>
+            <Btn small variant="ghost" onClick={() => setSignatures((prev) => [...prev, ""])}>
+              + ADD EXTERNAL SIGNATURE
+            </Btn>
           </div>
 
           {/* Presenter Review */}
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>PRESENTER REVIEW</label>
-            <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 11 }} value={presenterReview} onChange={e => setPresenterReview(e.target.value)} />
+            <textarea
+              style={{ ...inputStyle, resize: "vertical", minHeight: 60, fontSize: 11 }}
+              value={presenterReview}
+              onChange={(e) => setPresenterReview(e.target.value)}
+            />
           </div>
 
           {/* PPE & Weather */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>PPE CHECK</label>
-              {[["frClothing", "FR Clothing, H2S Monitor, Hard Hat, Safety Glasses, Steel Toed Footwear"], ["toolsTrained", "Trained in use of tools / equipment"], ["confinedSpace", "Confined space permit completed?"]].map(([k, lbl]) => (
-                <div key={k} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: "pointer" }} onClick={() => setPpe(p => ({ ...p, [k]: !p[k] }))}>
-                  <div style={{ width: 16, height: 16, borderRadius: 3, border: `2px solid ${ppe[k] ? C.green : C.muted}`, background: ppe[k] ? C.green : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {[
+                ["frClothing", "FR Clothing, H2S Monitor, Hard Hat, Safety Glasses, Steel Toed Footwear"],
+                ["toolsTrained", "Trained in use of tools / equipment"],
+                ["confinedSpace", "Confined space permit completed?"],
+              ].map(([k, lbl]) => (
+                <div
+                  key={k}
+                  style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, cursor: "pointer" }}
+                  onClick={() => setPpe((p) => ({ ...p, [k]: !p[k] }))}
+                >
+                  <div
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 3,
+                      border: `2px solid ${ppe[k] ? C.green : C.muted}`,
+                      background: ppe[k] ? C.green : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
                     {ppe[k] && <span style={{ color: C.white, fontSize: 10, fontWeight: 900 }}>✓</span>}
                   </div>
                   <span style={{ fontSize: 11, color: C.text }}>{lbl}</span>
@@ -495,17 +673,27 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
                 </div>
               )}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {weatherOpts.map(w => {
+                {weatherOpts.map((w) => {
                   const isSelected = weather.includes(w);
                   const isAuto = isSelected && weatherAutoTags.includes(w);
                   return (
-                  <button key={w} onClick={() => toggleWeather(w)} style={{
-                    background: isSelected ? C.blue : "transparent",
-                    color: isSelected ? C.white : C.muted,
-                    border: `1px solid ${isSelected ? C.blue : C.border}`,
-                    borderStyle: isAuto ? "dashed" : "solid",
-                    borderRadius: 4, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}>{w}</button>
+                    <button
+                      key={w}
+                      onClick={() => toggleWeather(w)}
+                      style={{
+                        background: isSelected ? C.blue : "transparent",
+                        color: isSelected ? C.white : C.muted,
+                        border: `1px solid ${isSelected ? C.blue : C.border}`,
+                        borderStyle: isAuto ? "dashed" : "solid",
+                        borderRadius: 4,
+                        padding: "3px 10px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {w}
+                    </button>
                   );
                 })}
               </div>
@@ -516,12 +704,23 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
           <label style={labelStyle}>BASIC JOB STEPS / POTENTIAL HAZARDS / SAFE PROCEDURES</label>
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden", marginBottom: 14 }}>
             <div style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 1fr", background: C.darkBlue, padding: "8px 10px" }}>
-              {["#", "Basic Job Step", "Potential Hazards", "Recommended Safe Procedures"].map(h => (
-                <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>{h}</div>
+              {["#", "Basic Job Step", "Potential Hazards", "Recommended Safe Procedures"].map((h) => (
+                <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
+                  {h}
+                </div>
               ))}
             </div>
             {PRE_FILLED_STEPS.map((s, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 1fr", padding: "6px 10px", borderBottom: `1px solid ${C.border}22`, background: i % 2 === 0 ? C.cardBg : C.steel }}>
+              <div
+                key={i}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "40px 1fr 1fr 1fr",
+                  padding: "6px 10px",
+                  borderBottom: `1px solid ${C.border}22`,
+                  background: i % 2 === 0 ? C.cardBg : C.steel,
+                }}
+              >
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{i + 1}</div>
                 <div style={{ fontSize: 10, color: C.text, paddingRight: 8 }}>{s.step}</div>
                 <div style={{ fontSize: 10, color: C.text, paddingRight: 8 }}>{s.hazard}</div>
@@ -530,15 +729,44 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
             ))}
             {/* Additional blank steps */}
             {additionalSteps.map((s, i) => (
-              <div key={`a${i}`} style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 1fr", padding: "4px 10px", borderBottom: `1px solid ${C.border}22`, gap: 4 }}>
+              <div
+                key={`a${i}`}
+                style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 1fr", padding: "4px 10px", borderBottom: `1px solid ${C.border}22`, gap: 4 }}
+              >
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted }}>{PRE_FILLED_STEPS.length + i + 1}</div>
-                <input style={{ ...inputStyle, padding: "3px 6px", fontSize: 10 }} value={s.step} onChange={e => { const ns = [...additionalSteps]; ns[i].step = e.target.value; setAdditionalSteps(ns); }} />
-                <input style={{ ...inputStyle, padding: "3px 6px", fontSize: 10 }} value={s.hazard} onChange={e => { const ns = [...additionalSteps]; ns[i].hazard = e.target.value; setAdditionalSteps(ns); }} />
-                <input style={{ ...inputStyle, padding: "3px 6px", fontSize: 10 }} value={s.procedure} onChange={e => { const ns = [...additionalSteps]; ns[i].procedure = e.target.value; setAdditionalSteps(ns); }} />
+                <input
+                  style={{ ...inputStyle, padding: "3px 6px", fontSize: 10 }}
+                  value={s.step}
+                  onChange={(e) => {
+                    const ns = [...additionalSteps];
+                    ns[i].step = e.target.value;
+                    setAdditionalSteps(ns);
+                  }}
+                />
+                <input
+                  style={{ ...inputStyle, padding: "3px 6px", fontSize: 10 }}
+                  value={s.hazard}
+                  onChange={(e) => {
+                    const ns = [...additionalSteps];
+                    ns[i].hazard = e.target.value;
+                    setAdditionalSteps(ns);
+                  }}
+                />
+                <input
+                  style={{ ...inputStyle, padding: "3px 6px", fontSize: 10 }}
+                  value={s.procedure}
+                  onChange={(e) => {
+                    const ns = [...additionalSteps];
+                    ns[i].procedure = e.target.value;
+                    setAdditionalSteps(ns);
+                  }}
+                />
               </div>
             ))}
           </div>
-          <Btn small variant="ghost" onClick={() => setAdditionalSteps(prev => [...prev, { step: "", hazard: "", procedure: "" }])}>+ ADD STEP</Btn>
+          <Btn small variant="ghost" onClick={() => setAdditionalSteps((prev) => [...prev, { step: "", hazard: "", procedure: "" }])}>
+            + ADD STEP
+          </Btn>
         </div>
 
         {/* Footer — incomplete-fields HINT (v28.07.2):
@@ -548,17 +776,26 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
             optional (most JSAs have none). The hint banner shows what's
             outstanding for the JSA to be considered "complete." */}
         {(() => {
-          const validSigs = (signatures || []).filter(Boolean);
           const missing = [];
-          if (!date) missing.push('Date');
-          if (!String(designatedDriver || '').trim()) missing.push('Designated Driver');
-          if (!lat || !lng) missing.push('Location Pin');
+          if (!date) missing.push("Date");
+          if (!String(designatedDriver || "").trim()) missing.push("Designated Driver");
+          if (!lat || !lng) missing.push("Location Pin");
           // Note: external signatures are NOT required (per Reggie's spec —
           // most JSAs don't have non-FTI signers). Biometric crew sigs are
           // tracked separately via the FTI CREW BIOMETRIC SIGNATURES section.
           return missing.length > 0 ? (
-            <div style={{ margin: "0 24px", padding: "10px 14px", background: "#fdf5d8", border: `1px solid #8a650044`, borderRadius: 6, fontSize: 12, color: "#8a6500" }}>
-              <strong>Incomplete:</strong> {missing.join(' · ')} — JSA can still be saved as a draft.
+            <div
+              style={{
+                margin: "0 24px",
+                padding: "10px 14px",
+                background: "#fdf5d8",
+                border: `1px solid #8a650044`,
+                borderRadius: 6,
+                fontSize: 12,
+                color: "#8a6500",
+              }}
+            >
+              <strong>Incomplete:</strong> {missing.join(" · ")} — JSA can still be saved as a draft.
             </div>
           ) : null;
         })()}
@@ -575,40 +812,51 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
               Net: one button (CLOSE) instead of three. The cumbersome
               scroll-to-bottom problem and the SAVE-vs-COMPLETE confusion
               both go away. */}
-          <Btn onClick={handleClose} variant="ghost">CLOSE</Btn>
-          {existingJSA?.completed_at && (
-            <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>
-              ✓ JSA Complete
-            </span>
-          )}
-          {completing && (
-            <span style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>
-              ⌛ Auto-completing…
-            </span>
-          )}
+          <Btn onClick={handleClose} variant="ghost">
+            CLOSE
+          </Btn>
+          {existingJSA?.completed_at && <span style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>✓ JSA Complete</span>}
+          {completing && <span style={{ fontSize: 11, color: C.blue, fontWeight: 600 }}>⌛ Auto-completing…</span>}
           {lastSavedAt && !existingJSA?.completed_at && (
             <span style={{ fontSize: 11, color: C.green, fontWeight: 600, marginLeft: 6 }}>
-              ✓ Saved {lastSavedAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              ✓ Saved {lastSavedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
             </span>
           )}
-          {completeError && (
-            <div style={{ flexBasis: "100%", marginTop: 8, color: C.red, fontSize: 12, fontWeight: 700 }}>
-              {completeError}
-            </div>
-          )}
+          {completeError && <div style={{ flexBasis: "100%", marginTop: 8, color: C.red, fontSize: 12, fontWeight: 700 }}>{completeError}</div>}
         </div>
       </div>
-      {showEmergencyEdit && (
-        <EmergencyContactsModal onClose={() => setShowEmergencyEdit(false)} />
-      )}
+      {showEmergencyEdit && <EmergencyContactsModal onClose={() => setShowEmergencyEdit(false)} />}
       {showUnsaved && (
-        <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }} onClick={() => setShowUnsaved(false)}>
-          <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 400, maxWidth: "90vw" }} onClick={e => e.stopPropagation()}>
+        <div
+          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
+          onClick={() => setShowUnsaved(false)}
+        >
+          <div
+            style={{
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderTop: `4px solid ${C.red}`,
+              borderRadius: 8,
+              padding: 28,
+              width: 400,
+              maxWidth: "90vw",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
             <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This JSA has unsaved changes. Are you sure you want to close?</div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={() => { setShowUnsaved(false); onClose(); }}>YES, DISCARD</Btn>
-              <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>KEEP EDITING</Btn>
+              <Btn
+                onClick={() => {
+                  setShowUnsaved(false);
+                  onClose();
+                }}
+              >
+                YES, DISCARD
+              </Btn>
+              <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>
+                KEEP EDITING
+              </Btn>
             </div>
           </div>
         </div>
@@ -616,6 +864,5 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
     </div>
   );
 }
-
 
 export default JSAModal;
