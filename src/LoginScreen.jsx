@@ -564,7 +564,7 @@ function LoginScreen() {
               : mode === "forgot"
                 ? "PASSWORD RESET"
                 : "SET NEW PASSWORD"}{" "}
-            <span style={{ color: C.white, fontWeight: 700 }}>v28.64</span>
+            <span style={{ color: C.white, fontWeight: 700 }}>v28.65</span>
           </div>
         </div>
 
