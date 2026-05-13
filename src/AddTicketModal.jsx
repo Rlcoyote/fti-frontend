@@ -10,6 +10,7 @@ import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
 import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 import AddTicketJobBanner from "./AddTicketJobBanner.jsx";
 import AddTicketSiteManager from "./AddTicketSiteManager.jsx";
+import AddTicketDateTimeFields from "./AddTicketDateTimeFields.jsx";
 import AddTicketGpsReference from "./AddTicketGpsReference.jsx";
 import AddTicketTimeMileage from "./AddTicketTimeMileage.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -559,89 +560,25 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 </button>
               </div>
 
-              <div style={{ marginBottom: 14 }}>
-                {type === "Rental" ? (
-                  <>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
-                      <div>
-                        <label style={labelStyle}>START DATE</label>
-                        <input type="date" style={{ ...inputStyle, width: 160 }} value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>CYCLE (DAYS)</label>
-                        <input type="number" style={{ ...inputStyle, width: 80 }} value={cycleDays} onChange={(e) => setCycleDays(e.target.value)} min={1} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>END DATE</label>
-                        <input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8", color: PANEL_TEXT }} value={endDate} readOnly />
-                      </div>
-                    </div>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: PANEL_TEXT, cursor: "pointer" }}>
-                      <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
-                      Recurring (auto-create next cycle ticket)
-                    </label>
-                  </>
-                ) : (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", alignItems: "flex-end" }}>
-                    <div>
-                      <label style={labelStyle}>DATE</label>
-                      <input type="date" style={{ ...inputStyle, width: 180 }} value={date} onChange={(e) => setDate(e.target.value)} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>LOCATION TIME</label>
-                      <TimePicker value={dueOnLoc} onChange={setDueOnLoc} startHour={6} startPeriod="AM" />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>TIME ZONE</label>
-                      <div style={{ display: "flex", gap: 10, paddingTop: 6 }}>
-                        {["TX", "NM"].map((tz) => (
-                          <span
-                            key={tz}
-                            onClick={() => setTimeZone(tz)}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
-                              cursor: "pointer",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: timeZone === tz ? C.red : C.muted,
-                            }}
-                          >
-                            <span
-                              style={{
-                                width: 12,
-                                height: 12,
-                                borderRadius: "50%",
-                                border: `2px solid ${timeZone === tz ? C.red : C.border}`,
-                                background: timeZone === tz ? C.red : "transparent",
-                                display: "inline-block",
-                              }}
-                            />
-                            {tz}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    {yardsList.length > 1 && (
-                      <div>
-                        <label style={labelStyle}>YARD</label>
-                        <select
-                          value={yardLocationIndex}
-                          onChange={(e) => setYardLocationIndex(parseInt(e.target.value, 10))}
-                          style={{ ...inputStyle, width: 180 }}
-                        >
-                          {yardsList.map((y, i) => (
-                            <option key={i} value={i + 1}>
-                              {y.name || `Yard #${i + 1}`}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <AddTicketDateTimeFields
+                type={type}
+                startDate={startDate}
+                setStartDate={setStartDate}
+                cycleDays={cycleDays}
+                setCycleDays={setCycleDays}
+                endDate={endDate}
+                isRecurring={isRecurring}
+                setIsRecurring={setIsRecurring}
+                date={date}
+                setDate={setDate}
+                dueOnLoc={dueOnLoc}
+                setDueOnLoc={setDueOnLoc}
+                timeZone={timeZone}
+                setTimeZone={setTimeZone}
+                yardsList={yardsList}
+                yardLocationIndex={yardLocationIndex}
+                setYardLocationIndex={setYardLocationIndex}
+              />
 
               <AddTicketSiteManager
                 job={job}
