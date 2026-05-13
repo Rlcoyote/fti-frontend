@@ -9,6 +9,7 @@ import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import CrewSelectionView from "./CrewSelectionView.jsx";
 import CopyCrewModal from "./CopyCrewModal.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
+import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
@@ -498,42 +499,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
 
         <div style={{ padding: 24 }}>
           {!type ? (
-            <>
-              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Add Ticket — Select Type</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {Object.entries(TICKET_TYPES).map(([key, cfg]) => (
-                  <button
-                    key={key}
-                    onClick={() => handleSelectType(key)}
-                    style={{
-                      background: C.cardBg,
-                      border: `2px solid ${cfg.color}33`,
-                      borderLeft: `4px solid ${cfg.color}`,
-                      borderRadius: 6,
-                      padding: "16px 18px",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = cfg.color)}
-                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = cfg.color + "33")}
-                  >
-                    <div style={{ fontSize: 14, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</div>
-                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-                      {key === "Rig Up" && "Crew mobilization, equipment, Day 1 rental"}
-                      {key === "Rig Down" && "Teardown, equipment return, DLR check"}
-                      {key === "Tester" && "Flo-back testing, hourly logging"}
-                      {key === "Pumper" && "Field specialist, daily operations"}
-                      {key === "Rental" && "Ongoing equipment rental (Day 2+)"}
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div style={{ marginTop: 16 }}>
-                <Btn onClick={handleClose} variant="ghost">
-                  CANCEL
-                </Btn>
-              </div>
-            </>
+            <AddTicketTypeSelector onSelect={handleSelectType} onCancel={handleClose} />
           ) : type && !wellsConfirmed && jobWells.length > 1 ? (
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
