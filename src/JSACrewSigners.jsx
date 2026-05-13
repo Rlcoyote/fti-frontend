@@ -27,34 +27,77 @@ import JSAPathBSignModal from "./JSAPathBSignModal.jsx";
 // to finalize.
 
 function StatusBadge({ method, witnessName }) {
-  if (method === 'biometric') {
-    return <span style={{
-      fontSize: 10, fontWeight: 800, color: "#00633a",
-      background: "#d8f0e2", border: `1px solid #00633a44`,
-      padding: "2px 8px", borderRadius: 3, letterSpacing: "0.06em",
-    }}>SIGNED — BIOMETRIC</span>;
+  if (method === "biometric") {
+    return (
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          color: "#00633a",
+          background: "#d8f0e2",
+          border: `1px solid #00633a44`,
+          padding: "2px 8px",
+          borderRadius: 3,
+          letterSpacing: "0.06em",
+        }}
+      >
+        SIGNED — BIOMETRIC
+      </span>
+    );
   }
-  if (method === 'lead_override') {
-    return <span style={{
-      fontSize: 10, fontWeight: 800, color: "#8a6500",
-      background: "#fdf5d8", border: `1px solid #8a650044`,
-      padding: "2px 8px", borderRadius: 3, letterSpacing: "0.06em",
-    }} title={witnessName ? `Witnessed by ${witnessName}` : undefined}>
-      LEAD OVERRIDE{witnessName ? ` · ${witnessName}` : ""}
-    </span>;
+  if (method === "lead_override") {
+    return (
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          color: "#8a6500",
+          background: "#fdf5d8",
+          border: `1px solid #8a650044`,
+          padding: "2px 8px",
+          borderRadius: 3,
+          letterSpacing: "0.06em",
+        }}
+        title={witnessName ? `Witnessed by ${witnessName}` : undefined}
+      >
+        LEAD OVERRIDE{witnessName ? ` · ${witnessName}` : ""}
+      </span>
+    );
   }
-  if (method === 'pin_witnessed') {
-    return <span style={{
-      fontSize: 10, fontWeight: 800, color: "#3a3a3a",
-      background: "#e8e8e8", border: `1px solid #3a3a3a44`,
-      padding: "2px 8px", borderRadius: 3, letterSpacing: "0.06em",
-    }}>SIGNED — PIN</span>;
+  if (method === "pin_witnessed") {
+    return (
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          color: "#3a3a3a",
+          background: "#e8e8e8",
+          border: `1px solid #3a3a3a44`,
+          padding: "2px 8px",
+          borderRadius: 3,
+          letterSpacing: "0.06em",
+        }}
+      >
+        SIGNED — PIN
+      </span>
+    );
   }
-  return <span style={{
-    fontSize: 10, fontWeight: 800, color: C.muted,
-    background: C.steel, border: `1px solid ${C.border}`,
-    padding: "2px 8px", borderRadius: 3, letterSpacing: "0.06em",
-  }}>NOT SIGNED</span>;
+  return (
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 800,
+        color: C.muted,
+        background: C.steel,
+        border: `1px solid ${C.border}`,
+        padding: "2px 8px",
+        borderRadius: 3,
+        letterSpacing: "0.06em",
+      }}
+    >
+      NOT SIGNED
+    </span>
+  );
 }
 
 function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
@@ -64,13 +107,15 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
   const [error, setError] = useState("");
   const [signOpen, setSignOpen] = useState(false);
   const [overrideTarget, setOverrideTarget] = useState(null);
+  const [overrideReason, setOverrideReason] = useState(""); // v28.71 — surfaces the fallback reason inside the override modal
   const [pinWitnessTarget, setPinWitnessTarget] = useState(null);
   const [busyUserId, setBusyUserId] = useState(null);
   const [linkSentMsg, setLinkSentMsg] = useState("");
 
   const fetchSigners = useCallback(async () => {
     if (!jsaId) return;
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const r = await fetch(`${API_URL}/jsas/${jsaId}/required-signers`);
       if (!r.ok) {
@@ -88,13 +133,18 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
     }
   }, [jsaId, onAllSigned]);
 
-  useEffect(() => { fetchSigners(); }, [fetchSigners]);
+  useEffect(() => {
+    fetchSigners();
+  }, [fetchSigners]);
 
   const sendLink = async (userId) => {
-    setBusyUserId(userId); setError(""); setLinkSentMsg("");
+    setBusyUserId(userId);
+    setError("");
+    setLinkSentMsg("");
     try {
       const r = await fetch(`${API_URL}/jsas/${jsaId}/send-sign-link`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId }),
       });
       const j = await r.json();
@@ -102,7 +152,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
         setError(j?.error || "Could not send link");
         return;
       }
-      setLinkSentMsg(j.message || `Link sent via ${j.channel || 'email'}.`);
+      setLinkSentMsg(j.message || `Link sent via ${j.channel || "email"}.`);
       setTimeout(() => setLinkSentMsg(""), 4000);
     } catch {
       setError("Connection error sending link");
@@ -116,22 +166,22 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
   // load state or fetch outcome. Earlier code returned null on fetch
   // failure, leaving silent empty space that looked like the feature was
   // missing entirely.
-  if (loading) return (
-    <div style={{ marginBottom: 14, padding: 14, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 }}>
-      <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
-      <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Loading required signers...</div>
-    </div>
-  );
-  if (!data) return (
-    <div style={{ marginBottom: 14, padding: 14, background: C.cardBg, border: `1px solid ${C.red}33`, borderRadius: 6 }}>
-      <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
-      <div style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>
-        {error || "Could not load required signers."}
+  if (loading)
+    return (
+      <div style={{ marginBottom: 14, padding: 14, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6 }}>
+        <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
+        <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Loading required signers...</div>
       </div>
-    </div>
-  );
+    );
+  if (!data)
+    return (
+      <div style={{ marginBottom: 14, padding: 14, background: C.cardBg, border: `1px solid ${C.red}33`, borderRadius: 6 }}>
+        <div style={{ ...labelStyle, marginBottom: 6 }}>FTI CREW BIOMETRIC SIGNATURES</div>
+        <div style={{ fontSize: 12, color: C.red, fontWeight: 600 }}>{error || "Could not load required signers."}</div>
+      </div>
+    );
 
-  const userOnCrew = data.crew.find(c => c.user_id === currentUser?.id);
+  const userOnCrew = data.crew.find((c) => c.user_id === currentUser?.id);
   const userIsLead = !!(userOnCrew && userOnCrew.is_lead);
   const role = currentUser?.role || "";
   const canSendLinkOrOverride = userIsLead || ["owner", "admin", "manager"].includes(role);
@@ -140,21 +190,33 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
 
   return (
     <>
-      <div style={{ marginBottom: 14, padding: 14, background: data.all_signed ? "#e6f5ec" : C.cardBg, border: `1px solid ${data.all_signed ? "#00633a44" : C.border}`, borderRadius: 6 }}>
+      <div
+        style={{
+          marginBottom: 14,
+          padding: 14,
+          background: data.all_signed ? "#e6f5ec" : C.cardBg,
+          border: `1px solid ${data.all_signed ? "#00633a44" : C.border}`,
+          borderRadius: 6,
+        }}
+      >
         <div style={{ ...labelStyle, marginBottom: 10 }}>
-          FTI CREW BIOMETRIC SIGNATURES ({data.crew.filter(c => c.signature_id).length}/{data.crew_count})
+          FTI CREW BIOMETRIC SIGNATURES ({data.crew.filter((c) => c.signature_id).length}/{data.crew_count})
         </div>
 
         {data.crew.length === 0 && (
-          <div style={{
-            padding: "10px 12px", background: "#fdf5d8",
-            border: `1px solid #8a650044`, borderRadius: 4,
-            fontSize: 12, color: "#8a6500", lineHeight: 1.5,
-          }}>
-            <strong>No crew assigned to this ticket yet.</strong> Close the JSA, find
-            the TICKET CREW section on the ticket itself (between Site Manager and
-            Time &amp; Mileage in TicketDetail, or below Notes in the Add Ticket modal),
-            assign at least one crew member as lead, then re-open the JSA. Required
+          <div
+            style={{
+              padding: "10px 12px",
+              background: "#fdf5d8",
+              border: `1px solid #8a650044`,
+              borderRadius: 4,
+              fontSize: 12,
+              color: "#8a6500",
+              lineHeight: 1.5,
+            }}
+          >
+            <strong>No crew assigned to this ticket yet.</strong> Close the JSA, find the TICKET CREW section on the ticket itself (between Site Manager and
+            Time &amp; Mileage in TicketDetail, or below Notes in the Add Ticket modal), assign at least one crew member as lead, then re-open the JSA. Required
             signers will then auto-populate here.
           </div>
         )}
@@ -166,12 +228,17 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
               const isSigned = !!c.signature_id;
               const canSelfSign = isSelf && !isSigned && !jsaCompleted && !ticketIsClosed;
               return (
-                <div key={c.user_id} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "10px 12px",
-                  borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                  background: isSigned ? "#f8fbf9" : C.cardBg,
-                }}>
+                <div
+                  key={c.user_id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "10px 12px",
+                    borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+                    background: isSigned ? "#f8fbf9" : C.cardBg,
+                  }}
+                >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {/* v28.38 — signed rows have a light green (#f8fbf9)
                         background. C.text and C.muted are light in dark mode,
@@ -187,7 +254,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                       <StatusBadge method={c.sign_method} witnessName={c.witness_name} />
                       {c.signed_at && (
                         <span style={{ marginLeft: 8 }}>
-                          {new Date(c.signed_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {new Date(c.signed_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </span>
                       )}
                     </div>
@@ -196,40 +263,75 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                   {!isSigned && !jsaCompleted && !ticketIsClosed && (
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {canSelfSign && (
-                        <button onClick={() => setSignOpen(true)} style={{
-                          background: C.red, border: "none", color: C.white,
-                          fontSize: 11, fontWeight: 700, padding: "5px 12px", borderRadius: 3,
-                          cursor: "pointer", letterSpacing: "0.06em",
-                        }}>SIGN WITH BIOMETRIC</button>
+                        <button
+                          onClick={() => setSignOpen(true)}
+                          style={{
+                            background: C.red,
+                            border: "none",
+                            color: C.white,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: "5px 12px",
+                            borderRadius: 3,
+                            cursor: "pointer",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          SIGN WITH BIOMETRIC
+                        </button>
                       )}
                       {canSendLinkOrOverride && !canSelfSign && (
                         <>
                           <button
                             onClick={() => setPinWitnessTarget(c)}
                             style={{
-                              background: C.blue, border: "none", color: C.white,
-                              fontSize: 10, fontWeight: 800, padding: "4px 10px", borderRadius: 3,
-                              cursor: "pointer", letterSpacing: "0.06em",
+                              background: C.blue,
+                              border: "none",
+                              color: C.white,
+                              fontSize: 10,
+                              fontWeight: 800,
+                              padding: "4px 10px",
+                              borderRadius: 3,
+                              cursor: "pointer",
+                              letterSpacing: "0.06em",
                             }}
                             title="Crew member signs by entering their PIN on this device, with a photo + your biometric witness."
-                          >SIGN W/ PIN</button>
+                          >
+                            SIGN W/ PIN
+                          </button>
                           <button
                             onClick={() => sendLink(c.user_id)}
                             disabled={busyUserId === c.user_id}
                             style={{
-                              background: "transparent", border: `1px solid ${C.blue}`, color: C.blue,
-                              fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 3,
-                              cursor: busyUserId === c.user_id ? "default" : "pointer", letterSpacing: "0.06em",
+                              background: "transparent",
+                              border: `1px solid ${C.blue}`,
+                              color: C.blue,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "4px 10px",
+                              borderRadius: 3,
+                              cursor: busyUserId === c.user_id ? "default" : "pointer",
+                              letterSpacing: "0.06em",
                             }}
-                          >{busyUserId === c.user_id ? "SENDING..." : "SEND LINK"}</button>
+                          >
+                            {busyUserId === c.user_id ? "SENDING..." : "SEND LINK"}
+                          </button>
                           <button
                             onClick={() => setOverrideTarget(c)}
                             style={{
-                              background: "transparent", border: `1px solid ${C.muted}`, color: C.muted,
-                              fontSize: 10, fontWeight: 700, padding: "4px 10px", borderRadius: 3,
-                              cursor: "pointer", letterSpacing: "0.06em",
+                              background: "transparent",
+                              border: `1px solid ${C.muted}`,
+                              color: C.muted,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: "4px 10px",
+                              borderRadius: 3,
+                              cursor: "pointer",
+                              letterSpacing: "0.06em",
                             }}
-                          >OVERRIDE</button>
+                          >
+                            OVERRIDE
+                          </button>
                         </>
                       )}
                     </div>
@@ -241,26 +343,39 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
         )}
 
         {data.all_signed && (
-          <div style={{
-            marginTop: 12, padding: "8px 12px", background: "#00633a",
-            color: C.white, fontSize: 12, fontWeight: 700, borderRadius: 4, textAlign: "center",
-            letterSpacing: "0.06em",
-          }}>
+          <div
+            style={{
+              marginTop: 12,
+              padding: "8px 12px",
+              background: "#00633a",
+              color: C.white,
+              fontSize: 12,
+              fontWeight: 700,
+              borderRadius: 4,
+              textAlign: "center",
+              letterSpacing: "0.06em",
+            }}
+          >
             ✓ ALL CREW SIGNED — JSA READY TO COMPLETE
           </div>
         )}
 
         {linkSentMsg && (
-          <div style={{
-            marginTop: 10, padding: "6px 10px", background: "#e6f5ec",
-            color: "#00633a", fontSize: 11, fontWeight: 700, borderRadius: 3,
-          }}>{linkSentMsg}</div>
-        )}
-        {error && (
-          <div style={{ marginTop: 10, color: C.red, fontSize: 12, fontWeight: 700 }}>
-            {error}
+          <div
+            style={{
+              marginTop: 10,
+              padding: "6px 10px",
+              background: "#e6f5ec",
+              color: "#00633a",
+              fontSize: 11,
+              fontWeight: 700,
+              borderRadius: 3,
+            }}
+          >
+            {linkSentMsg}
           </div>
         )}
+        {error && <div style={{ marginTop: 10, color: C.red, fontSize: 12, fontWeight: 700 }}>{error}</div>}
       </div>
 
       {/* SELF-SIGN biometric ceremony */}
@@ -283,9 +398,14 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
           jsaId={jsaId}
           target={overrideTarget}
           jsaContext={data}
-          onClose={() => setOverrideTarget(null)}
+          fallbackReason={overrideReason}
+          onClose={() => {
+            setOverrideTarget(null);
+            setOverrideReason("");
+          }}
           onOverridden={() => {
             setOverrideTarget(null);
+            setOverrideReason("");
             fetchSigners();
             if (onNeedsRefresh) onNeedsRefresh();
           }}
@@ -304,11 +424,17 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
             if (onNeedsRefresh) onNeedsRefresh();
           }}
           onFallbackToOverride={(target, reason) => {
-            // 3-strike PIN failure or no-PIN-set → seamless transition
-            // into Path C without context-switching the lead.
-            setLinkSentMsg(reason);
-            setTimeout(() => setLinkSentMsg(""), 6000);
+            // v28.71 — 3-strike PIN failure or no-PIN-set → seamless
+            // transition into Path C, BUT carry the reason into the
+            // override modal so the lead sees WHY they're being routed
+            // there. Prior version set linkSentMsg (green pill in
+            // parent) which was visually hidden behind the override
+            // modal that opened immediately after. Reggie surfaced
+            // this gap during v28.68 smoke testing: random PIN entry
+            // for a crew member with no PIN on file silently routed
+            // to override with no explanation.
             setPinWitnessTarget(null);
+            setOverrideReason(reason);
             setOverrideTarget(target);
           }}
         />

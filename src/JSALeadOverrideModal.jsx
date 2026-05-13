@@ -29,7 +29,7 @@ const REASON_OPTIONS = [
   { code: "other", label: "Other (describe in detail)" },
 ];
 
-function JSALeadOverrideModal({ jsaId, target, jsaContext: _jsaContext, onClose, onOverridden }) {
+function JSALeadOverrideModal({ jsaId, target, jsaContext: _jsaContext, fallbackReason, onClose, onOverridden }) {
   const { currentUser } = useApp();
   const [reasonCode, setReasonCode] = useState("");
   const [reasonText, setReasonText] = useState("");
@@ -121,6 +121,29 @@ function JSALeadOverrideModal({ jsaId, target, jsaContext: _jsaContext, onClose,
 
   return (
     <ModalWrap title={`Lead Override — ${targetName}`} onClose={onClose} width={560}>
+      {/* v28.71 — when the override was triggered by a fallback (PIN not
+          set up, or 3 incorrect PIN attempts), surface the reason
+          prominently at the top so the lead understands WHY they're in
+          this flow. Prior behavior set the reason in a green pill in
+          JSACrewSigners that the override modal immediately covered. */}
+      {fallbackReason && (
+        <div
+          style={{
+            marginBottom: 14,
+            padding: "10px 14px",
+            background: "#fdf5d8",
+            border: "1px solid #e6c20044",
+            borderLeft: "3px solid #8a6500",
+            borderRadius: 4,
+            fontSize: 12,
+            fontWeight: 700,
+            color: "#8a6500",
+          }}
+        >
+          ⚠ {fallbackReason}
+        </div>
+      )}
+
       <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
         Use this only when <strong>{targetName}</strong> cannot acknowledge the JSA through their own biometric or via a sign-link. Your biometric will anchor
         the override forensically.
