@@ -10,6 +10,7 @@ import CrewSelectionView from "./CrewSelectionView.jsx";
 import CopyCrewModal from "./CopyCrewModal.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
 import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
+import AddTicketJobBanner from "./AddTicketJobBanner.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
@@ -366,41 +367,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         {showUnsaved && <AddTicketUnsavedConfirm onDiscard={onClose} onDismiss={() => setShowUnsaved(false)} />}
 
         {/* Job info banner — always visible once type selected */}
-        {type && job && (
-          <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 20px" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>WORK ORDER INFO</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", fontSize: 12 }}>
-              <span>
-                <span style={{ color: C.muted }}>Customer: </span>
-                <strong>{job.customer}</strong>
-              </span>
-              {job.jobState && (
-                <span>
-                  <span style={{ color: C.muted }}>State: </span>
-                  <strong>{job.jobState}</strong>
-                </span>
-              )}
-              {job.county && (
-                <span>
-                  <span style={{ color: C.muted }}>County: </span>
-                  <strong>{job.county}</strong>
-                </span>
-              )}
-              {job.wells?.length > 0 && (
-                <span>
-                  <span style={{ color: C.muted }}>Wells: </span>
-                  <strong>{job.wells.map((w) => w.well_name || w).join(", ")}</strong>
-                </span>
-              )}
-              {(job.contactFirst || job.contactLast) && (
-                <span>
-                  <span style={{ color: C.muted }}>Point of Contact: </span>
-                  <strong>{[job.contactFirst, job.contactLast].filter(Boolean).join(" ")}</strong>
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+        {type && <AddTicketJobBanner job={job} />}
 
         {/* v28.42 — CREATE JSA button removed from this surface. JSA creation
             now lives only on the ticket-detail modal (post-creation), per
