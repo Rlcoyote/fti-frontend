@@ -4,7 +4,7 @@ import { today, parseYards } from "./utils.js";
 import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
-import JSAModal from "./JSAModal.jsx";
+import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import CrewSelectionView from "./CrewSelectionView.jsx";
 import CopyCrewModal from "./CopyCrewModal.jsx";
@@ -406,65 +406,22 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
           </div>
         )}
 
-        {/* JSA Modal */}
-        {showJSA && savedTicketId && (
-          <JSAModal
-            job={job}
-            ticket={{
-              id: savedTicketId,
-              date: type === "Rental" ? startDate : date,
-              type,
-              pinLat: ticketPinLat,
-              pinLng: ticketPinLng,
-              googlePin: ticketPin,
-              assignedWells,
-            }}
-            existingJSA={existingJSA}
-            onClose={() => setShowJSA(false)}
-            onSave={async (jsaData) => {
-              try {
-                // v28.07.4 — mirror v28.07.2 fix in useTicketJSA: capture
-                // jsaId from response so existingJSA.id is set, which is
-                // what JSACrewSigners' parent gating depends on. Earlier
-                // code dropped the jsaId, leaving existingJSA without an id
-                // and the biometric section either invisible or rendering
-                // empty.
-                const r = await fetch(`${API_URL}/jsas/ticket/${savedTicketId}`, {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    job_id: jobId,
-                    date: jsaData.date,
-                    time: jsaData.time,
-                    operator: jsaData.operator,
-                    well_name: jsaData.wellName,
-                    designated_driver: jsaData.designatedDriver,
-                    latitude: jsaData.lat,
-                    longitude: jsaData.lng,
-                    weather: jsaData.weather,
-                    ppe_fr_clothing: jsaData.ppe?.frClothing || false,
-                    ppe_tools_trained: jsaData.ppe?.toolsTrained || false,
-                    ppe_confined_space: jsaData.ppe?.confinedSpace || false,
-                    presenter_review: jsaData.presenterReview,
-                    signatures: jsaData.signatures,
-                    additional_steps: jsaData.additionalSteps,
-                  }),
-                });
-                const responseData = await r.json().catch(() => null);
-                const newId = responseData?.jsaId || existingJSA?.id || null;
-                setExistingJSA({ ...jsaData, id: newId });
-              } catch (err) {
-                console.error("JSA save failed:", err);
-              }
-            }}
-            onComplete={() => {
-              // v28.41 — mirror useTicketJSA.handleJsaCompleted for the
-              // AddTicketModal flow: reflect completed_at in local state
-              // so subsequent re-opens of the modal see the JSA as complete.
-              setExistingJSA((prev) => (prev ? { ...prev, completed_at: new Date().toISOString() } : prev));
-            }}
-          />
-        )}
+        <AddTicketJsaPortal
+          open={showJSA}
+          savedTicketId={savedTicketId}
+          jobId={jobId}
+          job={job}
+          type={type}
+          date={date}
+          startDate={startDate}
+          ticketPinLat={ticketPinLat}
+          ticketPinLng={ticketPinLng}
+          ticketPin={ticketPin}
+          assignedWells={assignedWells}
+          existingJSA={existingJSA}
+          setExistingJSA={setExistingJSA}
+          onClose={() => setShowJSA(false)}
+        />
 
         <div style={{ padding: 24 }}>
           {!type ? (
