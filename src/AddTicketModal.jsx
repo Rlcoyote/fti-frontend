@@ -11,6 +11,7 @@ import CopyCrewModal from "./CopyCrewModal.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
 import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 import AddTicketJobBanner from "./AddTicketJobBanner.jsx";
+import AddTicketSiteManager from "./AddTicketSiteManager.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
@@ -687,55 +688,17 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 )}
               </div>
 
-              {/* Site Manager */}
-              <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>SITE MANAGER</div>
-                  {job && (job.contactFirst || job.contactLast) && (
-                    <span
-                      onClick={() => {
-                        setSmFirst(job.contactFirst || "");
-                        setSmLast(job.contactLast || "");
-                        setSmPhone(job.pocPhone || job.poc_phone || "");
-                        setSmEmail(job.pocEmail || job.poc_email || "");
-                      }}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        fontSize: 11,
-                        color: C.blue,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        padding: "3px 10px",
-                        border: `1px solid ${C.blue}44`,
-                        borderRadius: 4,
-                        background: "transparent",
-                      }}
-                    >
-                      <span style={{ fontSize: 13 }}>📋</span> Copy Point of Contact Info
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <div>
-                    <label style={labelStyle}>FIRST NAME</label>
-                    <input style={inputStyle} value={smFirst} onChange={(e) => setSmFirst(e.target.value)} placeholder="First" />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>LAST NAME</label>
-                    <input style={inputStyle} value={smLast} onChange={(e) => setSmLast(e.target.value)} placeholder="Last" />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>PHONE</label>
-                    <input style={inputStyle} value={smPhone} onChange={(e) => setSmPhone(e.target.value)} placeholder="555-555-5555" />
-                  </div>
-                  <div>
-                    <label style={labelStyle}>EMAIL</label>
-                    <input style={inputStyle} value={smEmail} onChange={(e) => setSmEmail(e.target.value)} placeholder="email@company.com" />
-                  </div>
-                </div>
-              </div>
+              <AddTicketSiteManager
+                job={job}
+                smFirst={smFirst}
+                smLast={smLast}
+                smPhone={smPhone}
+                smEmail={smEmail}
+                setSmFirst={setSmFirst}
+                setSmLast={setSmLast}
+                setSmPhone={setSmPhone}
+                setSmEmail={setSmEmail}
+              />
 
               {/* Crew Selection — between Site Manager and Google Pin per
                   v28.09 reorder so the section sits in the same place
