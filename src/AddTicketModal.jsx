@@ -8,6 +8,7 @@ import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
 import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
+import AddTicketWellsConfirm from "./AddTicketWellsConfirm.jsx";
 import AddTicketJobBanner from "./AddTicketJobBanner.jsx";
 import AddTicketSiteManager from "./AddTicketSiteManager.jsx";
 import AddTicketDateTimeFields from "./AddTicketDateTimeFields.jsx";
@@ -425,112 +426,19 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
           {!type ? (
             <AddTicketTypeSelector onSelect={handleSelectType} onCancel={handleClose} />
           ) : type && !wellsConfirmed && jobWells.length > 1 ? (
-            <>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-                <TicketTypeBadge type={type} />
-                {/* v28.44 — heading + ancillary text on the always-light pastel
-                    tcfg.bg panel use PANEL_TEXT/MUTED constants per the
-                    SharedUI rule. PANEL_TEXT/MUTED are always-dark (the
-                    pastel surface is always-light). Replaces the v28.42
-                    inline #1a2340/#4a5570 hex hardcodes — single source of
-                    truth now lives in SharedUI. */}
-                <span style={{ fontSize: 16, fontWeight: 700, color: PANEL_TEXT }}>Assign Wells — New {type} Ticket</span>
-                <button
-                  onClick={() => {
-                    setType(null);
-                    setWellsConfirmed(false);
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 4,
-                    padding: "3px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: PANEL_MUTED,
-                    cursor: "pointer",
-                    marginLeft: "auto",
-                  }}
-                >
-                  ← CHANGE TYPE
-                </button>
-              </div>
-              <div style={{ fontSize: 12, color: PANEL_MUTED, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <label style={{ fontSize: 11, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
-                  <button
-                    type="button"
-                    onClick={selectAllWells}
-                    style={{
-                      background: "transparent",
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 3,
-                      padding: "2px 10px",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: PANEL_TEXT,
-                      cursor: "pointer",
-                    }}
-                  >
-                    SELECT ALL
-                  </button>
-                </div>
-                {jobWells.map((well, idx) => {
-                  const checked = assignedWells.includes(well);
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => toggleWell(well)}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "10px 14px",
-                        marginBottom: 6,
-                        // v28.43 — selected bg uses C.priLowB (theme-aware) instead of
-                        // hardcoded "#e8f0fb". Both modes get a soft blue tint that
-                        // contrasts properly with the row's text color.
-                        background: checked ? C.priLowB : C.steel,
-                        border: `1px solid ${checked ? C.blue + "44" : C.border}`,
-                        borderRadius: 5,
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 18,
-                          height: 18,
-                          borderRadius: 3,
-                          border: `2px solid ${checked ? C.blue : C.border}`,
-                          background: checked ? C.blue : "transparent",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {checked && <span style={{ color: C.white, fontSize: 12, fontWeight: 900, lineHeight: 1 }}>✓</span>}
-                      </div>
-                      <span style={{ fontSize: 13, fontWeight: checked ? 700 : 400, color: C.text }}>{well}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Btn
-                  onClick={() => {
-                    if (assignedWells.length === 0) return;
-                    setWellsConfirmed(true);
-                  }}
-                >
-                  {assignedWells.length === 0 ? "SELECT AT LEAST ONE WELL" : `CONFIRM — ${assignedWells.length} WELL${assignedWells.length !== 1 ? "S" : ""}`}
-                </Btn>
-                <Btn variant="ghost" onClick={handleClose}>
-                  CANCEL
-                </Btn>
-              </div>
-            </>
+            <AddTicketWellsConfirm
+              type={type}
+              jobWells={jobWells}
+              assignedWells={assignedWells}
+              onToggleWell={toggleWell}
+              onSelectAll={selectAllWells}
+              onConfirm={() => setWellsConfirmed(true)}
+              onChangeType={() => {
+                setType(null);
+                setWellsConfirmed(false);
+              }}
+              onCancel={handleClose}
+            />
           ) : (
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
