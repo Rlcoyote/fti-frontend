@@ -380,29 +380,44 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             an already-saved JSA stays — it's a useful jump-back. */}
         {type && type !== "Rental" && existingJSA && (
           <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-            <button
-              type="button"
-              onClick={() => setShowJSA(true)}
-              style={{
-                background: "#e6f5ec",
-                color: C.green,
-                border: `1px solid ${C.green}44`,
-                borderRadius: 4,
-                padding: "5px 14px",
-                fontSize: 11,
-                fontWeight: 800,
-                cursor: "pointer",
-                letterSpacing: "0.04em",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#d4edda";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#e6f5ec";
-              }}
-            >
-              ✓ VIEW / EDIT JSA
-            </button>
+            {/* v28.69 — button state mirrors the v28.41 badge pattern.
+                Before this fix the button was hardcoded green ✓ the moment
+                existingJSA was truthy, including when the JSA was a draft
+                with only some crew signed — communicating "JSA complete"
+                falsely. Now: green ✓ only when `completed_at` is set;
+                amber DRAFT otherwise. Same color tokens as the JSA badge
+                on JobTicketsTab so the two surfaces agree. */}
+            {(() => {
+              const isComplete = !!existingJSA.completed_at;
+              const colors = isComplete
+                ? { bg: "#e6f5ec", text: C.green, border: `${C.green}44`, hover: "#d4edda" }
+                : { bg: "#fdf5d8", text: "#8a6500", border: "#e6c20044", hover: "#fbeaa0" };
+              return (
+                <button
+                  type="button"
+                  onClick={() => setShowJSA(true)}
+                  style={{
+                    background: colors.bg,
+                    color: colors.text,
+                    border: `1px solid ${colors.border}`,
+                    borderRadius: 4,
+                    padding: "5px 14px",
+                    fontSize: 11,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    letterSpacing: "0.04em",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = colors.hover;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = colors.bg;
+                  }}
+                >
+                  {isComplete ? "✓ VIEW / EDIT JSA" : "VIEW / EDIT JSA — DRAFT"}
+                </button>
+              );
+            })()}
           </div>
         )}
 
