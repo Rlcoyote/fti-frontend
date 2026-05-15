@@ -9,6 +9,7 @@ import AddTicketModal from "./AddTicketModal.jsx";
 import { useApp } from "./AppContext.jsx";
 import useIsMobile from "./useIsMobile.js";
 import useJobTicketsView from "./useJobTicketsView.js";
+import JobTicketsHeader from "./JobTicketsHeader.jsx";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
@@ -170,21 +171,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
   return (
     <div style={{ padding: "16px 0" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>
-            {jobTickets.length} ticket{jobTickets.length !== 1 ? "s" : ""}
-          </div>
-          {movedToFinalReview > 0 && (
-            <div style={{ fontSize: 11, color: C.blue, marginTop: 2 }}>
-              {movedToFinalReview} approved {movedToFinalReview === 1 ? "ticket" : "tickets"} → Final Review
-            </div>
-          )}
-        </div>
-        <Btn small onClick={() => setShowAdd(true)}>
-          + ADD TICKET
-        </Btn>
-      </div>
+      <JobTicketsHeader ticketCount={jobTickets.length} approvedCount={movedToFinalReview} onAdd={() => setShowAdd(true)} />
 
       {jobTickets.length === 0 && (
         <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 13 }}>No tickets yet. Add one to get started.</div>
