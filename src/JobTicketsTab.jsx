@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, API_URL, TICKET_STATUS_ORDER, WO_TICKET_STATUSES } from "./config.js";
 import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload, reviseTicketRequest } from "./utils.js";
@@ -7,6 +7,7 @@ import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 import AddTicketModal from "./AddTicketModal.jsx";
 import { useApp } from "./AppContext.jsx";
+import useIsMobile from "./useIsMobile.js";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
@@ -18,12 +19,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const [emailConfirmTo, setEmailConfirmTo] = useState("");
   const [emailConfirmCc, setEmailConfirmCc] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= 900);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, []);
+  const isMobile = useIsMobile();
 
   const openTicket = (t, mode = "edit") => {
     // Compute revision display labels
