@@ -12,6 +12,7 @@ import useJobTicketsView from "./useJobTicketsView.js";
 import JobTicketsHeader from "./JobTicketsHeader.jsx";
 import useTicketEmailRequest from "./useTicketEmailRequest.js";
 import EmailSignatureRequestModal from "./EmailSignatureRequestModal.jsx";
+import JobTicketsDeleteConfirm from "./JobTicketsDeleteConfirm.jsx";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
@@ -152,21 +153,27 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
   const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets);
 
+  // v28.87 — unified delete path. Used by both the detail-modal onDelete
+  // and the row-level delete-confirm modal. Returns true on success so
+  // the caller can close its own UI; surfaces a user-facing notice on
+  // failure (was a silent console.error in the v28.85 detail-modal path).
   const handleDelete = async (id) => {
     try {
       const r = await fetch(`${API_URL}/tickets/${id}`, { method: "DELETE" });
       if (!r.ok) {
-        console.error("Delete ticket failed:", await r.text());
-        return;
+        const d = await r.json().catch(() => ({}));
+        showNotice("Delete Failed", d.error || `Could not delete the ticket (HTTP ${r.status}).`, "error");
+        return false;
       }
     } catch (err) {
-      console.error("Delete ticket failed:", err);
-      return;
+      showNotice("Delete Failed", err.message, "error");
+      return false;
     }
     const deleted = tickets.find((t) => t.id === id);
     if (deleted && onTicketDeleted) onTicketDeleted(deleted);
     setTickets((prev) => prev.filter((t) => t.id !== id));
     setViewTicket(null);
+    return true;
   };
 
   return (
@@ -793,62 +800,15 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
           }}
         />
       )}
-      {/* Delete ticket confirmation */}
-      {deleteConfirmId &&
-        (() => {
-          const delTicket = jobTickets.find((t) => t.id === deleteConfirmId);
-          return (
-            <div
-              style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-              onClick={() => setDeleteConfirmId(null)}
-            >
-              <div
-                style={{
-                  background: C.cardBg,
-                  border: `1px solid ${C.border}`,
-                  borderTop: `4px solid ${C.red}`,
-                  borderRadius: 8,
-                  padding: 28,
-                  width: 420,
-                  maxWidth: "90vw",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>Delete Ticket?</div>
-                <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
-                  This will permanently delete ticket #{delTicket?.jobId}
-                  {delTicket?.ticketNumber ? `-${delTicket.ticketNumber}` : ""} ({delTicket?.type}). This cannot be undone.
-                </div>
-                <div style={{ display: "flex", gap: 10 }}>
-                  <Btn
-                    variant="red"
-                    onClick={async () => {
-                      try {
-                        const r = await fetch(`${API_URL}/tickets/${deleteConfirmId}`, { method: "DELETE" });
-                        if (r.ok) {
-                          const deleted = tickets.find((tk) => tk.id === deleteConfirmId);
-                          if (deleted && onTicketDeleted) onTicketDeleted(deleted);
-                          setTickets((prev) => prev.filter((tk) => tk.id !== deleteConfirmId));
-                          setDeleteConfirmId(null);
-                        } else {
-                          const d = await r.json();
-                          showNotice("Delete Failed", d.error || "Could not delete the ticket.", "error");
-                        }
-                      } catch (err) {
-                        showNotice("Delete Failed", err.message, "error");
-                      }
-                    }}
-                  >
-                    DELETE
-                  </Btn>
-                  <Btn variant="ghost" onClick={() => setDeleteConfirmId(null)}>
-                    CANCEL
-                  </Btn>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+      {/* Delete ticket confirmation — uses the unified handleDelete path */}
+      <JobTicketsDeleteConfirm
+        ticket={deleteConfirmId ? jobTickets.find((t) => t.id === deleteConfirmId) : null}
+        onConfirm={async () => {
+          const ok = await handleDelete(deleteConfirmId);
+          if (ok) setDeleteConfirmId(null);
+        }}
+        onClose={() => setDeleteConfirmId(null)}
+      />
       <EmailSignatureRequestModal emailRequest={emailRequest} />
     </div>
   );
