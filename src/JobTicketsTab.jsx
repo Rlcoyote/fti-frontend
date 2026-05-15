@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
-import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload, reviseTicketRequest } from "./utils.js";
+import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, reviseTicketRequest } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
 import TicketDetail from "./TicketDetail.jsx";
@@ -10,6 +10,7 @@ import { useApp } from "./AppContext.jsx";
 import useIsMobile from "./useIsMobile.js";
 import useJobTicketsView from "./useJobTicketsView.js";
 import JobTicketsHeader from "./JobTicketsHeader.jsx";
+import useTicketEmailRequest from "./useTicketEmailRequest.js";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
@@ -17,10 +18,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const [showAdd, setShowAdd] = useState(false);
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
-  const [emailConfirm, setEmailConfirm] = useState(null); // { ticketId, email, emailedAt, cc }
-  const [emailConfirmTo, setEmailConfirmTo] = useState("");
-  const [emailConfirmCc, setEmailConfirmCc] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const { emailConfirm, emailConfirmTo, setEmailConfirmTo, emailConfirmCc, setEmailConfirmCc, openEmailRequest, closeEmailRequest, sendEmailRequest } =
+    useTicketEmailRequest({ setTickets });
   const isMobile = useIsMobile();
 
   const openTicket = (t, mode = "edit") => {
@@ -388,9 +388,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                           title={needsJSA ? "Complete JSA before emailing" : ""}
                           onClick={() => {
                             if (needsJSA) return;
-                            setEmailConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt || null });
-                            setEmailConfirmTo(t.emailTo || custEmail);
-                            setEmailConfirmCc("");
+                            openEmailRequest(t, custEmail);
                           }}
                         >
                           {isEmailed ? "Emailed / Resend" : "EMAIL TICKET"}
@@ -632,9 +630,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                           title={needsJSA ? "Complete JSA before emailing" : ""}
                           onClick={() => {
                             if (needsJSA) return;
-                            setEmailConfirm({ ticketId: t.id, email: t.emailTo || custEmail, emailedAt: t.emailedAt || null });
-                            setEmailConfirmTo(t.emailTo || custEmail);
-                            setEmailConfirmCc("");
+                            openEmailRequest(t, custEmail);
                           }}
                         >
                           {isEmailed ? "Emailed / Resend" : "EMAIL TICKET"}
@@ -856,7 +852,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
       {emailConfirm && (
         <div
           style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setEmailConfirm(null)}
+          onClick={closeEmailRequest}
         >
           <div
             style={{
@@ -922,48 +918,10 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
               />
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <Btn
-                variant="blue"
-                onClick={async () => {
-                  const email = emailConfirmTo.trim();
-                  if (!email) {
-                    showNotice("Email Required", "Enter a recipient email address before sending.", "error");
-                    return;
-                  }
-                  try {
-                    // Save emailTo to backend first
-                    const payload = buildTicketPayload({ emailTo: email });
-                    await fetch(`${API_URL}/tickets/${emailConfirm.ticketId}`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(payload),
-                    });
-                    // Send the signature request email
-                    const r = await fetch(`${API_URL}/signature/send/${emailConfirm.ticketId}`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ performed_by: currentUser?.name }),
-                    });
-                    if (!r.ok) {
-                      const d = await r.json();
-                      showNotice("Email Failed", d.error || "Could not send the email.", "error");
-                      return;
-                    }
-                    // Single state update with all changes
-                    setTickets((prev) =>
-                      prev.map((tk) =>
-                        tk.id === emailConfirm.ticketId ? { ...tk, status: "emailed", emailTo: email, emailedAt: new Date().toISOString() } : tk,
-                      ),
-                    );
-                    setEmailConfirm(null);
-                  } catch (err) {
-                    showNotice("Email Failed", err.message, "error");
-                  }
-                }}
-              >
+              <Btn variant="blue" onClick={sendEmailRequest}>
                 SEND
               </Btn>
-              <Btn variant="ghost" onClick={() => setEmailConfirm(null)}>
+              <Btn variant="ghost" onClick={closeEmailRequest}>
                 CANCEL
               </Btn>
             </div>
