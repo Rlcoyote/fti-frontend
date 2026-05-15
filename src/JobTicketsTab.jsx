@@ -11,6 +11,7 @@ import useIsMobile from "./useIsMobile.js";
 import useJobTicketsView from "./useJobTicketsView.js";
 import JobTicketsHeader from "./JobTicketsHeader.jsx";
 import useTicketEmailRequest from "./useTicketEmailRequest.js";
+import EmailSignatureRequestModal from "./EmailSignatureRequestModal.jsx";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
@@ -19,8 +20,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
-  const { emailConfirm, emailConfirmTo, setEmailConfirmTo, emailConfirmCc, setEmailConfirmCc, openEmailRequest, closeEmailRequest, sendEmailRequest } =
-    useTicketEmailRequest({ setTickets });
+  const emailRequest = useTicketEmailRequest({ setTickets });
   const isMobile = useIsMobile();
 
   const openTicket = (t, mode = "edit") => {
@@ -388,7 +388,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                           title={needsJSA ? "Complete JSA before emailing" : ""}
                           onClick={() => {
                             if (needsJSA) return;
-                            openEmailRequest(t, custEmail);
+                            emailRequest.openEmailRequest(t, custEmail);
                           }}
                         >
                           {isEmailed ? "Emailed / Resend" : "EMAIL TICKET"}
@@ -630,7 +630,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
                           title={needsJSA ? "Complete JSA before emailing" : ""}
                           onClick={() => {
                             if (needsJSA) return;
-                            openEmailRequest(t, custEmail);
+                            emailRequest.openEmailRequest(t, custEmail);
                           }}
                         >
                           {isEmailed ? "Emailed / Resend" : "EMAIL TICKET"}
@@ -849,85 +849,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             </div>
           );
         })()}
-      {emailConfirm && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={closeEmailRequest}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.blue}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 460,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 8 }}>
-              {emailConfirm.emailedAt ? "Resend Signature Request?" : "Send Signature Request"}
-            </div>
-            {emailConfirm.emailedAt && (
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
-                Last sent:{" "}
-                <strong>
-                  {new Date(emailConfirm.emailedAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
-                </strong>
-              </div>
-            )}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>TO</label>
-              <input
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 6,
-                  fontSize: 14,
-                  marginTop: 4,
-                  boxSizing: "border-box",
-                }}
-                value={emailConfirmTo}
-                onChange={(e) => setEmailConfirmTo(e.target.value)}
-                placeholder="recipient@company.com"
-              />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.06em" }}>CC (optional)</label>
-              <input
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 6,
-                  fontSize: 14,
-                  marginTop: 4,
-                  boxSizing: "border-box",
-                }}
-                value={emailConfirmCc}
-                onChange={(e) => setEmailConfirmCc(e.target.value)}
-                placeholder="cc@company.com"
-              />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn variant="blue" onClick={sendEmailRequest}>
-                SEND
-              </Btn>
-              <Btn variant="ghost" onClick={closeEmailRequest}>
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
-      )}
+      <EmailSignatureRequestModal emailRequest={emailRequest} />
     </div>
   );
 }
