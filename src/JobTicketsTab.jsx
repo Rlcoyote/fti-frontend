@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, API_URL } from "./config.js";
-import { today, mapTicketFromApi, updateTicketApi, reviseTicketRequest } from "./utils.js";
+import { updateTicketApi } from "./utils.js";
 import TicketDetail from "./TicketDetail.jsx";
 import AddTicketModal from "./AddTicketModal.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -13,6 +13,7 @@ import JobTicketsDeleteConfirm from "./JobTicketsDeleteConfirm.jsx";
 import useAddTicket from "./useAddTicket.js";
 import useTicketModalRouting from "./useTicketModalRouting.js";
 import JobTicketsRow from "./JobTicketsRow.jsx";
+import useTicketDetailModalActions from "./useTicketDetailModalActions.js";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
@@ -21,6 +22,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const emailRequest = useTicketEmailRequest({ setTickets });
   const isMobile = useIsMobile();
   const { viewTicket, viewTicketMode, setViewTicket, setViewTicketMode, openTicket, closeViewTicket } = useTicketModalRouting({ tickets, isMobile });
+  const { handleDuplicate, handleRevise } = useTicketDetailModalActions({ setTickets, setViewTicket, setViewTicketMode });
 
   // v28.40 — WO surface shows only tickets in the lead's domain. Approved
   // tickets ship to Final Review; sentToQB / qbVerified / voided tickets
@@ -116,76 +118,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
           onDelete={(id) => {
             handleDelete(id);
           }}
-          onDuplicate={async (t, opts = {}) => {
-            try {
-              const targetJobId = opts.new_job_id || t.jobId;
-              const r = await fetch(`${API_URL}/tickets/${t.id}/duplicate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  new_date: opts.new_date || (t.date ? t.date.slice(0, 10) : today()),
-                  new_job_id: opts.new_job_id || undefined,
-                  new_type: opts.new_type || undefined,
-                  assigned_wells: opts.assigned_wells ?? t.assignedWells,
-                  include_notes: opts.include_notes ?? true,
-                  include_line_items: opts.include_line_items ?? true,
-                  include_pin: opts.include_pin ?? true,
-                  include_site_mgr: opts.include_site_mgr ?? true,
-                  created_by: currentUser?.id || null,
-                }),
-              });
-              if (!r.ok) {
-                const d = await r.json();
-                showNotice("Duplicate Failed", d.error || "Could not duplicate the ticket.", "error");
-                return;
-              }
-              const saved = await r.json();
-              // Reload tickets for the target job
-              const tr = await fetch(`${API_URL}/tickets?job_id=${targetJobId}&include_voided=true`);
-              if (tr.ok) {
-                const data = await tr.json();
-                const mapped = data.map(mapTicketFromApi);
-                setTickets((prev) => {
-                  // Remove old tickets for target job, add refreshed ones
-                  const otherJobs = prev.filter((tk) => tk.jobId !== targetJobId);
-                  // If duplicating to a different job, also keep source job tickets
-                  if (targetJobId !== t.jobId) {
-                    const sourceJobTickets = prev.filter((tk) => tk.jobId === t.jobId);
-                    return [...otherJobs.filter((tk) => tk.jobId !== t.jobId), ...sourceJobTickets, ...mapped];
-                  }
-                  return [...otherJobs, ...mapped];
-                });
-                if (targetJobId === t.jobId) {
-                  // Same job — open the new ticket inline
-                  const newTicket = mapped.find((tk) => tk.id === saved.id);
-                  if (newTicket) {
-                    setViewTicketMode("edit");
-                    setViewTicket({ ...newTicket, _duplicateReminder: true });
-                  }
-                } else {
-                  // Different job — close modal, navigate to target job
-                  setViewTicket(null);
-                }
-              }
-            } catch (err) {
-              showNotice("Duplicate Failed", err.message, "error");
-            }
-          }}
-          onRevise={async (t, reason, opts = {}) => {
-            const result = await reviseTicketRequest({
-              ticket: t,
-              reason,
-              alsoCreateNew: !!opts.alsoCreateNew,
-              setTickets,
-              showNotice,
-            });
-            if (result.newTicket) {
-              setViewTicketMode("edit");
-              setViewTicket(result.newTicket);
-            } else {
-              setViewTicket(null);
-            }
-          }}
+          onDuplicate={handleDuplicate}
+          onRevise={handleRevise}
         />
       )}
       {/* Delete ticket confirmation — uses the unified handleDelete path */}
