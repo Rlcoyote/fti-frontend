@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { C, API_URL, TICKET_STATUS_ORDER, WO_TICKET_STATUSES } from "./config.js";
+import { C, API_URL } from "./config.js";
 import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, buildTicketPayload, reviseTicketRequest } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketDetail.jsx";
@@ -8,6 +8,7 @@ import TicketDetail from "./TicketDetail.jsx";
 import AddTicketModal from "./AddTicketModal.jsx";
 import { useApp } from "./AppContext.jsx";
 import useIsMobile from "./useIsMobile.js";
+import useJobTicketsView from "./useJobTicketsView.js";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
@@ -44,23 +45,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
   // v28.40 — WO surface shows only tickets in the lead's domain. Approved
   // tickets ship to Final Review; sentToQB / qbVerified / voided tickets
-  // ship to Archive. Sort by canonical lifecycle order so INCOMPLETE
-  // tickets (lead's actionable work) sit on top, signed/sigNotReq below.
-  const allJobTickets = tickets.filter((t) => t.jobId === jobId);
-  const jobTickets = allJobTickets
-    .filter((t) => WO_TICKET_STATUSES.includes(t.status))
-    .sort((a, b) => {
-      const ai = TICKET_STATUS_ORDER.indexOf(a.status);
-      const bi = TICKET_STATUS_ORDER.indexOf(b.status);
-      if (ai !== bi) return ai - bi;
-      // Tiebreak: most recent date first within the same status
-      return (b.date || "").localeCompare(a.date || "");
-    });
-  const movedToFinalReview = allJobTickets.filter((t) => t.status === "approved").length;
-  const byType = {};
-  jobTickets.forEach((t) => {
-    byType[t.type] = [...(byType[t.type] || []), t];
-  });
+  // ship to Archive. Derivation extracted to useJobTicketsView in v28.83.
+  const { jobTickets, movedToFinalReview } = useJobTicketsView(tickets, jobId);
 
   const handleAdd = async (ticketData) => {
     const payload = {
