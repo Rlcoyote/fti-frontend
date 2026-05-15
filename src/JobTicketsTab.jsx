@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
 import { today, formatDate, calcTicketTotal, mapTicketFromApi, updateTicketApi, reviseTicketRequest } from "./utils.js";
 import { Btn, TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
@@ -14,37 +13,15 @@ import useTicketEmailRequest from "./useTicketEmailRequest.js";
 import EmailSignatureRequestModal from "./EmailSignatureRequestModal.jsx";
 import JobTicketsDeleteConfirm from "./JobTicketsDeleteConfirm.jsx";
 import useAddTicket from "./useAddTicket.js";
+import useTicketModalRouting from "./useTicketModalRouting.js";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
-  const navigate = useNavigate();
   const { showAdd, openAdd, closeAdd, handleAdd } = useAddTicket({ setTickets });
-  const [viewTicket, setViewTicket] = useState(null);
-  const [viewTicketMode, setViewTicketMode] = useState("edit");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const emailRequest = useTicketEmailRequest({ setTickets });
   const isMobile = useIsMobile();
-
-  const openTicket = (t, mode = "edit") => {
-    // Compute revision display labels
-    const enriched = { ...t };
-    if (t.replacedBy) {
-      const replacement = tickets.find((tk) => tk.id === t.replacedBy);
-      enriched._replacedByLabel = replacement ? `${t.jobId}-${replacement.ticketNumber}` : null;
-    }
-    if (t.revisionOf) {
-      const original = tickets.find((tk) => tk.id === t.revisionOf);
-      enriched._revisionOfLabel = original ? `${t.jobId}-${original.ticketNumber}` : null;
-    }
-    // Mobile: navigate to /ticket/:id as a real page
-    if (isMobile) {
-      navigate(`/ticket/${t.id}`, { state: { ticket: enriched, openToSign: mode === "sign" } });
-      return;
-    }
-    // Desktop: open as modal overlay
-    setViewTicketMode(mode);
-    setViewTicket(enriched);
-  };
+  const { viewTicket, viewTicketMode, setViewTicket, setViewTicketMode, openTicket, closeViewTicket } = useTicketModalRouting({ tickets, isMobile });
 
   // v28.40 — WO surface shows only tickets in the lead's domain. Approved
   // tickets ship to Final Review; sentToQB / qbVerified / voided tickets
@@ -624,7 +601,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             handleUpdate(id, updates);
             setViewTicket((prev) => (prev ? { ...prev, ...updates } : null));
           }}
-          onClose={() => setViewTicket(null)}
+          onClose={closeViewTicket}
           onDelete={(id) => {
             handleDelete(id);
           }}
