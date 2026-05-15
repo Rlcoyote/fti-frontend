@@ -1,3 +1,25 @@
+// ─── JobTicketsTab (v28.92 — final shell, 11 of 11 ships) ──────────────────
+// Composition root for the Tickets tab on the Job Detail page.
+//
+// Was a 1008-line monolith pre-v28.82. The v28.82 → v28.92 file-split
+// arc lifted seven coherent units into siblings:
+//
+//   Hooks                                    Components
+//   ─────                                    ──────────
+//   useIsMobile           (v28.82)           JobTicketsHeader      (v28.84)
+//   useJobTicketsView     (v28.83)           EmailSignatureRequestModal (v28.86)
+//   useTicketEmailRequest (v28.85)           JobTicketsDeleteConfirm    (v28.87)
+//   useAddTicket          (v28.88)           JobTicketsRow         (v28.90)
+//   useTicketModalRouting (v28.89)
+//   useTicketDetailModalActions (v28.91)
+//
+// What's left here is pure orchestration: which hooks compose the page,
+// which components render the parts, and the small glue (handleDelete,
+// archiveVoidedTicket, handleUpdate) that ties parent-owned cross-cutting
+// state to the leaves. Per CAM Article XXIV (File Split Protocol), a
+// component this small can stop splitting — further extraction would
+// fragment without simplifying.
+
 import { useState } from "react";
 import { C, API_URL } from "./config.js";
 import { updateTicketApi } from "./utils.js";
@@ -115,9 +137,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
             setViewTicket((prev) => (prev ? { ...prev, ...updates } : null));
           }}
           onClose={closeViewTicket}
-          onDelete={(id) => {
-            handleDelete(id);
-          }}
+          onDelete={handleDelete}
           onDuplicate={handleDuplicate}
           onRevise={handleRevise}
         />
