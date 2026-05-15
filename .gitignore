@@ -23,6 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# v28.57 — .github/workflows excluded until GitHub PAT gains `workflow`
-# scope. CI workflow exists locally but is not yet enforced via CI.
-.github/
+# v28.73 — .github/workflows IS tracked. CI gate per CAM Article XXI
+# (v1799.0 Article XXI, was v1798 Article XXXI) lands here as a lint-only
+# check on push-to-main and pull-requests. PAT workflow scope landed
+# 2026-05-15. (Pre-commit hooks via husky + lint-staged remain the
+# first-line enforcement on each commit.)
