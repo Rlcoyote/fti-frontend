@@ -1,0 +1,151 @@
+import { useState } from "react";
+import { API_URL } from "./config.js";
+import { useApp } from "./AppContext.jsx";
+
+// ─── useAddTicket (v28.88 — ship 7 of JobTicketsTab split) ─────────────────
+// The add-ticket flow consolidated into one hook. Owns the open/close
+// state and the I/O-heavy save handler (POST new vs PUT auto-saved-for-JSA,
+// optimistic merge into setTickets, then bulk-POST any crew selection).
+//
+// Returns:
+//   showAdd     — boolean. Whether the AddTicketModal is open.
+//   openAdd()   — open the modal
+//   closeAdd()  — close the modal (without saving)
+//   handleAdd(ticketData)
+//               — async. Maps the modal's camelCase form payload to the
+//                 backend's snake_case schema, runs the POST or PUT,
+//                 merges the result into setTickets, fires the crew
+//                 bulk-POST if any crew was selected pre-create. Closes
+//                 the modal on success; leaves it open + shows a notice
+//                 on any failure so the user can retry without losing
+//                 form state.
+//
+// Two-path behavior (POST vs PUT) preserved exactly from v28.85:
+//   - ticketData.id present → ticket was auto-saved earlier (typically
+//     by the JSA flow needing a real ticket id to attach to). PUT to
+//     update; merge into setTickets either replacing the existing row
+//     or appending if it's not in state yet.
+//   - ticketData.id absent → fresh create. POST, take the new id and
+//     ticket_number from the response, prepend to setTickets, then
+//     bulk-POST any crew the user pre-selected.
+//
+// Error handling: any failure (HTTP non-2xx or thrown) surfaces a
+// showNotice toast and leaves the modal open. The "your data is still
+// in the form" wording is preserved — that's a deliberate UX choice
+// that tells the user they can retry without retyping.
+//
+// Crew bulk-POST uses sequential await inside a for…of loop on purpose:
+// failures get individually logged with the crew member's name; Promise.all
+// would lose that per-member visibility. eslint disabled in line.
+
+export default function useAddTicket({ setTickets }) {
+  const { currentUser, showNotice } = useApp();
+  const [showAdd, setShowAdd] = useState(false);
+
+  const openAdd = () => setShowAdd(true);
+  const closeAdd = () => setShowAdd(false);
+
+  const handleAdd = async (ticketData) => {
+    const payload = {
+      job_id: ticketData.jobId,
+      type: ticketData.type,
+      status: ticketData.status || "incomplete",
+      date: ticketData.date,
+      notes: ticketData.notes,
+      created_by: currentUser?.id || null,
+      assigned_wells: ticketData.assignedWells || [],
+      start_date: ticketData.startDate || null,
+      end_date: ticketData.endDate || null,
+      cycle_days: ticketData.cycleDays || 28,
+      is_recurring: ticketData.isRecurring || false,
+      lv_yard: ticketData.lvYard || null,
+      arrival_time: ticketData.arrivalTime || null,
+      due_on_loc: ticketData.dueOnLoc || null,
+      job_start_time: ticketData.jobStartTime || null,
+      job_end_time: ticketData.jobEndTime || null,
+      ret_yard: ticketData.retYard || null,
+      time_zone: ticketData.timeZone || null,
+      mileage_begin: ticketData.mileageBegin !== undefined ? ticketData.mileageBegin : null,
+      mileage_end: ticketData.mileageEnd !== undefined ? ticketData.mileageEnd : null,
+      google_pin: ticketData.googlePin || null,
+      pin_lat: ticketData.pinLat || null,
+      pin_lng: ticketData.pinLng || null,
+      site_mgr_first: ticketData.siteMgrFirst || null,
+      site_mgr_last: ticketData.siteMgrLast || null,
+      site_mgr_phone: ticketData.siteMgrPhone || null,
+      site_mgr_email: ticketData.siteMgrEmail || null,
+      yard_location_index: ticketData.yardLocationIndex || 1,
+      lineItems: (ticketData.lineItems || []).map((li) => ({
+        qb_code: li.qbCode,
+        description: li.desc,
+        rate: li.rate,
+        qty: li.qty,
+        unit_measure: li.um,
+        days: li.days || 1,
+      })),
+    };
+    try {
+      if (ticketData.id) {
+        // Ticket was auto-saved (for JSA) — update instead of create
+        const r = await fetch(`${API_URL}/tickets/${ticketData.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) {
+          // Server rejected the update — don't close the modal silently, surface the failure.
+          const errBody = await r.text().catch(() => "");
+          showNotice("Save Failed", `Ticket was not saved (HTTP ${r.status}). ${errBody.slice(0, 200)}`, "error");
+          return;
+        }
+        setTickets((prev) => {
+          const exists = prev.some((t) => t.id === ticketData.id);
+          if (exists) return prev.map((t) => (t.id === ticketData.id ? { ...ticketData, createdBy: currentUser?.name || null, createdAt: t.createdAt } : t));
+          return [...prev, { ...ticketData, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() }];
+        });
+      } else {
+        const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+        if (!r.ok) {
+          // Surface the failure instead of closing the modal with silent data loss.
+          const errBody = await r.text().catch(() => "");
+          showNotice("Save Failed", `Ticket was not saved (HTTP ${r.status}). Your data is still in the form. ${errBody.slice(0, 200)}`, "error");
+          return;
+        }
+        const saved = await r.json();
+        const newTicket = {
+          ...ticketData,
+          id: saved.id,
+          ticketNumber: saved.ticket_number,
+          createdBy: currentUser?.name || null,
+          createdAt: new Date().toISOString(),
+        };
+        setTickets((prev) => [...prev, newTicket]);
+        // v28.07.5 / v28.09 — bulk-POST any selected crew to /tickets/:id/crew.
+        // AddTicketModal sets ticketData.crewSelection when the user added
+        // crew before clicking CREATE TICKET (rather than via autoSaveForJSA
+        // which already commits).
+        if (Array.isArray(ticketData.crewSelection) && ticketData.crewSelection.length > 0) {
+          for (const c of ticketData.crewSelection) {
+            try {
+              // eslint-disable-next-line no-await-in-loop
+              await fetch(`${API_URL}/tickets/${saved.id}/crew`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: c.user_id, is_lead: !!c.is_lead }),
+              });
+            } catch (crewErr) {
+              console.warn("Crew selection member failed:", c.user_name, crewErr);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Ticket save failed:", err);
+      showNotice("Save Failed", `Network or server error. Your data is still in the form. ${err.message || err}`, "error");
+      return;
+    }
+    setShowAdd(false);
+  };
+
+  return { showAdd, openAdd, closeAdd, handleAdd };
+}

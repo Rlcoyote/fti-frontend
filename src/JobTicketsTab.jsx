@@ -13,11 +13,12 @@ import JobTicketsHeader from "./JobTicketsHeader.jsx";
 import useTicketEmailRequest from "./useTicketEmailRequest.js";
 import EmailSignatureRequestModal from "./EmailSignatureRequestModal.jsx";
 import JobTicketsDeleteConfirm from "./JobTicketsDeleteConfirm.jsx";
+import useAddTicket from "./useAddTicket.js";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
   const navigate = useNavigate();
-  const [showAdd, setShowAdd] = useState(false);
+  const { showAdd, openAdd, closeAdd, handleAdd } = useAddTicket({ setTickets });
   const [viewTicket, setViewTicket] = useState(null);
   const [viewTicketMode, setViewTicketMode] = useState("edit");
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -50,107 +51,6 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   // ship to Archive. Derivation extracted to useJobTicketsView in v28.83.
   const { jobTickets, movedToFinalReview } = useJobTicketsView(tickets, jobId);
 
-  const handleAdd = async (ticketData) => {
-    const payload = {
-      job_id: ticketData.jobId,
-      type: ticketData.type,
-      status: ticketData.status || "incomplete",
-      date: ticketData.date,
-      notes: ticketData.notes,
-      created_by: currentUser?.id || null,
-      assigned_wells: ticketData.assignedWells || [],
-      start_date: ticketData.startDate || null,
-      end_date: ticketData.endDate || null,
-      cycle_days: ticketData.cycleDays || 28,
-      is_recurring: ticketData.isRecurring || false,
-      lv_yard: ticketData.lvYard || null,
-      arrival_time: ticketData.arrivalTime || null,
-      due_on_loc: ticketData.dueOnLoc || null,
-      job_start_time: ticketData.jobStartTime || null,
-      job_end_time: ticketData.jobEndTime || null,
-      ret_yard: ticketData.retYard || null,
-      time_zone: ticketData.timeZone || null,
-      mileage_begin: ticketData.mileageBegin !== undefined ? ticketData.mileageBegin : null,
-      mileage_end: ticketData.mileageEnd !== undefined ? ticketData.mileageEnd : null,
-      google_pin: ticketData.googlePin || null,
-      pin_lat: ticketData.pinLat || null,
-      pin_lng: ticketData.pinLng || null,
-      site_mgr_first: ticketData.siteMgrFirst || null,
-      site_mgr_last: ticketData.siteMgrLast || null,
-      site_mgr_phone: ticketData.siteMgrPhone || null,
-      site_mgr_email: ticketData.siteMgrEmail || null,
-      yard_location_index: ticketData.yardLocationIndex || 1,
-      lineItems: (ticketData.lineItems || []).map((li) => ({
-        qb_code: li.qbCode,
-        description: li.desc,
-        rate: li.rate,
-        qty: li.qty,
-        unit_measure: li.um,
-        days: li.days || 1,
-      })),
-    };
-    try {
-      if (ticketData.id) {
-        // Ticket was auto-saved (for JSA) — update instead of create
-        const r = await fetch(`${API_URL}/tickets/${ticketData.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!r.ok) {
-          // Server rejected the update — don't close the modal silently, surface the failure.
-          const errBody = await r.text().catch(() => "");
-          showNotice("Save Failed", `Ticket was not saved (HTTP ${r.status}). ${errBody.slice(0, 200)}`, "error");
-          return;
-        }
-        setTickets((prev) => {
-          const exists = prev.some((t) => t.id === ticketData.id);
-          if (exists) return prev.map((t) => (t.id === ticketData.id ? { ...ticketData, createdBy: currentUser?.name || null, createdAt: t.createdAt } : t));
-          return [...prev, { ...ticketData, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() }];
-        });
-      } else {
-        const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (!r.ok) {
-          // Surface the failure instead of closing the modal with silent data loss.
-          const errBody = await r.text().catch(() => "");
-          showNotice("Save Failed", `Ticket was not saved (HTTP ${r.status}). Your data is still in the form. ${errBody.slice(0, 200)}`, "error");
-          return;
-        }
-        const saved = await r.json();
-        const newTicket = {
-          ...ticketData,
-          id: saved.id,
-          ticketNumber: saved.ticket_number,
-          createdBy: currentUser?.name || null,
-          createdAt: new Date().toISOString(),
-        };
-        setTickets((prev) => [...prev, newTicket]);
-        // v28.07.5 / v28.09 — bulk-POST any selected crew to /tickets/:id/crew.
-        // AddTicketModal sets ticketData.crewSelection when the user added
-        // crew before clicking CREATE TICKET (rather than via autoSaveForJSA
-        // which already commits).
-        if (Array.isArray(ticketData.crewSelection) && ticketData.crewSelection.length > 0) {
-          for (const c of ticketData.crewSelection) {
-            try {
-              await fetch(`${API_URL}/tickets/${saved.id}/crew`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: c.user_id, is_lead: !!c.is_lead }),
-              });
-            } catch (crewErr) {
-              console.warn("Crew selection member failed:", c.user_name, crewErr);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.error("Ticket save failed:", err);
-      showNotice("Save Failed", `Network or server error. Your data is still in the form. ${err.message || err}`, "error");
-      return;
-    }
-    setShowAdd(false);
-  };
-
   const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets);
 
   // v28.87 — unified delete path. Used by both the detail-modal onDelete
@@ -178,7 +78,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
   return (
     <div style={{ padding: "16px 0" }}>
-      <JobTicketsHeader ticketCount={jobTickets.length} approvedCount={movedToFinalReview} onAdd={() => setShowAdd(true)} />
+      <JobTicketsHeader ticketCount={jobTickets.length} approvedCount={movedToFinalReview} onAdd={openAdd} />
 
       {jobTickets.length === 0 && (
         <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 13 }}>No tickets yet. Add one to get started.</div>
@@ -709,7 +609,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
           jobId={jobId}
           job={jobs.find((j) => j.id === jobId)}
           onSave={handleAdd}
-          onClose={() => setShowAdd(false)}
+          onClose={closeAdd}
           jobWells={(jobs.find((j) => j.id === jobId)?.wells || []).map((w) => w.well_name || w)}
         />
       )}
