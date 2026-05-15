@@ -295,9 +295,10 @@ function NewJobModal({ onClose, onCreateJob }) {
   };
 
   // Save contacts after work order creation (upsert — backend handles dedup).
-  // v28.79 — sends both `category` (canonical) and `role_tag` (legacy mirror)
-  // alongside `phone_work` so the v28.76 backend writes to both column
-  // families. POC saves as category=poc; Approver saves as category=approver.
+  // v28.81 — drops the `phone` + `role_tag` legacy mirror keys. Backend
+  // still accepts both as input aliases, but canonical-only is the cleaner
+  // posture going into v28.81b's column drop. POC saves as category=poc;
+  // Approver saves as category=approver.
   const saveContactsForCustomer = async (custId) => {
     if (!custId) return;
     const pocName = [contactFirst, contactLast].filter(Boolean).join(" ").trim();
@@ -310,11 +311,9 @@ function NewJobModal({ onClose, onCreateJob }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: pocName,
-            phone: phone || null,
             phone_work: phone || null,
             email: email || null,
             category: "poc",
-            role_tag: "poc",
           }),
         }),
       );
@@ -326,11 +325,9 @@ function NewJobModal({ onClose, onCreateJob }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: approverName,
-            phone: approverPhone || null,
             phone_work: approverPhone || null,
             email: approverEmail || null,
             category: "approver",
-            role_tag: "approver",
           }),
         }),
       );

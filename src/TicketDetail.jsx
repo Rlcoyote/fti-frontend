@@ -40,7 +40,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   // Parent WO this ticket belongs to (needed before useTicketState so the
   // hook can derive contact email / customer contacts).
-  const job = (jobs || []).find(j => j.id === ticket.jobId);
+  const job = (jobs || []).find((j) => j.id === ticket.jobId);
 
   // ── All ticket field state + dirty tracking + payload builder (v27.88) ──
   const s = useTicketState(ticket, job);
@@ -51,18 +51,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   // ── Signature arrival polling (v27.88) ──────────────────────────────────
   // Fires every 30s while status === "emailed" and !signedBy. Flips local
   // state when the external signer lands on the /sign/:token page.
-  useSignaturePolling(
-    ticket.id,
-    ticket.jobId,
-    s.status,
-    s.signedBy,
-    ({ signedBy, signedAt, signatureImage }) => {
-      s.setSignedBy(signedBy);
-      s.setSignedAt(signedAt);
-      s.setSignatureImage(signatureImage);
-      s.setStatus("signed");
-    }
-  );
+  useSignaturePolling(ticket.id, ticket.jobId, s.status, s.signedBy, ({ signedBy, signedAt, signatureImage }) => {
+    s.setSignedBy(signedBy);
+    s.setSignedAt(signedAt);
+    s.setSignatureImage(signatureImage);
+    s.setStatus("signed");
+  });
 
   // ── UI-only flags (not data, not shared — stay flat in this component) ──
   const [showDupModal, setShowDupModal] = useState(false);
@@ -83,14 +77,25 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const editable = !isFullyLocked && !isVoided && editLock.hasLock;
   const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
 
-  // Auto-save site manager as customer contact (upsert — backend deduplicates)
+  // Auto-save site manager as customer contact (upsert — backend deduplicates).
+  // v28.81 — writes the canonical fields (phone_work + category + title)
+  // instead of the legacy (phone + role_tag). Backend still accepts legacy
+  // as input aliases for now, but this caller speaks canonical so it keeps
+  // working through and past v28.81b's column drop.
   const saveSiteMgrAsContact = () => {
     const custId = job?.customerId || job?.customer_id;
     const fullName = [s.siteMgrFirst, s.siteMgrLast].filter(Boolean).join(" ").trim();
     if (!fullName || !custId) return;
     fetch(`${API_URL}/customers/${custId}/contacts`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: fullName, phone: s.siteMgrPhone || null, email: s.siteMgrEmail || null, role_tag: "site_manager" }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: fullName,
+        phone_work: s.siteMgrPhone || null,
+        email: s.siteMgrEmail || null,
+        category: "site_rep",
+        title: "Site Manager",
+      }),
     }).catch(() => {});
   };
 
@@ -148,7 +153,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     showNotice(
       "Ticket date is in the future",
       `This ticket is dated ${d}. Update the date to reflect when the work was actually performed before ${whichAction}.`,
-      "error"
+      "error",
     );
     return true;
   };
@@ -203,18 +208,29 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   return (
     <div
-      style={isPageMode
-        ? { background: tcfg.bg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100vh" }
-        : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+      style={
+        isPageMode
+          ? { background: tcfg.bg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100vh" }
+          : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
       }
       onClick={isPageMode ? undefined : handleClose}
     >
       <div
-        style={isPageMode
-          ? { maxWidth: 820, margin: "0 auto" }
-          : { background: tcfg.bg, border: `1px solid ${C.border}`, borderTop: `4px solid ${tcfg.color}`, borderRadius: 8, width: 820, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }
+        style={
+          isPageMode
+            ? { maxWidth: 820, margin: "0 auto" }
+            : {
+                background: tcfg.bg,
+                border: `1px solid ${C.border}`,
+                borderTop: `4px solid ${tcfg.color}`,
+                borderRadius: 8,
+                width: 820,
+                maxWidth: "95vw",
+                maxHeight: "90vh",
+                overflowY: "auto",
+              }
         }
-        onClick={isPageMode ? undefined : e => e.stopPropagation()}
+        onClick={isPageMode ? undefined : (e) => e.stopPropagation()}
       >
         {/* Ticket type header bar */}
         <div style={{ background: tcfg.color, padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -222,9 +238,23 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
             <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em" }}>TICKET DETAIL</div>
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 700, color: "#fff", cursor: "pointer" }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.25)"}
-            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.15)"}>CLOSE</button>
+          <button
+            onClick={onClose}
+            style={{
+              background: "rgba(255,255,255,0.15)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              borderRadius: 4,
+              padding: "5px 14px",
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#fff",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.25)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.15)")}
+          >
+            CLOSE
+          </button>
         </div>
         {/* Edit lock banner + edit-request notification — extracted to TicketEditLockBanner (v27.81) */}
         <TicketEditLockBanner editLock={editLock} currentUserRole={currentUser?.role} />
@@ -234,13 +264,22 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
         {/* Header row — extracted to TicketHeaderRow (v27.83) */}
         <TicketHeaderRow
-          ticket={ticket} status={s.status} total={total}
-          isLocked={isLocked} isFullyLocked={isFullyLocked} editable={editable}
-          job={job} isPageMode={isPageMode}
-          ticketDate={s.ticketDate} onDateChange={handleDateChange}
-          dueOnLoc={s.dueOnLoc} setDueOnLoc={s.setDueOnLoc}
-          timeZone={s.timeZone} setTimeZone={s.setTimeZone}
-          yardLocationIndex={s.yardLocationIndex} setYardLocationIndex={s.setYardLocationIndex}
+          ticket={ticket}
+          status={s.status}
+          total={total}
+          isLocked={isLocked}
+          isFullyLocked={isFullyLocked}
+          editable={editable}
+          job={job}
+          isPageMode={isPageMode}
+          ticketDate={s.ticketDate}
+          onDateChange={handleDateChange}
+          dueOnLoc={s.dueOnLoc}
+          setDueOnLoc={s.setDueOnLoc}
+          timeZone={s.timeZone}
+          setTimeZone={s.setTimeZone}
+          yardLocationIndex={s.yardLocationIndex}
+          setYardLocationIndex={s.setYardLocationIndex}
           yardsList={yardsList}
         />
 
@@ -276,14 +315,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         )}
 
         {/* Time & Mileage — extracted to TicketTimeAndMileage (v27.78) */}
-        {!['Rental'].includes(ticket.type) && (
+        {!["Rental"].includes(ticket.type) && (
           <TicketTimeAndMileage
             editable={editable}
             values={{
-              lvYard: s.lvYard, arrivalTime: s.arrivalTime,
-              jobStartTime: s.jobStartTime, jobEndTime: s.jobEndTime,
-              retYard: s.retYard, timeZone: s.timeZone,
-              mileageBegin: s.mileageBegin, mileageEnd: s.mileageEnd,
+              lvYard: s.lvYard,
+              arrivalTime: s.arrivalTime,
+              jobStartTime: s.jobStartTime,
+              jobEndTime: s.jobEndTime,
+              retYard: s.retYard,
+              timeZone: s.timeZone,
+              mileageBegin: s.mileageBegin,
+              mileageEnd: s.mileageEnd,
               dueOnLoc: s.dueOnLoc,
             }}
             onChange={(partial) => {
@@ -329,38 +372,41 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             s.setDriveLoading(true);
             try {
               const r = await fetch(`${API_URL}/jobs/drive-distance`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ destLat: s.ticketPinLat, destLng: s.ticketPinLng, yard_index: s.yardLocationIndex }),
               });
-              if (r.ok) { const d = await r.json(); s.setDriveInfo(d); }
-              else s.setDriveInfo({ error: "Could not calculate — check yard location in Settings" });
-            } catch { s.setDriveInfo({ error: "Network error" }); }
+              if (r.ok) {
+                const d = await r.json();
+                s.setDriveInfo(d);
+              } else s.setDriveInfo({ error: "Could not calculate — check yard location in Settings" });
+            } catch {
+              s.setDriveInfo({ error: "Network error" });
+            }
             s.setDriveLoading(false);
           }}
         />
 
         {/* Body */}
         <div style={{ padding: "16px 24px" }}>
-
           {/* Status banners — extracted to TicketStatusBanners (v27.85) */}
-          <TicketStatusBanners
-            ticket={ticket} status={s.status}
-            signedBy={s.signedBy} isEditing={s.isEditing} sigWiped={s.sigWiped}
-          />
+          <TicketStatusBanners ticket={ticket} status={s.status} signedBy={s.signedBy} isEditing={s.isEditing} sigWiped={s.sigWiped} />
 
           {/* Rig Down missing-pieces — extracted to TicketRigDownMissing (v27.86) */}
-          <TicketRigDownMissing
-            ticketType={ticket.type}
-            isLocked={isLocked}
-            missingPieces={s.missingPieces}
-            setMissingPieces={s.setMissingPieces}
-          />
+          <TicketRigDownMissing ticketType={ticket.type} isLocked={isLocked} missingPieces={s.missingPieces} setMissingPieces={s.setMissingPieces} />
 
           {/* Line items — v28.44: PANEL_MUTED for the section header
               (renders directly on the pastel tcfg.bg panel). */}
           <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
           {!isLocked ? (
-            <LineItemEditor lineItems={s.lineItems} setLineItems={s.setLineItems} ticketType={ticket.type} qbItems={qbItems} onSigWipe={handleSigWipe} jobId={ticket.jobId} />
+            <LineItemEditor
+              lineItems={s.lineItems}
+              setLineItems={s.setLineItems}
+              ticketType={ticket.type}
+              qbItems={qbItems}
+              onSigWipe={handleSigWipe}
+              jobId={ticket.jobId}
+            />
           ) : (
             <ReadOnlyLineItems lineItems={s.lineItems} ticketType={ticket.type} total={total} />
           )}
@@ -369,8 +415,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           <div style={{ marginTop: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
             {!isFullyLocked ? (
-              <textarea style={{ ...inputStyle, width: "100%", minHeight: 60, resize: "vertical", boxSizing: "border-box" }}
-                value={s.notes} onChange={e => s.setNotes(e.target.value)} placeholder="Notes..." />
+              <textarea
+                style={{ ...inputStyle, width: "100%", minHeight: 60, resize: "vertical", boxSizing: "border-box" }}
+                value={s.notes}
+                onChange={(e) => s.setNotes(e.target.value)}
+                placeholder="Notes..."
+              />
             ) : (
               <div style={{ fontSize: 12, color: PANEL_TEXT, padding: "8px 0" }}>{s.notes || "—"}</div>
             )}
@@ -382,10 +432,14 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Signature flow — extracted to TicketSignatureFlow (v27.84) */}
           <TicketSignatureFlow
             status={s.status}
-            signedBy={s.signedBy} signedAt={s.signedAt} signatureImage={s.signatureImage}
-            sigNotReqReason={s.sigNotReqReason} sigNotReqNote={s.sigNotReqNote}
+            signedBy={s.signedBy}
+            signedAt={s.signedAt}
+            signatureImage={s.signatureImage}
+            sigNotReqReason={s.sigNotReqReason}
+            sigNotReqNote={s.sigNotReqNote}
             showSigOptions={showSigOptions}
-            setSigNotReqReason={s.setSigNotReqReason} setSigNotReqNote={s.setSigNotReqNote}
+            setSigNotReqReason={s.setSigNotReqReason}
+            setSigNotReqNote={s.setSigNotReqNote}
             onConfirmSigNotRequired={handleSigNotRequired}
             onCancelSigOptions={() => setShowSigOptions(false)}
             showSigPad={showSigPad}
@@ -396,55 +450,60 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           {/* Comment Thread — extracted to TicketCommentThread (v27.75) */}
           <TicketCommentThread
             ticket={ticket}
-            onPendingCleared={(id) => { if (onUpdate) onUpdate(id, { hasPendingComment: false, has_pending_comment: false }); }}
+            onPendingCleared={(id) => {
+              if (onUpdate) onUpdate(id, { hasPendingComment: false, has_pending_comment: false });
+            }}
           />
-
         </div>
 
         {/* Footer — extracted to TicketActionBar (v27.80) */}
         <TicketActionBar
           ticket={ticket}
           status={s.status}
-          isLocked={isLocked} isFullyLocked={isFullyLocked} isEditing={s.isEditing}
-          sigWiped={s.sigWiped} signedBy={s.signedBy}
-          existingJSA={jsa.existingJSA} jsaLoaded={jsa.jsaLoaded}
+          isLocked={isLocked}
+          isFullyLocked={isFullyLocked}
+          isEditing={s.isEditing}
+          sigWiped={s.sigWiped}
+          signedBy={s.signedBy}
+          existingJSA={jsa.existingJSA}
+          jsaLoaded={jsa.jsaLoaded}
           canApprove={canApprove}
-          showSigPad={showSigPad} showSigOptions={showSigOptions}
-          handleSave={handleSave} handleClose={handleClose}
-          handleCancel={handleCancel} handleApprove={handleApprove}
+          showSigPad={showSigPad}
+          showSigOptions={showSigOptions}
+          handleSave={handleSave}
+          handleClose={handleClose}
+          handleCancel={handleCancel}
+          handleApprove={handleApprove}
           onClose={onClose}
           setIsEditing={s.setIsEditing}
-          setShowSigPad={setShowSigPad} setShowSigOptions={setShowSigOptions}
+          setShowSigPad={setShowSigPad}
+          setShowSigOptions={setShowSigOptions}
           setShowJSA={jsa.setShowJSA}
           setShowVoidConfirm={setShowVoidConfirm}
           setShowDupModal={setShowDupModal}
           setShowDeleteConfirm={setShowDeleteConfirm}
-          onRevise={onRevise} onDuplicate={onDuplicate} onDelete={onDelete}
+          onRevise={onRevise}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
         />
 
         {/* Delete confirmation — extracted to TicketDeleteModal (v27.70) */}
-        {showDeleteConfirm && (
-          <TicketDeleteModal
-            ticket={ticket}
-            onClose={() => setShowDeleteConfirm(false)}
-            onDeleted={onDelete}
-          />
-        )}
+        {showDeleteConfirm && <TicketDeleteModal ticket={ticket} onClose={() => setShowDeleteConfirm(false)} onDeleted={onDelete} />}
 
         {/* Void confirmation — extracted to TicketVoidModal (v27.71) */}
-        {showVoidConfirm && (
-          <TicketVoidModal
-            ticket={ticket}
-            onClose={() => setShowVoidConfirm(false)}
-            onRevise={onRevise}
-          />
-        )}
+        {showVoidConfirm && <TicketVoidModal ticket={ticket} onClose={() => setShowVoidConfirm(false)} onRevise={onRevise} />}
 
         {/* JSA Modal — save handler lives in useTicketJSA (v27.88) */}
         {jsa.showJSA && job && (
           <JSAModal
             job={job}
-            ticket={{ ...ticket, date: s.ticketDate, pinLat: s.ticketPinLat || ticket.pinLat, pinLng: s.ticketPinLng || ticket.pinLng, googlePin: s.ticketPin || ticket.googlePin }}
+            ticket={{
+              ...ticket,
+              date: s.ticketDate,
+              pinLat: s.ticketPinLat || ticket.pinLat,
+              pinLng: s.ticketPinLng || ticket.pinLng,
+              googlePin: s.ticketPin || ticket.googlePin,
+            }}
             existingJSA={jsa.existingJSA}
             onClose={() => jsa.setShowJSA(false)}
             onSave={jsa.handleJsaSave}
@@ -454,20 +513,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
         {/* Duplicate Options Modal — extracted to TicketDuplicateModal (v27.72) */}
         {showDupModal && (
-          <TicketDuplicateModal
-            ticket={ticket}
-            jobs={jobs}
-            tickets={tickets}
-            onClose={() => setShowDupModal(false)}
-            onDuplicate={onDuplicate}
-          />
+          <TicketDuplicateModal ticket={ticket} jobs={jobs} tickets={tickets} onClose={() => setShowDupModal(false)} onDuplicate={onDuplicate} />
         )}
-
       </div>
     </div>
   );
 }
-
 
 export default TicketDetail;
 export { RentalCountdown };
