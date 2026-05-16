@@ -19,6 +19,21 @@ import { defineConfig, globalIgnores } from "eslint/config";
 //   - react-hooks/set-state-in-effect — over-fires on mount-time data loading
 //   - react-hooks/components-and-hooks-must-be-pure — companion of the above
 //
+// v7.1.1 (Dependabot bump, 2026-05-15) added two MORE experimental rules
+// from the React Compiler tooling:
+//   - react-hooks/refs              — flags ref-writes-in-render (a pattern
+//                                     used in JSAModal for stable closure
+//                                     references to parent-provided callbacks;
+//                                     the alternative — useLayoutEffect on
+//                                     every prop change — is more overhead
+//                                     than the side effect saves)
+//   - react-hooks/preserve-manual-memoization — fires when React Compiler
+//                                     can't auto-optimize a manual useCallback
+//                                     because the deps don't match the
+//                                     compiler's analysis. Benign for us —
+//                                     we WANT manual memoization in places
+//                                     where the compiler can't see refs.
+//
 // These are NOT silenced because they're inconvenient. They're silenced
 // because they generate false positives for patterns that have been
 // independently verified correct. The PROVEN rules from the same plugin
@@ -26,7 +41,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 //
 // Audit obligation: when eslint-plugin-react-hooks releases a v8 with the
 // false-positive issues addressed, OR when we have bandwidth to audit each
-// of the ~50 sites that trigger these rules individually, the disables
+// of the sites that trigger these rules individually, the disables
 // below come out. Track in the v28.57 ship notes / roadmap.
 
 export default defineConfig([
@@ -59,6 +74,9 @@ export default defineConfig([
       "react-hooks/purity": "off",
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/components-and-hooks-must-be-pure": "off",
+      // v7.1.1 (2026-05-15) additions — React Compiler experimental rules
+      "react-hooks/refs": "off",
+      "react-hooks/preserve-manual-memoization": "off",
 
       // exhaustive-deps is a real signal — keep as a warning so it surfaces
       // in lint output without blocking the gate. The fix is per-call-site
