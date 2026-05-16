@@ -9,6 +9,7 @@ import NewJobNotesField from "./NewJobNotesField.jsx";
 import NewJobWellsPanel from "./NewJobWellsPanel.jsx";
 import NewJobScheduleSalesman from "./NewJobScheduleSalesman.jsx";
 import NewJobLocationPanel from "./NewJobLocationPanel.jsx";
+import NewJobGooglePin from "./NewJobGooglePin.jsx";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
@@ -53,8 +54,7 @@ function NewJobModal({ onClose, onCreateJob }) {
   const [googlePin, setGooglePin] = useState("");
   const [pinLat, setPinLat] = useState(null);
   const [pinLng, setPinLng] = useState(null);
-  const [pinResolving, setPinResolving] = useState(false);
-  const [pinError, setPinError] = useState("");
+  // pinResolving + pinError state now live inside NewJobGooglePin (v28.101)
   const [stateLockedByPin, setStateLockedByPin] = useState(false);
   const [countyLockedByPin, setCountyLockedByPin] = useState(false);
   const [errors, setErrors] = useState({});
@@ -185,62 +185,9 @@ function NewJobModal({ onClose, onCreateJob }) {
     }
   };
 
-  // Resolve Google pin → lat/lng → geocode → state/county
-  const resolvePin = async (pinUrl) => {
-    if (!pinUrl.trim()) return;
-    setPinResolving(true);
-    setPinError("");
-    try {
-      // Step 1: resolve short URL to coordinates via existing backend resolver
-      const resolveR = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: pinUrl.trim() }),
-      });
-      if (!resolveR.ok) {
-        setPinError("Could not resolve pin link. Check the URL and try again.");
-        setPinResolving(false);
-        return;
-      }
-      const { lat, lng } = await resolveR.json();
-      if (!lat || !lng) {
-        setPinError("No coordinates found in this link.");
-        setPinResolving(false);
-        return;
-      }
-      setPinLat(lat);
-      setPinLng(lng);
-      // Step 2: geocode coordinates → state + county
-      const geoR = await fetch(`${API_URL}/jobs/geocode`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat, lng }),
-      });
-      if (geoR.ok) {
-        const { state, county: geoCounty } = await geoR.json();
-        if (state) {
-          setJobState(state);
-          setStateLockedByPin(true);
-        }
-        if (geoCounty) {
-          setCounty(geoCounty);
-          setCountyLockedByPin(true);
-        }
-      }
-    } catch {
-      setPinError("Network error resolving pin. Try again.");
-    }
-    setPinResolving(false);
-  };
-
-  const handlePinChange = (val) => {
-    setGooglePin(val);
-    setPinLat(null);
-    setPinLng(null);
-    setPinError("");
-    setStateLockedByPin(false);
-    setCountyLockedByPin(false);
-  };
+  // resolvePin + handlePinChange extracted to NewJobGooglePin (v28.101).
+  // Parent owns the lat/lng + state/county lock side-effects via the
+  // onResolveSuccess + onResolveClear callbacks below.
 
   // VALID_STATES is now imported from ./NewJobConstants.js (v28.94)
 
@@ -722,74 +669,29 @@ function NewJobModal({ onClose, onCreateJob }) {
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>LOCATION</div>
 
-          {/* Google Pin — first */}
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>
-              GOOGLE PIN <span style={{ fontSize: 10, color: C.muted, fontWeight: 400, letterSpacing: 0 }}>— Google Maps links only</span>
-            </label>
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-              <input
-                style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
-                value={googlePin}
-                onChange={(e) => handlePinChange(e.target.value)}
-                placeholder="Paste Google Maps link..."
-              />
-              <button
-                type="button"
-                onClick={() => resolvePin(googlePin)}
-                disabled={!googlePin.trim() || pinResolving}
-                style={{
-                  background: googlePin.trim() ? C.blue : C.steel,
-                  color: googlePin.trim() ? C.white : C.muted,
-                  border: "none",
-                  borderRadius: 4,
-                  padding: "8px 14px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: googlePin.trim() ? "pointer" : "default",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                {pinResolving ? "Resolving..." : "RESOLVE"}
-              </button>
-            </div>
-            {pinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {pinError}</div>}
-            {pinLat && pinLng && (
-              <div style={{ marginTop: 6, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: C.green }}>✓ PIN RESOLVED</span>
-                <span style={{ fontSize: 11, color: C.muted, fontFamily: "monospace" }}>
-                  {parseFloat(pinLat).toFixed(6)}, {parseFloat(pinLng).toFixed(6)}
-                </span>
-                <a
-                  href={`https://www.google.com/maps?q=${pinLat},${pinLng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none" }}
-                >
-                  View on Google Maps ↗
-                </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(googlePin || `${pinLat},${pinLng}`);
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 3,
-                    padding: "2px 8px",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: C.muted,
-                    cursor: "pointer",
-                  }}
-                >
-                  COPY PIN
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Google Pin — extracted to NewJobGooglePin (v28.101) */}
+          <NewJobGooglePin
+            googlePin={googlePin}
+            setGooglePin={setGooglePin}
+            pinLat={pinLat}
+            setPinLat={setPinLat}
+            pinLng={pinLng}
+            setPinLng={setPinLng}
+            onResolveSuccess={({ state, county: geoCounty }) => {
+              if (state) {
+                setJobState(state);
+                setStateLockedByPin(true);
+              }
+              if (geoCounty) {
+                setCounty(geoCounty);
+                setCountyLockedByPin(true);
+              }
+            }}
+            onResolveClear={() => {
+              setStateLockedByPin(false);
+              setCountyLockedByPin(false);
+            }}
+          />
 
           {/* State + County — extracted to NewJobLocationPanel (v28.100) */}
           <NewJobLocationPanel
