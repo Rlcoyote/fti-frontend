@@ -5,6 +5,7 @@ import { today } from "./utils.js";
 import { ALL_COUNTIES, VALID_STATES } from "./NewJobConstants.js";
 import NewJobUnsavedConfirm from "./NewJobUnsavedConfirm.jsx";
 import useNewJobMobileBack from "./useNewJobMobileBack.js";
+import NewJobNotesField from "./NewJobNotesField.jsx";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
@@ -1037,16 +1038,8 @@ function NewJobModal({ onClose, onCreateJob }) {
           </div>
         </div>
 
-        {/* Notes */}
-        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
-          <textarea
-            style={{ ...inputStyle, minHeight: 60, resize: "vertical", width: "100%", boxSizing: "border-box" }}
-            value={jobNotes}
-            onChange={(e) => setJobNotes(e.target.value)}
-            placeholder="Internal notes — visible on work order only, not on field tickets"
-          />
-        </div>
+        {/* Notes — extracted to NewJobNotesField (v28.97) */}
+        <NewJobNotesField value={jobNotes} onChange={setJobNotes} />
 
         {/* Scheduling */}
 
