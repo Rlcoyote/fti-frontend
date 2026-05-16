@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { ALL_COUNTIES, VALID_STATES } from "./NewJobConstants.js";
 import NewJobUnsavedConfirm from "./NewJobUnsavedConfirm.jsx";
+import useNewJobMobileBack from "./useNewJobMobileBack.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
@@ -11,16 +12,7 @@ import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 function NewJobModal({ onClose, onCreateJob }) {
   const { customers, users, refreshCustomers } = useApp();
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    if (!isMobile) return;
-    window.history.pushState({ newJobOpen: true }, "");
-    const handlePop = () => {
-      onClose();
-    };
-    window.addEventListener("popstate", handlePop);
-    return () => window.removeEventListener("popstate", handlePop);
-  }, [isMobile, onClose]);
+  useNewJobMobileBack(onClose);
   const [custSearch, setCustSearch] = useState("");
   const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
