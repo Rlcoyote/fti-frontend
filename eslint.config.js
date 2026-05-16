@@ -21,18 +21,27 @@ import { defineConfig, globalIgnores } from "eslint/config";
 //
 // v7.1.1 (Dependabot bump, 2026-05-15) added two MORE experimental rules
 // from the React Compiler tooling:
-//   - react-hooks/refs              — flags ref-writes-in-render (a pattern
-//                                     used in JSAModal for stable closure
-//                                     references to parent-provided callbacks;
-//                                     the alternative — useLayoutEffect on
-//                                     every prop change — is more overhead
-//                                     than the side effect saves)
+//   - react-hooks/refs              — flags ref-writes during render.
+//                                     v28.107 RE-ENABLED this rule after
+//                                     fixing the two JSAModal sites that
+//                                     triggered it. Ref-writes belong in
+//                                     useEffect, not in render body —
+//                                     same closure-stability semantics,
+//                                     no compiler-purity violation.
 //   - react-hooks/preserve-manual-memoization — fires when React Compiler
 //                                     can't auto-optimize a manual useCallback
 //                                     because the deps don't match the
-//                                     compiler's analysis. Benign for us —
-//                                     we WANT manual memoization in places
-//                                     where the compiler can't see refs.
+//                                     compiler's analysis. STAYS DISABLED:
+//                                     JSAModal's handleAllSigned useCallback
+//                                     reads from a ref inside its body, which
+//                                     refs are opaque to the compiler. The
+//                                     manual useCallback is INTENTIONAL —
+//                                     it gives us the stable identity the
+//                                     compiler can't infer. Re-enable when
+//                                     React Compiler grows ref-aware
+//                                     optimization, OR when the
+//                                     stable-callback pattern is refactored
+//                                     away from refs.
 //
 // These are NOT silenced because they're inconvenient. They're silenced
 // because they generate false positives for patterns that have been
@@ -74,8 +83,9 @@ export default defineConfig([
       "react-hooks/purity": "off",
       "react-hooks/set-state-in-effect": "off",
       "react-hooks/components-and-hooks-must-be-pure": "off",
-      // v7.1.1 (2026-05-15) additions — React Compiler experimental rules
-      "react-hooks/refs": "off",
+      // v7.1.1 (2026-05-15) additions — React Compiler experimental rules.
+      // v28.107 (2026-05-15) — `refs` re-enabled after JSAModal fixes;
+      // `preserve-manual-memoization` stays off (see header for rationale).
       "react-hooks/preserve-manual-memoization": "off",
 
       // exhaustive-deps is a real signal — keep as a warning so it surfaces

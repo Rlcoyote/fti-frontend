@@ -274,8 +274,16 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   // setters (which are stable). onComplete is a parent-provided callback;
   // including it in deps would re-introduce the issue if the parent
   // doesn't memoize, so we read it via a ref.
+  // v28.107 — ref-write moved from render body to useEffect. The previous
+  // synchronous write was flagged by eslint-plugin-react-hooks/refs (v7.1.1
+  // experimental rule) — and rightly so: writing to refs during render is
+  // a side effect that breaks React Compiler's purity analysis. The
+  // semantics are unchanged because the only consumer (handleAllSigned) is
+  // invoked AFTER all effects have run, so it always sees the latest ref.
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
   const handleAllSigned = useCallback(async () => {
     if (!existingJSA?.id) return;
     if (existingJSA?.completed_at) return;
@@ -339,7 +347,15 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
     onClose();
   };
   // Keep ref fresh so mobile popstate always calls the latest closure.
-  handleCloseRef.current = handleClose;
+  // v28.107 — ref-write moved from render body to useEffect (no deps array
+  // because handleClose is a fresh closure every render; relying on
+  // identity-change would re-fire trivially, so we just sync on every
+  // render). Same semantics as the prior synchronous-in-render write
+  // from the popstate listener's perspective — it reads .current after
+  // its own commit phase, so timing is identical.
+  useEffect(() => {
+    handleCloseRef.current = handleClose;
+  });
 
   return (
     <div
