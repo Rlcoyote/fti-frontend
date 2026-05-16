@@ -7,6 +7,7 @@ import NewJobUnsavedConfirm from "./NewJobUnsavedConfirm.jsx";
 import useNewJobMobileBack from "./useNewJobMobileBack.js";
 import NewJobNotesField from "./NewJobNotesField.jsx";
 import NewJobWellsPanel from "./NewJobWellsPanel.jsx";
+import NewJobScheduleSalesman from "./NewJobScheduleSalesman.jsx";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
@@ -344,45 +345,17 @@ function NewJobModal({ onClose, onCreateJob }) {
       >
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW WORK ORDER</div>
 
-        {/* Scheduled Date + Salesman — TOP. Mobile stacks columns explicitly
-            because flex-wrap math against iOS Safari + native select chevron
-            sizing produced a visual overlap at iPhone widths in v28.08. */}
-        <div
-          style={
-            isMobile
-              ? { display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }
-              : { display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }
-          }
-        >
-          <div style={isMobile ? {} : { flex: 1, minWidth: 140 }}>
-            <label style={labelStyle}>SCHEDULED DATE</label>
-            <input type="date" style={inputStyle} value={schedDate} onChange={(e) => setSchedDate(e.target.value)} />
-          </div>
-          <div style={isMobile ? {} : { flex: 1, minWidth: 180 }}>
-            <label style={labelStyle}>SALESMAN *</label>
-            <select
-              style={{ ...inputStyle, borderColor: errors.salesman ? C.red : C.border }}
-              value={salesman}
-              onChange={(e) => {
-                setSalesman(e.target.value);
-                setErrors((prev) => ({ ...prev, salesman: null }));
-              }}
-            >
-              <option value="">— Select —</option>
-              <option value="No Salesman Assigned">No Salesman Assigned</option>
-              {salesmen.map((u) => (
-                <option key={u.id} value={u.name}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-            {errors.salesman && (
-              <div data-error="salesman" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>
-                ⚠ {errors.salesman}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Scheduled Date + Salesman — extracted to NewJobScheduleSalesman (v28.99) */}
+        <NewJobScheduleSalesman
+          schedDate={schedDate}
+          setSchedDate={setSchedDate}
+          salesman={salesman}
+          setSalesman={setSalesman}
+          salesmenList={salesmen}
+          isMobile={isMobile}
+          error={errors.salesman}
+          clearError={() => setErrors((prev) => ({ ...prev, salesman: null }))}
+        />
 
         {/* Customer */}
         <div style={{ marginBottom: 14, position: "relative" }}>
