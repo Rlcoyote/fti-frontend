@@ -8,6 +8,7 @@ import useNewJobMobileBack from "./useNewJobMobileBack.js";
 import NewJobNotesField from "./NewJobNotesField.jsx";
 import NewJobWellsPanel from "./NewJobWellsPanel.jsx";
 import NewJobScheduleSalesman from "./NewJobScheduleSalesman.jsx";
+import NewJobLocationPanel from "./NewJobLocationPanel.jsx";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
@@ -24,7 +25,6 @@ function NewJobModal({ onClose, onCreateJob }) {
   const [newCustMsg, setNewCustMsg] = useState("");
   const [jobState, setJobState] = useState("");
   const [county, setCounty] = useState("");
-  const [showCountyDrop, setShowCountyDrop] = useState(false);
   // v28.42 — start with two blanks. Most WOs have ≥2 wells, so pre-seeding
   // saves a click. Auto-grow on last-row fill (see updateWell), drop empties
   // on submit (see cleanWells filter at line ~187).
@@ -90,14 +90,7 @@ function NewJobModal({ onClose, onCreateJob }) {
     if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
     return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
   };
-  const formatState = (val) =>
-    val
-      .replace(/[^a-zA-Z]/g, "")
-      .slice(0, 2)
-      .toUpperCase();
-
-  // ALL_COUNTIES + VALID_STATES now imported from ./NewJobConstants.js (v28.94)
-  const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter((c) => c.toLowerCase().startsWith(county.toLowerCase())) : [];
+  // VALID_STATES imported from ./NewJobConstants.js (v28.94) for validateAndCreate
   const filteredCust = custSearch.length > 0 ? customers.filter((c) => c.name.toLowerCase().includes(custSearch.toLowerCase())) : customers;
 
   const [knownContacts, setKnownContacts] = useState([]);
@@ -798,118 +791,19 @@ function NewJobModal({ onClose, onCreateJob }) {
             )}
           </div>
 
-          {/* State / County — derived from pin, manually editable with warning */}
-          {(stateLockedByPin || countyLockedByPin) && (
-            <div
-              style={{
-                fontSize: 11,
-                color: C.blue,
-                background: "#e8f0fb",
-                border: `1px solid ${C.blue}22`,
-                borderRadius: 4,
-                padding: "6px 10px",
-                marginBottom: 8,
-              }}
-            >
-              State and County are auto-filled from the pin. Editing them manually will break the pin association.
-            </div>
-          )}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label style={labelStyle}>STATE *</label>
-                {stateLockedByPin && (
-                  <button
-                    type="button"
-                    onClick={() => setStateLockedByPin(false)}
-                    style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}
-                  >
-                    unlock
-                  </button>
-                )}
-              </div>
-              <input
-                style={{ ...inputStyle, borderColor: errors.jobState ? C.red : stateLockedByPin ? C.blue : C.border }}
-                value={jobState}
-                onChange={(e) => !stateLockedByPin && setJobState(formatState(e.target.value))}
-                readOnly={stateLockedByPin}
-                placeholder="TX"
-                maxLength={2}
-              />
-              {errors.jobState && (
-                <div data-error="jobState" style={{ fontSize: 10, color: C.red, marginTop: 2 }}>
-                  {errors.jobState}
-                </div>
-              )}
-            </div>
-            <div style={{ position: "relative" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label style={labelStyle}>COUNTY *</label>
-                {countyLockedByPin && (
-                  <button
-                    type="button"
-                    onClick={() => setCountyLockedByPin(false)}
-                    style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}
-                  >
-                    unlock
-                  </button>
-                )}
-              </div>
-              <input
-                style={{ ...inputStyle, borderColor: errors.county ? C.red : countyLockedByPin ? C.blue : C.border }}
-                value={county}
-                onChange={(e) => {
-                  if (!countyLockedByPin) {
-                    setCounty(e.target.value);
-                    setShowCountyDrop(true);
-                    setErrors((prev) => ({ ...prev, county: null }));
-                  }
-                }}
-                onFocus={() => !countyLockedByPin && setShowCountyDrop(true)}
-                onBlur={() => setTimeout(() => setShowCountyDrop(false), 150)}
-                placeholder="Start typing..."
-                readOnly={countyLockedByPin}
-              />
-              {errors.county && (
-                <div data-error="county" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>
-                  ⚠ {errors.county}
-                </div>
-              )}
-              {showCountyDrop && filteredCounties.length > 0 && !countyLockedByPin && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    zIndex: 20,
-                    background: C.cardBg,
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 4,
-                    boxShadow: "0 4px 16px #00000022",
-                    maxHeight: 180,
-                    overflowY: "auto",
-                    marginTop: 2,
-                  }}
-                >
-                  {filteredCounties.map((c) => (
-                    <div
-                      key={c}
-                      onMouseDown={() => {
-                        setCounty(c);
-                        setShowCountyDrop(false);
-                      }}
-                      style={{ padding: "6px 12px", cursor: "pointer", fontSize: 12 }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                    >
-                      {c}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* State + County — extracted to NewJobLocationPanel (v28.100) */}
+          <NewJobLocationPanel
+            jobState={jobState}
+            setJobState={setJobState}
+            county={county}
+            setCounty={setCounty}
+            stateLockedByPin={stateLockedByPin}
+            setStateLockedByPin={setStateLockedByPin}
+            countyLockedByPin={countyLockedByPin}
+            setCountyLockedByPin={setCountyLockedByPin}
+            errors={{ jobState: errors.jobState, county: errors.county }}
+            clearError={(k) => setErrors((prev) => ({ ...prev, [k]: null }))}
+          />
         </div>
 
         {/* Wells + AFE — extracted to NewJobWellsPanel (v28.98) */}
