@@ -3,6 +3,7 @@ import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { ALL_COUNTIES, VALID_STATES } from "./NewJobConstants.js";
+import NewJobUnsavedConfirm from "./NewJobUnsavedConfirm.jsx";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
@@ -1064,37 +1065,8 @@ function NewJobModal({ onClose, onCreateJob }) {
           </Btn>
         </div>
 
-        {/* Unsaved changes confirmation */}
-        {showUnsaved && (
-          <div
-            style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-            onClick={() => setShowUnsaved(false)}
-          >
-            <div
-              style={{
-                background: C.cardBg,
-                border: `1px solid ${C.border}`,
-                borderTop: `4px solid ${C.red}`,
-                borderRadius: 8,
-                padding: 24,
-                width: 380,
-                maxWidth: "90vw",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-              <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>
-                You have unsaved information. Are you sure you want to close without creating this job?
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={onClose}>YES, DISCARD</Btn>
-                <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>
-                  KEEP EDITING
-                </Btn>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Unsaved changes confirmation — extracted to NewJobUnsavedConfirm (v28.95) */}
+        <NewJobUnsavedConfirm open={showUnsaved} onDiscard={onClose} onDismiss={() => setShowUnsaved(false)} />
       </div>
     </div>
   );
