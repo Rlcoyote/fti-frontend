@@ -11,6 +11,7 @@ import NewJobScheduleSalesman from "./NewJobScheduleSalesman.jsx";
 import NewJobLocationPanel from "./NewJobLocationPanel.jsx";
 import NewJobGooglePin from "./NewJobGooglePin.jsx";
 import NewJobContactsPanel from "./NewJobContactsPanel.jsx";
+import NewJobCustomerPicker from "./NewJobCustomerPicker.jsx";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -19,11 +20,9 @@ function NewJobModal({ onClose, onCreateJob }) {
   const isMobile = useIsMobile();
   useNewJobMobileBack(onClose);
   const [custSearch, setCustSearch] = useState("");
-  const [showCustDrop, setShowCustDrop] = useState(false);
   const [selectedCust, setSelectedCust] = useState(null);
-  const [showAddCust, setShowAddCust] = useState(false);
-  const [newCustName, setNewCustName] = useState("");
-  const [newCustMsg, setNewCustMsg] = useState("");
+  // showCustDrop / showAddCust / newCustName / newCustMsg state lives
+  // inside NewJobCustomerPicker (v28.103).
   const [jobState, setJobState] = useState("");
   const [county, setCounty] = useState("");
   // v28.42 — start with two blanks. Most WOs have ≥2 wells, so pre-seeding
@@ -90,22 +89,12 @@ function NewJobModal({ onClose, onCreateJob }) {
     if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
     return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
   };
-  // VALID_STATES imported from ./NewJobConstants.js (v28.94) for validateAndCreate
-  const filteredCust = custSearch.length > 0 ? customers.filter((c) => c.name.toLowerCase().includes(custSearch.toLowerCase())) : customers;
+  // VALID_STATES imported from ./NewJobConstants.js (v28.94) for validateAndCreate.
+  // filteredCust derivation moved into NewJobCustomerPicker (v28.103).
 
   const [knownContacts, setKnownContacts] = useState([]);
 
-  const selectCustomer = (cust) => {
-    setSelectedCust(cust);
-    setCustSearch(cust.name);
-    setShowCustDrop(false);
-    setErrors((prev) => ({ ...prev, customer: null }));
-    // Fetch known contacts for this customer
-    fetch(`${API_URL}/customers/${cust.id}/contacts`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((contacts) => setKnownContacts(contacts))
-      .catch(() => setKnownContacts([]));
-  };
+  // selectCustomer extracted to NewJobCustomerPicker (v28.103).
 
   // v28.79 contact category logic + applyContact extracted to
   // NewJobContactsPanel (v28.102).
@@ -274,159 +263,18 @@ function NewJobModal({ onClose, onCreateJob }) {
           clearError={() => setErrors((prev) => ({ ...prev, salesman: null }))}
         />
 
-        {/* Customer */}
-        <div style={{ marginBottom: 14, position: "relative" }}>
-          <label style={labelStyle}>CUSTOMER *</label>
-          <input
-            style={{ ...inputStyle, borderColor: errors.customer ? C.red : selectedCust ? C.green : C.border }}
-            value={custSearch}
-            onChange={(e) => {
-              setCustSearch(e.target.value);
-              setShowCustDrop(true);
-              setSelectedCust(null);
-              setErrors((prev) => ({ ...prev, customer: null }));
-            }}
-            onFocus={() => setShowCustDrop(true)}
-            placeholder="Type to search or browse..."
-          />
-          {errors.customer && (
-            <div data-error="customer" style={{ fontSize: 11, color: C.red, marginTop: 3, fontWeight: 700 }}>
-              ⚠ {errors.customer}
-            </div>
-          )}
-          {showCustDrop && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 10,
-                background: C.cardBg,
-                border: `1px solid ${C.border}`,
-                borderRadius: 6,
-                boxShadow: "0 8px 32px #00000022",
-                maxHeight: 220,
-                overflowY: "auto",
-                marginTop: 2,
-              }}
-            >
-              {filteredCust.map((c) => (
-                <div
-                  key={c.name}
-                  onClick={() => selectCustomer(c)}
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    fontSize: 12,
-                    display: "flex",
-                    justifyContent: "space-between",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <span style={{ fontWeight: 700, color: C.text }}>{c.name}</span>
-                  <span style={{ color: C.muted, fontSize: 11 }}>{[c.city, c.state].filter(Boolean).join(", ")}</span>
-                </div>
-              ))}
-              {filteredCust.length === 0 && custSearch.trim() && (
-                <div style={{ padding: 10, color: C.muted, fontSize: 12, textAlign: "center" }}>No matches</div>
-              )}
-              <div
-                onClick={() => {
-                  setShowCustDrop(false);
-                  setNewCustName(custSearch.trim());
-                  setShowAddCust(true);
-                }}
-                style={{
-                  padding: "10px 12px",
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: C.blue,
-                  borderTop: `1px solid ${C.border}`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "#e8f0fb")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-              >
-                + Add New Customer
-              </div>
-            </div>
-          )}
-          {showAddCust && (
-            <div
-              style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-              onClick={() => setShowAddCust(false)}
-            >
-              <div
-                style={{
-                  background: C.cardBg,
-                  border: `1px solid ${C.border}`,
-                  borderTop: `4px solid ${C.blue}`,
-                  borderRadius: 8,
-                  padding: 24,
-                  width: 420,
-                  maxWidth: "90vw",
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>ADD NEW CUSTOMER</div>
-                <div style={{ fontSize: 11, color: C.muted, marginBottom: 16 }}>This customer will be created in FTI and flagged for QuickBooks sync.</div>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={labelStyle}>CUSTOMER NAME *</label>
-                  <input style={inputStyle} value={newCustName} onChange={(e) => setNewCustName(e.target.value)} placeholder="Company name" autoFocus />
-                </div>
-                {newCustMsg && (
-                  <div style={{ fontSize: 11, color: newCustMsg.includes("fail") ? C.red : C.green, marginBottom: 8, fontWeight: 700 }}>{newCustMsg}</div>
-                )}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Btn
-                    onClick={async () => {
-                      if (!newCustName.trim()) {
-                        setNewCustMsg("Name is required.");
-                        return;
-                      }
-                      try {
-                        const r = await fetch(`${API_URL}/customers`, {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ name: newCustName.trim() }),
-                        });
-                        if (r.ok) {
-                          const created = await r.json();
-                          await refreshCustomers();
-                          selectCustomer(created);
-                          setShowAddCust(false);
-                          setNewCustName("");
-                          setNewCustMsg("");
-                        } else {
-                          const d = await r.json().catch(() => null);
-                          setNewCustMsg(d?.error || "Failed to create customer.");
-                        }
-                      } catch {
-                        setNewCustMsg("Error creating customer.");
-                      }
-                    }}
-                  >
-                    CREATE CUSTOMER
-                  </Btn>
-                  <Btn
-                    variant="ghost"
-                    onClick={() => {
-                      setShowAddCust(false);
-                      setNewCustMsg("");
-                    }}
-                  >
-                    CANCEL
-                  </Btn>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Customer picker — extracted to NewJobCustomerPicker (v28.103) */}
+        <NewJobCustomerPicker
+          customers={customers}
+          refreshCustomers={refreshCustomers}
+          custSearch={custSearch}
+          setCustSearch={setCustSearch}
+          selectedCust={selectedCust}
+          setSelectedCust={setSelectedCust}
+          setKnownContacts={setKnownContacts}
+          error={errors.customer}
+          clearError={() => setErrors((prev) => ({ ...prev, customer: null }))}
+        />
 
         {/* Contact info */}
         {/* Contact Information — extracted to NewJobContactsPanel (v28.102) */}
