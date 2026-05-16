@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useIsMobile from "./useIsMobile.js";
 import { C, TERMINAL_TICKET_STATUSES, WO_TICKET_STATUSES, FINAL_REVIEW_TICKET_STATUSES } from "./config.js";
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
 import { Btn, TicketDot, TodoBadge, ConfirmModal, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
@@ -34,12 +35,7 @@ function JobCard({
   const [showFlowback, setShowFlowback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 900);
-  useEffect(() => {
-    const handler = () => setIsMobile(window.innerWidth <= 900);
-    window.addEventListener("resize", handler);
-    return () => window.removeEventListener("resize", handler);
-  }, []);
+  const isMobile = useIsMobile();
   // Billable total excludes voided tickets. Used for per-well display in the WELLS section below.
   const ticketTotal = jobTickets.filter((t) => t.status !== "voided").reduce((s, t) => s + calcTicketTotal(t), 0);
   const perWellAmount = ticketTotal / (job.wells.length || 1);

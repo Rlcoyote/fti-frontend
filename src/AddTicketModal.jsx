@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today, parseYards } from "./utils.js";
 import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
@@ -18,7 +19,7 @@ import AddTicketTimeMileage from "./AddTicketTimeMileage.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
-  const [isMobile] = useState(() => window.innerWidth <= 900);
+  const isMobile = useIsMobile();
   const [savedTicketId, setSavedTicketId] = useState(null); // set after auto-save for JSA
   const [showJSA, setShowJSA] = useState(false);
   const [existingJSA, setExistingJSA] = useState(null);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
@@ -7,7 +8,7 @@ import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 
 function EditJobModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
-  const [isMobile] = useState(() => window.innerWidth <= 900);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!isMobile) return;

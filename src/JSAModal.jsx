@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
@@ -11,7 +12,7 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   const { settings, currentUser } = useApp();
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
   const [showUnsaved, setShowUnsaved] = useState(false);
-  const [isMobile] = useState(() => window.innerWidth <= 900);
+  const isMobile = useIsMobile();
 
   // Ref to latest handleClose — lets mobile popstate listener always see current dirty state
   const handleCloseRef = useRef();

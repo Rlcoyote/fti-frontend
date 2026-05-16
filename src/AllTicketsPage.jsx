@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { formatDate, updateTicketApi } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
@@ -7,7 +8,7 @@ import TicketDetail from "./TicketDetail.jsx";
 
 function AllTicketsPage({ tickets, setTickets, jobs }) {
   const navigate = useNavigate();
-  const [isMobileNav] = useState(() => window.innerWidth <= 900);
+  const isMobileNav = useIsMobile();
   const [viewTicket, setViewTicket] = useState(null);
   const [filterType, setFilterType] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");

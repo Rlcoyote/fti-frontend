@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import useIsMobile from "./useIsMobile.js";
 
 // ─── MODAL Z-INDEX LAYERS (v27.67) ────────────────────────────────────────
 // The app stacks modals intentionally: a confirmation-over-an-edit-modal
@@ -22,11 +23,11 @@ export const Z_INDEX = {
 
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────
 export const TICKET_TYPES = {
-  "Rig Up":   { color: "#B01020", bg: "#fdecea", label: "RIG UP",   abbr: "RU" },
+  "Rig Up": { color: "#B01020", bg: "#fdecea", label: "RIG UP", abbr: "RU" },
   "Rig Down": { color: "#000000", bg: "#e8e8e8", label: "RIG DOWN", abbr: "RD" },
-  "Tester":   { color: "#1a7a3c", bg: "#e6f5ec", label: "TESTER",   abbr: "TST" },
-  "Pumper":   { color: "#1a5fa8", bg: "#e8f0fb", label: "PUMPER",   abbr: "PMP" },
-  "Rental":   { color: "#8a6500", bg: "#fdf5d8", label: "RENTAL",   abbr: "RNT" },
+  Tester: { color: "#1a7a3c", bg: "#e6f5ec", label: "TESTER", abbr: "TST" },
+  Pumper: { color: "#1a5fa8", bg: "#e8f0fb", label: "PUMPER", abbr: "PMP" },
+  Rental: { color: "#8a6500", bg: "#fdf5d8", label: "RENTAL", abbr: "RNT" },
 };
 
 // v28.40 — inField removed. Functionally identical to incomplete (both meant
@@ -38,14 +39,14 @@ export const TICKET_TYPES = {
 // any historical row that may have it.
 export const TICKET_STATUSES = {
   incomplete: { color: "#6b7a99", bg: "#f0f3f8", label: "INCOMPLETE" },
-  draft:      { color: "#6b7a99", bg: "#f0f3f8", label: "DRAFT" },
-  emailed:    { color: "#7a3ca0", bg: "#f3eafa", label: "EMAIL FOR SIGNATURE" },
-  signed:     { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
-  sigNotReq:  { color: "#1a5fa8", bg: "#e8f0fb", label: "SIG NOT REQ" },
-  approved:   { color: "#b85c00", bg: "#fdf0e6", label: "APPROVED" },
-  sentToQB:   { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO ACCOUNTING" },
+  draft: { color: "#6b7a99", bg: "#f0f3f8", label: "DRAFT" },
+  emailed: { color: "#7a3ca0", bg: "#f3eafa", label: "EMAIL FOR SIGNATURE" },
+  signed: { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
+  sigNotReq: { color: "#1a5fa8", bg: "#e8f0fb", label: "SIG NOT REQ" },
+  approved: { color: "#b85c00", bg: "#fdf0e6", label: "APPROVED" },
+  sentToQB: { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO ACCOUNTING" },
   qbVerified: { color: "#1a7a3c", bg: "#d4edda", label: "QB VERIFIED" },
-  voided:     { color: "#B01020", bg: "#fdecea", label: "VOIDED" },
+  voided: { color: "#B01020", bg: "#fdecea", label: "VOIDED" },
 };
 
 // ─── ALWAYS-LIGHT PANEL TEXT TOKENS ───────────────────────────────────────────
@@ -93,7 +94,7 @@ export const TICKET_STATUSES = {
 // PhotoStrip filename caption) after the original "pastel-only" wording
 // proved too narrow — the same bug landed on sibling always-light surfaces
 // the v28.44 sweep didn't cover.
-export const PANEL_TEXT  = "#1a2340"; // dark navy — primary on pastel
+export const PANEL_TEXT = "#1a2340"; // dark navy — primary on pastel
 export const PANEL_MUTED = "#4a5570"; // slate — secondary on pastel
 export const PANEL_FAINT = "#6b7a99"; // lighter slate — tertiary on pastel
 
@@ -109,56 +110,99 @@ export const PANEL_FAINT = "#6b7a99"; // lighter slate — tertiary on pastel
 // bug eliminated. CAM Article XXIV — making the bug structurally
 // impossible instead of patching each contrast leak.
 export const inputStyle = {
-  width: "100%", boxSizing: "border-box",
-  padding: "8px 11px", borderRadius: 4,
-  fontSize: 13, fontFamily: "'Arial', sans-serif", outline: "none",
-  get background() { return C.steel; },
-  get border()     { return `1px solid ${C.border}`; },
-  get color()      { return C.text; },
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "8px 11px",
+  borderRadius: 4,
+  fontSize: 13,
+  fontFamily: "'Arial', sans-serif",
+  outline: "none",
+  get background() {
+    return C.steel;
+  },
+  get border() {
+    return `1px solid ${C.border}`;
+  },
+  get color() {
+    return C.text;
+  },
 };
 
 export const labelStyle = {
-  fontSize: 11, fontWeight: 700,
-  letterSpacing: "0.08em", marginBottom: 4, display: "block",
-  get color() { return C.muted; },
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.08em",
+  marginBottom: 4,
+  display: "block",
+  get color() {
+    return C.muted;
+  },
 };
 
 // ─── SHARED BUTTONS ───────────────────────────────────────────────────────────
 export function Btn({ onClick, children, variant = "primary", small, disabled, style: extraStyle, title }) {
   const styles = {
     primary: { background: C.red, color: C.white, border: "none" },
-    ghost:   { background: "transparent", color: C.muted, border: `1px solid ${C.border}` },
-    blue:    { background: C.blue, color: C.white, border: "none" },
+    ghost: { background: "transparent", color: C.muted, border: `1px solid ${C.border}` },
+    blue: { background: C.blue, color: C.white, border: "none" },
     // v27.98 — danger variant for destructive confirmations (disable 2FA, etc.)
-    danger:  { background: "#8b1010", color: C.white, border: "none" },
+    danger: { background: "#8b1010", color: C.white, border: "none" },
   };
   return (
-    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled} title={title} style={{
-      ...styles[variant],
-      padding: small ? "5px 12px" : "9px 18px",
-      borderRadius: 4, fontSize: small ? 12 : 13,
-      fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer", fontFamily: "'Arial', sans-serif",
-      letterSpacing: "0.04em", transition: "opacity 0.12s, transform 0.1s",
-      opacity: disabled ? 0.4 : 1,
-      ...extraStyle,
-    }}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.opacity = "0.85"; }}
-      onMouseLeave={e => { if (!disabled) e.currentTarget.style.opacity = disabled ? "0.4" : "1"; }}
-      onMouseDown={e => { if (!disabled) e.currentTarget.style.transform = "scale(0.97)"; }}
-      onMouseUp={e => { if (!disabled) e.currentTarget.style.transform = "scale(1)"; }}
-    >{children}</button>
+    <button
+      type="button"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        ...styles[variant],
+        padding: small ? "5px 12px" : "9px 18px",
+        borderRadius: 4,
+        fontSize: small ? 12 : 13,
+        fontWeight: 700,
+        cursor: disabled ? "not-allowed" : "pointer",
+        fontFamily: "'Arial', sans-serif",
+        letterSpacing: "0.04em",
+        transition: "opacity 0.12s, transform 0.1s",
+        opacity: disabled ? 0.4 : 1,
+        ...extraStyle,
+      }}
+      onMouseEnter={(e) => {
+        if (!disabled) e.currentTarget.style.opacity = "0.85";
+      }}
+      onMouseLeave={(e) => {
+        if (!disabled) e.currentTarget.style.opacity = disabled ? "0.4" : "1";
+      }}
+      onMouseDown={(e) => {
+        if (!disabled) e.currentTarget.style.transform = "scale(0.97)";
+      }}
+      onMouseUp={(e) => {
+        if (!disabled) e.currentTarget.style.transform = "scale(1)";
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
 export function FilterBtn({ active, onClick, children }) {
   return (
-    <button onClick={onClick} style={{
-      background: active ? C.blue : "transparent",
-      border: `1px solid ${active ? C.blue : C.border}`,
-      color: active ? C.white : C.muted,
-      padding: "5px 12px", borderRadius: 4, fontSize: 11,
-      fontWeight: 700, cursor: "pointer", fontFamily: "'Arial', sans-serif",
-    }}>{children}</button>
+    <button
+      onClick={onClick}
+      style={{
+        background: active ? C.blue : "transparent",
+        border: `1px solid ${active ? C.blue : C.border}`,
+        color: active ? C.white : C.muted,
+        padding: "5px 12px",
+        borderRadius: 4,
+        fontSize: 11,
+        fontWeight: 700,
+        cursor: "pointer",
+        fontFamily: "'Arial', sans-serif",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -167,38 +211,66 @@ export function PriorityBadge({ priority }) {
   if (priority === "normal") return null;
   const hi = priority === "high";
   return (
-    <span style={{
-      fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 3,
-      background: hi ? C.priHighB : C.priLowB,
-      color: hi ? C.priHigh : C.priLow,
-      border: `1px solid ${hi ? C.priHigh : C.priLow}33`,
-      letterSpacing: "0.06em",
-    }}>{hi ? "HIGH" : "LOW"}</span>
+    <span
+      style={{
+        fontSize: 10,
+        fontWeight: 700,
+        padding: "2px 7px",
+        borderRadius: 3,
+        background: hi ? C.priHighB : C.priLowB,
+        color: hi ? C.priHigh : C.priLow,
+        border: `1px solid ${hi ? C.priHigh : C.priLow}33`,
+        letterSpacing: "0.06em",
+      }}
+    >
+      {hi ? "HIGH" : "LOW"}
+    </span>
   );
 }
 
 export function TodoBadge({ count }) {
   if (!count) return null;
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      fontSize: 11, fontWeight: 700, color: C.blue,
-      background: C.priLowB, border: `1px solid ${C.priLow}33`,
-      padding: "2px 8px", borderRadius: 3,
-    }}>☐ {count} To-Do{count !== 1 ? "s" : ""}</span>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: 11,
+        fontWeight: 700,
+        color: C.blue,
+        background: C.priLowB,
+        border: `1px solid ${C.priLow}33`,
+        padding: "2px 8px",
+        borderRadius: 3,
+      }}
+    >
+      ☐ {count} To-Do{count !== 1 ? "s" : ""}
+    </span>
   );
 }
 
 export function NavBadge({ count }) {
   if (!count) return null;
   return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", justifyContent: "center",
-      minWidth: 18, height: 18, borderRadius: 9,
-      background: C.red, color: C.white,
-      fontSize: 10, fontWeight: 800, padding: "0 5px",
-      marginLeft: 5,
-    }}>{count}</span>
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minWidth: 18,
+        height: 18,
+        borderRadius: 9,
+        background: C.red,
+        color: C.white,
+        fontSize: 10,
+        fontWeight: 800,
+        padding: "0 5px",
+        marginLeft: 5,
+      }}
+    >
+      {count}
+    </span>
   );
 }
 
@@ -235,23 +307,45 @@ export function TicketDot({ label, state }) {
 export function TicketTypeBadge({ type }) {
   const cfg = TICKET_TYPES[type] || { color: C.muted, bg: C.steel, label: type || "—" };
   return (
-    <span style={{
-      display: "inline-block", padding: "3px 10px", borderRadius: 3,
-      fontSize: 10, fontWeight: 800, letterSpacing: "0.1em",
-      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}33`,
-      minWidth: 78, textAlign: "center", boxSizing: "border-box",
-    }}>{cfg.label}</span>
+    <span
+      style={{
+        display: "inline-block",
+        padding: "3px 10px",
+        borderRadius: 3,
+        fontSize: 10,
+        fontWeight: 800,
+        letterSpacing: "0.1em",
+        color: cfg.color,
+        background: cfg.bg,
+        border: `1px solid ${cfg.color}33`,
+        minWidth: 78,
+        textAlign: "center",
+        boxSizing: "border-box",
+      }}
+    >
+      {cfg.label}
+    </span>
   );
 }
 
 export function TicketStatusBadge({ status }) {
   const cfg = TICKET_STATUSES[status] || { color: C.muted, bg: C.steel, label: status || "—" };
   return (
-    <span style={{
-      display: "inline-block", padding: "2px 8px", borderRadius: 3,
-      fontSize: 9, fontWeight: 800, letterSpacing: "0.1em",
-      color: cfg.color, background: cfg.bg, border: `1px solid ${cfg.color}33`,
-    }}>{cfg.label}</span>
+    <span
+      style={{
+        display: "inline-block",
+        padding: "2px 8px",
+        borderRadius: 3,
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: "0.1em",
+        color: cfg.color,
+        background: cfg.bg,
+        border: `1px solid ${cfg.color}33`,
+      }}
+    >
+      {cfg.label}
+    </span>
   );
 }
 
@@ -259,16 +353,34 @@ export function TicketStatusBadge({ status }) {
 // On mobile (≤900px): renders as full-screen page with native scroll.
 // On desktop: centered modal overlay with max-height scroll.
 export function ModalWrap({ title, onClose, children, width = 440 }) {
-  const isMob = window.innerWidth <= 900;
+  const isMob = useIsMobile();
   return (
-    <div style={isMob
-      ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
-      : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
-    } onClick={isMob ? undefined : onClose}>
-      <div style={isMob
-        ? { background: C.cardBg, borderTop: `3px solid ${C.red}`, padding: 24, minHeight: "100%" }
-        : { background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `3px solid ${C.red}`, borderRadius: 8, padding: 24, width, maxWidth: "92vw", maxHeight: "85vh", overflowY: "auto" }
-      } onClick={isMob ? undefined : e => e.stopPropagation()}>
+    <div
+      style={
+        isMob
+          ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+          : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+      }
+      onClick={isMob ? undefined : onClose}
+    >
+      <div
+        style={
+          isMob
+            ? { background: C.cardBg, borderTop: `3px solid ${C.red}`, padding: 24, minHeight: "100%" }
+            : {
+                background: C.cardBg,
+                border: `1px solid ${C.border}`,
+                borderTop: `3px solid ${C.red}`,
+                borderRadius: 8,
+                padding: 24,
+                width,
+                maxWidth: "92vw",
+                maxHeight: "85vh",
+                overflowY: "auto",
+              }
+        }
+        onClick={isMob ? undefined : (e) => e.stopPropagation()}
+      >
         <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>{title}</div>
         {children}
       </div>
@@ -282,13 +394,27 @@ export function ModalWrap({ title, onClose, children, width = 440 }) {
 // action uses the red Btn; cancel is a ghost Btn.
 export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel }) {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}
+    >
+      <div
+        style={{
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
+          borderTop: `4px solid ${C.red}`,
+          borderRadius: 8,
+          padding: 28,
+          width: 460,
+          maxWidth: "90vw",
+        }}
+      >
         <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>{title}</div>
         <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn onClick={onYes}>{yesLabel}</Btn>
-          <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
+          <Btn variant="ghost" onClick={onCancel}>
+            Cancel
+          </Btn>
         </div>
       </div>
     </div>
@@ -302,12 +428,26 @@ export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCa
 export function NoticeModal({ title, message, variant = "ok", onClose }) {
   const accent = variant === "error" ? C.red : C.green;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${accent}`, borderRadius: 8, padding: 28, width: 460, maxWidth: "90vw" }}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}
+    >
+      <div
+        style={{
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
+          borderTop: `4px solid ${accent}`,
+          borderRadius: 8,
+          padding: 28,
+          width: 460,
+          maxWidth: "90vw",
+        }}
+      >
         <div style={{ fontSize: 16, fontWeight: 800, color: accent, marginBottom: 12 }}>{title}</div>
         <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn variant="blue" onClick={onClose}>OK</Btn>
+          <Btn variant="blue" onClick={onClose}>
+            OK
+          </Btn>
         </div>
       </div>
     </div>

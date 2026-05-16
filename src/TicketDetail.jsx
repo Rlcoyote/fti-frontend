@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal, parseYards } from "./utils.js";
 import TicketDeleteModal from "./TicketDeleteModal.jsx";
@@ -35,7 +36,7 @@ import { useApp } from "./AppContext.jsx";
 
 function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, tickets = [], openToSign = false, asPage = false }) {
   const { qbItems, currentUser, settings, showNotice } = useApp();
-  const [isMobile] = useState(() => window.innerWidth <= 900);
+  const isMobile = useIsMobile();
   const yardsList = useMemo(() => parseYards(settings), [settings]);
 
   // Parent WO this ticket belongs to (needed before useTicketState so the
