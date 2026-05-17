@@ -15,8 +15,10 @@ import { useApp } from "./AppContext.jsx";
 //               — async. Maps the modal's camelCase form payload to the
 //                 backend's snake_case schema, runs the POST or PUT,
 //                 merges the result into setTickets, fires the crew
-//                 bulk-POST if any crew was selected pre-create. Closes
-//                 the modal on success; leaves it open + shows a notice
+//                 bulk-POST if any crew was selected pre-create, and
+//                 upserts a manually-entered site manager as a customer
+//                 contact (v28.109). Closes the modal on success; leaves
+//                 it open + shows a notice
 //                 on any failure so the user can retry without losing
 //                 form state.
 //
@@ -146,6 +148,27 @@ export default function useAddTicket({ setTickets }) {
             }
           }
         }
+      }
+
+      // v28.109 — persist a manually-entered site manager as a customer
+      // contact so it surfaces in the AddTicketSiteManager dropdown for
+      // this customer next time. The ticket-edit path (TicketDetail's
+      // saveSiteMgrAsContact) has always done this; the create path never
+      // did, so a customer's first site manager was never learned.
+      // Fire-and-forget + backend-deduped, exactly like the edit path.
+      const smName = [ticketData.siteMgrFirst, ticketData.siteMgrLast].filter(Boolean).join(" ").trim();
+      if (smName && ticketData.customerId) {
+        fetch(`${API_URL}/customers/${ticketData.customerId}/contacts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: smName,
+            phone_work: ticketData.siteMgrPhone || null,
+            email: ticketData.siteMgrEmail || null,
+            category: "site_rep",
+            title: "Site Manager",
+          }),
+        }).catch(() => {});
       }
     } catch (err) {
       console.error("Ticket save failed:", err);

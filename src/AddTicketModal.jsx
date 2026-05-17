@@ -292,6 +292,9 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     const jobPinLng = job?.pinLng || job?.pin_lng || null;
     const ticketData = {
       jobId,
+      // v28.109 — carried so useAddTicket can upsert a manually-entered
+      // site manager as a customer contact for this customer.
+      customerId: job?.customerId || job?.customer_id || null,
       type,
       status: "incomplete",
       date: isRental ? startDate : date,
