@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
+import { APP_VERSION } from "./version.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -564,7 +565,7 @@ function LoginScreen() {
               : mode === "forgot"
                 ? "PASSWORD RESET"
                 : "SET NEW PASSWORD"}{" "}
-            <span style={{ color: C.white, fontWeight: 700 }}>v28.71</span>
+            <span style={{ color: C.muted, fontWeight: 700 }}>{APP_VERSION}</span>
           </div>
         </div>
 

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { C } from "./config.js";
+import { APP_VERSION } from "./version.js";
 import { useApp } from "./AppContext.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { todoVisible, DEFAULT_PERMS } from "./utils.js";
@@ -51,8 +52,6 @@ import { useJobActions } from "./useJobActions.js";
 // v28.04 split landed here: 830 → ~290 lines (-65%). The dashboard now reads
 // as a coordination layer over the four delegates above. Add a new page,
 // modal, or filter — change one of these surfaces, not all of them.
-
-const VERSION = "v28.52";
 
 function FTIDashboard() {
   const { currentUser, logout, customers, userNames, userIdByName } = useApp();
@@ -311,7 +310,7 @@ function FTIDashboard() {
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
         setShowLogoutConfirm={setShowLogoutConfirm}
-        version={VERSION}
+        version={APP_VERSION}
       />
 
       {/* PAGES — routed */}
