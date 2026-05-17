@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { API_URL } from "./config.js";
 import { useApp } from "./AppContext.jsx";
 
@@ -41,11 +41,19 @@ import { useApp } from "./AppContext.jsx";
 export default function useAddTicket({ setTickets }) {
   const { currentUser, showNotice } = useApp();
   const [showAdd, setShowAdd] = useState(false);
+  // Double-submit guard. A ref, not state: a second rapid call must see the
+  // flag SYNCHRONOUSLY — before React re-renders — so it can bail before
+  // firing a second POST. This is the airtight stop for the duplicate-ticket
+  // bug; the modal's disabled button is the visible-feedback layer on top.
+  const submittingRef = useRef(false);
 
   const openAdd = () => setShowAdd(true);
   const closeAdd = () => setShowAdd(false);
 
   const handleAdd = async (ticketData) => {
+    // Ignore a re-entrant call (fast double-click) while a save is in flight.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const payload = {
       job_id: ticketData.jobId,
       type: ticketData.type,
@@ -143,6 +151,10 @@ export default function useAddTicket({ setTickets }) {
       console.error("Ticket save failed:", err);
       showNotice("Save Failed", `Network or server error. Your data is still in the form. ${err.message || err}`, "error");
       return;
+    } finally {
+      // Release the guard on every exit path — success, HTTP error, or throw —
+      // so a legitimate retry after a failure is never blocked.
+      submittingRef.current = false;
     }
     setShowAdd(false);
   };

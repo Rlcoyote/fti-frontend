@@ -23,6 +23,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const [savedTicketId, setSavedTicketId] = useState(null); // set after auto-save for JSA
   const [showJSA, setShowJSA] = useState(false);
   const [existingJSA, setExistingJSA] = useState(null);
+  // Disables + relabels the CREATE/UPDATE button while a save is in flight,
+  // so the user sees the click registered. The airtight double-submit stop
+  // lives in useAddTicket (a ref guard); this is the visible-feedback layer.
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // On mobile, push history entry so back button closes instead of navigating away
   useEffect(() => {
@@ -280,8 +284,8 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   };
   const selectAllWells = () => setAssignedWells([...jobWells]);
 
-  const handleSave = () => {
-    if (!type) return;
+  const handleSave = async () => {
+    if (!type || isSubmitting) return;
     const isRental = type === "Rental";
     const jobGooglePin = job?.googlePin || job?.google_pin || null;
     const jobPinLat = job?.pinLat || job?.pin_lat || null;
@@ -339,7 +343,14 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     // (autoSaveForJSA path), commitCrewSelection already ran and
     // crewSelection is empty — passing the empty array is a no-op.
     if (crewSelection.length > 0) ticketData.crewSelection = crewSelection;
-    onSave(ticketData);
+    setIsSubmitting(true);
+    try {
+      await onSave(ticketData);
+    } finally {
+      // On success the parent unmounts this modal, so this is a no-op then;
+      // on failure the modal stays open and the button re-enables for retry.
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -589,7 +600,9 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               </div>
 
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={handleSave}>{savedTicketId ? "UPDATE TICKET" : "CREATE TICKET"}</Btn>
+                <Btn onClick={handleSave} disabled={isSubmitting}>
+                  {isSubmitting ? (savedTicketId ? "UPDATING…" : "CREATING…") : savedTicketId ? "UPDATE TICKET" : "CREATE TICKET"}
+                </Btn>
                 <Btn onClick={handleClose} variant="ghost">
                   {savedTicketId ? "DONE" : "CANCEL"}
                 </Btn>
