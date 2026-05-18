@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import { CATEGORY_OPTIONS, TITLE_OPTIONS, ROLE_LABELS, categoryLabel } from "./ContactsConstants.js";
 
 // ─── v28.78 — ContactsPage rebuilt for the migration-005 schema ──────────
 // Uses the v28.76 dual-shape backend (writes go to BOTH legacy `phone` /
@@ -10,38 +11,9 @@ import { useApp } from "./AppContext.jsx";
 // Legacy `role_tag` values (site_manager, company_man) are still rendered
 // in display where they appear on older rows, but the EDIT path writes
 // only canonical values (poc / site_rep / approver / other).
-
-// Category enum drives the dropdown and the picker filters. Site Manager,
-// Company Man, DSM, etc. all map to "site_rep" per v28.72 canonical
-// (operator-specific terminology lives in the title / title_other fields,
-// not in the category field).
-const CATEGORY_OPTIONS = [
-  { value: "poc", label: "Point of Contact" },
-  { value: "site_rep", label: "Site Rep (Site Mgr / Co Man / DSM)" },
-  { value: "approver", label: "Approver" },
-  { value: "other", label: "Other" },
-];
-
-// Title enum — the controlled vocabulary that drives display + metrics.
-// Operator-specific terms (Night DSM, Co Man, Customer Liaison) go in
-// title_other when title = "Other".
-const TITLE_OPTIONS = ["Site Manager", "Field Superintendent", "Superintendent", "Operations Manager", "Engineer", "Other"];
-
-// Display labels for both canonical and legacy role_tag values. Old rows
-// pre-v28.72 may still carry site_manager / company_man until they get
-// edited once (which canonicalizes them).
-const ROLE_LABELS = {
-  poc: "POC",
-  site_rep: "SITE REP",
-  site_manager: "SITE MGR (LEGACY)",
-  company_man: "CO MAN (LEGACY)",
-  approver: "APPROVER",
-  other: "OTHER",
-};
-
-function categoryLabel(c) {
-  return ROLE_LABELS[c?.category || c?.role_tag] || c?.category || c?.role_tag || "—";
-}
+//
+// The category / title vocabulary + role-tag labels live in
+// ContactsConstants.js (v28.150 — ship 1 of the ContactsPage split).
 
 function ContactsPage() {
   const { customers, currentUser, can } = useApp();
