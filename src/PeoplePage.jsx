@@ -8,6 +8,7 @@ import PermissionsMatrixView from "./PermissionsMatrixView.jsx";
 import WebAuthnSetupModal from "./WebAuthnSetupModal.jsx";
 import PeopleResetPasswordModal from "./PeopleResetPasswordModal.jsx";
 import PeopleChangePasswordModal from "./PeopleChangePasswordModal.jsx";
+import usePeopleActions from "./usePeopleActions.js";
 
 // ─── PeoplePage (v28.17 — consolidation of UsersPage + EmployeesPage +
 // ─── PermissionsModal) ─────────────────────────────────────────────────────
@@ -86,41 +87,6 @@ function PeoplePage() {
   // use the per-row feedback below).
   const [msg, setMsg] = useState("");
 
-  // v28.46 — per-row feedback for async action buttons (RESEND INVITE,
-  // SEND PIN SETUP, RESET PIN, WIPE BIO, DEACTIVATE).
-  //
-  // The pre-fix bug: RESEND INVITE wrote to a top-of-page toast (`msg`),
-  // invisible to a user 45 rows down. Worse, the button gave no in-flight
-  // signal — so a user who didn't see the toast clicked again. And again.
-  // (One auditor received 15 invite emails this way.)
-  //
-  // Structural fix per CAM Article X (Dummy Proof) + the pending
-  // structural-impossibility amendment: feedback lives on the same row as
-  // the button that fired it, AND the button disables while in flight so
-  // double-clicks become physically impossible.
-  //
-  // State shape: { [userId]: { kind: "pending"|"success"|"error", msg: "..." } }
-  const [rowFeedback, setRowFeedback] = useState({});
-
-  // Set or clear feedback for a row. `kind` drives the pill color; "pending"
-  // never auto-clears (only a subsequent success/error replaces it). "success"
-  // and "error" auto-clear after `ttlMs`. The clear is guarded against newer
-  // messages clobbering older ones.
-  const setRowMsg = (userId, kind, message, ttlMs = 4000) => {
-    setRowFeedback((prev) => ({ ...prev, [userId]: { kind, msg: message } }));
-    if (kind !== "pending" && ttlMs > 0) {
-      setTimeout(() => {
-        setRowFeedback((prev) => {
-          const cur = prev[userId];
-          if (!cur || cur.msg !== message) return prev; // newer msg — leave it
-          const next = { ...prev };
-          delete next[userId];
-          return next;
-        });
-      }, ttlMs);
-    }
-  };
-
   // v28.17 fix — fetchers + their useEffects must come BEFORE the
   // permission early-return below. Hooks must run in the same order on
   // every render; if a non-owner first sees the early return and then
@@ -155,128 +121,14 @@ function PeoplePage() {
     fetchJobTitles();
   }, []);
 
+  // ─── Roster-row lifecycle actions + per-row feedback ─────────────────────
+  // Extracted to usePeopleActions (v28.147). Called before the early return
+  // below for the same hook-order reason the fetchers' useEffects are.
+  const { rowFeedback, sendPinSetup, resetPin, deactivate, resendInvite, wipeBio, forceLogout } = usePeopleActions(fetchPeople);
+
   if (!isOwnerOrAdmin) {
     return <div style={{ padding: 32, color: C.muted }}>You need owner or admin access to view this page.</div>;
   }
-
-  // ─── Lifecycle actions (each fires API + refreshes list / toasts) ────────
-
-  // v28.46 — every async action below sets row-pending before the request and
-  // success/error after, so the user sees feedback right where they clicked.
-  // Pending state also disables every action button on the row (see
-  // rowButtons), making the auditor-got-15-invites scenario structurally
-  // impossible.
-
-  const sendPinSetup = async (p) => {
-    setRowMsg(p.id, "pending", "Sending PIN setup…");
-    try {
-      const r = await fetch(`${API_URL}/employees/${p.id}/send-pin-setup`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not send PIN setup link.", 6000);
-        return;
-      }
-      setRowMsg(p.id, "success", `✓ PIN setup link sent to ${p.phone || "phone"}`, 5000);
-      fetchPeople();
-    } catch (err) {
-      setRowMsg(p.id, "error", err.message || "Send failed", 6000);
-    }
-  };
-
-  const resetPin = async (p) => {
-    setRowMsg(p.id, "pending", "Resetting PIN…");
-    try {
-      const r = await fetch(`${API_URL}/employees/${p.id}/reset-pin`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not reset PIN.", 6000);
-        return;
-      }
-      setRowMsg(p.id, "success", `✓ PIN reset; new link sent to ${p.phone || "phone"}`, 5000);
-      fetchPeople();
-    } catch (err) {
-      setRowMsg(p.id, "error", err.message || "Reset failed", 6000);
-    }
-  };
-
-  const deactivate = async (p) => {
-    setRowMsg(p.id, "pending", "Deactivating…");
-    try {
-      const r = await fetch(`${API_URL}/employees/${p.id}/deactivate`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not deactivate.", 6000);
-        return;
-      }
-      setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} deactivated`, 5000);
-      fetchPeople();
-      refreshUsers();
-    } catch (err) {
-      setRowMsg(p.id, "error", err.message || "Deactivate failed", 6000);
-    }
-  };
-
-  const resendInvite = async (p) => {
-    setRowMsg(p.id, "pending", "Sending invite…");
-    try {
-      const r = await fetch(`${API_URL}/auth/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: p.id }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Failed to resend invite", 8000);
-        return;
-      }
-      setRowMsg(p.id, "success", `✓ Invite sent to ${p.email}`, 5000);
-    } catch (err) {
-      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
-    }
-  };
-
-  const wipeBio = async (p) => {
-    setRowMsg(p.id, "pending", "Wiping biometric…");
-    try {
-      const r = await fetch(`${API_URL}/auth/webauthn/admin-disable`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: p.id }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not wipe biometric devices.", 6000);
-        return;
-      }
-      setRowMsg(p.id, "success", `✓ Biometric wiped — ${p.first_name} ${p.last_name} re-registers next login`, 5000);
-      refreshUsers();
-    } catch (err) {
-      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
-    }
-  };
-
-  // v28.49 — force every active session for the target user to end. Bumps
-  // their token_version on the backend, invalidating ALL outstanding JWTs.
-  // Distinct from WIPE BIO: the user keeps their biometric credentials and
-  // can sign back in normally. This is the lighter-touch tool for the
-  // "kick this user off all devices NOW" use case.
-  const forceLogout = async (p) => {
-    setRowMsg(p.id, "pending", "Forcing sign-out…");
-    try {
-      const r = await fetch(`${API_URL}/users/${p.id}/force-logout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not force sign-out.", 6000);
-        return;
-      }
-      setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} signed out of all devices`, 5000);
-    } catch (err) {
-      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
-    }
-  };
 
   // ─── Filter the roster locally ───────────────────────────────────────────
   const filtered = (() => {
