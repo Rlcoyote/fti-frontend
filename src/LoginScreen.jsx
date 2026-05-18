@@ -5,6 +5,8 @@ import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import LoginCardHeader from "./LoginCardHeader.jsx";
 import LoginPasswordForm from "./LoginPasswordForm.jsx";
+import LoginForgotForm from "./LoginForgotForm.jsx";
+import LoginResetForm from "./LoginResetForm.jsx";
 
 // ─── LoginScreen (v27.99) ───────────────────────────────────────────────────
 // Two-stage login: password → biometric.
@@ -898,95 +900,35 @@ function LoginScreen() {
           </>
         )}
 
+        {/* Forgot-password mode — extracted to LoginForgotForm (v28.160) */}
         {mode === "forgot" && (
-          <>
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>EMAIL</label>
-              <input
-                style={inputStyle}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@flotest.com"
-                onKeyDown={(e) => e.key === "Enter" && handleForgot()}
-              />
-            </div>
-            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
-            <button
-              onClick={handleForgot}
-              disabled={loading}
-              style={{
-                width: "100%",
-                padding: "12px 0",
-                background: C.red,
-                color: C.white,
-                border: "none",
-                borderRadius: 4,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: loading ? "default" : "pointer",
-                letterSpacing: "0.06em",
-                opacity: loading ? 0.6 : 1,
-                marginBottom: 12,
-              }}
-            >
-              {loading ? "SENDING..." : "SEND RESET LINK"}
-            </button>
-            <div style={{ textAlign: "center" }}>
-              <span
-                onClick={() => {
-                  setMode("login");
-                  setError("");
-                  setMsg("");
-                }}
-                style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}
-              >
-                Back to login
-              </span>
-            </div>
-          </>
+          <LoginForgotForm
+            email={email}
+            setEmail={setEmail}
+            error={error}
+            msg={msg}
+            loading={loading}
+            onSubmit={handleForgot}
+            onBack={() => {
+              setMode("login");
+              setError("");
+              setMsg("");
+            }}
+          />
         )}
 
+        {/* Reset-password mode — extracted to LoginResetForm (v28.160) */}
         {mode === "reset" && (
-          <>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>NEW PASSWORD</label>
-              <input style={inputStyle} type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="Min 6 characters" />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>CONFIRM PASSWORD</label>
-              <input
-                style={inputStyle}
-                type="password"
-                value={confirmPw}
-                onChange={(e) => setConfirmPw(e.target.value)}
-                placeholder="Re-enter password"
-                onKeyDown={(e) => e.key === "Enter" && handleReset()}
-              />
-            </div>
-            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
-            <button
-              onClick={handleReset}
-              disabled={loading}
-              style={{
-                width: "100%",
-                padding: "12px 0",
-                background: C.red,
-                color: C.white,
-                border: "none",
-                borderRadius: 4,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: loading ? "default" : "pointer",
-                letterSpacing: "0.06em",
-                opacity: loading ? 0.6 : 1,
-              }}
-            >
-              {loading ? "RESETTING..." : "SET NEW PASSWORD"}
-            </button>
-          </>
+          <LoginResetForm
+            newPw={newPw}
+            setNewPw={setNewPw}
+            confirmPw={confirmPw}
+            setConfirmPw={setConfirmPw}
+            error={error}
+            msg={msg}
+            loading={loading}
+            onSubmit={handleReset}
+          />
         )}
       </div>
     </div>
