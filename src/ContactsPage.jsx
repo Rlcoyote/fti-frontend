@@ -2,11 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
-import { CATEGORY_OPTIONS, ROLE_LABELS } from "./ContactsConstants.js";
+import { CATEGORY_OPTIONS } from "./ContactsConstants.js";
 import ContactEditModal from "./ContactEditModal.jsx";
 import ContactSoftDeleteModal from "./ContactSoftDeleteModal.jsx";
 import ContactHardDeleteModal from "./ContactHardDeleteModal.jsx";
 import ContactMergeModal from "./ContactMergeModal.jsx";
+import ContactsTable from "./ContactsTable.jsx";
 
 // ─── v28.78 — ContactsPage rebuilt for the migration-005 schema ──────────
 // Uses the v28.76 dual-shape backend (writes go to BOTH legacy `phone` /
@@ -380,137 +381,20 @@ function ContactsPage() {
 
       {msg && <div style={{ fontSize: 12, fontWeight: 700, color: msg.toLowerCase().includes("fail") ? C.red : C.green, marginBottom: 10 }}>{msg}</div>}
 
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 40, color: C.muted }}>Loading...</div>
-      ) : filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: C.muted, fontSize: 13 }}>
-          {merged.length === 0
-            ? "No contacts saved yet. They're automatically created when you add POC, Site Manager, or Approver info to a work order or ticket."
-            : "No contacts match your filters."}
-        </div>
-      ) : (
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
-          <div style={{ overflowX: "auto" }}>
-            <div style={{ minWidth: 720 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px" : "1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px",
-                  background: C.darkBlue,
-                  padding: "10px 14px",
-                }}
-              >
-                {selectMode && <div />}
-                {["FIRST", "LAST", "CUSTOMER", "WORK PHONE", "PERSONAL", "EMAIL", "CATEGORY", ""].map((h) => (
-                  <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
-                    {h}
-                  </div>
-                ))}
-              </div>
-              {filtered.map((c, i) => {
-                const nameParts = (c.name || "").split(" ");
-                const firstName = nameParts[0] || "";
-                const lastName = nameParts.slice(1).join(" ") || "";
-                const sel = isSelected(c);
-                const inactive = c.any_inactive;
-                return (
-                  <div
-                    key={c.rows.map((r) => r.id).join("-")}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px" : "1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px",
-                      padding: "8px 14px",
-                      borderBottom: `1px solid ${C.border}22`,
-                      background: sel ? "#e8f0fb" : i % 2 === 0 ? C.cardBg : C.steel,
-                      cursor: isAdmin ? "pointer" : "default",
-                      alignItems: "center",
-                      opacity: inactive ? 0.55 : 1,
-                    }}
-                    onClick={() => (selectMode ? toggleSelect(c) : isAdmin && openEdit(c))}
-                  >
-                    {selectMode && (
-                      <div>
-                        <input
-                          type="checkbox"
-                          checked={sel}
-                          onChange={() => toggleSelect(c)}
-                          style={{ width: 15, height: 15, accentColor: C.blue }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </div>
-                    )}
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                      {firstName}
-                      {inactive && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: "#8a6500", letterSpacing: "0.06em" }}>(INACTIVE)</span>}
-                    </div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lastName}</div>
-                    <div style={{ fontSize: 12, color: C.muted }}>{c.customer_name}</div>
-                    <div style={{ fontSize: 12, color: C.muted }}>{c.phone_work || c.phone || "—"}</div>
-                    <div style={{ fontSize: 12, color: C.muted }}>{c.phone_personal || "—"}</div>
-                    <div style={{ fontSize: 11, color: C.muted, overflow: "hidden", textOverflow: "ellipsis" }}>{c.email || "—"}</div>
-                    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                      {[...new Set(c.rows.map((r) => r.category || r.role_tag))].map((cat) => (
-                        <span
-                          key={cat}
-                          style={{
-                            fontSize: 8,
-                            fontWeight: 800,
-                            padding: "2px 5px",
-                            borderRadius: 3,
-                            background: C.steel,
-                            color: C.muted,
-                            letterSpacing: "0.04em",
-                          }}
-                        >
-                          {(ROLE_LABELS[cat] || cat || "").slice(0, 16)}
-                        </span>
-                      ))}
-                    </div>
-                    <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                      {isAdmin && !selectMode && !inactive && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRowSoftDelete(c);
-                          }}
-                          title="Mark inactive (reversible)"
-                          style={{ background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 14 }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "#8a6500";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "#ccc";
-                          }}
-                        >
-                          🚫
-                        </button>
-                      )}
-                      {isOwner && !selectMode && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openHardDelete(c);
-                          }}
-                          title="Permanently delete (owner only)"
-                          style={{ background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 14 }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = C.red;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "#ccc";
-                          }}
-                        >
-                          🗑
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Contacts grid — extracted to ContactsTable (v28.153) */}
+      <ContactsTable
+        loading={loading}
+        filtered={filtered}
+        merged={merged}
+        selectMode={selectMode}
+        isAdmin={isAdmin}
+        isOwner={isOwner}
+        isSelected={isSelected}
+        toggleSelect={toggleSelect}
+        openEdit={openEdit}
+        handleRowSoftDelete={handleRowSoftDelete}
+        openHardDelete={openHardDelete}
+      />
 
       {/* Edit modal — extracted to ContactEditModal (v28.151) */}
       {editContact && (
