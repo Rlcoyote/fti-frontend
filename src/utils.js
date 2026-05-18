@@ -362,6 +362,7 @@ export const PERMISSION_CATEGORIES = [
   { key: "view_reports", label: "View Reports", group: "Admin & Settings" },
   { key: "view_archive", label: "View Archive", group: "Admin & Settings" },
   { key: "view_activity_log", label: "View Activity Log", group: "Admin & Settings" },
+  { key: "view_contacts", label: "View Customer Contacts", group: "Admin & Settings" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -385,6 +386,7 @@ export const DEFAULT_PERMS = {
     void_tickets: false,
     manage_users: false,
     edit_inventory: false,
+    view_contacts: false,
   },
   salesman: {
     view_jobs: true,
@@ -401,6 +403,7 @@ export const DEFAULT_PERMS = {
     void_tickets: false,
     manage_users: false,
     edit_inventory: false,
+    view_contacts: true,
   },
   field: {
     view_jobs: true,
@@ -417,6 +420,7 @@ export const DEFAULT_PERMS = {
     void_tickets: false,
     manage_users: false,
     edit_inventory: false,
+    view_contacts: false,
   },
 };
 
