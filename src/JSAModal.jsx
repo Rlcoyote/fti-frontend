@@ -7,6 +7,7 @@ import TimePicker from "./TimePicker.jsx";
 import { useApp } from "./AppContext.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import JSACrewSigners from "./JSACrewSigners.jsx";
+import JSAModalHeader from "./JSAModalHeader.jsx";
 
 function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   const { settings, currentUser } = useApp();
@@ -384,41 +385,15 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
         }
         onClick={isMobile ? undefined : (e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em" }}>FLO-TEST, INC. — JSA</div>
-            <div style={{ fontSize: 11, color: C.muted }}>
-              #{ticketNum} — Tailgate Safety Meeting · {job.customer}
-              {ticket ? ` · ${ticket.type}` : ""}
-            </div>
-          </div>
-          <div style={{ fontSize: 11, textAlign: "right" }}>
-            {/* Emergency contacts deliberately bold red for immediate-recognition
-                visibility — these are safety-critical phone numbers. Per Art X:
-                dummy-proof in field conditions (2 AM windstorm). */}
-            {emergencyContacts.length > 0 ? (
-              emergencyContacts.map((c, i) => (
-                <div key={i} style={{ fontWeight: 800, color: C.red }}>
-                  {c.label}: {c.phone}
-                </div>
-              ))
-            ) : (
-              <div style={{ fontWeight: 800, color: C.red }}>AIRLIFE: 800-627-2376</div>
-            )}
-            {currentUser?.role === "owner" && (
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowEmergencyEdit(true);
-                }}
-                style={{ fontSize: 10, color: C.blue, cursor: "pointer", marginTop: 4, fontWeight: 600 }}
-              >
-                Edit Emergency Info
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Header — extracted to JSAModalHeader (v28.154) */}
+        <JSAModalHeader
+          ticketNum={ticketNum}
+          customer={job.customer}
+          ticket={ticket}
+          emergencyContacts={emergencyContacts}
+          currentUser={currentUser}
+          onEditEmergency={() => setShowEmergencyEdit(true)}
+        />
 
         <div style={{ padding: "16px 24px" }}>
           {/* Top fields */}
