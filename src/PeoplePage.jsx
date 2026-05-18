@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, ConfirmModal, inputStyle } from "./SharedUI.jsx";
 import { canModifyUser, ROLE_OPTIONS } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 import EditPersonModal from "./EditPersonModal.jsx";
 import PermissionsMatrixView from "./PermissionsMatrixView.jsx";
 import WebAuthnSetupModal from "./WebAuthnSetupModal.jsx";
+import PeopleResetPasswordModal from "./PeopleResetPasswordModal.jsx";
+import PeopleChangePasswordModal from "./PeopleChangePasswordModal.jsx";
 
 // ─── PeoplePage (v28.17 — consolidation of UsersPage + EmployeesPage +
 // ─── PermissionsModal) ─────────────────────────────────────────────────────
@@ -69,18 +71,13 @@ function PeoplePage() {
   // Confirmation modal — null | { kind, title, message, yesLabel, onYes }
   const [confirmAction, setConfirmAction] = useState(null);
 
-  // Admin password reset modal (admin → other user)
+  // Admin password reset modal (admin → other user) — open flag only; the
+  // form + POST live in PeopleResetPasswordModal (v28.146).
   const [resetPwUser, setResetPwUser] = useState(null);
-  const [resetPwVal, setResetPwVal] = useState("");
-  const [resetPwConfirm, setResetPwConfirm] = useState("");
-  const [resetPwMsg, setResetPwMsg] = useState("");
 
-  // Self password change modal
+  // Self password change modal — open flag only; the form + POST live in
+  // PeopleChangePasswordModal (v28.146).
   const [showChangePw, setShowChangePw] = useState(false);
-  const [changePwCurrent, setChangePwCurrent] = useState("");
-  const [changePwNew, setChangePwNew] = useState("");
-  const [changePwConfirm, setChangePwConfirm] = useState("");
-  const [changePwMsg, setChangePwMsg] = useState("");
 
   // WebAuthn (biometric) self-service modal
   const [showWebauthn, setShowWebauthn] = useState(false);
@@ -281,74 +278,6 @@ function PeoplePage() {
     }
   };
 
-  const handleAdminResetPassword = async () => {
-    if (!resetPwVal || resetPwVal.length < 6) {
-      setResetPwMsg("Password must be at least 6 characters");
-      return;
-    }
-    if (resetPwVal !== resetPwConfirm) {
-      setResetPwMsg("Passwords don't match");
-      return;
-    }
-    try {
-      const r = await fetch(`${API_URL}/auth/admin-reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: resetPwUser.id, password: resetPwVal, requester_role: currentUser.role }),
-      });
-      if (!r.ok) {
-        const d = await r.json().catch(() => null);
-        setResetPwMsg(d?.error || "Failed");
-        return;
-      }
-      const targetName = `${resetPwUser.first_name || resetPwUser.name || ""} ${resetPwUser.last_name || ""}`.trim();
-      setResetPwUser(null);
-      setResetPwVal("");
-      setResetPwConfirm("");
-      setResetPwMsg("");
-      setMsg(`Password reset for ${targetName}.`);
-      setTimeout(() => setMsg(""), 4000);
-    } catch {
-      setResetPwMsg("Error resetting password");
-    }
-  };
-
-  const handleChangePw = async () => {
-    if (!changePwCurrent) {
-      setChangePwMsg("Enter your current password");
-      return;
-    }
-    if (!changePwNew || changePwNew.length < 6) {
-      setChangePwMsg("New password must be at least 6 characters");
-      return;
-    }
-    if (changePwNew !== changePwConfirm) {
-      setChangePwMsg("Passwords don't match");
-      return;
-    }
-    try {
-      const r = await fetch(`${API_URL}/auth/change-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: currentUser.id, current_password: changePwCurrent, new_password: changePwNew }),
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setChangePwMsg(d?.error || "Failed");
-        return;
-      }
-      setShowChangePw(false);
-      setChangePwCurrent("");
-      setChangePwNew("");
-      setChangePwConfirm("");
-      setChangePwMsg("");
-      setMsg("Password changed.");
-      setTimeout(() => setMsg(""), 3000);
-    } catch {
-      setChangePwMsg("Connection error");
-    }
-  };
-
   // ─── Filter the roster locally ───────────────────────────────────────────
   const filtered = (() => {
     if (!search.trim()) return people;
@@ -471,16 +400,7 @@ function PeoplePage() {
       }
       if (canModify && !isSelf) {
         buttons.push(
-          <button
-            key="reset-pw"
-            onClick={() => {
-              setResetPwUser(p);
-              setResetPwVal("");
-              setResetPwConfirm("");
-              setResetPwMsg("");
-            }}
-            style={actionBtnStyle}
-          >
+          <button key="reset-pw" onClick={() => setResetPwUser(p)} style={actionBtnStyle}>
             RESET PW
           </button>,
         );
@@ -540,17 +460,7 @@ function PeoplePage() {
       }
       if (isSelf) {
         buttons.push(
-          <button
-            key="change-pw"
-            onClick={() => {
-              setShowChangePw(true);
-              setChangePwCurrent("");
-              setChangePwNew("");
-              setChangePwConfirm("");
-              setChangePwMsg("");
-            }}
-            style={actionBtnStyle}
-          >
+          <button key="change-pw" onClick={() => setShowChangePw(true)} style={actionBtnStyle}>
             CHANGE PW
           </button>,
         );
@@ -848,102 +758,31 @@ function PeoplePage() {
         />
       )}
 
-      {/* ─── Admin reset password modal ─── */}
+      {/* ─── Admin reset password modal — extracted v28.146 ─── */}
       {resetPwUser && (
-        <ModalWrap title={`Reset Password — ${resetPwUser.first_name} ${resetPwUser.last_name}`} onClose={() => setResetPwUser(null)} width={380}>
-          {/* Hidden username for password manager autofill behavior */}
-          <input type="text" name="username" value={resetPwUser.email} readOnly autoComplete="username" style={{ display: "none" }} />
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>NEW PASSWORD</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              style={inputStyle}
-              value={resetPwVal}
-              onChange={(e) => setResetPwVal(e.target.value)}
-              placeholder="Min 6 characters"
-            />
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>CONFIRM PASSWORD</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              style={inputStyle}
-              value={resetPwConfirm}
-              onChange={(e) => setResetPwConfirm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAdminResetPassword();
-              }}
-            />
-          </div>
-          {resetPwMsg && (
-            <div style={{ padding: "8px 12px", background: "#fdecea", color: C.red, fontSize: 12, fontWeight: 700, borderRadius: 4, marginBottom: 12 }}>
-              {resetPwMsg}
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn variant="blue" onClick={handleAdminResetPassword}>
-              SET PASSWORD
-            </Btn>
-            <Btn variant="ghost" onClick={() => setResetPwUser(null)}>
-              CANCEL
-            </Btn>
-          </div>
-        </ModalWrap>
+        <PeopleResetPasswordModal
+          user={resetPwUser}
+          requesterRole={currentUser.role}
+          onClose={() => setResetPwUser(null)}
+          onDone={(message) => {
+            setResetPwUser(null);
+            setMsg(message);
+            setTimeout(() => setMsg(""), 4000);
+          }}
+        />
       )}
 
-      {/* ─── Self change password modal ─── */}
+      {/* ─── Self change password modal — extracted v28.146 ─── */}
       {showChangePw && (
-        <ModalWrap title="Change Your Password" onClose={() => setShowChangePw(false)} width={380}>
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>CURRENT PASSWORD</label>
-            <input
-              type="password"
-              autoComplete="current-password"
-              style={inputStyle}
-              value={changePwCurrent}
-              onChange={(e) => setChangePwCurrent(e.target.value)}
-            />
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>NEW PASSWORD</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              style={inputStyle}
-              value={changePwNew}
-              onChange={(e) => setChangePwNew(e.target.value)}
-              placeholder="Min 6 characters"
-            />
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <label style={labelStyle}>CONFIRM NEW PASSWORD</label>
-            <input
-              type="password"
-              autoComplete="new-password"
-              style={inputStyle}
-              value={changePwConfirm}
-              onChange={(e) => setChangePwConfirm(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleChangePw();
-              }}
-            />
-          </div>
-          {changePwMsg && (
-            <div style={{ padding: "8px 12px", background: "#fdecea", color: C.red, fontSize: 12, fontWeight: 700, borderRadius: 4, marginBottom: 12 }}>
-              {changePwMsg}
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn variant="blue" onClick={handleChangePw}>
-              CHANGE PASSWORD
-            </Btn>
-            <Btn variant="ghost" onClick={() => setShowChangePw(false)}>
-              CANCEL
-            </Btn>
-          </div>
-        </ModalWrap>
+        <PeopleChangePasswordModal
+          userId={currentUser.id}
+          onClose={() => setShowChangePw(false)}
+          onDone={() => {
+            setShowChangePw(false);
+            setMsg("Password changed.");
+            setTimeout(() => setMsg(""), 3000);
+          }}
+        />
       )}
 
       {/* ─── WebAuthn (biometric) self-service modal ─── */}
