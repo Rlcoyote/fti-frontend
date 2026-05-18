@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, ConfirmModal, inputStyle } from "./SharedUI.jsx";
-import { canModifyUser, ROLE_OPTIONS } from "./utils.js";
+import { ROLE_OPTIONS } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 import EditPersonModal from "./EditPersonModal.jsx";
 import PermissionsMatrixView from "./PermissionsMatrixView.jsx";
@@ -9,6 +9,7 @@ import WebAuthnSetupModal from "./WebAuthnSetupModal.jsx";
 import PeopleResetPasswordModal from "./PeopleResetPasswordModal.jsx";
 import PeopleChangePasswordModal from "./PeopleChangePasswordModal.jsx";
 import usePeopleActions from "./usePeopleActions.js";
+import PersonRowActions from "./PersonRowActions.jsx";
 
 // ─── PeoplePage (v28.17 — consolidation of UsersPage + EmployeesPage +
 // ─── PermissionsModal) ─────────────────────────────────────────────────────
@@ -124,7 +125,7 @@ function PeoplePage() {
   // ─── Roster-row lifecycle actions + per-row feedback ─────────────────────
   // Extracted to usePeopleActions (v28.147). Called before the early return
   // below for the same hook-order reason the fetchers' useEffects are.
-  const { rowFeedback, sendPinSetup, resetPin, deactivate, resendInvite, wipeBio, forceLogout } = usePeopleActions(fetchPeople);
+  const peopleActions = usePeopleActions(fetchPeople);
 
   if (!isOwnerOrAdmin) {
     return <div style={{ padding: 32, color: C.muted }}>You need owner or admin access to view this page.</div>;
@@ -182,215 +183,6 @@ function PeoplePage() {
     cursor: "pointer",
     letterSpacing: "0.06em",
   });
-
-  const actionBtnStyle = {
-    background: "transparent",
-    border: `1px solid ${C.border}`,
-    color: C.muted,
-    fontSize: 10,
-    fontWeight: 700,
-    padding: "3px 8px",
-    borderRadius: 3,
-    cursor: "pointer",
-    letterSpacing: "0.04em",
-  };
-  // v28.46 — disabled style for buttons while their row's async action is pending.
-  const disabledBtnStyle = { ...actionBtnStyle, opacity: 0.4, cursor: "not-allowed", color: C.muted, border: `1px solid ${C.border}` };
-
-  // ─── Per-person row buttons (shared between table + cards) ───────────────
-  const rowButtons = (p) => {
-    const isSelf = p.id === currentUser?.id;
-    const canModify = canModifyUser(currentUser?.role, p.role);
-    const buttons = [];
-    // v28.46 — every async-action button on this row disables when ANY
-    // async is pending for this user, so a fast-clicking auditor can't
-    // fire 15 invite emails in a row. The pending state clears as soon
-    // as the success/error pill replaces it, freeing the buttons again.
-    const fb = rowFeedback[p.id];
-    const isPending = fb?.kind === "pending";
-    const asyncBtn = (extra) => (isPending ? disabledBtnStyle : { ...actionBtnStyle, ...extra });
-
-    if (p.is_active) {
-      buttons.push(
-        <button key="edit" onClick={() => setEditing(p)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
-          EDIT
-        </button>,
-      );
-      if (p.pin_set === false) {
-        buttons.push(
-          <button
-            key="send-pin"
-            disabled={isPending}
-            onClick={() => {
-              if (!isPending) sendPinSetup(p);
-            }}
-            style={asyncBtn({ border: `1px solid ${C.blue}44`, color: isPending ? C.muted : C.blue })}
-          >
-            {isPending && fb.msg.startsWith("Sending PIN") ? "SENDING…" : "SEND PIN SETUP"}
-          </button>,
-        );
-      } else if (p.pin_set === true) {
-        buttons.push(
-          <button
-            key="reset-pin"
-            disabled={isPending}
-            onClick={() => {
-              if (!isPending)
-                setConfirmAction({
-                  kind: "reset-pin",
-                  title: "Reset PIN?",
-                  message: `${p.first_name} ${p.last_name}'s current PIN will be cleared. A new setup text will be sent to ${p.phone || "their phone"}. The link expires in 7 days and can only be used once.`,
-                  yesLabel: "Reset PIN",
-                  onYes: () => resetPin(p),
-                });
-            }}
-            style={asyncBtn({})}
-          >
-            {isPending && fb.msg.startsWith("Resetting PIN") ? "RESETTING…" : "RESET PIN"}
-          </button>,
-        );
-      }
-      if (canModify && !isSelf) {
-        buttons.push(
-          <button key="reset-pw" onClick={() => setResetPwUser(p)} style={actionBtnStyle}>
-            RESET PW
-          </button>,
-        );
-        buttons.push(
-          <button
-            key="resend"
-            disabled={isPending}
-            onClick={() => {
-              if (!isPending) resendInvite(p);
-            }}
-            style={asyncBtn({})}
-          >
-            {isPending && fb.msg.startsWith("Sending invite") ? "SENDING…" : "RESEND INVITE"}
-          </button>,
-        );
-        buttons.push(
-          <button
-            key="wipe-bio"
-            disabled={isPending}
-            onClick={() => {
-              if (!isPending)
-                setConfirmAction({
-                  kind: "wipe-bio",
-                  title: "Wipe biometric devices?",
-                  message: `Wipe ALL registered biometric devices for ${p.first_name} ${p.last_name}? They'll re-register a device on next login (after entering their password). All current sessions will be invalidated.`,
-                  yesLabel: "Wipe Bio",
-                  onYes: () => wipeBio(p),
-                });
-            }}
-            style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}
-          >
-            {isPending && fb.msg.startsWith("Wiping biometric") ? "WIPING…" : "WIPE BIO"}
-          </button>,
-        );
-        // v28.49 — FORCE SIGN OUT. Ends every active session for the
-        // target without wiping biometric. Owner/admin only; admin
-        // cannot force-logout an owner (backend enforces too).
-        buttons.push(
-          <button
-            key="force-logout"
-            disabled={isPending}
-            onClick={() => {
-              if (!isPending)
-                setConfirmAction({
-                  kind: "force-logout",
-                  title: "Force sign-out of all devices?",
-                  message: `Sign ${p.first_name} ${p.last_name} out of every device they're currently logged into? Their biometric credentials are preserved — they can sign back in normally. Use this for terminated employees, suspected stolen tokens, or to clear stale concurrent sessions.`,
-                  yesLabel: "Force Sign Out",
-                  onYes: () => forceLogout(p),
-                });
-            }}
-            style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.orange}44`, color: C.orange }}
-          >
-            {isPending && fb.msg.startsWith("Forcing sign-out") ? "SIGNING OUT…" : "FORCE SIGN OUT"}
-          </button>,
-        );
-      }
-      if (isSelf) {
-        buttons.push(
-          <button key="change-pw" onClick={() => setShowChangePw(true)} style={actionBtnStyle}>
-            CHANGE PW
-          </button>,
-        );
-        buttons.push(
-          <button key="manage-devices" onClick={() => setShowWebauthn(true)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
-            MANAGE DEVICES
-          </button>,
-        );
-      }
-      if (canModify && !isSelf) {
-        buttons.push(
-          <button
-            key="deactivate"
-            disabled={isPending}
-            onClick={() => {
-              if (!isPending)
-                setConfirmAction({
-                  kind: "deactivate",
-                  title: "Deactivate this person?",
-                  message: `${p.first_name} ${p.last_name} will be removed from the active roster. Their PIN link becomes invalid; their email can be reused for a new person; the crew picker will exclude them; historical data on tickets and JSAs is preserved.`,
-                  yesLabel: "Deactivate",
-                  onYes: () => deactivate(p),
-                });
-            }}
-            style={isPending ? disabledBtnStyle : { ...actionBtnStyle, border: `1px solid ${C.red}33`, color: C.red }}
-          >
-            {isPending && fb.msg.startsWith("Deactivating") ? "DEACTIVATING…" : "DEACTIVATE"}
-          </button>,
-        );
-      }
-      if (!canModify && !isSelf) {
-        buttons.push(
-          <span key="protected" style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>
-            Protected
-          </span>,
-        );
-      }
-      // v28.46 — inline per-row feedback pill. Renders right next to the
-      // buttons so the user sees confirmation at the spot they clicked,
-      // even if they're 45 rows down a long list. Color encodes kind:
-      //   pending → blue tint with hourglass
-      //   success → green tint with ✓
-      //   error   → red tint with ✗ (longer TTL + tooltip with full text)
-      if (fb) {
-        const palette =
-          fb.kind === "success"
-            ? { bg: "#e6f5ec", color: C.green, border: C.green + "44" }
-            : fb.kind === "error"
-              ? { bg: "#fdecea", color: C.red, border: C.red + "44" }
-              : { bg: "#e8f0fb", color: C.blue, border: C.blue + "44" };
-        buttons.push(
-          <span
-            key="row-feedback"
-            title={fb.msg}
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 3,
-              background: palette.bg,
-              color: palette.color,
-              border: `1px solid ${palette.border}`,
-              whiteSpace: "nowrap",
-              maxWidth: 320,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              letterSpacing: "0.04em",
-            }}
-          >
-            {fb.kind === "pending" && "⌛ "}
-            {fb.msg}
-          </span>,
-        );
-      }
-    }
-
-    return buttons;
-  };
 
   return (
     <div style={{ padding: isMobile ? "16px 12px" : "24px 28px" }}>
@@ -500,7 +292,18 @@ function PeoplePage() {
                     {p.job_title || "—"} · QB {p.qb_employee_id || "—"} · PIN{" "}
                     {p.pin_set ? <span style={{ color: C.green, fontWeight: 700 }}>SET</span> : "not set"}
                   </div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{rowButtons(p)}</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <PersonRowActions
+                      person={p}
+                      currentUser={currentUser}
+                      actions={peopleActions}
+                      setEditing={setEditing}
+                      setResetPwUser={setResetPwUser}
+                      setShowChangePw={setShowChangePw}
+                      setShowWebauthn={setShowWebauthn}
+                      setConfirmAction={setConfirmAction}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -564,7 +367,18 @@ function PeoplePage() {
                         )}
                       </td>
                       <td style={{ ...tdStyle, textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>{rowButtons(p)}</div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                          <PersonRowActions
+                            person={p}
+                            currentUser={currentUser}
+                            actions={peopleActions}
+                            setEditing={setEditing}
+                            setResetPwUser={setResetPwUser}
+                            setShowChangePw={setShowChangePw}
+                            setShowWebauthn={setShowWebauthn}
+                            setConfirmAction={setConfirmAction}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}
