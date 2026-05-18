@@ -2,8 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
-import { CATEGORY_OPTIONS, ROLE_LABELS, categoryLabel } from "./ContactsConstants.js";
+import { CATEGORY_OPTIONS, ROLE_LABELS } from "./ContactsConstants.js";
 import ContactEditModal from "./ContactEditModal.jsx";
+import ContactSoftDeleteModal from "./ContactSoftDeleteModal.jsx";
+import ContactHardDeleteModal from "./ContactHardDeleteModal.jsx";
+import ContactMergeModal from "./ContactMergeModal.jsx";
 
 // ─── v28.78 — ContactsPage rebuilt for the migration-005 schema ──────────
 // Uses the v28.76 dual-shape backend (writes go to BOTH legacy `phone` /
@@ -32,12 +35,11 @@ function ContactsPage() {
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const [confirmSoftDelete, setConfirmSoftDelete] = useState(false);
-  const [confirmHardDelete, setConfirmHardDelete] = useState(null); // { contact } or null
-  const [hardDeleteReason, setHardDeleteReason] = useState("");
+  const [confirmHardDelete, setConfirmHardDelete] = useState(null); // merged contact row, or null
   const [mergeModal, setMergeModal] = useState(null); // { a, b } or null
-  const [mergeKeeperId, setMergeKeeperId] = useState(null);
-  const [mergeReason, setMergeReason] = useState("");
   const [msg, setMsg] = useState("");
+  // hardDeleteReason, mergeKeeperId, mergeReason moved into their modals
+  // (v28.152) — they're modal-local form state.
 
   const [winW, setWinW] = useState(window.innerWidth);
   useEffect(() => {
@@ -170,16 +172,16 @@ function ContactsPage() {
     setTimeout(() => setMsg(""), 3000);
   };
 
-  // Hard-delete: owner only. Requires written reason. Opens confirm modal.
+  // Hard-delete: owner only. Requires written reason. Opens confirm modal;
+  // ContactHardDeleteModal (v28.152) owns the reason and passes it back.
   const openHardDelete = (mergedContact) => {
     if (!isOwner) return;
-    setHardDeleteReason("");
     setConfirmHardDelete(mergedContact);
   };
 
-  const handleHardDeleteConfirm = async () => {
+  const handleHardDeleteConfirm = async (rawReason) => {
     if (!confirmHardDelete) return;
-    const reason = hardDeleteReason.trim();
+    const reason = (rawReason || "").trim();
     if (!reason) {
       setMsg("Reason is required for permanent deletion.");
       return;
@@ -202,7 +204,6 @@ function ContactsPage() {
     }
     await fetchAll();
     setConfirmHardDelete(null);
-    setHardDeleteReason("");
     setMsg(`Permanently deleted ${ok} row${ok !== 1 ? "s" : ""}${fail ? `, ${fail} failed` : ""}.`);
     setTimeout(() => setMsg(""), 4000);
   };
@@ -222,19 +223,19 @@ function ContactsPage() {
 
   const openMerge = () => {
     if (!eligibleForMerge) return;
-    setMergeKeeperId(eligibleForMerge.a.id);
-    setMergeReason("");
     setMergeModal(eligibleForMerge);
   };
 
-  const handleMergeConfirm = async () => {
-    if (!mergeModal || !mergeKeeperId) return;
-    const killedId = mergeKeeperId === mergeModal.a.id ? mergeModal.b.id : mergeModal.a.id;
+  // ContactMergeModal (v28.152) owns the keeper choice + reason and passes
+  // both back here.
+  const handleMergeConfirm = async (keeperId, mergeReason) => {
+    if (!mergeModal || !keeperId) return;
+    const killedId = keeperId === mergeModal.a.id ? mergeModal.b.id : mergeModal.a.id;
     try {
       const r = await fetch(`${API_URL}/customers/contacts/merge`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keeper_id: mergeKeeperId, killed_id: killedId, reason: mergeReason || null }),
+        body: JSON.stringify({ keeper_id: keeperId, killed_id: killedId, reason: mergeReason || null }),
       });
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
@@ -244,8 +245,6 @@ function ContactsPage() {
       const result = await r.json();
       await fetchAll();
       setMergeModal(null);
-      setMergeKeeperId(null);
-      setMergeReason("");
       setSelected(new Set());
       setSelectMode(false);
       const carried = result.carried_fields?.length ? ` (carried: ${result.carried_fields.join(", ")})` : "";
@@ -528,169 +527,16 @@ function ContactsPage() {
         />
       )}
 
-      {/* Batch soft-delete confirm */}
-      {confirmSoftDelete && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setConfirmSoftDelete(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid #8a6500`,
-              borderRadius: 8,
-              padding: 28,
-              width: 460,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>
-              Mark {selected.size} contact{selected.size !== 1 ? "s" : ""} inactive?
-            </div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
-              Inactive contacts are hidden from pickers but preserved in historical references on tickets and audit rows. Reversible — toggle "Show inactive" to
-              view them later.
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={handleBatchSoftDelete}>MARK {selected.size} INACTIVE</Btn>
-              <Btn variant="ghost" onClick={() => setConfirmSoftDelete(false)}>
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Batch soft-delete confirm — extracted to ContactSoftDeleteModal (v28.152) */}
+      {confirmSoftDelete && <ContactSoftDeleteModal count={selected.size} onConfirm={handleBatchSoftDelete} onClose={() => setConfirmSoftDelete(false)} />}
 
-      {/* Hard-delete confirm (owner only) */}
+      {/* Hard-delete confirm (owner only) — extracted to ContactHardDeleteModal (v28.152) */}
       {confirmHardDelete && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setConfirmHardDelete(null)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.red}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 480,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Permanently delete {confirmHardDelete.name}?</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 14, lineHeight: 1.6 }}>
-              This is irreversible. The contact row is removed from the database. The audit log retains the deletion record forever — including the reason
-              below. Use "Mark inactive" if you might need to restore later.
-            </div>
-            <div style={{ marginBottom: 18 }}>
-              <label style={labelStyle}>REASON (required)</label>
-              <textarea
-                style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
-                value={hardDeleteReason}
-                onChange={(e) => setHardDeleteReason(e.target.value)}
-                placeholder="Why is this contact being permanently deleted?"
-                autoFocus
-              />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={handleHardDeleteConfirm}
-                disabled={!hardDeleteReason.trim()}
-                style={{
-                  background: hardDeleteReason.trim() ? C.red : C.steel,
-                  color: hardDeleteReason.trim() ? C.white : C.muted,
-                  border: "none",
-                  borderRadius: 4,
-                  padding: "8px 16px",
-                  fontSize: 12,
-                  fontWeight: 800,
-                  cursor: hardDeleteReason.trim() ? "pointer" : "not-allowed",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                PERMANENTLY DELETE
-              </button>
-              <Btn variant="ghost" onClick={() => setConfirmHardDelete(null)}>
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
+        <ContactHardDeleteModal contact={confirmHardDelete} onConfirm={handleHardDeleteConfirm} onClose={() => setConfirmHardDelete(null)} />
       )}
 
-      {/* Merge modal */}
-      {mergeModal && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setMergeModal(null)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.blue}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 540,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Merge contacts</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 16, lineHeight: 1.6 }}>
-              Pick which contact is the keeper. Non-empty fields from the other will be carried over where the keeper is empty. The keeper's name and category
-              are preserved. The non-keeper is marked inactive.
-            </div>
-            {[mergeModal.a, mergeModal.b].map((c) => (
-              <label
-                key={c.id}
-                style={{
-                  display: "block",
-                  border: `2px solid ${mergeKeeperId === c.id ? C.blue : C.border}`,
-                  borderRadius: 6,
-                  padding: 12,
-                  marginBottom: 10,
-                  cursor: "pointer",
-                  background: mergeKeeperId === c.id ? "#e8f0fb" : C.cardBg,
-                }}
-              >
-                <input
-                  type="radio"
-                  name="keeper"
-                  checked={mergeKeeperId === c.id}
-                  onChange={() => setMergeKeeperId(c.id)}
-                  style={{ marginRight: 10, accentColor: C.blue }}
-                />
-                <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                  {c.name} <span style={{ fontSize: 11, fontWeight: 500, color: C.muted }}>({categoryLabel(c)})</span>
-                </span>
-                <div style={{ fontSize: 12, color: C.muted, marginLeft: 24, marginTop: 4 }}>
-                  {c.phone_work || c.phone || "no phone"} · {c.email || "no email"} · {c.title || "no title"}
-                </div>
-              </label>
-            ))}
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>REASON (optional)</label>
-              <input
-                style={inputStyle}
-                value={mergeReason}
-                onChange={(e) => setMergeReason(e.target.value)}
-                placeholder="e.g., Duplicate from typo at job setup"
-              />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={handleMergeConfirm}>CONFIRM MERGE</Btn>
-              <Btn variant="ghost" onClick={() => setMergeModal(null)}>
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Merge modal — extracted to ContactMergeModal (v28.152) */}
+      {mergeModal && <ContactMergeModal pair={mergeModal} onConfirm={handleMergeConfirm} onClose={() => setMergeModal(null)} />}
     </div>
   );
 }
