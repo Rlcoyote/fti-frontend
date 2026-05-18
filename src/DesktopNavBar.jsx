@@ -14,10 +14,16 @@ function ThemeToggleIcon() {
       onClick={toggleTheme}
       title={isDark ? "Switch to light mode" : "Switch to dark mode"}
       style={{
-        fontSize: 16, color: C.headerMuted, cursor: "pointer", lineHeight: 1,
-        userSelect: "none", padding: "2px 4px",
+        fontSize: 16,
+        color: C.headerMuted,
+        cursor: "pointer",
+        lineHeight: 1,
+        userSelect: "none",
+        padding: "2px 4px",
       }}
-    >{isDark ? "☀" : "☾"}</span>
+    >
+      {isDark ? "☀" : "☾"}
+    </span>
   );
 }
 
@@ -78,11 +84,15 @@ function GearMenuItem({ label, onClick, hasTopBorder }) {
     <div
       onClick={onClick}
       style={{
-        padding: "10px 16px", fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer",
+        padding: "10px 16px",
+        fontSize: 13,
+        fontWeight: 600,
+        color: C.text,
+        cursor: "pointer",
         ...(hasTopBorder ? { borderTop: `1px solid ${C.border}` } : {}),
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = C.steel)}
-      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+      onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       {label}
     </div>
@@ -112,30 +122,55 @@ function DesktopNavBar({
   version,
 }) {
   return (
-    <div className="fti-nav-bar" style={{
-      background: C.headerBg, borderBottom: `2px solid ${C.red}`,
-      padding: "0 28px", display: "flex", alignItems: "center",
-      justifyContent: "space-between", minHeight: 56,
-      // v28.27 — sticky top nav. Header stays visible when the page scrolls.
-      // zIndex: 50 sits above page content but below modals (which use 100+
-      // throughout the app), so opening a JSA / EditPerson / Confirm modal
-      // still covers the nav as expected.
-      position: "sticky", top: 0, zIndex: 50,
-    }}>
+    <div
+      className="fti-nav-bar"
+      style={{
+        background: C.headerBg,
+        borderBottom: `2px solid ${C.red}`,
+        padding: "0 28px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        minHeight: 56,
+        // v28.27 — sticky top nav. Header stays visible when the page scrolls.
+        // zIndex: 50 sits above page content but below modals (which use 100+
+        // throughout the app), so opening a JSA / EditPerson / Confirm modal
+        // still covers the nav as expected.
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+      }}
+    >
       {/* LOGO + BRAND */}
       <div
         onClick={() => navigate("/")}
-        onMouseEnter={e => { e.currentTarget.style.opacity = "0.85"; }}
-        onMouseLeave={e => { e.currentTarget.style.opacity = "1"; }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = "0.85";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = "1";
+        }}
         style={{ display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "opacity 0.15s", userSelect: "none" }}
         title="Go to Dashboard"
       >
-        <div style={{
-          width: 36, height: 36, border: `2px solid ${C.red}`, borderRadius: "50%",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          background: C.blue, fontSize: 13, fontWeight: 900, color: C.white,
-          boxShadow: `0 0 12px ${C.red}44`,
-        }}>FTI</div>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            border: `2px solid ${C.red}`,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: C.blue,
+            fontSize: 13,
+            fontWeight: 900,
+            color: C.white,
+            boxShadow: `0 0 12px ${C.red}44`,
+          }}
+        >
+          FTI
+        </div>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.12em", color: C.headerText }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 10, fontWeight: 700, color: C.headerMuted, letterSpacing: "0.12em" }}>
@@ -146,19 +181,25 @@ function DesktopNavBar({
 
       {/* RIGHT SIDE — nav + gear + sign-out */}
       <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
-        {navItems.map(item => {
+        {navItems.map((item) => {
           const active = PAGE_MAP[item] === page;
           const clickable = !!PAGE_MAP[item];
           return (
             <span
               key={item}
-              onClick={() => { if (clickable) navigate(ROUTE_MAP[item]); }}
+              onClick={() => {
+                if (clickable) navigate(ROUTE_MAP[item]);
+              }}
               style={{
-                fontSize: 13, color: active ? C.headerText : clickable ? C.headerMuted : "#6b7a99",
-                letterSpacing: "0.08em", cursor: clickable ? "pointer" : "default",
+                fontSize: 13,
+                color: active ? C.headerText : clickable ? C.headerMuted : "#6b7a99",
+                letterSpacing: "0.08em",
+                cursor: clickable ? "pointer" : "default",
                 borderBottom: active ? `2px solid ${C.red}` : "2px solid transparent",
-                paddingBottom: 4, fontWeight: active ? 700 : 600,
-                display: "flex", alignItems: "center",
+                paddingBottom: 4,
+                fontWeight: active ? 700 : 600,
+                display: "flex",
+                alignItems: "center",
               }}
             >
               {item}
@@ -180,36 +221,95 @@ function DesktopNavBar({
           {(can("manage_users") || currentUser.role === "owner") && (
             <div style={{ position: "relative" }}>
               <span
-                onClick={() => setShowSettingsMenu(v => !v)}
+                onClick={() => setShowSettingsMenu((v) => !v)}
                 style={{ fontSize: 18, color: showSettingsMenu ? C.headerText : C.headerMuted, cursor: "pointer", lineHeight: 1, userSelect: "none" }}
                 title="Settings"
-              >⚙</span>
+              >
+                ⚙
+              </span>
               {showSettingsMenu && (
                 <>
                   {/* Click-outside backdrop */}
                   <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setShowSettingsMenu(false)} />
-                  <div style={{
-                    position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 300,
-                    background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
-                    boxShadow: "0 4px 16px #00000033", minWidth: 160, overflow: "hidden",
-                  }}>
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      right: 0,
+                      zIndex: 300,
+                      background: C.cardBg,
+                      border: `1px solid ${C.border}`,
+                      borderRadius: 6,
+                      boxShadow: "0 4px 16px #00000033",
+                      minWidth: 160,
+                      overflow: "hidden",
+                    }}
+                  >
                     {can("manage_users") && (
-                      <GearMenuItem label="People" onClick={() => { setShowSettingsMenu(false); navigate("/people"); }} />
+                      <GearMenuItem
+                        label="People"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/people");
+                        }}
+                      />
                     )}
                     {can("manage_users") && (
-                      <GearMenuItem label="Job Titles" hasTopBorder onClick={() => { setShowSettingsMenu(false); navigate("/job-titles"); }} />
+                      <GearMenuItem
+                        label="Job Titles"
+                        hasTopBorder
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/job-titles");
+                        }}
+                      />
                     )}
                     {/* v28.17 — Permissions gear item removed; matrix now lives as a tab inside /people. */}
                     {currentUser.role === "owner" && (
-                      <GearMenuItem label="Yard Locations" hasTopBorder onClick={() => { setShowSettingsMenu(false); setShowSettings(true); }} />
+                      <GearMenuItem
+                        label="Yard Locations"
+                        hasTopBorder
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          setShowSettings(true);
+                        }}
+                      />
                     )}
                     {currentUser.role === "owner" && (
-                      <GearMenuItem label="Emergency Information" hasTopBorder onClick={() => { setShowSettingsMenu(false); setShowEmergencyContacts(true); }} />
+                      <GearMenuItem
+                        label="Emergency Information"
+                        hasTopBorder
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          setShowEmergencyContacts(true);
+                        }}
+                      />
                     )}
-                    <GearMenuItem label="Contacts" hasTopBorder onClick={() => { setShowSettingsMenu(false); navigate("/contacts"); }} />
-                    <GearMenuItem label="Field Resources" hasTopBorder onClick={() => { setShowSettingsMenu(false); setShowCompanyDocs(true); }} />
+                    <GearMenuItem
+                      label="Contacts"
+                      hasTopBorder
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        navigate("/contacts");
+                      }}
+                    />
+                    <GearMenuItem
+                      label="Field Resources"
+                      hasTopBorder
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        setShowCompanyDocs(true);
+                      }}
+                    />
                     {can("view_activity_log") && (
-                      <GearMenuItem label="Activity Log" hasTopBorder onClick={() => { setShowSettingsMenu(false); navigate("/activity"); }} />
+                      <GearMenuItem
+                        label="Activity Log"
+                        hasTopBorder
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/activity");
+                        }}
+                      />
                     )}
                   </div>
                 </>
@@ -218,18 +318,28 @@ function DesktopNavBar({
           )}
 
           {/* SIGN OUT */}
-          <span
-            onClick={() => setShowLogoutConfirm(true)}
-            style={{ fontSize: 11, color: C.headerMuted, cursor: "pointer", letterSpacing: "0.06em" }}
-          >SIGN OUT</span>
+          <span onClick={() => setShowLogoutConfirm(true)} style={{ fontSize: 11, color: C.headerMuted, cursor: "pointer", letterSpacing: "0.06em" }}>
+            SIGN OUT
+          </span>
           <div
             onClick={() => setShowLogoutConfirm(true)}
             style={{
-              width: 30, height: 30, borderRadius: "50%", background: C.red,
-              border: `2px solid #ffffff55`, display: "flex", alignItems: "center",
-              justifyContent: "center", fontSize: 13, fontWeight: 800, cursor: "pointer", color: C.white,
+              width: 30,
+              height: 30,
+              borderRadius: "50%",
+              background: C.red,
+              border: `2px solid #ffffff55`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: "pointer",
+              color: C.white,
             }}
-          >{currentUser.name.charAt(0).toUpperCase()}</div>
+          >
+            {currentUser.name.charAt(0).toUpperCase()}
+          </div>
         </div>
       </div>
     </div>
