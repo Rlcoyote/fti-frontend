@@ -4,10 +4,10 @@ import { C } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { useApp } from "./AppContext.jsx";
-import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 import { VALID_STATES, ALL_COUNTIES } from "./Geography.js";
 import EditJobLockBanner from "./EditJobLockBanner.jsx";
 import EditJobPinResolver from "./EditJobPinResolver.jsx";
+import EditJobContactGrid from "./EditJobContactGrid.jsx";
 
 function EditJobModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
@@ -135,12 +135,6 @@ function EditJobModal({ job, onSave, onClose }) {
 
   const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter((c) => c.toLowerCase().startsWith(county.toLowerCase())) : [];
 
-  const formatPhone = (val) => {
-    const d = val.replace(/\D/g, "").slice(0, 10);
-    if (d.length <= 3) return d;
-    if (d.length <= 6) return `${d.slice(0, 3)}-${d.slice(3)}`;
-    return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
-  };
   const formatState = (val) =>
     val
       .replace(/[^a-zA-Z]/g, "")
@@ -301,55 +295,35 @@ function EditJobModal({ job, onSave, onClose }) {
         <input style={{ ...inputStyle, maxWidth: 220 }} value={afe} onChange={(e) => setAfe(e.target.value)} placeholder="AFE number if applicable" />
       </div>
 
-      {/* Point of Contact */}
+      {/* Point of Contact + Approver — extracted to EditJobContactGrid (v28.144) */}
       {sectionHead("POINT OF CONTACT")}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 4 }}>
-        <div>
-          <label style={labelStyle}>FIRST</label>
-          <input style={inputStyle} value={contactFirst} onChange={(e) => setContactFirst(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>LAST</label>
-          <input style={inputStyle} value={contactLast} onChange={(e) => setContactLast(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>PHONE</label>
-          <input style={inputStyle} value={pocPhone} onChange={(e) => setPocPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
-          <SmsConsentCheckbox phone={pocPhone} recipientType="customer_rep" consentIntent={pocConsentIntent} setConsentIntent={setPocConsentIntent} />
-        </div>
-        <div>
-          <label style={labelStyle}>EMAIL</label>
-          <input style={inputStyle} value={pocEmail} onChange={(e) => setPocEmail(e.target.value)} placeholder="email@co.com" />
-        </div>
-      </div>
+      <EditJobContactGrid
+        first={contactFirst}
+        setFirst={setContactFirst}
+        last={contactLast}
+        setLast={setContactLast}
+        phone={pocPhone}
+        setPhone={setPocPhone}
+        email={pocEmail}
+        setEmail={setPocEmail}
+        consentIntent={pocConsentIntent}
+        setConsentIntent={setPocConsentIntent}
+      />
       <div style={{ marginBottom: 12 }}></div>
 
-      {/* Approver */}
       {sectionHead("APPROVER")}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 4 }}>
-        <div>
-          <label style={labelStyle}>FIRST</label>
-          <input style={inputStyle} value={approver} onChange={(e) => setApprover(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>LAST</label>
-          <input style={inputStyle} value={approverLast} onChange={(e) => setApproverLast(e.target.value)} />
-        </div>
-        <div>
-          <label style={labelStyle}>PHONE</label>
-          <input style={inputStyle} value={approverPhone} onChange={(e) => setApproverPhone(formatPhone(e.target.value))} placeholder="555-555-5555" />
-          <SmsConsentCheckbox
-            phone={approverPhone}
-            recipientType="customer_rep"
-            consentIntent={approverConsentIntent}
-            setConsentIntent={setApproverConsentIntent}
-          />
-        </div>
-        <div>
-          <label style={labelStyle}>EMAIL</label>
-          <input style={inputStyle} value={approverEmail} onChange={(e) => setApproverEmail(e.target.value)} placeholder="email@co.com" />
-        </div>
-      </div>
+      <EditJobContactGrid
+        first={approver}
+        setFirst={setApprover}
+        last={approverLast}
+        setLast={setApproverLast}
+        phone={approverPhone}
+        setPhone={setApproverPhone}
+        email={approverEmail}
+        setEmail={setApproverEmail}
+        consentIntent={approverConsentIntent}
+        setConsentIntent={setApproverConsentIntent}
+      />
       <div style={{ marginBottom: 12 }}></div>
 
       {/* Billing */}
