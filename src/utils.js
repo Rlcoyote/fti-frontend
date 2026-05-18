@@ -363,6 +363,7 @@ export const PERMISSION_CATEGORIES = [
   { key: "view_archive", label: "View Archive", group: "Admin & Settings" },
   { key: "view_activity_log", label: "View Activity Log", group: "Admin & Settings" },
   { key: "view_contacts", label: "View Customer Contacts", group: "Admin & Settings" },
+  { key: "manage_settings", label: "Manage Settings", group: "Admin & Settings" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -370,7 +371,7 @@ export const PERMISSION_CATEGORIES = [
 export const DEFAULT_PERMS = {
   owner: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true])),
   admin: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true])),
-  manager: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, !["manage_users", "view_activity_log"].includes(p.key)])),
+  manager: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, !["manage_users", "view_activity_log", "manage_settings"].includes(p.key)])),
   lead: {
     view_jobs: true,
     edit_jobs: true,
@@ -387,6 +388,7 @@ export const DEFAULT_PERMS = {
     manage_users: false,
     edit_inventory: false,
     view_contacts: false,
+    manage_settings: false,
   },
   salesman: {
     view_jobs: true,
@@ -404,6 +406,7 @@ export const DEFAULT_PERMS = {
     manage_users: false,
     edit_inventory: false,
     view_contacts: true,
+    manage_settings: false,
   },
   field: {
     view_jobs: true,
@@ -421,6 +424,7 @@ export const DEFAULT_PERMS = {
     manage_users: false,
     edit_inventory: false,
     view_contacts: false,
+    manage_settings: false,
   },
 };
 
