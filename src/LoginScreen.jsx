@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
-import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import LoginCardHeader from "./LoginCardHeader.jsx";
 import LoginPasswordForm from "./LoginPasswordForm.jsx";
 import LoginForgotForm from "./LoginForgotForm.jsx";
 import LoginResetForm from "./LoginResetForm.jsx";
 import LoginBiometricStep from "./LoginBiometricStep.jsx";
+import LoginDeviceRegistration from "./LoginDeviceRegistration.jsx";
 
 // ─── LoginScreen (v27.99) ───────────────────────────────────────────────────
 // Two-stage login: password → biometric.
@@ -689,60 +689,21 @@ function LoginScreen() {
             user names the device and confirms registration. The biometric
             ceremony fires from a fresh user-activation (the click on this
             button), so iOS WebKit can't revoke it mid-flight. */}
+        {/* Magic-link device enrollment — extracted to LoginDeviceRegistration (v28.162) */}
         {showEnrollmentStep && (
-          <>
-            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
-              Welcome, <strong>{enrollmentLanding.user_name}</strong>. Register this device to sign in here going forward.
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: C.muted,
-                marginBottom: 14,
-                padding: "10px 12px",
-                background: C.steel,
-                border: `1px solid ${C.border}`,
-                borderRadius: 4,
-                lineHeight: 1.5,
-              }}
-            >
-              When you tap below, this device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves the device — only a public key is
-              stored on the server.
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>NAME THIS DEVICE</label>
-              <input
-                style={inputStyle}
-                value={deviceLabel}
-                onChange={(e) => setDeviceLabel(e.target.value.slice(0, 60))}
-                maxLength={60}
-                placeholder="iPhone, MacBook, etc."
-                onKeyDown={(e) => e.key === "Enter" && !loading && completeDeviceEnrollment()}
-                autoFocus
-              />
-            </div>
-            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            <button
-              onClick={completeDeviceEnrollment}
-              disabled={loading}
-              style={{
-                width: "100%",
-                padding: "12px 0",
-                background: C.red,
-                color: C.white,
-                border: "none",
-                borderRadius: 4,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: loading ? "default" : "pointer",
-                letterSpacing: "0.06em",
-                opacity: loading ? 0.6 : 1,
-                marginBottom: 12,
-              }}
-            >
-              {loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}
-            </button>
-          </>
+          <LoginDeviceRegistration
+            intro={
+              <>
+                Welcome, <strong>{enrollmentLanding.user_name}</strong>. Register this device to sign in here going forward.
+              </>
+            }
+            infoText="When you tap below, this device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves the device — only a public key is stored on the server."
+            deviceLabel={deviceLabel}
+            setDeviceLabel={setDeviceLabel}
+            error={error}
+            loading={loading}
+            onRegister={completeDeviceEnrollment}
+          />
         )}
 
         {/* Loading state for the enrollment-options fetch. Shown briefly while
@@ -751,65 +712,18 @@ function LoginScreen() {
           <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>Opening registration link...</div>
         )}
 
+        {/* First-login device registration — extracted to LoginDeviceRegistration (v28.162) */}
         {showRegistrationStep && (
-          <>
-            <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
-              First time signing in. Register this device's biometric so you can use it next time.
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: C.muted,
-                marginBottom: 14,
-                padding: "10px 12px",
-                background: C.steel,
-                border: `1px solid ${C.border}`,
-                borderRadius: 4,
-                lineHeight: 1.5,
-              }}
-            >
-              When you click below, your device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves this device — only a public key
-              is stored on the server.
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>NAME THIS DEVICE</label>
-              <input
-                style={inputStyle}
-                value={deviceLabel}
-                onChange={(e) => setDeviceLabel(e.target.value.slice(0, 60))}
-                maxLength={60}
-                placeholder="iPhone, MacBook, etc."
-                onKeyDown={(e) => e.key === "Enter" && !loading && completeFirstRegistration()}
-                autoFocus
-              />
-            </div>
-            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            <button
-              onClick={completeFirstRegistration}
-              disabled={loading}
-              style={{
-                width: "100%",
-                padding: "12px 0",
-                background: C.red,
-                color: C.white,
-                border: "none",
-                borderRadius: 4,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: loading ? "default" : "pointer",
-                letterSpacing: "0.06em",
-                opacity: loading ? 0.6 : 1,
-                marginBottom: 12,
-              }}
-            >
-              {loading ? "WAITING FOR BIOMETRIC..." : "REGISTER & SIGN IN"}
-            </button>
-            <div style={{ textAlign: "center" }}>
-              <span onClick={cancelRegistration} style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}>
-                Back
-              </span>
-            </div>
-          </>
+          <LoginDeviceRegistration
+            intro="First time signing in. Register this device's biometric so you can use it next time."
+            infoText="When you click below, your device will prompt for Touch ID, Face ID, or Windows Hello. The biometric never leaves this device — only a public key is stored on the server."
+            deviceLabel={deviceLabel}
+            setDeviceLabel={setDeviceLabel}
+            error={error}
+            loading={loading}
+            onRegister={completeFirstRegistration}
+            onCancel={cancelRegistration}
+          />
         )}
 
         {/* Forgot-password mode — extracted to LoginForgotForm (v28.160) */}
