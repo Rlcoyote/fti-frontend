@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { API_URL, setCurrentUser as setGlobalUser, applyTheme, getTheme } from "./config.js";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { NoticeModal } from "./SharedUI.jsx";
+import { DEFAULT_PERMS } from "./utils.js";
 
 // ─── Fetch wrapper: auto-attach JWT on API calls (v27.65) ───────────────────
 // Installed once on module load. Every fetch() to our API_URL gets the
@@ -380,8 +381,22 @@ export function AppProvider({ children }) {
     return { userNames: names, userIdByName: idByName };
   }, [users]);
 
+  // v28.133 (permissions audit Phase 5.4) — single source of can() for the
+  // whole app, consumed via useApp(). Resolves identically to the backend
+  // requirePermission: owner is all-true; every other role is its
+  // DEFAULT_PERMS template overlaid with the user's stored per-user
+  // permissions. No component should hardcode a role check — call can(key).
+  const can = useMemo(() => {
+    const role = currentUser?.role;
+    if (!role) return () => false;
+    if (role === "owner") return () => true;
+    const perms = { ...(DEFAULT_PERMS[role] || {}), ...(currentUser.permissions || {}) };
+    return (key) => !!perms[key];
+  }, [currentUser]);
+
   const value = useMemo(
     () => ({
+      can,
       currentUser,
       setCurrentUser,
       logout,
@@ -407,6 +422,7 @@ export function AppProvider({ children }) {
       toggleTheme,
     }),
     [
+      can,
       currentUser,
       setCurrentUser,
       logout,
