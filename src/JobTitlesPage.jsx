@@ -22,7 +22,7 @@ import { useApp } from "./AppContext.jsx";
 // title just disappears from the Employees dropdown going forward.
 
 function JobTitlesPage() {
-  const { currentUser, showNotice } = useApp();
+  const { can, showNotice } = useApp();
   const [titles, setTitles] = useState([]);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ function JobTitlesPage() {
   const [dragOverId, setDragOverId] = useState(null);
   const [reordering, setReordering] = useState(false);
 
-  const canEdit = ["owner", "admin"].includes(currentUser?.role);
+  const canEdit = can("manage_settings");
 
   const fetchTitles = async () => {
     setLoading(true);

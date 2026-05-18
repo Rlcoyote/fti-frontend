@@ -41,8 +41,8 @@ import WebAuthnSetupModal from "./WebAuthnSetupModal.jsx";
 // field-edit experience focused on data entry.
 
 function PeoplePage() {
-  const { currentUser, refreshUsers, roles, showNotice } = useApp();
-  const isOwnerOrAdmin = ["owner", "admin"].includes(currentUser?.role);
+  const { currentUser, refreshUsers, roles, showNotice, can } = useApp();
+  const isOwnerOrAdmin = can("manage_users");
 
   // Top-level navigation state
   const [activeTab, setActiveTab] = useState("roster"); // "roster" | "permissions"
