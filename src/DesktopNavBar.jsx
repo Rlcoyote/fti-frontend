@@ -119,6 +119,7 @@ function DesktopNavBar({
   setShowCompanyDocs,
   setShowAbout,
   setShowLogoutConfirm,
+  canViewContacts,
   // Version label (e.g. "v28.05")
   version,
 }) {
@@ -286,14 +287,16 @@ function DesktopNavBar({
                         }}
                       />
                     )}
-                    <GearMenuItem
-                      label="Contacts"
-                      hasTopBorder
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        navigate("/contacts");
-                      }}
-                    />
+                    {canViewContacts && (
+                      <GearMenuItem
+                        label="Contacts"
+                        hasTopBorder
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/contacts");
+                        }}
+                      />
+                    )}
                     <GearMenuItem
                       label="Field Resources"
                       hasTopBorder

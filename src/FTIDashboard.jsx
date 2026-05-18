@@ -59,6 +59,11 @@ function FTIDashboard() {
   const userRole = currentUser.role; // owner | admin | manager | lead | salesman | field
   const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
   const isField = userRole === "field";
+  // v28.115 — Contacts is the customer directory: a sales/management surface.
+  // Lead + field are execution roles (they get the per-job contact on the
+  // ticket/WO), so they are gated out of the directory entirely. Frontend
+  // gate only — the backend contacts-API gate is part of the permissions audit.
+  const canViewContacts = ["owner", "admin", "manager", "salesman"].includes(userRole);
   // Permission-based access — reads from user's permissions, falls back to role defaults.
   // Owner ALWAYS gets everything regardless of what's in the DB.
   // When DB permissions exist, merge on top of role defaults so new keys get defaults.
@@ -295,6 +300,7 @@ function FTIDashboard() {
         setShowCompanyDocs={setShowCompanyDocs}
         setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
+        canViewContacts={canViewContacts}
       />
 
       {/* DESKTOP NAV BAR */}
@@ -314,6 +320,7 @@ function FTIDashboard() {
         setShowCompanyDocs={setShowCompanyDocs}
         setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
+        canViewContacts={canViewContacts}
         version={APP_VERSION}
       />
 
@@ -359,7 +366,7 @@ function FTIDashboard() {
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/ticket/:id" element={<TicketPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         {can("view_activity_log") && <Route path="/activity" element={<ActivityLogPage />} />}
-        <Route path="/contacts" element={<ContactsPage />} />
+        {canViewContacts && <Route path="/contacts" element={<ContactsPage />} />}
         {can("approve_tickets") && <Route path="/final-review" element={<FinalReviewPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />}
         {can("view_reports") && <Route path="/reports" element={<ReportsPage jobs={jobs} tickets={tickets} inventory={inventory} />} />}
         {can("view_inventory") && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}

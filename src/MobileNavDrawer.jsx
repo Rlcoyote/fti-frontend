@@ -146,6 +146,7 @@ function MobileNavDrawer({
   setShowCompanyDocs,
   setShowAbout,
   setShowLogoutConfirm,
+  canViewContacts,
 }) {
   return (
     <>
@@ -270,14 +271,16 @@ function MobileNavDrawer({
             }}
           />
         )}
-        <DrawerItem
-          icon="👤"
-          label="Contacts"
-          onClick={() => {
-            setDrawerOpen(false);
-            navigate("/contacts");
-          }}
-        />
+        {canViewContacts && (
+          <DrawerItem
+            icon="👤"
+            label="Contacts"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/contacts");
+            }}
+          />
+        )}
         <DrawerItem
           icon="📁"
           label="Field Resources"
