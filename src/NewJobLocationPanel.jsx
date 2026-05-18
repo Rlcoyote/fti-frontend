@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
-import { ALL_COUNTIES } from "./NewJobConstants.js";
+import { ALL_COUNTIES } from "./Geography.js";
 
 // ─── NewJobLocationPanel (v28.100 — ship 7 of NewJobModal split) ───────────
 // State (2-letter) + County (autocomplete from TX+NM list) fields, plus

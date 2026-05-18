@@ -1,30 +1,21 @@
-// ─── NewJobConstants (v28.94 — ship 1 of NewJobModal split) ────────────────
-// Pure-data tables lifted out of NewJobModal.jsx so the modal file can
-// focus on flow + JSX instead of paging past 165 lines of state/county
-// literals.
+// ─── Geography.js (v28.141) ────────────────────────────────────────────────
+// Shared US state + Texas/New Mexico county data. Born as NewJobConstants.js
+// (v28.94, ship 1 of the NewJobModal split); renamed to this neutral name in
+// v28.141 when the EditJobModal split needed the same tables — the exact
+// "another surface needs counties or state codes" case the v28.94 header
+// anticipated. Imported by the NewJob flow (NewJobLocationPanel, useNewJobForm)
+// and by EditJobModal.
 //
-// Source of truth — TX_COUNTIES is the 113-county list of Texas counties
-// historically appearing on Flo-Test work orders (the company operates
-// primarily in the Permian Basin but covers the full state). NM_COUNTIES
-// is New Mexico's full 33 county list (currently 30 entries here — see
-// note below). VALID_STATES is the standard 50-state + DC two-letter
-// codes used by the state-input validator and pin-resolve geocoder.
+// TX_COUNTIES — the 113-county Texas list historically appearing on Flo-Test
+// work orders (the company is Permian-Basin-centered but covers the state).
+// NM_COUNTIES — New Mexico county list (30 entries; see note). VALID_STATES —
+// the 50-state + DC two-letter codes used by the state-input validator and
+// the pin-resolve geocoder. ALL_COUNTIES — TX+NM merged and pre-sorted at
+// module load so the County autocomplete doesn't re-sort per render.
 //
-// `ALL_COUNTIES` is the merged sorted list used by the County
-// autocomplete dropdown. Pre-sorted at module load so callers don't
-// re-sort on every render (was previously sorted inside the render
-// function — small free perf win).
-//
-// Note on NM_COUNTIES: only 30 of 33 entries listed historically.
-// Whatever the gaps are, they predate the v28.94 extraction and are
-// preserved verbatim. If a future job lands in a missing county the
-// autocomplete will just miss the suggestion and the user types it
-// freehand — non-blocking.
-//
-// Future cleanup candidate (NOT part of this split arc): if another
-// surface in the app needs counties or state codes (e.g. a customer-
-// address form or a reports filter), promote these to `Geography.js`
-// and import from both places. Today there's exactly one caller.
+// Note on NM_COUNTIES: 30 of 33 entries listed historically. The gaps
+// predate the v28.94 extraction and are preserved verbatim — a job in a
+// missing county just misses the autocomplete suggestion (non-blocking).
 
 export const TX_COUNTIES = [
   "Andrews",

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { API_URL } from "./config.js";
 import { today } from "./utils.js";
-import { VALID_STATES } from "./NewJobConstants.js";
+import { VALID_STATES } from "./Geography.js";
 
 // ─── useNewJobForm (v28.104 — ship 11 of NewJobModal split, arc final) ─────
 // Owns all NewJobModal form state, derived values, validation, and the

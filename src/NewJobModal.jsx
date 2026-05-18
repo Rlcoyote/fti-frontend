@@ -14,7 +14,7 @@
 //                                              NewJobContactsPanel     (v28.102)
 //                                              NewJobCustomerPicker    (v28.103)
 //
-//   Constants: NewJobConstants.js (v28.94) — TX/NM counties + VALID_STATES
+//   Constants: Geography.js — TX/NM counties + VALID_STATES
 //
 // What's left here is pure orchestration: useApp + useIsMobile +
 // useNewJobMobileBack + useNewJobForm at the top, then JSX wiring the
