@@ -32,16 +32,15 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
   // Permission to mutate this ticket's crew. Client-side hint only —
   // server enforces. Owner/admin/manager always; lead of THIS ticket
   // while the ticket is open. Closed tickets: owner/admin only.
-  const userIsTicketLead = crew.some(c => c.user_id === currentUser?.id && c.is_lead);
+  const userIsTicketLead = crew.some((c) => c.user_id === currentUser?.id && c.is_lead);
   const role = currentUser?.role || "";
-  const canModify = !ticketIsClosed && editable && (
-    ["owner", "admin", "manager"].includes(role) || userIsTicketLead
-  );
+  const canModify = !ticketIsClosed && editable && (["owner", "admin", "manager"].includes(role) || userIsTicketLead);
   const canModifyClosed = ticketIsClosed && ["owner", "admin"].includes(role);
   const canMutate = canModify || canModifyClosed;
 
   const fetchCrew = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const r = await fetch(`${API_URL}/tickets/${ticketId}/crew`);
       if (!r.ok) {
@@ -66,11 +65,14 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
   // is itself a Rig Up — copying from sibling RUs onto a new RU isn't
   // a workflow we expose. Pattern matches LineItemEditor's hasRigUp gate.
   useEffect(() => {
-    if (!jobId || ticketType === "Rig Up") { setHasRigUp(false); return; }
+    if (!jobId || ticketType === "Rig Up") {
+      setHasRigUp(false);
+      return;
+    }
     fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
-      .then(r => r.ok ? r.json() : [])
-      .then(data => {
-        const rigUps = (data || []).filter(tk => tk.type === "Rig Up" && !tk.voided_at);
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        const rigUps = (data || []).filter((tk) => tk.type === "Rig Up" && !tk.voided_at);
         setHasRigUp(rigUps.length > 0);
       })
       .catch(() => setHasRigUp(false));
@@ -78,10 +80,12 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
 
   const handleAdd = async (userId, isLead) => {
     if (!userId) return;
-    setBusy(true); setError("");
+    setBusy(true);
+    setError("");
     try {
       const r = await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId, is_lead: !!isLead }),
       });
       if (!r.ok) {
@@ -99,7 +103,8 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
 
   const handleRemove = async (userId, userName) => {
     if (!window.confirm(`Remove ${userName} from this ticket's crew? Their JSA signature (if any) stays in the audit trail.`)) return;
-    setBusy(true); setError("");
+    setBusy(true);
+    setError("");
     try {
       const r = await fetch(`${API_URL}/tickets/${ticketId}/crew/${userId}`, {
         method: "DELETE",
@@ -118,10 +123,12 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
   };
 
   const handleSetLead = async (userId) => {
-    setBusy(true); setError("");
+    setBusy(true);
+    setError("");
     try {
       const r = await fetch(`${API_URL}/tickets/${ticketId}/crew/lead`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: userId }),
       });
       if (!r.ok) {
@@ -144,15 +151,20 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
   // batch, only the first is_lead member is honored (defensive — should
   // be at most one anyway).
   const bulkAdd = async (members) => {
-    if (!members?.length) { setShowCopy(false); return; }
-    setBusy(true); setError("");
-    let leadAssigned = crew.some(c => c.is_lead);
+    if (!members?.length) {
+      setShowCopy(false);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    let leadAssigned = crew.some((c) => c.is_lead);
     try {
       for (const m of members) {
         const isLead = !!m.is_lead && !leadAssigned;
         if (isLead) leadAssigned = true;
         await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: m.user_id, is_lead: isLead }),
         });
       }
@@ -165,10 +177,10 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
     }
   };
 
-  const activeCrewIds = new Set(crew.map(c => c.user_id));
+  const activeCrewIds = new Set(crew.map((c) => c.user_id));
   const addableUsers = (users || [])
-    .filter(u => u.is_active !== false)
-    .filter(u => !activeCrewIds.has(u.id))
+    .filter((u) => u.is_active !== false)
+    .filter((u) => !activeCrewIds.has(u.id))
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
   return (
@@ -185,21 +197,12 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
         onAdd={handleAdd}
         onSetLead={handleSetLead}
         onRemove={handleRemove}
-        emptyMessage={canMutate
-          ? "No crew assigned yet. Select an employee above to add — the first becomes lead."
-          : "No crew assigned yet."
-        }
+        emptyMessage={canMutate ? "No crew assigned yet. Select an employee above to add — the first becomes lead." : "No crew assigned yet."}
         rowKeyFor={(c) => c.id}
       />
 
       {showCopy && (
-        <CopyCrewModal
-          jobId={jobId}
-          excludeTicketId={ticketId}
-          existingCrewUserIds={activeCrewIds}
-          onClose={() => setShowCopy(false)}
-          onCopy={bulkAdd}
-        />
+        <CopyCrewModal jobId={jobId} excludeTicketId={ticketId} existingCrewUserIds={activeCrewIds} onClose={() => setShowCopy(false)} onCopy={bulkAdd} />
       )}
     </>
   );
