@@ -32,7 +32,18 @@ function TicketEditLockBanner({ editLock, currentUserRole }) {
       ? new Date(editLock.lockedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
       : null;
     return (
-      <div style={{ background: "#fdf5d8", borderBottom: `1px solid #e6c20044`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+      <div
+        style={{
+          background: "#fdf5d8",
+          borderBottom: `1px solid #e6c20044`,
+          padding: "10px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 8,
+        }}
+      >
         <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
           This ticket is being edited by <strong>{editLock.lockedByName}</strong>.
           {lockedAtStr && <span style={{ fontWeight: 500, marginLeft: 6 }}>Locked at {lockedAtStr}.</span>}
@@ -46,7 +57,16 @@ function TicketEditLockBanner({ editLock, currentUserRole }) {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
             onClick={editLock.requestEdit}
-            style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer" }}
+            style={{
+              background: C.blue,
+              color: C.white,
+              border: "none",
+              borderRadius: 4,
+              padding: "5px 12px",
+              fontSize: 11,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
           >
             REQUEST EDIT
           </button>
@@ -54,9 +74,23 @@ function TicketEditLockBanner({ editLock, currentUserRole }) {
             <button
               onClick={editLock.forceUnlock}
               aria-label="Owner/admin override — clears the lock and gives you edit access"
-              style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 800, cursor: "pointer", fontFamily: "'Arial', sans-serif" }}
-              onMouseEnter={e => { e.currentTarget.style.background = "#fdecea"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+              style={{
+                background: "transparent",
+                color: C.red,
+                border: `1px solid ${C.red}`,
+                borderRadius: 4,
+                padding: "5px 12px",
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: "pointer",
+                fontFamily: "'Arial', sans-serif",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#fdecea";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
             >
               FORCE UNLOCK
             </button>
@@ -69,13 +103,33 @@ function TicketEditLockBanner({ editLock, currentUserRole }) {
   // You hold the lock and someone else is waiting
   if (editLock.hasLock && editLock.requestedByName) {
     return (
-      <div style={{ background: "#e8f0fb", borderBottom: `1px solid ${C.blue}33`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+      <div
+        style={{
+          background: "#e8f0fb",
+          borderBottom: `1px solid ${C.blue}33`,
+          padding: "10px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 8,
+        }}
+      >
         <div style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>
           <strong>{editLock.requestedByName}</strong> is requesting access to this ticket.
         </div>
         <button
           onClick={editLock.dismissRequest}
-          style={{ background: "transparent", border: `1px solid ${C.blue}44`, color: C.blue, borderRadius: 4, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+          style={{
+            background: "transparent",
+            border: `1px solid ${C.blue}44`,
+            color: C.blue,
+            borderRadius: 4,
+            padding: "5px 12px",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
         >
           THE CURRENT USER WILL BE FINISHED SHORTLY
         </button>
