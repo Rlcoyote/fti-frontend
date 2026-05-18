@@ -33,26 +33,26 @@ export function usePageData() {
     const load = async () => {
       try {
         const [jobsR, ticketsR, todosR, invR, delTicketsR] = await Promise.all([
-          fetch(`${API_URL}/jobs`).then(r => r.json()),
-          fetch(`${API_URL}/tickets?include_voided=true`).then(r => r.json()),
-          fetch(`${API_URL}/todos`).then(r => r.json()),
-          fetch(`${API_URL}/inventory`).then(r => r.json()),
-          fetch(`${API_URL}/tickets?include_deleted=true`).then(r => r.json()),
+          fetch(`${API_URL}/jobs`).then((r) => r.json()),
+          fetch(`${API_URL}/tickets?include_voided=true`).then((r) => r.json()),
+          fetch(`${API_URL}/todos`).then((r) => r.json()),
+          fetch(`${API_URL}/inventory`).then((r) => r.json()),
+          fetch(`${API_URL}/tickets?include_deleted=true`).then((r) => r.json()),
         ]);
         // Transform jobs from API format to app format
-        const jobsMapped = (jobsR || []).map(j => ({
+        const jobsMapped = (jobsR || []).map((j) => ({
           id: j.id,
           customer: j.customer_name,
           customerId: j.customer_id,
           location: j.location || "",
-          wells: (j.wells || []).map(w => ({ well_name: w.well_name || w })),
+          wells: (j.wells || []).map((w) => ({ well_name: w.well_name || w })),
           afe: j.afe || null,
           jobState: j.job_state || "",
           county: j.county || "",
           dateStarted: j.date_started,
           status: j.status,
-          crew: (j.crew || []).map(c => ({ name: c.name, role: c.role })),
-          equipment: (j.equipment || []).map(e => e.description),
+          crew: (j.crew || []).map((c) => ({ name: c.name, role: c.role })),
+          equipment: (j.equipment || []).map((e) => e.description),
           hoursLogged: Number(j.hours_logged) || 0,
           estimatedCost: Number(j.estimated_cost) || 0,
           jsaComplete: j.jsa_complete,
@@ -76,12 +76,13 @@ export function usePageData() {
           createdAt: j.created_at || null,
         }));
         // Transform tickets — only include tickets whose parent work order is active
-        const activeJobIds = new Set(jobsMapped.filter(j => j.status !== "Deleted").map(j => j.id));
-        const ticketsMapped = (ticketsR || []).map(mapTicketFromApi)
-          .filter(t => !t.archivedAt)
-          .filter(t => activeJobIds.has(t.jobId));
+        const activeJobIds = new Set(jobsMapped.filter((j) => j.status !== "Deleted").map((j) => j.id));
+        const ticketsMapped = (ticketsR || [])
+          .map(mapTicketFromApi)
+          .filter((t) => !t.archivedAt)
+          .filter((t) => activeJobIds.has(t.jobId));
         // Transform todos
-        const todosMapped = (todosR || []).map(t => ({
+        const todosMapped = (todosR || []).map((t) => ({
           id: t.id,
           title: t.title,
           description: t.description,
@@ -97,7 +98,7 @@ export function usePageData() {
           completedAt: t.completed_at,
         }));
         // Transform inventory
-        const invMapped = (invR || []).map(i => ({
+        const invMapped = (invR || []).map((i) => ({
           id: i.id,
           size: i.size,
           category: i.category,
@@ -138,16 +139,24 @@ export function usePageData() {
         const data = await r.json();
         setDeletedTickets(data.map(mapTicketFromApi));
       }
-    } catch (err) { console.error("Deleted tickets refresh failed:", err); }
+    } catch (err) {
+      console.error("Deleted tickets refresh failed:", err);
+    }
   };
 
   return {
-    jobs, setJobs,
-    tickets, setTickets,
-    deletedTickets, setDeletedTickets,
-    todos, setTodos,
-    inventory, setInventory,
-    jsas, setJsas,
+    jobs,
+    setJobs,
+    tickets,
+    setTickets,
+    deletedTickets,
+    setDeletedTickets,
+    todos,
+    setTodos,
+    inventory,
+    setInventory,
+    jsas,
+    setJsas,
     loading,
     refreshDeletedTickets,
   };
