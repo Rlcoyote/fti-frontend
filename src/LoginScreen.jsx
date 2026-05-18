@@ -4,6 +4,7 @@ import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import LoginCardHeader from "./LoginCardHeader.jsx";
+import LoginPasswordForm from "./LoginPasswordForm.jsx";
 
 // ─── LoginScreen (v27.99) ───────────────────────────────────────────────────
 // Two-stage login: password → biometric.
@@ -566,69 +567,24 @@ function LoginScreen() {
           </div>
         )}
 
+        {/* Stage 1 login form — extracted to LoginPasswordForm (v28.159) */}
         {showLoginForm && (
-          <>
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>EMAIL</label>
-              <input
-                style={inputStyle}
-                type="email"
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@flotest.com"
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>PASSWORD</label>
-              <input
-                style={inputStyle}
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••"
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              />
-            </div>
-            <div style={{ textAlign: "right", marginBottom: 16 }}>
-              <span
-                onClick={() => {
-                  setMode("forgot");
-                  setError("");
-                  setMsg("");
-                }}
-                style={{ fontSize: 11, color: C.blue, cursor: "pointer", fontWeight: 600 }}
-              >
-                Forgot password?
-              </span>
-            </div>
-            {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
-            {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
-            <button
-              onClick={handleLogin}
-              disabled={loading || !webauthnSupported}
-              style={{
-                width: "100%",
-                padding: "12px 0",
-                background: C.red,
-                color: C.white,
-                border: "none",
-                borderRadius: 4,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: loading ? "default" : "pointer",
-                letterSpacing: "0.06em",
-                opacity: loading ? 0.6 : 1,
-              }}
-            >
-              {loading ? "SIGNING IN..." : "SIGN IN"}
-            </button>
-            <div style={{ fontSize: 10, color: C.muted, textAlign: "center", marginTop: 12, lineHeight: 1.4 }}>
-              After your password, you'll confirm with Touch ID, Face ID, or Windows Hello.
-            </div>
-          </>
+          <LoginPasswordForm
+            email={email}
+            setEmail={setEmail}
+            password={password}
+            setPassword={setPassword}
+            error={error}
+            msg={msg}
+            loading={loading}
+            webauthnSupported={webauthnSupported}
+            onLogin={handleLogin}
+            onForgot={() => {
+              setMode("forgot");
+              setError("");
+              setMsg("");
+            }}
+          />
         )}
 
         {/* v28.07 — JSA sign-link landing. User clicked a sign-link from
