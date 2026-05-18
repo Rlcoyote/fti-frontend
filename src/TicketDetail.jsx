@@ -35,7 +35,7 @@ import { useApp } from "./AppContext.jsx";
 // from TicketRentalCycle.
 
 function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, tickets = [], openToSign = false, asPage = false }) {
-  const { qbItems, currentUser, settings, showNotice } = useApp();
+  const { qbItems, currentUser, settings, showNotice, can } = useApp();
   const isMobile = useIsMobile();
   const yardsList = useMemo(() => parseYards(settings), [settings]);
 
@@ -76,7 +76,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   // Edit lock — pessimistic locking for concurrent access
   const editLock = useEditLock("tickets", ticket.id, currentUser, () => save());
   const editable = !isFullyLocked && !isVoided && editLock.hasLock;
-  const canApprove = ["owner", "admin", "manager", "lead"].includes(currentUser?.role);
+  const canApprove = can("approve_tickets");
 
   // Auto-save site manager as customer contact (upsert — backend deduplicates).
   // v28.81 — writes the canonical fields (phone_work + category + title)
@@ -258,7 +258,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           </button>
         </div>
         {/* Edit lock banner + edit-request notification — extracted to TicketEditLockBanner (v27.81) */}
-        <TicketEditLockBanner editLock={editLock} currentUserRole={currentUser?.role} />
+        <TicketEditLockBanner editLock={editLock} />
         {/* JSA bar — extracted to TicketJsaBar (v27.82). Single component handles
             both non-Rental (required) and Rental (optional) variants via ticket.type. */}
         <TicketJsaBar ticket={ticket} jsaLoaded={jsa.jsaLoaded} existingJSA={jsa.existingJSA} onOpen={() => jsa.setShowJSA(true)} />

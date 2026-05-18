@@ -4,7 +4,7 @@ import { C } from "./config.js";
 import { APP_VERSION } from "./version.js";
 import { useApp } from "./AppContext.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
-import { todoVisible, DEFAULT_PERMS } from "./utils.js";
+import { todoVisible } from "./utils.js";
 import { Btn } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
 import DashboardHome from "./DashboardHome.jsx";
@@ -55,20 +55,15 @@ import { useJobActions } from "./useJobActions.js";
 // modal, or filter — change one of these surfaces, not all of them.
 
 function FTIDashboard() {
-  const { currentUser, logout, customers, userNames, userIdByName } = useApp();
+  const { currentUser, logout, customers, userNames, userIdByName, can } = useApp();
   const userRole = currentUser.role; // owner | admin | manager | lead | salesman | field
-  const isManager = ["owner", "admin", "manager", "lead"].includes(userRole);
+  const isManager = can("edit_jobs");
   const isField = userRole === "field";
   // v28.115 — Contacts is the customer directory: a sales/management surface.
   // Lead + field are execution roles (they get the per-job contact on the
   // ticket/WO), so they are gated out of the directory entirely. Frontend
   // gate only — the backend contacts-API gate is part of the permissions audit.
-  const canViewContacts = ["owner", "admin", "manager", "salesman"].includes(userRole);
-  // Permission-based access — reads from user's permissions, falls back to role defaults.
-  // Owner ALWAYS gets everything regardless of what's in the DB.
-  // When DB permissions exist, merge on top of role defaults so new keys get defaults.
-  const perms = userRole === "owner" ? DEFAULT_PERMS.owner : { ...(DEFAULT_PERMS[userRole] || {}), ...(currentUser.permissions || {}) };
-  const can = (key) => !!perms[key];
+  const canViewContacts = can("view_contacts");
 
   // ── One-time mobile CSS injection ──
   useEffect(() => {
@@ -177,6 +172,7 @@ function FTIDashboard() {
     refreshDeletedTickets,
     setExpandedId,
     currentUser,
+    can,
     customers,
     userIdByName,
     setShowNewJob,

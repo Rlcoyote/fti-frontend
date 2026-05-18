@@ -28,7 +28,7 @@ function JobCard({
   jsas: _jsas,
   setJsas: _setJsas,
 }) {
-  const { currentUser, assets, userNames, userIdByName } = useApp();
+  const { assets, userNames, userIdByName, can } = useApp();
   const jobTickets = tickets.filter((t) => t.jobId === job.id);
   const [activeTab, setActiveTab] = useState("tickets");
   const [showEditJob, setShowEditJob] = useState(false);
@@ -48,7 +48,7 @@ function JobCard({
   //   PENDING ACCOUNTING  (all out of lead's domain but Final Review hasn't sent to QB yet)
   //   MARK FOR COMPLETION (all tickets terminal — sentToQB / qbVerified / voided)
   // Only the last state is clickable. Click → confirm modal → archive.
-  const canManage = ["owner", "admin", "manager"].includes(currentUser?.role || "field");
+  const canManage = can("view_archive");
   const inLeadDomain = jobTickets.filter((t) => WO_TICKET_STATUSES.includes(t.status));
   const inFinalReview = jobTickets.filter((t) => FINAL_REVIEW_TICKET_STATUSES.includes(t.status));
   const inTerminal = jobTickets.filter((t) => TERMINAL_TICKET_STATUSES.includes(t.status));
@@ -435,8 +435,7 @@ function JobCard({
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
                 {(() => {
-                  const role = currentUser?.role || "field";
-                  const canDelete = ["owner", "admin", "manager"].includes(role);
+                  const canDelete = can("delete_jobs");
                   const actions = [
                     { label: "Add / View Field Tickets", action: () => setActiveTab("tickets") },
                     { label: "Flowback Data", action: () => setShowFlowback(true) },
@@ -566,20 +565,20 @@ function JobCard({
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ fontSize: 16, fontWeight: 800, color: C.red, marginBottom: 12 }}>
-              {["owner", "admin", "manager"].includes(currentUser?.role) ? "Delete Work Order?" : "Flag for Cancellation?"}
+              {can("delete_jobs") ? "Delete Work Order?" : "Flag for Cancellation?"}
             </div>
             <div style={{ fontSize: 13, color: C.text, marginBottom: 8 }}>
               <strong>Work Order #{job.id}</strong> — {job.customer}
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>
-              {["owner", "admin", "manager"].includes(currentUser?.role)
+              {can("delete_jobs")
                 ? "This work order will be moved to the Deleted Items page. It can be restored later."
                 : "This work order will be flagged for review. A manager or admin will need to approve the cancellation."}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <Btn
                 onClick={() => {
-                  if (["owner", "admin", "manager"].includes(currentUser?.role)) {
+                  if (can("delete_jobs")) {
                     onDeleteJob(job.id);
                   } else {
                     onFlagCancel(job.id);
@@ -587,7 +586,7 @@ function JobCard({
                   setShowDeleteConfirm(false);
                 }}
               >
-                {["owner", "admin", "manager"].includes(currentUser?.role) ? "YES, DELETE" : "YES, FLAG IT"}
+                {can("delete_jobs") ? "YES, DELETE" : "YES, FLAG IT"}
               </Btn>
               <Btn onClick={() => setShowDeleteConfirm(false)} variant="ghost">
                 CANCEL

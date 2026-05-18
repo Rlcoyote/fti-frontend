@@ -2,6 +2,7 @@ import { C } from "./config.js";
 import { formatDate, calcTicketTotal } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketRentalCycle.jsx";
+import { useApp } from "./AppContext.jsx";
 
 // ─── JobTicketsRow (v28.90 — ship 9 of JobTicketsTab split, the big one) ───
 // A single ticket card on the Tickets tab. Renders the mobile (vertical
@@ -58,7 +59,8 @@ const BTN_BASE = {
   whiteSpace: "nowrap",
 };
 
-export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActiveTicket, currentUser, actions }) {
+export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActiveTicket, actions }) {
+  const { can } = useApp();
   const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type || "Unknown" };
   const total = calcTicketTotal(t);
   const isSigned = ["signed", "sigNotReq", "emailed", "approved", "sentToQB", "qbVerified"].includes(t.status);
@@ -414,7 +416,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
             {t.voidedAt ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontSize: 12, color: cardMuted, fontStyle: "italic" }}>Voided</span>
-                {["owner", "admin"].includes(currentUser?.role) && (
+                {can("view_archive") && (
                   <button
                     type="button"
                     onClick={(e) => {

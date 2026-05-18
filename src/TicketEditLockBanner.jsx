@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { useApp } from "./AppContext.jsx";
 
 // ─── TicketEditLockBanner (v27.81) ──────────────────────────────────────────
 // Extracted from TicketDetail.jsx. Two edit-lock-related banners combined
@@ -23,11 +24,12 @@ import { C } from "./config.js";
 //              forceUnlock, dismissRequest)
 //   currentUserRole — for owner/admin force-unlock visibility
 
-function TicketEditLockBanner({ editLock, currentUserRole }) {
+function TicketEditLockBanner({ editLock }) {
+  const { can } = useApp();
   // Someone else holds the lock
   if (editLock.isLocked && !editLock.hasLock) {
     const nameUnknown = editLock.lockedByName === "Another user";
-    const isOwnerOrAdmin = ["owner", "admin"].includes(currentUserRole);
+    const isOwnerOrAdmin = can("manage_users");
     const lockedAtStr = editLock.lockedAt
       ? new Date(editLock.lockedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })
       : null;

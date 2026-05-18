@@ -20,13 +20,13 @@ import { useApp } from "./AppContext.jsx";
 // Archive page (non-restorable). Role-gated to owner/admin.
 
 function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
-  const { currentUser } = useApp();
+  const { can } = useApp();
   const [selectMode, setSelectMode] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState(() => new Set());
   const [selectedTickets, setSelectedTickets] = useState(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const canArchive = ["owner", "admin"].includes(currentUser.role);
+  const canArchive = can("view_archive");
 
   // Build groups keyed by jobId. A group exists whenever a WO is fully deleted
   // OR has at least one deleted ticket under it (or both).

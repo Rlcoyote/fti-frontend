@@ -31,6 +31,7 @@ export function useJobActions({
   setExpandedId,
   // From AppContext
   currentUser,
+  can,
   customers,
   userIdByName,
   // Local UI state
@@ -150,7 +151,7 @@ export function useJobActions({
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (!["owner", "admin", "manager"].includes(currentUser.role)) return;
+    if (!can("delete_jobs")) return;
     const job = jobs.find((j) => j.id === jobId);
     try {
       await fetch(`${API_URL}/jobs/${jobId}`, {
@@ -205,7 +206,7 @@ export function useJobActions({
   };
 
   const handleArchiveJob = async (jobId) => {
-    if (!["owner", "admin"].includes(currentUser.role)) return;
+    if (!can("view_archive")) return;
     try {
       await fetch(`${API_URL}/archive`, {
         method: "POST",
@@ -225,7 +226,7 @@ export function useJobActions({
   // from handleArchiveJob (which is called from DeletedJobsPage to permanently
   // archive deleted-but-not-yet-purged WOs with reason="deleted").
   const handleCloseJob = async (jobId) => {
-    if (!["owner", "admin", "manager"].includes(currentUser.role)) return;
+    if (!can("view_archive")) return;
     const job = jobs.find((j) => j.id === jobId);
     try {
       const r = await fetch(`${API_URL}/archive`, {
@@ -274,7 +275,7 @@ export function useJobActions({
   };
 
   const handleArchiveTicket = async (ticketId, reason = "deleted") => {
-    if (!["owner", "admin"].includes(currentUser.role)) return;
+    if (!can("view_archive")) return;
     try {
       await fetch(`${API_URL}/archive`, {
         method: "POST",

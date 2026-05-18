@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { API_URL } from "./config.js";
+import { useApp } from "./AppContext.jsx";
 
 function useEditLock(type, id, currentUser, onAutoSave) {
+  const { can } = useApp();
   const [lockState, setLockState] = useState({ isLocked: false, lockedBy: null, lockedByName: null, lockedAt: null, requestedByName: null, hasLock: true });
   const lockAcquired = useRef(true);
   const inactivityTimer = useRef(null);
@@ -83,7 +85,7 @@ function useEditLock(type, id, currentUser, onAutoSave) {
   // who holds it, then reacquires for the current user. Refuses silently if role doesn't qualify.
   const forceUnlock = async () => {
     if (!id || !currentUser?.id) return;
-    if (!["owner", "admin"].includes(currentUser?.role)) return;
+    if (!can("manage_users")) return;
     try {
       await fetch(`${API_URL}/edit-lock/${type}/${id}/force-unlock`, {
         method: "POST",

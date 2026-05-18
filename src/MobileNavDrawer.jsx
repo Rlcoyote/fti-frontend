@@ -222,7 +222,7 @@ function MobileNavDrawer({
         {/* NAV ITEMS */}
         {navItems.map((item) => {
           if (item === "Work Order History" && isField) return null;
-          if (item === "Deleted" && !["owner", "admin", "manager"].includes(currentUser.role)) return null;
+          if (item === "Deleted" && !can("view_archive")) return null;
           const active = PAGE_MAP[item] === page;
           let badge, badgeColor;
           if (item === "Action Items") {
