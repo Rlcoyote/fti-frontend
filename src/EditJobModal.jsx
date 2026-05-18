@@ -4,10 +4,12 @@ import { C } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { useApp } from "./AppContext.jsx";
-import { VALID_STATES, ALL_COUNTIES } from "./Geography.js";
+import { VALID_STATES } from "./Geography.js";
 import EditJobLockBanner from "./EditJobLockBanner.jsx";
 import EditJobPinResolver from "./EditJobPinResolver.jsx";
 import EditJobContactGrid from "./EditJobContactGrid.jsx";
+import EditJobDetailFields from "./EditJobDetailFields.jsx";
+import EditJobUnsavedModal from "./EditJobUnsavedModal.jsx";
 
 function EditJobModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
@@ -133,20 +135,6 @@ function EditJobModal({ job, onSave, onClose }) {
     }
   };
 
-  const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter((c) => c.toLowerCase().startsWith(county.toLowerCase())) : [];
-
-  const formatState = (val) =>
-    val
-      .replace(/[^a-zA-Z]/g, "")
-      .slice(0, 2)
-      .toUpperCase();
-
-  const addWell = () => {
-    if (wellList.length < 10) setWellList((prev) => [...prev, ""]);
-  };
-  const updateWell = (idx, val) => setWellList((prev) => prev.map((w, i) => (i === idx ? val : w)));
-  const removeWell = (idx) => setWellList((prev) => prev.filter((_, i) => i !== idx));
-
   const sectionHead = (label) => (
     <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8, marginTop: 4 }}>{label}</div>
   );
@@ -156,144 +144,30 @@ function EditJobModal({ job, onSave, onClose }) {
       {/* Edit-lock banners — extracted to EditJobLockBanner (v28.142) */}
       <EditJobLockBanner editLock={editLock} />
       {showUnsaved && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setShowUnsaved(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.red}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 400,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This work order has unsaved changes. Are you sure you want to close?</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn
-                onClick={() => {
-                  editLock.releaseLock();
-                  onClose();
-                }}
-              >
-                YES, DISCARD
-              </Btn>
-              <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>
-                KEEP EDITING
-              </Btn>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Customer + Status */}
-      <div style={{ marginBottom: 12 }}>
-        <div>
-          <label style={labelStyle}>CUSTOMER</label>
-          <input style={inputStyle} value={customer} onChange={(e) => setCustomer(e.target.value)} />
-        </div>
-      </div>
-
-      {/* Location */}
-      {sectionHead("LOCATION")}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-        <div>
-          <label style={labelStyle}>STATE</label>
-          <input style={inputStyle} value={jobState} onChange={(e) => setJobState(formatState(e.target.value))} placeholder="TX" maxLength={2} />
-        </div>
-        <div style={{ position: "relative" }}>
-          <label style={labelStyle}>COUNTY</label>
-          <input
-            style={inputStyle}
-            value={county}
-            onChange={(e) => {
-              setCounty(e.target.value);
-              setShowCountyDrop(true);
-            }}
-            onFocus={() => setShowCountyDrop(true)}
-            onBlur={() => setTimeout(() => setShowCountyDrop(false), 150)}
-            placeholder="Start typing..."
-          />
-          {showCountyDrop && filteredCounties.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 20,
-                background: C.cardBg,
-                border: `1px solid ${C.border}`,
-                borderRadius: 4,
-                maxHeight: 160,
-                overflowY: "auto",
-                marginTop: 2,
-              }}
-            >
-              {filteredCounties.map((c) => (
-                <div
-                  key={c}
-                  onMouseDown={() => {
-                    setCounty(c);
-                    setShowCountyDrop(false);
-                  }}
-                  style={{ padding: "6px 12px", cursor: "pointer", fontSize: 12 }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  {c}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Wells */}
-      {sectionHead("WELL NAME / LOCATION")}
-      {wellList.map((w, idx) => (
-        <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, minWidth: 18 }}>{idx + 1}.</div>
-          <input style={{ ...inputStyle, flex: 1 }} value={w} onChange={(e) => updateWell(idx, e.target.value)} placeholder="Well or CTB name..." />
-          {wellList.length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeWell(idx)}
-              style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}
-            >
-              ×
-            </button>
-          )}
-        </div>
-      ))}
-      {wellList.length < 10 && (
-        <button
-          type="button"
-          onClick={addWell}
-          style={{
-            background: "transparent",
-            border: `1px solid ${C.border}`,
-            borderRadius: 3,
-            padding: "3px 10px",
-            fontSize: 11,
-            fontWeight: 700,
-            color: C.text,
-            cursor: "pointer",
-            marginBottom: 12,
+        <EditJobUnsavedModal
+          onClose={() => setShowUnsaved(false)}
+          onDiscard={() => {
+            editLock.releaseLock();
+            onClose();
           }}
-        >
-          + ADD WELL
-        </button>
+        />
       )}
-      <div style={{ marginBottom: 12 }}>
-        <label style={labelStyle}>AFE</label>
-        <input style={{ ...inputStyle, maxWidth: 220 }} value={afe} onChange={(e) => setAfe(e.target.value)} placeholder="AFE number if applicable" />
-      </div>
+
+      {/* Customer / Location / Wells / AFE — extracted to EditJobDetailFields (v28.145) */}
+      <EditJobDetailFields
+        customer={customer}
+        setCustomer={setCustomer}
+        jobState={jobState}
+        setJobState={setJobState}
+        county={county}
+        setCounty={setCounty}
+        showCountyDrop={showCountyDrop}
+        setShowCountyDrop={setShowCountyDrop}
+        wellList={wellList}
+        setWellList={setWellList}
+        afe={afe}
+        setAfe={setAfe}
+      />
 
       {/* Point of Contact + Approver — extracted to EditJobContactGrid (v28.144) */}
       {sectionHead("POINT OF CONTACT")}
