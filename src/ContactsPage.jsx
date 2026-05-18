@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
-import { CATEGORY_OPTIONS, TITLE_OPTIONS, ROLE_LABELS, categoryLabel } from "./ContactsConstants.js";
+import { CATEGORY_OPTIONS, ROLE_LABELS, categoryLabel } from "./ContactsConstants.js";
+import ContactEditModal from "./ContactEditModal.jsx";
 
 // ─── v28.78 — ContactsPage rebuilt for the migration-005 schema ──────────
 // Uses the v28.76 dual-shape backend (writes go to BOTH legacy `phone` /
@@ -37,17 +38,6 @@ function ContactsPage() {
   const [mergeKeeperId, setMergeKeeperId] = useState(null);
   const [mergeReason, setMergeReason] = useState("");
   const [msg, setMsg] = useState("");
-
-  // Edit form fields (v28.78 — full new-schema shape)
-  const [eFirst, setEFirst] = useState("");
-  const [eLast, setELast] = useState("");
-  const [ePhoneWork, setEPhoneWork] = useState("");
-  const [ePhonePersonal, setEPhonePersonal] = useState("");
-  const [eEmail, setEEmail] = useState("");
-  const [eCategory, setECategory] = useState("poc");
-  const [eTitle, setETitle] = useState("");
-  const [eTitleOther, setETitleOther] = useState("");
-  const [eNotes, setENotes] = useState("");
 
   const [winW, setWinW] = useState(window.innerWidth);
   useEffect(() => {
@@ -127,57 +117,11 @@ function ContactsPage() {
     return list.sort((a, b) => (a.customer_name || "").localeCompare(b.customer_name || "") || (a.name || "").localeCompare(b.name || ""));
   }, [merged, filterCustomer, filterCategory, search, showInactive]);
 
-  const openEdit = (contactRow) => {
-    // contactRow is a merged row; use its first underlying record as the edit target
-    const c = contactRow.rows ? contactRow.rows[0] : contactRow;
-    const parts = (c.name || "").split(" ");
-    setEFirst(parts[0] || "");
-    setELast(parts.slice(1).join(" ") || "");
-    setEPhoneWork(c.phone_work || c.phone || "");
-    setEPhonePersonal(c.phone_personal || "");
-    setEEmail(c.email || "");
-    setECategory(c.category || c.role_tag || "poc");
-    // If category is a legacy value, canonicalize on entry so the dropdown shows valid option
-    if (["site_manager", "company_man"].includes(c.category || c.role_tag)) {
-      setECategory("site_rep");
-    }
-    setETitle(c.title || "");
-    setETitleOther(c.title_other || "");
-    setENotes(c.notes || "");
-    setEditContact(c);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!eFirst.trim()) return;
-    const fullName = [eFirst.trim(), eLast.trim()].filter(Boolean).join(" ");
-    try {
-      const r = await fetch(`${API_URL}/customers/contacts/${editContact.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: fullName,
-          phone_work: ePhoneWork || null,
-          phone_personal: ePhonePersonal || null,
-          email: eEmail || null,
-          category: eCategory,
-          title: eTitle || null,
-          title_other: eTitle === "Other" ? eTitleOther || null : null,
-          notes: eNotes || null,
-        }),
-      });
-      if (!r.ok) {
-        const j = await r.json().catch(() => ({}));
-        setMsg(`Update failed: ${j.error || r.statusText}`);
-        return;
-      }
-      await fetchAll();
-      setEditContact(null);
-      setMsg("Contact updated.");
-      setTimeout(() => setMsg(""), 3000);
-    } catch (err) {
-      setMsg(`Update failed: ${err.message}`);
-    }
-  };
+  // openEdit resolves a merged display row down to its first underlying
+  // contact record — that record is the edit target. ContactEditModal
+  // (v28.151) owns the form, the PUT, and the legacy-category
+  // canonicalization on entry.
+  const openEdit = (contactRow) => setEditContact(contactRow.rows ? contactRow.rows[0] : contactRow);
 
   // Soft-delete: any auth user. Single-row.
   const handleSoftDeleteOne = async (id, reason = null) => {
@@ -569,73 +513,19 @@ function ContactsPage() {
         </div>
       )}
 
-      {/* Edit modal — full new-schema shape */}
+      {/* Edit modal — extracted to ContactEditModal (v28.151) */}
       {editContact && (
-        <ModalWrap title="EDIT CONTACT" onClose={() => setEditContact(null)} width={480}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={labelStyle}>FIRST NAME</label>
-              <input style={inputStyle} value={eFirst} onChange={(e) => setEFirst(e.target.value)} autoFocus />
-            </div>
-            <div>
-              <label style={labelStyle}>LAST NAME</label>
-              <input style={inputStyle} value={eLast} onChange={(e) => setELast(e.target.value)} />
-            </div>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={labelStyle}>WORK PHONE</label>
-              <input style={inputStyle} value={ePhoneWork} onChange={(e) => setEPhoneWork(e.target.value)} />
-            </div>
-            <div>
-              <label style={labelStyle}>PERSONAL PHONE</label>
-              <input style={inputStyle} value={ePhonePersonal} onChange={(e) => setEPhonePersonal(e.target.value)} />
-            </div>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={labelStyle}>EMAIL</label>
-            <input style={inputStyle} value={eEmail} onChange={(e) => setEEmail(e.target.value)} />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={labelStyle}>CATEGORY</label>
-              <select style={inputStyle} value={eCategory} onChange={(e) => setECategory(e.target.value)}>
-                {CATEGORY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>TITLE</label>
-              <select style={inputStyle} value={eTitle} onChange={(e) => setETitle(e.target.value)}>
-                <option value="">— None —</option>
-                {TITLE_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          {eTitle === "Other" && (
-            <div style={{ marginBottom: 10 }}>
-              <label style={labelStyle}>TITLE (SPECIFY)</label>
-              <input style={inputStyle} value={eTitleOther} onChange={(e) => setETitleOther(e.target.value)} placeholder="e.g., Night DSM, Customer Liaison" />
-            </div>
-          )}
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>NOTES</label>
-            <textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={eNotes} onChange={(e) => setENotes(e.target.value)} />
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Btn onClick={handleSaveEdit}>SAVE</Btn>
-            <Btn variant="ghost" onClick={() => setEditContact(null)}>
-              CANCEL
-            </Btn>
-          </div>
-        </ModalWrap>
+        <ContactEditModal
+          contact={editContact}
+          onClose={() => setEditContact(null)}
+          onError={(m) => setMsg(m)}
+          onSaved={async () => {
+            await fetchAll();
+            setEditContact(null);
+            setMsg("Contact updated.");
+            setTimeout(() => setMsg(""), 3000);
+          }}
+        />
       )}
 
       {/* Batch soft-delete confirm */}
