@@ -3,7 +3,6 @@ import { useApp } from "./AppContext.jsx";
 import LoginScreen from "./LoginScreen.jsx";
 import PublicSignPage from "./PublicSignPage.jsx";
 import PinSetupPage from "./PinSetupPage.jsx";
-import PublicPrivacyPolicy from "./PublicPrivacyPolicy.jsx";
 import FTIDashboard from "./FTIDashboard.jsx";
 
 function AppWrapper() {
@@ -17,11 +16,17 @@ function AppWrapper() {
   // the employee may not have login access yet and the link is self-authenticating.
   if (window.location.pathname === "/set-pin") return <PinSetupPage />;
 
-  // Privacy policy (v28.55) — public legal page hosted in the app rather
-  // than on the IONOS marketing site, where the WordPress privacy-policy
-  // template was a blank placeholder. Twilio A2P campaign Privacy Policy
-  // URL points here.
-  if (window.location.pathname === "/privacy-policy") return <PublicPrivacyPolicy />;
+  // /privacy-policy — the canonical privacy policy lives on the marketing
+  // site (www.flotest.com/privacy-policy/), which is also the URL registered
+  // with the Twilio A2P campaign. This route only catches stray old links
+  // (e.g. an early A2P consent SMS) and bounces them to the real page. The
+  // former in-app copy (PublicPrivacyPolicy.jsx — a v28.55 stopgap from when
+  // the WordPress page was a blank placeholder) was removed once it had gone
+  // stale; a divergent second copy of a legal document is a liability.
+  if (window.location.pathname === "/privacy-policy") {
+    window.location.replace("https://www.flotest.com/privacy-policy/");
+    return null;
+  }
 
   if (!currentUser) return <LoginScreen />;
 
