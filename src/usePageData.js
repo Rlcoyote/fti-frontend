@@ -36,7 +36,12 @@ export function usePageData() {
           fetch(`${API_URL}/jobs`).then((r) => r.json()),
           fetch(`${API_URL}/tickets?include_voided=true`).then((r) => r.json()),
           fetch(`${API_URL}/todos`).then((r) => r.json()),
-          fetch(`${API_URL}/inventory`).then((r) => r.json()),
+          // r.ok-guarded: GET /api/inventory is permission-gated (view_inventory,
+          // backend Pass 2b). A 403 here must NOT throw — without the guard the
+          // 403 body parses as JSON and the inventory transform .map() throws,
+          // aborting this whole Promise.all load and blanking the dashboard for
+          // field/salesman. Fall back to [] — they simply have no inventory.
+          fetch(`${API_URL}/inventory`).then((r) => (r.ok ? r.json() : [])),
           fetch(`${API_URL}/tickets?include_deleted=true`).then((r) => r.json()),
         ]);
         // Transform jobs from API format to app format
