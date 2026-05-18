@@ -32,6 +32,10 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
   // Permission to mutate this ticket's crew. Client-side hint only —
   // server enforces. Owner/admin/manager always; lead of THIS ticket
   // while the ticket is open. Closed tickets: owner/admin only.
+  // v28.139 (permissions audit Phase 5.5) — intentionally NOT a can()
+  // matrix key: "lead of THIS ticket" is per-record context a flat
+  // role->boolean key cannot express. Mirrors the backend
+  // canModifyTicketCrew. Documented, intentional exception — keep.
   const userIsTicketLead = crew.some((c) => c.user_id === currentUser?.id && c.is_lead);
   const role = currentUser?.role || "";
   const canModify = !ticketIsClosed && editable && (["owner", "admin", "manager"].includes(role) || userIsTicketLead);

@@ -184,6 +184,10 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
   const userOnCrew = data.crew.find((c) => c.user_id === currentUser?.id);
   const userIsLead = !!(userOnCrew && userOnCrew.is_lead);
   const role = currentUser?.role || "";
+  // v28.139 (permissions audit Phase 5.5) — intentionally NOT a can() matrix
+  // key: JSA sign-link / override authority is "lead of THIS ticket OR
+  // manager+", per-record context a flat key cannot express. The backend
+  // (jsas.signing.js) is the enforced gate. Documented exception — keep.
   const canSendLinkOrOverride = userIsLead || ["owner", "admin", "manager"].includes(role);
   const ticketIsClosed = data.ticket_is_closed;
   const jsaCompleted = !!data.jsa_completed_at;

@@ -28,6 +28,11 @@ function detectEffectiveRole(permissions, templates) {
 
 function PermissionsMatrixView() {
   const { currentUser, settings, refreshSettings } = useApp();
+  // v28.139 (permissions audit Phase 5.5) — root of trust. Gates the
+  // role-template editor itself. Intentionally a hardcoded owner/admin
+  // check, NOT a can() matrix key: the matrix cannot govern who edits the
+  // matrix without becoming circular / an escalation path. Mirrors the
+  // backend PUT /api/settings role_templates guard. Documented — keep.
   const isOwnerOrAdmin = ["owner", "admin"].includes(currentUser?.role);
   const EDITABLE_ROLES = useMemo(() => ROLE_OPTIONS.filter((r) => r.value !== "owner"), []);
   const [permUsers, setPermUsers] = useState([]);
