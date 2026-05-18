@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import useIsMobile from "./useIsMobile.js";
-import { C, API_URL } from "./config.js";
+import { C } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { useApp } from "./AppContext.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 import { VALID_STATES, ALL_COUNTIES } from "./Geography.js";
 import EditJobLockBanner from "./EditJobLockBanner.jsx";
+import EditJobPinResolver from "./EditJobPinResolver.jsx";
 
 function EditJobModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
@@ -76,8 +77,6 @@ function EditJobModal({ job, onSave, onClose }) {
   const [editGooglePin, setEditGooglePin] = useState(job.googlePin || job.google_pin || "");
   const [editPinLat, setEditPinLat] = useState(job.pinLat || job.pin_lat || null);
   const [editPinLng, setEditPinLng] = useState(job.pinLng || job.pin_lng || null);
-  const [editPinResolving, setEditPinResolving] = useState(false);
-  const [editPinError, setEditPinError] = useState("");
   const [jobNotes, setJobNotes] = useState(job.notes || "");
   const [showUnsaved, setShowUnsaved] = useState(false);
 
@@ -370,103 +369,20 @@ function EditJobModal({ job, onSave, onClose }) {
         </div>
       </div>
 
-      {/* Google Pin */}
+      {/* Google Pin — extracted to EditJobPinResolver (v28.143) */}
       {sectionHead("GOOGLE PIN")}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>Google Maps links only. Resolving will auto-fill State and County.</div>
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 6 }}>
-          <input
-            style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
-            value={editGooglePin}
-            onChange={(e) => {
-              setEditGooglePin(e.target.value);
-              setEditPinLat(null);
-              setEditPinLng(null);
-              setEditPinError("");
-            }}
-            placeholder="Paste Google Maps link..."
-          />
-          <button
-            type="button"
-            onClick={async () => {
-              if (!editGooglePin.trim()) return;
-              setEditPinResolving(true);
-              setEditPinError("");
-              try {
-                const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ url: editGooglePin.trim() }),
-                });
-                if (!r.ok) {
-                  setEditPinError("Could not resolve pin.");
-                  setEditPinResolving(false);
-                  return;
-                }
-                const { lat, lng } = await r.json();
-                setEditPinLat(lat);
-                setEditPinLng(lng);
-                // Geocode to state/county
-                const geoR = await fetch(`${API_URL}/jobs/geocode`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ lat, lng }),
-                });
-                if (geoR.ok) {
-                  const { state, county: geoCounty } = await geoR.json();
-                  if (state) setJobState(state);
-                  if (geoCounty) setCounty(geoCounty);
-                }
-              } catch {
-                setEditPinError("Network error.");
-              }
-              setEditPinResolving(false);
-            }}
-            disabled={!editGooglePin.trim() || editPinResolving}
-            style={{
-              background: editGooglePin.trim() ? C.blue : C.steel,
-              color: editGooglePin.trim() ? C.white : C.muted,
-              border: "none",
-              borderRadius: 4,
-              padding: "8px 14px",
-              fontSize: 11,
-              fontWeight: 700,
-              cursor: editGooglePin.trim() ? "pointer" : "default",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            {editPinResolving ? "Resolving..." : "RESOLVE"}
-          </button>
-          {editGooglePin && (
-            <button
-              type="button"
-              onClick={() => navigator.clipboard.writeText(editGooglePin)}
-              style={{
-                background: "transparent",
-                border: `1px solid ${C.border}`,
-                borderRadius: 4,
-                padding: "8px 10px",
-                fontSize: 11,
-                fontWeight: 700,
-                color: C.muted,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                flexShrink: 0,
-              }}
-            >
-              COPY
-            </button>
-          )}
-        </div>
-        {editPinError && <div style={{ fontSize: 11, color: C.red, fontWeight: 700 }}>⚠ {editPinError}</div>}
-        {editPinLat && editPinLng && (
-          <div style={{ fontSize: 11, color: C.green, fontFamily: "monospace" }}>
-            ✓ {parseFloat(editPinLat).toFixed(6)}, {parseFloat(editPinLng).toFixed(6)}
-          </div>
-        )}
-        {!editPinLat && editGooglePin && <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Resolve to update coordinates</div>}
-      </div>
+      <EditJobPinResolver
+        googlePin={editGooglePin}
+        setGooglePin={setEditGooglePin}
+        pinLat={editPinLat}
+        setPinLat={setEditPinLat}
+        pinLng={editPinLng}
+        setPinLng={setEditPinLng}
+        onGeocode={(state, geoCounty) => {
+          if (state) setJobState(state);
+          if (geoCounty) setCounty(geoCounty);
+        }}
+      />
 
       {/* Notes */}
       <div style={{ marginBottom: 14 }}>
