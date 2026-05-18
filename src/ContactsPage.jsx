@@ -44,8 +44,8 @@ function categoryLabel(c) {
 }
 
 function ContactsPage() {
-  const { customers, currentUser } = useApp();
-  const isAdmin = ["owner", "admin"].includes(currentUser?.role);
+  const { customers, currentUser, can } = useApp();
+  const isAdmin = can("edit_contacts");
   const isOwner = currentUser?.role === "owner";
 
   const [contacts, setContacts] = useState([]);
