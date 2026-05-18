@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
-import { APP_VERSION } from "./version.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import LoginCardHeader from "./LoginCardHeader.jsx";
 
 // ─── LoginScreen (v27.99) ───────────────────────────────────────────────────
 // Two-stage login: password → biometric.
@@ -525,58 +525,29 @@ function LoginScreen() {
   const showAuthenticationStep = mode === "login" && !!pendingAuthentication && !pendingRegistration && !enrollmentLanding && !jsaSignLanding;
   const showLoginForm = mode === "login" && !pendingRegistration && !pendingAuthentication && !enrollmentLanding && !jsaSignLanding;
 
+  // Mode-dependent subtitle for the card header (extracted v28.158).
+  const headerSubtitle =
+    mode === "login"
+      ? showJsaSignStep
+        ? "SIGN THE JSA"
+        : showEnrollmentStep
+          ? "REGISTER THIS DEVICE"
+          : showRegistrationStep
+            ? "REGISTER THIS DEVICE"
+            : showAuthenticationStep
+              ? "CONFIRM WITH BIOMETRIC"
+              : "OPERATIONS DASHBOARD"
+      : mode === "forgot"
+        ? "PASSWORD RESET"
+        : "SET NEW PASSWORD";
+
   return (
     <div
       style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}
     >
       <div style={{ background: C.cardBg, borderRadius: 8, padding: 40, width: 380, maxWidth: "90vw", borderTop: `4px solid ${C.red}` }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              border: `3px solid ${C.red}`,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: C.blue,
-              fontSize: 18,
-              fontWeight: 900,
-              color: C.white,
-              margin: "0 auto 12px",
-              boxShadow: `0 0 20px ${C.red}44`,
-            }}
-          >
-            FTI
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: C.text, letterSpacing: "0.1em" }}>FLO-TEST INC.</div>
-          <div style={{ fontSize: 11, color: C.muted, letterSpacing: "0.12em", marginTop: 4 }}>
-            {mode === "login"
-              ? showJsaSignStep
-                ? "SIGN THE JSA"
-                : showEnrollmentStep
-                  ? "REGISTER THIS DEVICE"
-                  : showRegistrationStep
-                    ? "REGISTER THIS DEVICE"
-                    : showAuthenticationStep
-                      ? "CONFIRM WITH BIOMETRIC"
-                      : "OPERATIONS DASHBOARD"
-              : mode === "forgot"
-                ? "PASSWORD RESET"
-                : "SET NEW PASSWORD"}{" "}
-            <span style={{ color: C.muted, fontWeight: 700 }}>{APP_VERSION}</span>
-          </div>
-          <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.04em", marginTop: 6 }}>
-            <a href="https://www.flotest.com/privacy-policy/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>
-              Privacy Policy
-            </a>
-            {" · "}
-            <a href="https://www.flotest.com/sms-terms/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>
-              SMS Terms
-            </a>
-          </div>
-        </div>
+        {/* Card header — extracted to LoginCardHeader (v28.158) */}
+        <LoginCardHeader subtitle={headerSubtitle} />
 
         {!webauthnSupported && (
           <div
