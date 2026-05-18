@@ -22,6 +22,7 @@ import SettingsModal from "./SettingsModal.jsx";
 import PeoplePage from "./PeoplePage.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import CompanyDocumentsModal from "./CompanyDocumentsModal.jsx";
+import AboutModal from "./AboutModal.jsx";
 import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
@@ -125,6 +126,7 @@ function FTIDashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
   const [showCompanyDocs, setShowCompanyDocs] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -291,6 +293,7 @@ function FTIDashboard() {
         setShowSettings={setShowSettings}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
+        setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
       />
 
@@ -309,6 +312,7 @@ function FTIDashboard() {
         setShowSettings={setShowSettings}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
+        setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
         version={APP_VERSION}
       />
@@ -393,6 +397,7 @@ function FTIDashboard() {
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
       {showCompanyDocs && <CompanyDocumentsModal onClose={() => setShowCompanyDocs(false)} />}
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       {showLogoutConfirm && (
         <div
           style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}

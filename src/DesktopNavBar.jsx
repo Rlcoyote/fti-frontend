@@ -117,6 +117,7 @@ function DesktopNavBar({
   setShowSettings,
   setShowEmergencyContacts,
   setShowCompanyDocs,
+  setShowAbout,
   setShowLogoutConfirm,
   // Version label (e.g. "v28.05")
   version,
@@ -311,6 +312,14 @@ function DesktopNavBar({
                         }}
                       />
                     )}
+                    <GearMenuItem
+                      label="About"
+                      hasTopBorder
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        setShowAbout(true);
+                      }}
+                    />
                   </div>
                 </>
               )}

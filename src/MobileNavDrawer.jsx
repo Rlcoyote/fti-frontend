@@ -144,6 +144,7 @@ function MobileNavDrawer({
   setShowSettings,
   setShowEmergencyContacts,
   setShowCompanyDocs,
+  setShowAbout,
   setShowLogoutConfirm,
 }) {
   return (
@@ -295,6 +296,16 @@ function MobileNavDrawer({
             }}
           />
         )}
+
+        {/* About — ungated; every user can see app version + legal links */}
+        <DrawerItem
+          icon="ℹ"
+          label="About"
+          onClick={() => {
+            setDrawerOpen(false);
+            setShowAbout(true);
+          }}
+        />
 
         {/* THEME TOGGLE (v28.25) */}
         <ThemeDrawerItem />

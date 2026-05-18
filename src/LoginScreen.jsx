@@ -567,6 +567,15 @@ function LoginScreen() {
                 : "SET NEW PASSWORD"}{" "}
             <span style={{ color: C.muted, fontWeight: 700 }}>{APP_VERSION}</span>
           </div>
+          <div style={{ fontSize: 10, color: C.muted, letterSpacing: "0.04em", marginTop: 6 }}>
+            <a href="https://www.flotest.com/privacy-policy/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>
+              Privacy Policy
+            </a>
+            {" · "}
+            <a href="https://www.flotest.com/sms-terms/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>
+              SMS Terms
+            </a>
+          </div>
         </div>
 
         {!webauthnSupported && (
