@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { execSync } from "node:child_process";
 import process from "node:process";
@@ -38,5 +38,12 @@ export default defineConfig({
   plugins: [react()],
   define: {
     __APP_VERSION__: JSON.stringify(resolveAppVersion()),
+  },
+  // Vitest — scope the runner to our own suites under src/. Without an
+  // explicit include, `vitest run` walks the whole working directory,
+  // including any iCloud-duplicated `node_modules 2/` artifact, and runs
+  // third-party packages' own (sometimes failing) test files.
+  test: {
+    include: ["src/**/*.test.{js,jsx}"],
   },
 });
