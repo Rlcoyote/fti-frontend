@@ -453,3 +453,15 @@ export function getRoleTemplates(settings) {
   base.owner = Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true]));
   return base;
 }
+
+// Resolves a user into a permission checker — the single source of can() for
+// the app, consumed by AppContext. Mirrors the backend requirePermission:
+// owner is all-true, no role is all-false, every other role is its
+// DEFAULT_PERMS template overlaid with the user's stored per-user permissions.
+export function makeCan(user) {
+  const role = user?.role;
+  if (!role) return () => false;
+  if (role === "owner") return () => true;
+  const perms = { ...(DEFAULT_PERMS[role] || {}), ...(user.permissions || {}) };
+  return (key) => !!perms[key];
+}
