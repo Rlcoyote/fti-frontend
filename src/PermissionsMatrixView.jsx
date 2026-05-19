@@ -18,12 +18,11 @@ import { useApp } from "./AppContext.jsx";
 //   - Server saves on every checkbox toggle (silent — no toast spam)
 //   - Role template editor collapsible, saves manually via SAVE TEMPLATES
 
-function detectEffectiveRole(permissions, templates) {
-  for (const [role, template] of Object.entries(templates)) {
-    const match = PERMISSION_CATEGORIES.every((p) => !!permissions?.[p.key] === !!template[p.key]);
-    if (match) return role;
-  }
-  return "custom";
+// True when a user's effective permissions diverge from their role's
+// default template — i.e. someone hand-toggled checkboxes for them.
+function isCustomized(permissions, template) {
+  if (!template) return false;
+  return PERMISSION_CATEGORIES.some((p) => !!permissions?.[p.key] !== !!template[p.key]);
 }
 
 function PermissionsMatrixView() {
@@ -89,13 +88,40 @@ function PermissionsMatrixView() {
     savePerm(userId, updated);
   };
 
-  const applyRoleTemplate = (userId, role) => {
+  // v28.172 — the per-user Role dropdown sets the user's ACTUAL role
+  // (PUT /users/:id, which bumps token_version) and resets their
+  // permissions to that role's template. Previously it only wrote the
+  // permissions JSON and the displayed role was reverse-detected — which
+  // broke whenever two role templates were identical (e.g. admin == manager).
+  // The role is now read from users.role, never guessed.
+  const changeUserRole = async (userId, newRole) => {
     const user = permUsers.find((u) => u.id === userId);
     if (!user || !canModifyUser(currentUser?.role, user.role)) return;
-    const template = templates[role];
+    const template = templates[newRole];
     if (!template) return;
-    setPermUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, permissions: { ...template } } : u)));
-    savePerm(userId, { ...template });
+    setSaving((prev) => ({ ...prev, [userId]: true }));
+    try {
+      const r = await fetch(`${API_URL}/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => null);
+        console.error("Change role failed:", data?.error || r.status);
+        setSaving((prev) => ({ ...prev, [userId]: false }));
+        return;
+      }
+      await fetch(`${API_URL}/permissions/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissions: { ...template } }),
+      });
+      setPermUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole, permissions: { ...template } } : u)));
+    } catch (err) {
+      console.error("Change role failed:", err);
+    }
+    setSaving((prev) => ({ ...prev, [userId]: false }));
   };
 
   const toggleTemplatePerm = (role, permKey) => {
@@ -152,7 +178,7 @@ function PermissionsMatrixView() {
   return (
     <div style={{ overflowX: "auto", overflowY: "auto", padding: "0 0 16px" }}>
       <div style={{ fontSize: 11, color: C.muted, padding: "0 4px 12px" }}>
-        Select a role template to apply standard permissions, or customize individual checkboxes. Owner permissions cannot be modified.
+        Set a user's role to apply that role's standard permissions, then customize individual checkboxes if needed. Owner permissions cannot be modified.
       </div>
 
       {/* ── Role Template Editor (Owner/Admin only) ── */}
@@ -241,7 +267,7 @@ function PermissionsMatrixView() {
           <thead>
             <tr>
               <th style={{ ...thStyle, ...stickyLeftHeader, textAlign: "left", padding: "10px 12px", minWidth: 140, fontWeight: 800, color: C.text }}>User</th>
-              <th style={{ ...thStyle, minWidth: 100, fontWeight: 700 }}>Role Template</th>
+              <th style={{ ...thStyle, minWidth: 100, fontWeight: 700 }}>Role</th>
               {PERMISSION_CATEGORIES.map((p) => (
                 <th key={p.key} style={thStyle}>
                   {p.label}
@@ -255,8 +281,7 @@ function PermissionsMatrixView() {
               .map((u) => {
                 const isOwner = u.role === "owner";
                 const canModify = canModifyUser(currentUser?.role, u.role);
-                const effectiveRole = detectEffectiveRole(u.permissions, templates);
-                const isCustom = effectiveRole === "custom";
+                const customized = isCustomized(u.permissions, templates[u.role]);
                 const stickyBg = isOwner ? "#f0f3f8" : C.cardBg;
                 return (
                   <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: isOwner ? "#f0f3f8" : "transparent" }}>
@@ -267,18 +292,16 @@ function PermissionsMatrixView() {
                     <td style={{ padding: "8px 6px" }}>
                       {canModify ? (
                         <select
-                          value={isCustom ? "custom" : effectiveRole}
-                          onChange={(e) => {
-                            if (e.target.value !== "custom") applyRoleTemplate(u.id, e.target.value);
-                          }}
+                          value={u.role}
+                          onChange={(e) => changeUserRole(u.id, e.target.value)}
                           style={{
-                            border: `1px solid ${isCustom ? "#8a6500" : C.border}`,
+                            border: `1px solid ${C.border}`,
                             borderRadius: 4,
                             padding: "3px 6px",
                             fontSize: 10,
                             fontWeight: 700,
-                            color: isCustom ? "#8a6500" : C.text,
-                            background: isCustom ? "#fdf5d8" : C.cardBg,
+                            color: C.text,
+                            background: C.cardBg,
                             letterSpacing: "0.04em",
                             textTransform: "uppercase",
                           }}
@@ -288,7 +311,6 @@ function PermissionsMatrixView() {
                               {r.label}
                             </option>
                           ))}
-                          {isCustom && <option value="custom">Custom</option>}
                         </select>
                       ) : (
                         <span
@@ -303,9 +325,10 @@ function PermissionsMatrixView() {
                             background: roleBg(u.role),
                           }}
                         >
-                          {isCustom ? "CUSTOM" : effectiveRole}
+                          {u.role}
                         </span>
                       )}
+                      {customized && <div style={{ fontSize: 9, color: "#8a6500", fontWeight: 700, marginTop: 3, letterSpacing: "0.04em" }}>● CUSTOMIZED</div>}
                     </td>
                     {PERMISSION_CATEGORIES.map((p) => {
                       const checked = u.permissions?.[p.key] ?? false;
