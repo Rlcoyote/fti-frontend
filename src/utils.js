@@ -323,11 +323,13 @@ export const ROLE_OPTIONS = [
   { value: "owner", label: "Owner" },
   { value: "admin", label: "Admin" },
   { value: "manager", label: "Manager" },
+  { value: "hse", label: "HSE" },
   { value: "lead", label: "Lead" },
+  { value: "mechanic", label: "Mechanic" },
   { value: "salesman", label: "Salesman" },
   { value: "field", label: "Field" },
 ];
-export const ROLE_RANK = { owner: 4, admin: 3, manager: 2, lead: 1, salesman: 1, field: 0 };
+export const ROLE_RANK = { owner: 4, admin: 3, manager: 2, hse: 2, lead: 1, mechanic: 1, salesman: 1, field: 0 };
 export const canModifyUser = (currentUserRole, targetUserRole) => {
   if (!currentUserRole || !targetUserRole) return false;
   // v27.87 — strict rank gate. v27.74's owner-same-rank exception was rolled
@@ -432,6 +434,10 @@ export const DEFAULT_PERMS = {
     edit_contacts: false,
     manage_settings: false,
   },
+  // hse + mechanic — added v28.170. All permissions OFF by default; owner/admin
+  // sets each in the Permissions matrix. Mirror of fti-backend permissions.js.
+  hse: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, false])),
+  mechanic: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, false])),
 };
 
 // Returns role templates from app_settings if customized, otherwise falls back to DEFAULT_PERMS.
