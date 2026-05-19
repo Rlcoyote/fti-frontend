@@ -10,7 +10,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,json}\"",
-    "ci": "npm run lint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "ci": "npm run lint && npm run test:run",
     "preview": "vite preview",
     "prepare": "husky || true"
   },
@@ -42,6 +44,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
     "prettier": "^3.8.3",
-    "vite": "^8.0.1"
+    "vite": "^8.0.1",
+    "vitest": "^4.1.6"
   }
 }
