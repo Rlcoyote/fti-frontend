@@ -9,7 +9,7 @@ import EditJobLockBanner from "./EditJobLockBanner.jsx";
 import EditJobPinResolver from "./EditJobPinResolver.jsx";
 import EditJobContactGrid from "./EditJobContactGrid.jsx";
 import EditJobDetailFields from "./EditJobDetailFields.jsx";
-import EditJobUnsavedModal from "./EditJobUnsavedModal.jsx";
+import UnsavedChangesModal from "./UnsavedChangesModal.jsx";
 
 function EditJobModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
@@ -144,7 +144,8 @@ function EditJobModal({ job, onSave, onClose }) {
       {/* Edit-lock banners — extracted to EditJobLockBanner (v28.142) */}
       <EditJobLockBanner editLock={editLock} />
       {showUnsaved && (
-        <EditJobUnsavedModal
+        <UnsavedChangesModal
+          message="This work order has unsaved changes. Are you sure you want to close?"
           onClose={() => setShowUnsaved(false)}
           onDiscard={() => {
             editLock.releaseLock();

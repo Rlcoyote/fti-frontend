@@ -1,13 +1,14 @@
 import { C } from "./config.js";
 import { Btn } from "./SharedUI.jsx";
 
-// ─── EditJobUnsavedModal (v28.145 — ship 5 of the EditJobModal split) ──────
-// The "Unsaved Changes" confirm shown when EditJobModal is closed with a
-// dirty form. onDiscard drops the edits (the parent releases the edit lock
-// + closes); onClose keeps editing. The parent owns the showUnsaved flag and
-// renders this conditionally.
+// ─── UnsavedChangesModal (v28.164 — dedup of EditJobUnsavedModal + the ──────
+// JSAModal inline "Unsaved Changes" block) ─────────────────────────────────
+// The "Unsaved Changes" confirm shown when a modal is closed with a dirty
+// form. `message` carries the surface-specific body text (work order vs.
+// JSA); onDiscard drops the edits, onClose keeps editing. The parent owns
+// the showUnsaved flag and renders this conditionally.
 
-function EditJobUnsavedModal({ onDiscard, onClose }) {
+function UnsavedChangesModal({ message, onDiscard, onClose }) {
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
@@ -26,7 +27,7 @@ function EditJobUnsavedModal({ onDiscard, onClose }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-        <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This work order has unsaved changes. Are you sure you want to close?</div>
+        <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>{message}</div>
         <div style={{ display: "flex", gap: 8 }}>
           <Btn onClick={onDiscard}>YES, DISCARD</Btn>
           <Btn variant="ghost" onClick={onClose}>
@@ -38,4 +39,4 @@ function EditJobUnsavedModal({ onDiscard, onClose }) {
   );
 }
 
-export default EditJobUnsavedModal;
+export default UnsavedChangesModal;

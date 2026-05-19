@@ -6,6 +6,7 @@ import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { useApp } from "./AppContext.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
+import UnsavedChangesModal from "./UnsavedChangesModal.jsx";
 import JSACrewSigners from "./JSACrewSigners.jsx";
 import JSAModalHeader from "./JSAModalHeader.jsx";
 import JSAJobSteps from "./JSAJobSteps.jsx";
@@ -549,39 +550,14 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
       </div>
       {showEmergencyEdit && <EmergencyContactsModal onClose={() => setShowEmergencyEdit(false)} />}
       {showUnsaved && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setShowUnsaved(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.red}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 400,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>This JSA has unsaved changes. Are you sure you want to close?</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn
-                onClick={() => {
-                  setShowUnsaved(false);
-                  onClose();
-                }}
-              >
-                YES, DISCARD
-              </Btn>
-              <Btn variant="ghost" onClick={() => setShowUnsaved(false)}>
-                KEEP EDITING
-              </Btn>
-            </div>
-          </div>
-        </div>
+        <UnsavedChangesModal
+          message="This JSA has unsaved changes. Are you sure you want to close?"
+          onClose={() => setShowUnsaved(false)}
+          onDiscard={() => {
+            setShowUnsaved(false);
+            onClose();
+          }}
+        />
       )}
     </div>
   );
