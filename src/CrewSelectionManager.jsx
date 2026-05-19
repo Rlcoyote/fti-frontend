@@ -21,7 +21,7 @@ import CopyCrewModal from "./CopyCrewModal.jsx";
 //   PUT    /tickets/:id/crew/lead           — body { user_id }
 
 function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType = null, jobId = null }) {
-  const { currentUser, users } = useApp();
+  const { currentUser, users, can } = useApp();
   const [crew, setCrew] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -30,15 +30,17 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
   const [hasRigUp, setHasRigUp] = useState(false);
 
   // Permission to mutate this ticket's crew. Client-side hint only —
-  // server enforces. Owner/admin/manager always; lead of THIS ticket
-  // while the ticket is open. Closed tickets: owner/admin only.
-  // v28.139 (permissions audit Phase 5.5) — intentionally NOT a can()
-  // matrix key: "lead of THIS ticket" is per-record context a flat
-  // role->boolean key cannot express. Mirrors the backend
-  // canModifyTicketCrew. Documented, intentional exception — keep.
+  // server enforces (canModifyTicketCrew). Open ticket: anyone with the
+  // edit_tickets permission, OR the lead of THIS ticket. Closed tickets:
+  // owner/admin only (legal-record edit).
+  // v28.171 — the open-ticket gate moved from a hardcoded
+  // owner/admin/manager list onto can("edit_tickets") so field crew can
+  // manage ticket-level crew (Article XVII — matrix-driven, not a
+  // hardcoded list). The userIsTicketLead OR-clause stays: it is
+  // per-record context a flat permission key cannot express.
   const userIsTicketLead = crew.some((c) => c.user_id === currentUser?.id && c.is_lead);
   const role = currentUser?.role || "";
-  const canModify = !ticketIsClosed && editable && (["owner", "admin", "manager"].includes(role) || userIsTicketLead);
+  const canModify = !ticketIsClosed && editable && (can("edit_tickets") || userIsTicketLead);
   const canModifyClosed = ticketIsClosed && ["owner", "admin"].includes(role);
   const canMutate = canModify || canModifyClosed;
 
