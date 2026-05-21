@@ -108,7 +108,7 @@ function VehiclesPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all"); // matches a vehicleTypeDisplay() string
   const [filterStatus, setFilterStatus] = useState("active"); // active | retired | all
-  const [filterSamsara, setFilterSamsara] = useState("any"); // any | linked | unlinked
+  const [filterGps, setFilterGps] = useState("any"); // any | linked | unlinked
 
   // Edit / retire / import / add
   const [editV, setEditV] = useState(null);
@@ -134,7 +134,7 @@ function VehiclesPage() {
     hitch_type: "",
     subtype: "",
     current_driver_id: "",
-    samsara_vehicle_id: "",
+    gps_vehicle_id: "",
     odometer: "",
     odometer_date: "",
     notes: "",
@@ -158,8 +158,8 @@ function VehiclesPage() {
     try {
       const params = new URLSearchParams();
       if (filterStatus !== "all") params.set("status", filterStatus);
-      if (filterSamsara === "linked") params.set("samsara", "true");
-      if (filterSamsara === "unlinked") params.set("samsara", "false");
+      if (filterGps === "linked") params.set("gps", "true");
+      if (filterGps === "unlinked") params.set("gps", "false");
       const r = await fetch(`${API_URL}/vehicles?${params.toString()}`);
       if (!r.ok) {
         setNotice({ title: "Load failed", message: `Could not load vehicles (HTTP ${r.status}).`, variant: "error" });
@@ -171,7 +171,7 @@ function VehiclesPage() {
       setNotice({ title: "Load failed", message: err.message || "Network error", variant: "error" });
     }
     setLoading(false);
-  }, [filterStatus, filterSamsara]);
+  }, [filterStatus, filterGps]);
 
   useEffect(() => {
     refresh();
@@ -192,7 +192,7 @@ function VehiclesPage() {
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter((v) =>
-        [v.vehicle_number, v.vin, v.license_plate, v.make, v.model, v.current_driver_name, v.samsara_vehicle_id, v.notes]
+        [v.vehicle_number, v.vin, v.license_plate, v.make, v.model, v.current_driver_name, v.gps_vehicle_id, v.notes]
           .filter(Boolean)
           .some((f) => String(f).toLowerCase().includes(s)),
       );
@@ -219,7 +219,7 @@ function VehiclesPage() {
           hitch_type: n.hitch_type || null,
           subtype: n.subtype || null,
           current_driver_id: n.current_driver_id || null,
-          samsara_vehicle_id: n.samsara_vehicle_id || null,
+          gps_vehicle_id: n.gps_vehicle_id || null,
           odometer: n.odometer ? parseInt(n.odometer, 10) : null,
           odometer_date: n.odometer_date || null,
           notes: n.notes || null,
@@ -243,7 +243,7 @@ function VehiclesPage() {
         hitch_type: "",
         subtype: "",
         current_driver_id: "",
-        samsara_vehicle_id: "",
+        gps_vehicle_id: "",
         odometer: "",
         odometer_date: "",
         notes: "",
@@ -269,7 +269,7 @@ function VehiclesPage() {
       hitch_type: v.hitch_type || "",
       subtype: v.subtype || "",
       current_driver_id: v.current_driver_id || "",
-      samsara_vehicle_id: v.samsara_vehicle_id || "",
+      gps_vehicle_id: v.gps_vehicle_id || "",
       odometer: v.odometer || "",
       odometer_date: v.odometer_date ? String(v.odometer_date).slice(0, 10) : "",
       lifecycle_status: v.lifecycle_status || "active",
@@ -294,7 +294,7 @@ function VehiclesPage() {
           hitch_type: e.hitch_type || null,
           subtype: e.subtype || null,
           current_driver_id: e.current_driver_id || null,
-          samsara_vehicle_id: e.samsara_vehicle_id || null,
+          gps_vehicle_id: e.gps_vehicle_id || null,
           odometer: e.odometer === "" ? null : parseInt(e.odometer, 10),
           odometer_date: e.odometer_date || null,
           lifecycle_status: e.lifecycle_status || null,
@@ -330,19 +330,19 @@ function VehiclesPage() {
     }
   };
 
-  const handleSamsaraSync = async () => {
+  const handleGpsSync = async () => {
     setSyncing(true);
     try {
-      const r = await fetch(`${API_URL}/samsara/sync`, { method: "POST" });
+      const r = await fetch(`${API_URL}/gps/sync`, { method: "POST" });
       const data = await r.json();
       if (!r.ok) {
-        setNotice({ title: "Samsara sync failed", message: data.error || `HTTP ${r.status}`, variant: "error" });
+        setNotice({ title: "GPS sync failed", message: data.error || `HTTP ${r.status}`, variant: "error" });
       } else {
         setSyncResult(data);
         await refresh();
       }
     } catch (err) {
-      setNotice({ title: "Samsara sync failed", message: err.message, variant: "error" });
+      setNotice({ title: "GPS sync failed", message: err.message, variant: "error" });
     }
     setSyncing(false);
   };
@@ -374,7 +374,7 @@ function VehiclesPage() {
     total: vehicles.length,
     expired: vehicles.filter((v) => regStatus(v.registration_expires) === "expired").length,
     due: vehicles.filter((v) => ["due", "due_soon"].includes(regStatus(v.registration_expires))).length,
-    samsara_linked: vehicles.filter((v) => v.samsara_vehicle_id).length,
+    gps_linked: vehicles.filter((v) => v.gps_vehicle_id).length,
   };
 
   const lifecycleBadge = (s) => {
@@ -404,13 +404,13 @@ function VehiclesPage() {
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Vehicles</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-            {counts.total} total · {counts.expired} reg expired · {counts.due} reg due · {counts.samsara_linked} on Samsara
+            {counts.total} total · {counts.expired} reg expired · {counts.due} reg due · {counts.gps_linked} on GPS
           </div>
         </div>
         {canManage && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Btn onClick={handleSamsaraSync} variant="ghost" disabled={syncing || importing}>
-              {syncing ? "SYNCING…" : "SYNC FROM SAMSARA"}
+            <Btn onClick={handleGpsSync} variant="ghost" disabled={syncing || importing}>
+              {syncing ? "SYNCING…" : "SYNC FROM GPS"}
             </Btn>
             <Btn onClick={() => fileInputRef.current?.click()} variant="ghost" disabled={importing || syncing}>
               {importing ? "IMPORTING…" : "IMPORT FROM SPREADSHEET"}
@@ -440,14 +440,14 @@ function VehiclesPage() {
         <FilterBtn active={filterStatus === "all"} onClick={() => setFilterStatus("all")}>
           All
         </FilterBtn>
-        <FilterBtn active={filterSamsara === "any"} onClick={() => setFilterSamsara("any")}>
-          Any Samsara
+        <FilterBtn active={filterGps === "any"} onClick={() => setFilterGps("any")}>
+          Any GPS
         </FilterBtn>
-        <FilterBtn active={filterSamsara === "linked"} onClick={() => setFilterSamsara("linked")}>
-          On Samsara
+        <FilterBtn active={filterGps === "linked"} onClick={() => setFilterGps("linked")}>
+          On GPS
         </FilterBtn>
-        <FilterBtn active={filterSamsara === "unlinked"} onClick={() => setFilterSamsara("unlinked")}>
-          No Samsara
+        <FilterBtn active={filterGps === "unlinked"} onClick={() => setFilterGps("unlinked")}>
+          No GPS
         </FilterBtn>
         <input
           style={{ ...inputStyle, width: 220, padding: "5px 10px", fontSize: 12 }}
@@ -474,7 +474,7 @@ function VehiclesPage() {
               gap: 8,
             }}
           >
-            {["#", "TYPE", "YEAR / MAKE / MODEL", "PLATE", "VIN", "DRIVER", "ODO", "REG EXP", "SAMSARA", "STATUS"].map((h) => (
+            {["#", "TYPE", "YEAR / MAKE / MODEL", "PLATE", "VIN", "DRIVER", "ODO", "REG EXP", "GPS ID", "STATUS"].map((h) => (
               <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
                 {h}
               </div>
@@ -522,7 +522,7 @@ function VehiclesPage() {
                 >
                   {v.registration_expires || "—"}
                 </div>
-                <div style={{ fontSize: 10, color: v.samsara_vehicle_id ? C.text : C.muted, fontFamily: "monospace" }}>{v.samsara_vehicle_id || "—"}</div>
+                <div style={{ fontSize: 10, color: v.gps_vehicle_id ? C.text : C.muted, fontFamily: "monospace" }}>{v.gps_vehicle_id || "—"}</div>
                 <div>{lifecycleBadge(v.lifecycle_status)}</div>
               </div>
             );
@@ -572,8 +572,8 @@ function VehiclesPage() {
                     Reg: {v.registration_expires}
                   </div>
                 )}
-                {v.samsara_vehicle_id && (
-                  <div style={{ display: "inline-block", fontSize: 10, color: C.muted, fontFamily: "monospace" }}>Samsara: {v.samsara_vehicle_id}</div>
+                {v.gps_vehicle_id && (
+                  <div style={{ display: "inline-block", fontSize: 10, color: C.muted, fontFamily: "monospace" }}>GPS: {v.gps_vehicle_id}</div>
                 )}
               </div>
             );
@@ -664,11 +664,11 @@ function VehiclesPage() {
         </ModalWrap>
       )}
 
-      {/* Samsara sync results */}
+      {/* GPS sync results */}
       {syncResult && (
-        <ModalWrap title="Samsara sync complete" onClose={() => setSyncResult(null)} width={620}>
+        <ModalWrap title="GPS sync complete" onClose={() => setSyncResult(null)} width={620}>
           <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
-            Samsara fleet: {syncResult.samsara_total} · FTI active fleet: {syncResult.our_total}
+            GPS provider fleet: {syncResult.provider_total} · FTI active fleet: {syncResult.our_total}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
             <Stat label="Linked now" value={syncResult.linked_now || 0} tone="ok" />
@@ -676,11 +676,13 @@ function VehiclesPage() {
             <Stat label="No match" value={syncResult.vin_no_match || 0} tone="warn" />
             <Stat label="Errors" value={(syncResult.errors || []).filter((x) => x.level === "error").length} tone="error" />
           </div>
-          {(syncResult.no_vin_ours > 0 || syncResult.no_vin_samsara > 0 || syncResult.mismatch > 0) && (
+          {(syncResult.no_vin_ours > 0 || syncResult.no_vin_provider > 0 || syncResult.mismatch > 0) && (
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 12, padding: 10, background: C.steel, borderRadius: 4 }}>
               {syncResult.no_vin_ours > 0 && <div>· {syncResult.no_vin_ours} FTI vehicle(s) have no VIN — cannot match by VIN</div>}
-              {syncResult.no_vin_samsara > 0 && <div>· {syncResult.no_vin_samsara} Samsara vehicle(s) have no VIN — skipped</div>}
-              {syncResult.mismatch > 0 && <div>· {syncResult.mismatch} VIN(s) currently linked to a Samsara ID that Samsara no longer reports — see notes</div>}
+              {syncResult.no_vin_provider > 0 && <div>· {syncResult.no_vin_provider} provider vehicle(s) have no VIN — skipped</div>}
+              {syncResult.mismatch > 0 && (
+                <div>· {syncResult.mismatch} VIN(s) currently linked to a GPS ID that the provider no longer reports — see notes</div>
+              )}
             </div>
           )}
           {syncResult.errors?.length > 0 && (
@@ -751,8 +753,8 @@ function AddVehicleForm({ n, setN, users, onAdd, onCancel, isMob }) {
         <Field label="REG EXPIRES">
           <input style={inputStyle} value={n.registration_expires} onChange={upd("registration_expires")} placeholder="YYYY-MM" />
         </Field>
-        <Field label="SAMSARA ID">
-          <input style={inputStyle} value={n.samsara_vehicle_id} onChange={upd("samsara_vehicle_id")} />
+        <Field label="GPS ID">
+          <input style={inputStyle} value={n.gps_vehicle_id} onChange={upd("gps_vehicle_id")} />
         </Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 10 }}>
@@ -875,8 +877,8 @@ function EditVehicleForm({ e, setE, users, canManage }) {
         <Field label="ODO DATE">
           <input type="date" style={inputStyle} value={e.odometer_date} onChange={upd("odometer_date")} disabled={ro} />
         </Field>
-        <Field label="SAMSARA ID">
-          <input style={inputStyle} value={e.samsara_vehicle_id} onChange={upd("samsara_vehicle_id")} disabled={ro} />
+        <Field label="GPS ID">
+          <input style={inputStyle} value={e.gps_vehicle_id} onChange={upd("gps_vehicle_id")} disabled={ro} />
         </Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 10 }}>
