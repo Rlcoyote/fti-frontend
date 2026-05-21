@@ -36,15 +36,33 @@ function EditJobDetailFields({
   setShowCountyDrop,
   wellList,
   setWellList,
+  // v28.181 — per-well location overrides (parallel to wellList by index)
+  wellOverrides,
+  setWellOverrides,
   afe,
   setAfe,
 }) {
   const filteredCounties = county.length > 0 ? ALL_COUNTIES.filter((c) => c.toLowerCase().startsWith(county.toLowerCase())) : [];
   const addWell = () => {
-    if (wellList.length < 10) setWellList((prev) => [...prev, ""]);
+    if (wellList.length >= 10) return;
+    setWellList((prev) => [...prev, ""]);
+    if (setWellOverrides) setWellOverrides((prev) => [...prev, { useSameLocation: true }]);
   };
   const updateWell = (idx, val) => setWellList((prev) => prev.map((w, i) => (i === idx ? val : w)));
-  const removeWell = (idx) => setWellList((prev) => prev.filter((_, i) => i !== idx));
+  const removeWell = (idx) => {
+    setWellList((prev) => prev.filter((_, i) => i !== idx));
+    if (setWellOverrides) setWellOverrides((prev) => prev.filter((_, i) => i !== idx));
+  };
+  const updateOverride = (idx, field, value) => {
+    if (!setWellOverrides) return;
+    setWellOverrides((prev) => {
+      const next = [...prev];
+      while (next.length < idx + 1) next.push({ useSameLocation: true });
+      next[idx] = { ...next[idx], [field]: value };
+      return next;
+    });
+  };
+  const overrides = wellOverrides || [];
 
   return (
     <>
@@ -111,23 +129,94 @@ function EditJobDetailFields({
         </div>
       </div>
 
-      {/* Wells */}
-      {sectionHead("WELL NAME / LOCATION")}
-      {wellList.map((w, idx) => (
-        <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, minWidth: 18 }}>{idx + 1}.</div>
-          <input style={{ ...inputStyle, flex: 1 }} value={w} onChange={(e) => updateWell(idx, e.target.value)} placeholder="Well or CTB name..." />
-          {wellList.length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeWell(idx)}
-              style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}
-            >
-              ×
-            </button>
-          )}
-        </div>
-      ))}
+      {/* v28.181 — Label renamed "WELL NAME / LOCATION" → "LOCATION / WELL NAME"
+                    Button "+ ADD WELL" → "+ ADD"
+                    Per-well "use same location" checkbox + optional pin fields
+                    added to support multi-location WOs. Default useSameLocation
+                    = true (the well inherits the WO's primary pin); uncheck to
+                    set this well's own pin for a per-well geofence. */}
+      {sectionHead("LOCATION / WELL NAME")}
+      {wellList.map((w, idx) => {
+        const ov = overrides[idx] || { useSameLocation: true };
+        const usesSame = ov.useSameLocation !== false;
+        return (
+          <div
+            key={idx}
+            style={{
+              marginBottom: 8,
+              padding: usesSame ? 0 : "8px 10px",
+              background: usesSame ? "transparent" : C.steel,
+              border: usesSame ? "none" : `1px solid ${C.border}`,
+              borderRadius: 4,
+            }}
+          >
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, minWidth: 18 }}>{idx + 1}.</div>
+              <input style={{ ...inputStyle, flex: 1 }} value={w} onChange={(e) => updateWell(idx, e.target.value)} placeholder="Well or CTB name..." />
+              {wellList.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeWell(idx)}
+                  style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            {setWellOverrides && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, marginLeft: 24 }}>
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      cursor: "pointer",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: usesSame ? C.muted : C.text,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={usesSame}
+                      onChange={(e) => updateOverride(idx, "useSameLocation", e.target.checked)}
+                      style={{ width: 12, height: 12, accentColor: C.blue }}
+                    />
+                    Use same location as the work order pin
+                  </label>
+                </div>
+                {!usesSame && (
+                  <div style={{ marginTop: 8, marginLeft: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <div>
+                      <label style={labelStyle}>WELL PIN LAT</label>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        step="0.0000001"
+                        value={ov.pinLat || ""}
+                        onChange={(e) => updateOverride(idx, "pinLat", e.target.value)}
+                        placeholder="e.g. 31.9"
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>WELL PIN LNG</label>
+                      <input
+                        style={inputStyle}
+                        type="number"
+                        step="0.0000001"
+                        value={ov.pinLng || ""}
+                        onChange={(e) => updateOverride(idx, "pinLng", e.target.value)}
+                        placeholder="e.g. -102.1"
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
       {wellList.length < 10 && (
         <button
           type="button"
@@ -144,7 +233,7 @@ function EditJobDetailFields({
             marginBottom: 12,
           }}
         >
-          + ADD WELL
+          + ADD
         </button>
       )}
       <div style={{ marginBottom: 12 }}>

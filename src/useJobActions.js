@@ -84,9 +84,28 @@ export function useJobActions({
       google_pin: newJob.googlePin || null,
       pin_lat: newJob.pinLat || null,
       pin_lng: newJob.pinLng || null,
+      // v28.181 — geofence radius (ft) around the primary pin. Default 300 if
+      // not provided. Backend uses it to size the Samsara geofence on dispatch.
+      location_radius_ft: newJob.locationRadiusFt || 300,
       created_by: currentUser?.id || null,
       notes: newJob.notes || null,
-      wells: newJob.wells.map((w) => ({ well_name: w, afe_number: null })),
+      // v28.181 — wells now carry per-well location override metadata.
+      // newJob.wellOverrides[idx] is aligned with newJob.wells[idx]. Default
+      // useSameLocation=true means the well inherits the WO's primary pin
+      // (no per-well geofence created). When useSameLocation=false AND
+      // pin_lat/pin_lng are provided, the BE creates a dedicated geofence
+      // for that well.
+      wells: newJob.wells.map((w, idx) => {
+        const ov = (newJob.wellOverrides && newJob.wellOverrides[idx]) || { useSameLocation: true };
+        const useSame = ov.useSameLocation !== false;
+        return {
+          well_name: w,
+          afe_number: null,
+          use_primary_location: useSame,
+          pin_lat: !useSame && ov.pinLat !== "" && ov.pinLat != null ? Number(ov.pinLat) : null,
+          pin_lng: !useSame && ov.pinLng !== "" && ov.pinLng != null ? Number(ov.pinLng) : null,
+        };
+      }),
       crew: [],
       equipment: newJob.equipment || [],
     };

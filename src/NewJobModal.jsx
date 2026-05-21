@@ -181,11 +181,30 @@ function NewJobModal({ onClose, onCreateJob }) {
             errors={{ jobState: f.errors.jobState, county: f.errors.county }}
             clearError={f.clearError}
           />
+          {/* v28.181 — Geofence radius around the primary pin. 300ft default
+              covers a typical well pad + GPS drift margin. Editable for unusual
+              sites (large frac sites, pipeline yards, etc.). */}
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 8 }}>
+            <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>GEOFENCE RADIUS (FT)</label>
+            <input
+              type="number"
+              style={{ ...inputStyle, width: 100 }}
+              value={f.locationRadiusFt}
+              onChange={(e) => f.setLocationRadiusFt(e.target.value)}
+              min={50}
+              max={5000}
+            />
+            <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>
+              Default 300ft. Crew arrival/departure events fire when a vehicle crosses this circle around the WO pin.
+            </span>
+          </div>
         </div>
 
         <NewJobWellsPanel
           wellList={f.wellList}
           setWellList={f.setWellList}
+          wellOverrides={f.wellOverrides}
+          setWellOverrides={f.setWellOverrides}
           wellTBD={f.wellTBD}
           setWellTBD={f.setWellTBD}
           afe={f.afe}

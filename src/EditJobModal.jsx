@@ -58,6 +58,18 @@ function EditJobModal({ job, onSave, onClose }) {
     if (!job.wells || job.wells.length === 0) return [""];
     return job.wells.map((w) => w.well_name || w);
   });
+  // v28.181 — per-well location overrides + WO geofence radius. Initialized
+  // from the job's well records. Default useSameLocation=true (well inherits
+  // the WO's primary pin); set false + pin_lat/pin_lng to override.
+  const [wellOverrides, setWellOverrides] = useState(() => {
+    if (!job.wells || job.wells.length === 0) return [{ useSameLocation: true }];
+    return job.wells.map((w) => ({
+      useSameLocation: w.use_primary_location !== false,
+      pinLat: w.pin_lat || "",
+      pinLng: w.pin_lng || "",
+    }));
+  });
+  const [locationRadiusFt, setLocationRadiusFt] = useState(job.locationRadiusFt || job.location_radius_ft || 300);
   const [afe, setAfe] = useState(job.afe || "");
   const [contactFirst, setContactFirst] = useState(job.contactFirst || job.contact_first || "");
   const [contactLast, setContactLast] = useState(job.contactLast || job.contact_last || "");
@@ -154,7 +166,41 @@ function EditJobModal({ job, onSave, onClose }) {
         />
       )}
 
-      {/* Customer / Location / Wells / AFE — extracted to EditJobDetailFields (v28.145) */}
+      {/* v28.181 — GOOGLE PIN moved UP from its old position below billing.
+          Previously the Edit modal showed the pin BELOW the wells (the
+          placement bug Reggie called out); now it sits above the wells in
+          the LOCATION block, matching the New WO modal. */}
+      {sectionHead("LOCATION PIN")}
+      <EditJobPinResolver
+        googlePin={editGooglePin}
+        setGooglePin={setEditGooglePin}
+        pinLat={editPinLat}
+        setPinLat={setEditPinLat}
+        pinLng={editPinLng}
+        setPinLng={setEditPinLng}
+        onGeocode={(state, geoCounty) => {
+          if (state) setJobState(state);
+          if (geoCounty) setCounty(geoCounty);
+        }}
+      />
+      {/* Geofence Radius — sized around the pin. 300ft default. Crew
+          arrival/departure events fire when a vehicle crosses this circle. */}
+      <div style={{ marginTop: 8, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+        <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>GEOFENCE RADIUS (FT)</label>
+        <input
+          type="number"
+          style={{ ...inputStyle, width: 100 }}
+          value={locationRadiusFt}
+          onChange={(e) => setLocationRadiusFt(e.target.value)}
+          min={50}
+          max={5000}
+        />
+        <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Default 300ft.</span>
+      </div>
+
+      {/* Customer / Location / Wells / AFE — extracted to EditJobDetailFields (v28.145).
+          v28.181 — wellOverrides + setWellOverrides passed through so the
+          per-well "use same location" checkbox + pin override are wired. */}
       <EditJobDetailFields
         customer={customer}
         setCustomer={setCustomer}
@@ -166,6 +212,8 @@ function EditJobModal({ job, onSave, onClose }) {
         setShowCountyDrop={setShowCountyDrop}
         wellList={wellList}
         setWellList={setWellList}
+        wellOverrides={wellOverrides}
+        setWellOverrides={setWellOverrides}
         afe={afe}
         setAfe={setAfe}
       />
@@ -218,20 +266,9 @@ function EditJobModal({ job, onSave, onClose }) {
         </div>
       </div>
 
-      {/* Google Pin — extracted to EditJobPinResolver (v28.143) */}
-      {sectionHead("GOOGLE PIN")}
-      <EditJobPinResolver
-        googlePin={editGooglePin}
-        setGooglePin={setEditGooglePin}
-        pinLat={editPinLat}
-        setPinLat={setEditPinLat}
-        pinLng={editPinLng}
-        setPinLng={setEditPinLng}
-        onGeocode={(state, geoCounty) => {
-          if (state) setJobState(state);
-          if (geoCounty) setCounty(geoCounty);
-        }}
-      />
+      {/* v28.181 — Google Pin section was here; moved UP to before
+          EditJobDetailFields (above the wells list) to match the New WO
+          modal order. */}
 
       {/* Notes */}
       <div style={{ marginBottom: 14 }}>
@@ -260,14 +297,31 @@ function EditJobModal({ job, onSave, onClose }) {
         <Btn
           onClick={() => {
             if (jobState && !VALID_STATES.includes(jobState)) return;
-            const cleanWells = wellList.map((w) => w.trim()).filter(Boolean);
+            // v28.181 — Build wells with parallel override metadata. Empty
+            // rows drop; per-well location override travels alongside.
+            const cleanWellsWithOverrides = [];
+            wellList.forEach((w, idx) => {
+              const t = (w || "").trim();
+              if (!t) return;
+              const ov = wellOverrides[idx] || { useSameLocation: true };
+              const useSame = ov.useSameLocation !== false;
+              cleanWellsWithOverrides.push({
+                well_name: t,
+                use_primary_location: useSame,
+                pin_lat: !useSame && ov.pinLat !== "" && ov.pinLat != null ? Number(ov.pinLat) : null,
+                pin_lng: !useSame && ov.pinLng !== "" && ov.pinLng != null ? Number(ov.pinLng) : null,
+              });
+            });
+            const wellsPayload =
+              cleanWellsWithOverrides.length > 0 ? cleanWellsWithOverrides : [{ well_name: "TBD", use_primary_location: true, pin_lat: null, pin_lng: null }];
             onSave({
               customer,
               status,
               job_state: jobState,
               county,
               location: [county, jobState].filter(Boolean).join(", ") || job.location,
-              wells: cleanWells.length > 0 ? cleanWells.map((w) => ({ well_name: w })) : [{ well_name: "TBD" }],
+              wells: wellsPayload,
+              location_radius_ft: Number(locationRadiusFt) || 300,
               afe: afe || null,
               contact_first: contactFirst,
               contact_last: contactLast,

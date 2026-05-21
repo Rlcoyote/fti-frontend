@@ -51,6 +51,17 @@ export default function useNewJobForm({ onClose, onCreateJob }) {
   const [wellList, setWellList] = useState(["", ""]);
   const [wellTBD, setWellTBD] = useState(false);
   const [afe, setAfe] = useState("");
+  // v28.181 — Per-well location overrides. ARRAY parallel to wellList (each
+  // index has a matching override object). Default { useSameLocation: true }
+  // means the well inherits the WO's primary pin (the common case — most
+  // WOs are one location with multiple wells). When useSameLocation is
+  // false, pinLat/pinLng on the override become the well's own location;
+  // the BE creates a separate geofence in Samsara for that well.
+  const [wellOverrides, setWellOverrides] = useState([{ useSameLocation: true }, { useSameLocation: true }]);
+  // v28.181 — Geofence radius around the primary pin (feet). 300ft default
+  // per the GPS Phase 2 design. Stored on the job and used when FTI creates
+  // the provider geofence on dispatch.
+  const [locationRadiusFt, setLocationRadiusFt] = useState(300);
   // Notes
   const [jobNotes, setJobNotes] = useState("");
   // Schedule + Salesman
@@ -175,7 +186,26 @@ export default function useNewJobForm({ onClose, onCreateJob }) {
       return;
     }
     setErrors({});
-    const cleanWells = wellTBD ? ["TBD"] : wellList.map((w) => w.trim()).filter(Boolean);
+    // v28.181 — Build parallel arrays of cleaned well names AND their override
+    // metadata, indexed together (the filter drops empty rows; we keep
+    // wellOverrides aligned with the surviving wells).
+    let cleanWells = [];
+    let cleanWellOverrides = [];
+    if (wellTBD) {
+      cleanWells = ["TBD"];
+      cleanWellOverrides = [{ useSameLocation: true }];
+    } else {
+      wellList.forEach((w, idx) => {
+        const t = (w || "").trim();
+        if (!t) return;
+        cleanWells.push(t);
+        cleanWellOverrides.push(wellOverrides[idx] || { useSameLocation: true });
+      });
+      if (cleanWells.length === 0) {
+        cleanWells = ["TBD"];
+        cleanWellOverrides = [{ useSameLocation: true }];
+      }
+    }
     // Auto-save POC + Approver as customer contacts (dedup handled by backend)
     if (selectedCust?.id) saveContactsForCustomer(selectedCust.id);
 
@@ -185,7 +215,10 @@ export default function useNewJobForm({ onClose, onCreateJob }) {
       location: [county, jobState].filter(Boolean).join(", ") || "TBD",
       jobState,
       county,
-      wells: cleanWells.length > 0 ? cleanWells : ["TBD"],
+      wells: cleanWells,
+      // v28.181 — per-well override metadata, aligned with `wells` by index.
+      wellOverrides: cleanWellOverrides,
+      locationRadiusFt: Number(locationRadiusFt) || 300,
       afe: afe || null,
       dateStarted: schedDate || today(),
       status: "Scheduled",
@@ -238,6 +271,11 @@ export default function useNewJobForm({ onClose, onCreateJob }) {
     setWellTBD,
     afe,
     setAfe,
+    // v28.181 — per-well location override + WO geofence radius
+    wellOverrides,
+    setWellOverrides,
+    locationRadiusFt,
+    setLocationRadiusFt,
     // Notes
     jobNotes,
     setJobNotes,
