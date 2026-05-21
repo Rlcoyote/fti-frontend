@@ -27,6 +27,7 @@ import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
 import VehiclesPage from "./VehiclesPage.jsx";
+import YardsPage from "./YardsPage.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
@@ -107,6 +108,7 @@ function FTIDashboard() {
     if (p.startsWith("/inventory")) return "inventory";
     if (p.startsWith("/assets")) return "assets";
     if (p.startsWith("/vehicles")) return "vehicles";
+    if (p.startsWith("/yards")) return "yards";
     if (p.startsWith("/crew")) return "crew";
     if (p.startsWith("/safety")) return "safety";
     if (p.startsWith("/activity")) return "activity";
@@ -233,6 +235,7 @@ function FTIDashboard() {
     "Inventory",
     "Assets",
     "Vehicles",
+    "Yards",
     "Crew",
     "Safety",
     "Final Review",
@@ -244,6 +247,7 @@ function FTIDashboard() {
     if (i === "Inventory" && !can("view_inventory")) return false;
     if (i === "Assets" && !can("view_inventory")) return false;
     if (i === "Vehicles" && !can("view_inventory")) return false;
+    if (i === "Yards" && !can("view_inventory")) return false;
     if (i === "Work Order History" && !can("view_jobs")) return false;
     if (i === "Deleted" && !can("delete_jobs")) return false;
     if (i === "Archive" && !can("view_archive")) return false;
@@ -372,6 +376,7 @@ function FTIDashboard() {
         {can("view_inventory") && <Route path="/inventory" element={<InventoryPage inventory={inventory} setInventory={setInventory} jobs={jobs} />} />}
         {can("view_inventory") && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
         {can("view_inventory") && <Route path="/vehicles" element={<VehiclesPage />} />}
+        {can("view_inventory") && <Route path="/yards" element={<YardsPage />} />}
         {can("delete_jobs") && (
           <Route
             path="/deleted"
