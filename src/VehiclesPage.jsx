@@ -116,6 +116,8 @@ function VehiclesPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+  const [syncing, setSyncing] = useState(false);
   const [notice, setNotice] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -328,6 +330,23 @@ function VehiclesPage() {
     }
   };
 
+  const handleSamsaraSync = async () => {
+    setSyncing(true);
+    try {
+      const r = await fetch(`${API_URL}/samsara/sync`, { method: "POST" });
+      const data = await r.json();
+      if (!r.ok) {
+        setNotice({ title: "Samsara sync failed", message: data.error || `HTTP ${r.status}`, variant: "error" });
+      } else {
+        setSyncResult(data);
+        await refresh();
+      }
+    } catch (err) {
+      setNotice({ title: "Samsara sync failed", message: err.message, variant: "error" });
+    }
+    setSyncing(false);
+  };
+
   const handleImportFile = async (file) => {
     if (!file) return;
     setImporting(true);
@@ -390,7 +409,10 @@ function VehiclesPage() {
         </div>
         {canManage && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Btn onClick={() => fileInputRef.current?.click()} variant="ghost" disabled={importing}>
+            <Btn onClick={handleSamsaraSync} variant="ghost" disabled={syncing || importing}>
+              {syncing ? "SYNCING…" : "SYNC FROM SAMSARA"}
+            </Btn>
+            <Btn onClick={() => fileInputRef.current?.click()} variant="ghost" disabled={importing || syncing}>
               {importing ? "IMPORTING…" : "IMPORT FROM SPREADSHEET"}
             </Btn>
             <input ref={fileInputRef} type="file" accept=".xlsx" style={{ display: "none" }} onChange={(ev) => handleImportFile(ev.target.files?.[0])} />
@@ -638,6 +660,43 @@ function VehiclesPage() {
           )}
           <div style={{ marginTop: 14 }}>
             <Btn onClick={() => setImportResult(null)}>CLOSE</Btn>
+          </div>
+        </ModalWrap>
+      )}
+
+      {/* Samsara sync results */}
+      {syncResult && (
+        <ModalWrap title="Samsara sync complete" onClose={() => setSyncResult(null)} width={620}>
+          <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>
+            Samsara fleet: {syncResult.samsara_total} · FTI active fleet: {syncResult.our_total}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 14 }}>
+            <Stat label="Linked now" value={syncResult.linked_now || 0} tone="ok" />
+            <Stat label="Already linked" value={syncResult.already_linked || 0} />
+            <Stat label="No match" value={syncResult.vin_no_match || 0} tone="warn" />
+            <Stat label="Errors" value={(syncResult.errors || []).filter((x) => x.level === "error").length} tone="error" />
+          </div>
+          {(syncResult.no_vin_ours > 0 || syncResult.no_vin_samsara > 0 || syncResult.mismatch > 0) && (
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 12, padding: 10, background: C.steel, borderRadius: 4 }}>
+              {syncResult.no_vin_ours > 0 && <div>· {syncResult.no_vin_ours} FTI vehicle(s) have no VIN — cannot match by VIN</div>}
+              {syncResult.no_vin_samsara > 0 && <div>· {syncResult.no_vin_samsara} Samsara vehicle(s) have no VIN — skipped</div>}
+              {syncResult.mismatch > 0 && <div>· {syncResult.mismatch} VIN(s) currently linked to a Samsara ID that Samsara no longer reports — see notes</div>}
+            </div>
+          )}
+          {syncResult.errors?.length > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>NOTES</div>
+              <div style={{ maxHeight: 200, overflow: "auto", border: `1px solid ${C.border}`, borderRadius: 4, padding: 8, background: C.steel }}>
+                {syncResult.errors.map((err, i) => (
+                  <div key={i} style={{ fontSize: 11, color: err.level === "error" ? C.red : err.level === "warn" ? "#8a6500" : C.muted, marginBottom: 4 }}>
+                    {err.vehicle_number ? `#${err.vehicle_number}` : `Vehicle ${err.vehicle_id}`} (VIN {err.vin}): {err.message}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div style={{ marginTop: 14 }}>
+            <Btn onClick={() => setSyncResult(null)}>CLOSE</Btn>
           </div>
         </ModalWrap>
       )}
