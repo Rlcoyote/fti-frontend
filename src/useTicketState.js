@@ -35,7 +35,7 @@ import { API_URL } from "./config.js";
 export default function useTicketState(ticket, job) {
   // ── Line items + basic fields ────────────────────────────────────────────
   const [lineItems, setLineItems] = useState(() => [...(ticket.lineItems || [])]);
-  const [ticketDate, setTicketDate] = useState(() => ticket.date ? ticket.date.slice(0, 10) : "");
+  const [ticketDate, setTicketDate] = useState(() => (ticket.date ? ticket.date.slice(0, 10) : ""));
   const [notes, setNotes] = useState(() => ticket.notes || "");
   const [status, setStatus] = useState(() => ticket.status);
 
@@ -73,9 +73,26 @@ export default function useTicketState(ticket, job) {
   // ── Yard location (1-indexed, matches backend yard_location_index) ──────
   const [yardLocationIndex, setYardLocationIndex] = useState(() => ticket.yardLocationIndex || ticket.yard_location_index || 1);
 
+  // ── GPS tracking (v28.183) ──────────────────────────────────────────────
+  // Distinct from lvYard/retYard (manual varchar(10) time strings) — these
+  // are real timestamptz values populated by the GPS pull. The display
+  // layer prefers these when present; lvYard/retYard remain the editable
+  // manual fields. Stops are loaded lazily by TicketGpsTracking on mount.
+  const [gpsVehicleId, setGpsVehicleId] = useState(() => ticket.gpsVehicleId || ticket.gps_vehicle_id || null);
+  const [yardLeftAt, setYardLeftAt] = useState(() => ticket.yardLeftAt || ticket.yard_left_at || null);
+  const [yardReturnedAt, setYardReturnedAt] = useState(() => ticket.yardReturnedAt || ticket.yard_returned_at || null);
+  const [gpsStatus, setGpsStatus] = useState(() => ticket.gpsStatus || ticket.gps_status || "pending");
+  const [gpsPulledAt, setGpsPulledAt] = useState(() => ticket.gpsPulledAt || ticket.gps_pulled_at || null);
+  const [stops, setStops] = useState([]);
+  const [stopsLoaded, setStopsLoaded] = useState(false);
+
   // ── Email ───────────────────────────────────────────────────────────────
   const [emailTo, setEmailTo] = useState(() => {
-    if (ticket.emailTo) return ticket.emailTo.split(",").map(e => e.trim()).filter(Boolean);
+    if (ticket.emailTo)
+      return ticket.emailTo
+        .split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
     const pocAddr = job?.pocEmail || job?.poc_email || "";
     return pocAddr ? [pocAddr] : [""];
   });
@@ -104,11 +121,12 @@ export default function useTicketState(ticket, job) {
     if (!lat || !lng) return;
     setDriveLoading(true);
     fetch(`${API_URL}/jobs/drive-distance`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ destLat: lat, destLng: lng, yard_index: yardLocationIndex }),
     })
-      .then(r => r.ok ? r.json() : { error: "Could not calculate" })
-      .then(d => setDriveInfo(d))
+      .then((r) => (r.ok ? r.json() : { error: "Could not calculate" }))
+      .then((d) => setDriveInfo(d))
       .catch(() => setDriveInfo({ error: "Network error" }))
       .finally(() => setDriveLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -120,10 +138,43 @@ export default function useTicketState(ticket, job) {
   useEffect(() => {
     if (!contactCustId) return;
     fetch(`${API_URL}/customers/${contactCustId}/contacts`)
-      .then(r => r.ok ? r.json() : [])
-      .then(c => setKnownContacts(c))
+      .then((r) => (r.ok ? r.json() : []))
+      .then((c) => setKnownContacts(c))
       .catch(() => {});
   }, [contactCustId]);
+
+  // ── Stops fetch (v28.183) ───────────────────────────────────────────────
+  // Loaded once on mount for tickets that exist (ticket.id is set). The GPS
+  // tracking block re-fetches after a PULL via setStops directly.
+  useEffect(() => {
+    if (!ticket.id) {
+      setStopsLoaded(true);
+      return;
+    }
+    fetch(`${API_URL}/tickets/${ticket.id}/stops`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => {
+        setStops(
+          (rows || []).map((s) => ({
+            id: s.id,
+            job_well_id: s.job_well_id,
+            job_well_name: s.job_well_name || null,
+            ad_hoc_label: s.ad_hoc_label,
+            ad_hoc_lat: s.ad_hoc_lat,
+            ad_hoc_lng: s.ad_hoc_lng,
+            ad_hoc_gps_geofence_id: s.ad_hoc_gps_geofence_id,
+            arrived_at: s.arrived_at,
+            left_at: s.left_at,
+            engine_idle_minutes: s.engine_idle_minutes,
+            source: s.source || "manual",
+            stop_order: s.stop_order,
+            notes: s.notes,
+          })),
+        );
+      })
+      .catch(() => {})
+      .finally(() => setStopsLoaded(true));
+  }, [ticket.id]);
 
   // ── Dirty tracking ──────────────────────────────────────────────────────
   // origRef snapshots the baseline on mount. isDirty() compares current
@@ -131,7 +182,7 @@ export default function useTicketState(ticket, job) {
   // is actively mid-edit / signature has been cleared).
   const normalizeLI = (items) =>
     (items || [])
-      .map(li => `${li.qbCode || li.qb_code}|${li.desc || li.description}|${li.rate}|${li.qty}|${li.um || li.unit_measure}|${li.days || 1}`)
+      .map((li) => `${li.qbCode || li.qb_code}|${li.desc || li.description}|${li.rate}|${li.qty}|${li.um || li.unit_measure}|${li.days || 1}`)
       .join("~");
   const origRef = useRef({
     lineItems: normalizeLI(ticket.lineItems),
@@ -170,12 +221,22 @@ export default function useTicketState(ticket, job) {
   // Produces the exact shape TicketDetail's save() used to build inline.
   // Caller spreads overrides on top.
   const buildPayload = (ticketType) => ({
-    lineItems, notes, status, missingPieces, date: ticketDate,
-    sigNotReqReason, sigNotReqNote,
-    emailTo: emailTo.filter(e => e.trim()).join(", "),
+    lineItems,
+    notes,
+    status,
+    missingPieces,
+    date: ticketDate,
+    sigNotReqReason,
+    sigNotReqNote,
+    emailTo: emailTo.filter((e) => e.trim()).join(", "),
     emailCc,
-    signedBy, signedAt, signatureImage,
-    siteMgrFirst, siteMgrLast, siteMgrPhone, siteMgrEmail,
+    signedBy,
+    signedAt,
+    signatureImage,
+    siteMgrFirst,
+    siteMgrLast,
+    siteMgrPhone,
+    siteMgrEmail,
     yardLocationIndex,
     ...(ticketType === "Rental"
       ? {
@@ -190,12 +251,41 @@ export default function useTicketState(ticket, job) {
       : {}),
     ...(!["Rental", "JSA"].includes(ticketType)
       ? {
-          lvYard, arrivalTime, dueOnLoc, jobStartTime, jobEndTime, retYard, timeZone,
+          lvYard,
+          arrivalTime,
+          dueOnLoc,
+          jobStartTime,
+          jobEndTime,
+          retYard,
+          timeZone,
           mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
           mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
           googlePin: ticketPin || null,
           pinLat: ticketPinLat || null,
           pinLng: ticketPinLng || null,
+          // v28.183 — GPS tracking fields. BE snake_case (the PUT handler reads
+          // these literal keys directly).
+          gps_vehicle_id: gpsVehicleId,
+          yard_left_at: yardLeftAt,
+          yard_returned_at: yardReturnedAt,
+          gps_status: gpsStatus,
+          // Full-replacement of stops when the user edits any stop field.
+          // Each row carries the source flag so the BE writes 'override' for
+          // user-edited GPS rows. Omit `stops` from the payload when no
+          // changes — caller drops it via the dirty check.
+          stops: stops.map((s, i) => ({
+            job_well_id: s.job_well_id || null,
+            ad_hoc_label: s.ad_hoc_label || null,
+            ad_hoc_lat: s.ad_hoc_lat || null,
+            ad_hoc_lng: s.ad_hoc_lng || null,
+            ad_hoc_gps_geofence_id: s.ad_hoc_gps_geofence_id || null,
+            arrived_at: s.arrived_at || null,
+            left_at: s.left_at || null,
+            engine_idle_minutes: s.engine_idle_minutes != null ? s.engine_idle_minutes : null,
+            source: s.source || "manual",
+            stop_order: s.stop_order != null ? s.stop_order : i,
+            notes: s.notes || null,
+          })),
         }
       : {}),
   });
@@ -216,63 +306,115 @@ export default function useTicketState(ticket, job) {
 
   return {
     // Basic
-    lineItems, setLineItems,
-    ticketDate, setTicketDate,
-    notes, setNotes,
-    status, setStatus,
+    lineItems,
+    setLineItems,
+    ticketDate,
+    setTicketDate,
+    notes,
+    setNotes,
+    status,
+    setStatus,
 
     // Rental
-    rentalStartDate, setRentalStartDate,
-    rentalEndDate, setRentalEndDate,
-    rentalCycleDays, setRentalCycleDays,
-    rentalRecurring, setRentalRecurring,
+    rentalStartDate,
+    setRentalStartDate,
+    rentalEndDate,
+    setRentalEndDate,
+    rentalCycleDays,
+    setRentalCycleDays,
+    rentalRecurring,
+    setRentalRecurring,
 
     // Rig Down
-    missingPieces, setMissingPieces,
+    missingPieces,
+    setMissingPieces,
 
     // Time & Mileage
-    lvYard, setLvYard,
-    arrivalTime, setArrivalTime,
-    dueOnLoc, setDueOnLoc,
-    jobStartTime, setJobStartTime,
-    jobEndTime, setJobEndTime,
-    retYard, setRetYard,
-    timeZone, setTimeZone,
-    mileageBegin, setMileageBegin,
-    mileageEnd, setMileageEnd,
+    lvYard,
+    setLvYard,
+    arrivalTime,
+    setArrivalTime,
+    dueOnLoc,
+    setDueOnLoc,
+    jobStartTime,
+    setJobStartTime,
+    jobEndTime,
+    setJobEndTime,
+    retYard,
+    setRetYard,
+    timeZone,
+    setTimeZone,
+    mileageBegin,
+    setMileageBegin,
+    mileageEnd,
+    setMileageEnd,
 
     // Google Pin
-    ticketPin, setTicketPin,
-    ticketPinLat, setTicketPinLat,
-    ticketPinLng, setTicketPinLng,
+    ticketPin,
+    setTicketPin,
+    ticketPinLat,
+    setTicketPinLat,
+    ticketPinLng,
+    setTicketPinLng,
 
     // Site Manager
-    siteMgrFirst, setSiteMgrFirst,
-    siteMgrLast, setSiteMgrLast,
-    siteMgrPhone, setSiteMgrPhone,
-    siteMgrEmail, setSiteMgrEmail,
+    siteMgrFirst,
+    setSiteMgrFirst,
+    siteMgrLast,
+    setSiteMgrLast,
+    siteMgrPhone,
+    setSiteMgrPhone,
+    siteMgrEmail,
+    setSiteMgrEmail,
 
     // Yard
-    yardLocationIndex, setYardLocationIndex,
+    yardLocationIndex,
+    setYardLocationIndex,
+
+    // GPS tracking (v28.183)
+    gpsVehicleId,
+    setGpsVehicleId,
+    yardLeftAt,
+    setYardLeftAt,
+    yardReturnedAt,
+    setYardReturnedAt,
+    gpsStatus,
+    setGpsStatus,
+    gpsPulledAt,
+    setGpsPulledAt,
+    stops,
+    setStops,
+    stopsLoaded,
 
     // Email
-    emailTo, setEmailTo,
-    emailCc, setEmailCc,
+    emailTo,
+    setEmailTo,
+    emailCc,
+    setEmailCc,
 
     // Signature
-    signedBy, setSignedBy,
-    signedAt, setSignedAt,
-    signatureImage, setSignatureImage,
-    sigNotReqReason, setSigNotReqReason,
-    sigNotReqNote, setSigNotReqNote,
-    sigWiped, setSigWiped,
+    signedBy,
+    setSignedBy,
+    signedAt,
+    setSignedAt,
+    signatureImage,
+    setSignatureImage,
+    sigNotReqReason,
+    setSigNotReqReason,
+    sigNotReqNote,
+    setSigNotReqNote,
+    sigWiped,
+    setSigWiped,
 
     // Edit
-    isEditing, setIsEditing,
+    isEditing,
+    setIsEditing,
 
     // Drive distance (auto-loaded by effect)
-    driveInfo, setDriveInfo,
-    driveLoading, setDriveLoading,
+    driveInfo,
+    setDriveInfo,
+    driveLoading,
+    setDriveLoading,
 
     // Known contacts (auto-loaded by effect)
     knownContacts,

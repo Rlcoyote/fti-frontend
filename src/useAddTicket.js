@@ -85,6 +85,9 @@ export default function useAddTicket({ setTickets }) {
       site_mgr_phone: ticketData.siteMgrPhone || null,
       site_mgr_email: ticketData.siteMgrEmail || null,
       yard_location_index: ticketData.yardLocationIndex || 1,
+      // v28.183 — GPS vehicle picker on ticket-create. Null = no vehicle
+      // assigned (PULL FROM GPS unavailable on the ticket until set).
+      gps_vehicle_id: ticketData.gpsVehicleId || null,
       lineItems: (ticketData.lineItems || []).map((li) => ({
         qb_code: li.qbCode,
         description: li.desc,

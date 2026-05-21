@@ -15,6 +15,7 @@ import AddTicketSiteManager from "./AddTicketSiteManager.jsx";
 import AddTicketDateTimeFields from "./AddTicketDateTimeFields.jsx";
 import AddTicketGooglePin from "./AddTicketGooglePin.jsx";
 import AddTicketGpsReference from "./AddTicketGpsReference.jsx";
+import AddTicketGpsVehicle from "./AddTicketGpsVehicle.jsx";
 import AddTicketTimeMileage from "./AddTicketTimeMileage.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -96,6 +97,11 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
       })
       .catch(() => setHasRigUpForCopy(false));
   }, [jobId, type]);
+  // v28.183 — GPS vehicle picker. uuid of vehicles row; populates
+  // tickets.gps_vehicle_id on save. AddTicketGpsVehicle auto-defaults to
+  // the lead crew's assigned vehicle but only on the first pass — user
+  // can override anytime.
+  const [gpsVehicleId, setGpsVehicleId] = useState(null);
   // Time & mileage
   const [lvYard, setLvYard] = useState("");
   const [arrivalTime, setArrivalTime] = useState("");
@@ -311,6 +317,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
       siteMgrPhone: smPhone,
       siteMgrEmail: smEmail,
       yardLocationIndex,
+      gpsVehicleId,
       hasJSA: !!existingJSA,
       ...(type === "Rig Down" ? { missingPieces: null } : {}),
       ...(isRental
@@ -541,6 +548,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 showCopyCrew={showCopyCrew}
                 setShowCopyCrew={setShowCopyCrew}
               />
+
+              {/* v28.183 — GPS Vehicle picker. Sits between Crew (where the
+                  lead is chosen) and the Google Pin (where the location is
+                  set) — the picker auto-defaults to the lead crew member's
+                  assigned vehicle and is the source of the GPS pull on
+                  TicketDetail later. */}
+              {type !== "Rental" && <AddTicketGpsVehicle gpsVehicleId={gpsVehicleId} setGpsVehicleId={setGpsVehicleId} crewSelection={crewSelection} />}
 
               {type && (
                 <AddTicketGooglePin

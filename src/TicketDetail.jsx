@@ -9,6 +9,7 @@ import TicketCommentThread from "./TicketCommentThread.jsx";
 import TicketSiteManager from "./TicketSiteManager.jsx";
 import TicketGooglePin from "./TicketGooglePin.jsx";
 import TicketTimeAndMileage from "./TicketTimeAndMileage.jsx";
+import TicketGpsTracking from "./TicketGpsTracking.jsx";
 import TicketActionBar from "./TicketActionBar.jsx";
 import TicketEditLockBanner from "./TicketEditLockBanner.jsx";
 import TicketJsaBar from "./TicketJsaBar.jsx";
@@ -314,6 +315,30 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             editable={editable}
             ticketType={ticket.type}
             jobId={ticket.jobId}
+          />
+        )}
+
+        {/* v28.183 — GPS time tracking block. Sits ABOVE the manual time/
+            mileage fields, so the GPS-pulled times are the canonical record
+            and the legacy manual fields below act as a fallback for crews
+            on non-GPS vehicles. Hidden for Rental tickets (which don't track
+            time at all). */}
+        {!["Rental"].includes(ticket.type) && ticket?.id && (
+          <TicketGpsTracking
+            ticket={ticket}
+            editable={editable}
+            gpsVehicleId={s.gpsVehicleId}
+            setGpsVehicleId={s.setGpsVehicleId}
+            yardLeftAt={s.yardLeftAt}
+            setYardLeftAt={s.setYardLeftAt}
+            yardReturnedAt={s.yardReturnedAt}
+            setYardReturnedAt={s.setYardReturnedAt}
+            gpsStatus={s.gpsStatus}
+            setGpsStatus={s.setGpsStatus}
+            gpsPulledAt={s.gpsPulledAt}
+            setGpsPulledAt={s.setGpsPulledAt}
+            stops={s.stops}
+            setStops={s.setStops}
           />
         )}
 

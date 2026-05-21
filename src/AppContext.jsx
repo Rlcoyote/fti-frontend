@@ -95,6 +95,11 @@ export function AppProvider({ children }) {
   const [qbItems, setQbItems] = useState([]);
   const [assets, setAssets] = useState([]);
   const [yards, setYards] = useState([]);
+  // v28.183 — vehicles loaded app-wide so the AddTicketModal / TicketDetail
+  // GPS pickers can render the dropdown without a per-modal fetch. Mirrors
+  // the yards posture: vehicles table is provider-agnostic reference data,
+  // every authenticated user reads it.
+  const [vehicles, setVehicles] = useState([]);
   const [roles, setRoles] = useState(DEFAULT_ROLES);
   const [loading, setLoading] = useState(false);
 
@@ -219,6 +224,17 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  // v28.183 — vehicles for ticket-form pickers + future DVIR surfaces.
+  // Read endpoint is auth-only (no view_inventory gate) — see routes/vehicles.js.
+  const refreshVehicles = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_URL}/vehicles`);
+      if (r.ok) setVehicles((await r.json()) || []);
+    } catch (err) {
+      console.error("AppContext: vehicles fetch failed", err);
+    }
+  }, []);
+
   const refreshRoles = useCallback(async () => {
     try {
       const r = await fetch(`${API_URL}/config/roles`);
@@ -244,18 +260,28 @@ export function AppProvider({ children }) {
       setQbItems([]);
       setAssets([]);
       setYards([]);
+      setVehicles([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    Promise.all([refreshSettings(), refreshUsers(), refreshCustomers(), refreshQbItems(), refreshAssets(), refreshYards(), refreshRoles()]).finally(() => {
+    Promise.all([
+      refreshSettings(),
+      refreshUsers(),
+      refreshCustomers(),
+      refreshQbItems(),
+      refreshAssets(),
+      refreshYards(),
+      refreshVehicles(),
+      refreshRoles(),
+    ]).finally(() => {
       if (!cancelled) setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshYards, refreshRoles]);
+  }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshYards, refreshVehicles, refreshRoles]);
 
   // ── Heartbeat — keeps the logged-in user visible in /activity/online while the app is open.
   // Backend "online" window is 15 minutes; we ping every 10 so idle users don't drop off.
@@ -416,6 +442,7 @@ export function AppProvider({ children }) {
       qbItems,
       assets,
       yards,
+      vehicles,
       roles,
       userNames,
       userIdByName,
@@ -426,6 +453,7 @@ export function AppProvider({ children }) {
       refreshQbItems,
       refreshAssets,
       refreshYards,
+      refreshVehicles,
       refreshRoles,
       showNotice,
       theme,
@@ -444,6 +472,7 @@ export function AppProvider({ children }) {
       qbItems,
       assets,
       yards,
+      vehicles,
       roles,
       userNames,
       userIdByName,
@@ -454,6 +483,7 @@ export function AppProvider({ children }) {
       refreshQbItems,
       refreshAssets,
       refreshYards,
+      refreshVehicles,
       refreshRoles,
       showNotice,
       theme,
