@@ -1,6 +1,7 @@
 import { C } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { ALL_COUNTIES } from "./Geography.js";
+import WellPinPaste from "./WellPinPaste.jsx";
 
 // ─── EditJobDetailFields (v28.145 — ship 5 of the EditJobModal split) ──────
 // The work-order detail fields for EditJobModal: Customer, Location (State +
@@ -187,29 +188,13 @@ function EditJobDetailFields({
                   </label>
                 </div>
                 {!usesSame && (
-                  <div style={{ marginTop: 8, marginLeft: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                    <div>
-                      <label style={labelStyle}>WELL PIN LAT</label>
-                      <input
-                        style={inputStyle}
-                        type="number"
-                        step="0.0000001"
-                        value={ov.pinLat || ""}
-                        onChange={(e) => updateOverride(idx, "pinLat", e.target.value)}
-                        placeholder="e.g. 31.9"
-                      />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>WELL PIN LNG</label>
-                      <input
-                        style={inputStyle}
-                        type="number"
-                        step="0.0000001"
-                        value={ov.pinLng || ""}
-                        onChange={(e) => updateOverride(idx, "pinLng", e.target.value)}
-                        placeholder="e.g. -102.1"
-                      />
-                    </div>
+                  <div style={{ marginTop: 8, marginLeft: 24 }}>
+                    <WellPinPaste
+                      pinLat={ov.pinLat}
+                      pinLng={ov.pinLng}
+                      setPinLat={(v) => updateOverride(idx, "pinLat", v)}
+                      setPinLng={(v) => updateOverride(idx, "pinLng", v)}
+                    />
                   </div>
                 )}
               </>

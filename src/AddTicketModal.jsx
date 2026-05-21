@@ -480,10 +480,6 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               onToggleWell={toggleWell}
               onSelectAll={selectAllWells}
               onConfirm={() => setWellsConfirmed(true)}
-              onChangeType={() => {
-                setType(null);
-                setWellsConfirmed(false);
-              }}
               onCancel={handleClose}
             />
           ) : (
@@ -493,26 +489,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 {/* v28.44 — main-form heading on the always-light pastel
                     tcfg.bg panel uses PANEL_TEXT (single source of truth in
                     SharedUI). */}
+                {/* v28.182 — "← CHANGE TYPE" button removed. Per Reggie: it
+                    was redundant + a source of subtle state-crossover bugs
+                    (type-specific fields like Rental's cycleDays survived
+                    a type switch and could land on a non-Rental ticket).
+                    Type recovery now flows through: close the modal
+                    (wipes state) and re-open with the right type. */}
                 <span style={{ fontSize: 16, fontWeight: 700, color: PANEL_TEXT }}>New {type} Ticket</span>
-                <button
-                  onClick={() => {
-                    setType(null);
-                    setWellsConfirmed(false);
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 4,
-                    padding: "3px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: PANEL_MUTED,
-                    cursor: "pointer",
-                    marginLeft: "auto",
-                  }}
-                >
-                  ← CHANGE TYPE
-                </button>
               </div>
 
               <AddTicketDateTimeFields

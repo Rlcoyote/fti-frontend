@@ -8,9 +8,14 @@ import { Btn, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 //
 // Per CAM XXV: controlled. assignedWells (array of well names) and
 // jobWells (parent's wells list) come from the parent. Callbacks:
-// onToggleWell, onSelectAll, onConfirm, onChangeType, onCancel.
+// onToggleWell, onSelectAll, onConfirm, onCancel.
+//
+// v28.182 — onChangeType callback + the "← CHANGE TYPE" button it triggered
+// were both removed (parallel removal of the same affordance in the main
+// AddTicket form). Type recovery is now: cancel → re-open with the right
+// type. Removing the in-flow type-switch eliminates state-crossover bugs.
 
-export default function AddTicketWellsConfirm({ type, jobWells, assignedWells, onToggleWell, onSelectAll, onConfirm, onChangeType, onCancel }) {
+export default function AddTicketWellsConfirm({ type, jobWells, assignedWells, onToggleWell, onSelectAll, onConfirm, onCancel }) {
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
@@ -19,22 +24,6 @@ export default function AddTicketWellsConfirm({ type, jobWells, assignedWells, o
             tcfg.bg panel use PANEL_TEXT/MUTED constants per the
             SharedUI rule. */}
         <span style={{ fontSize: 16, fontWeight: 700, color: PANEL_TEXT }}>Assign Wells — New {type} Ticket</span>
-        <button
-          onClick={onChangeType}
-          style={{
-            background: "transparent",
-            border: `1px solid ${C.border}`,
-            borderRadius: 4,
-            padding: "3px 10px",
-            fontSize: 11,
-            fontWeight: 700,
-            color: PANEL_MUTED,
-            cursor: "pointer",
-            marginLeft: "auto",
-          }}
-        >
-          ← CHANGE TYPE
-        </button>
       </div>
       <div style={{ fontSize: 12, color: PANEL_MUTED, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
       <div style={{ marginBottom: 16 }}>
