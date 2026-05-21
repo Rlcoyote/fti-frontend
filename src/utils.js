@@ -323,13 +323,14 @@ export const ROLE_OPTIONS = [
   { value: "owner", label: "Owner" },
   { value: "admin", label: "Admin" },
   { value: "manager", label: "Manager" },
+  { value: "dispatch", label: "Dispatch" },
   { value: "hse", label: "HSE" },
   { value: "lead", label: "Lead" },
   { value: "mechanic", label: "Mechanic" },
   { value: "salesman", label: "Salesman" },
   { value: "field", label: "Field" },
 ];
-export const ROLE_RANK = { owner: 4, admin: 3, manager: 2, hse: 2, lead: 1, mechanic: 1, salesman: 1, field: 0 };
+export const ROLE_RANK = { owner: 4, admin: 3, manager: 2, dispatch: 2, hse: 2, lead: 1, mechanic: 1, salesman: 1, field: 0 };
 export const canModifyUser = (currentUserRole, targetUserRole) => {
   if (!currentUserRole || !targetUserRole) return false;
   // v27.87 — strict rank gate. v27.74's owner-same-rank exception was rolled
@@ -367,6 +368,9 @@ export const PERMISSION_CATEGORIES = [
   { key: "view_contacts", label: "View Customer Contacts", group: "Admin & Settings" },
   { key: "edit_contacts", label: "Edit Customer Contacts", group: "Admin & Settings" },
   { key: "manage_settings", label: "Manage Settings", group: "Admin & Settings" },
+  // v28.177 — GPS Phase 2 additions:
+  { key: "view_gps_events", label: "View Live GPS Events", group: "GPS & Fleet" },
+  { key: "manage_yards", label: "Manage Yards", group: "GPS & Fleet" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -438,6 +442,33 @@ export const DEFAULT_PERMS = {
   // sets each in the Permissions matrix. Mirror of fti-backend permissions.js.
   hse: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, false])),
   mechanic: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, false])),
+  // dispatch — added v28.177. Operations / fleet dispatcher role. Defaults to
+  // GPS-relevant permissions ON (view_jobs, edit_jobs, edit_tickets,
+  // view_inventory, view_reports, view_activity_log, view_contacts,
+  // view_gps_events, manage_yards) plus reasonable office permissions; the
+  // rest OFF. Owner/admin can tune in the matrix. Mirror of fti-backend
+  // permissions.js DEFAULT_PERMS.dispatch.
+  dispatch: {
+    view_jobs: true,
+    edit_jobs: true,
+    edit_tickets: true,
+    sign_tickets: false,
+    approve_tickets: false,
+    send_to_qb: false,
+    void_tickets: false,
+    delete_jobs: false,
+    manage_users: false,
+    view_inventory: true,
+    edit_inventory: false,
+    view_reports: true,
+    view_archive: false,
+    view_activity_log: true,
+    view_contacts: true,
+    edit_contacts: false,
+    manage_settings: false,
+    view_gps_events: true,
+    manage_yards: true,
+  },
 };
 
 // Returns role templates from app_settings if customized, otherwise falls back to DEFAULT_PERMS.

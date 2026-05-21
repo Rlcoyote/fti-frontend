@@ -82,8 +82,8 @@ function mapQbItem(q) {
 // fetch is to eliminate drift; this fallback just keeps the UI working if the
 // endpoint ever fails.
 const DEFAULT_ROLES = {
-  all: ["owner", "admin", "manager", "hse", "lead", "mechanic", "salesman", "field"],
-  allowedForEmployee: ["admin", "manager", "hse", "lead", "mechanic", "salesman", "field"],
+  all: ["owner", "admin", "manager", "dispatch", "hse", "lead", "mechanic", "salesman", "field"],
+  allowedForEmployee: ["admin", "manager", "dispatch", "hse", "lead", "mechanic", "salesman", "field"],
   privileged: ["owner", "admin"],
 };
 
