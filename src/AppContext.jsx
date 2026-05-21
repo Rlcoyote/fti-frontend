@@ -94,6 +94,7 @@ export function AppProvider({ children }) {
   const [customers, setCustomers] = useState([]);
   const [qbItems, setQbItems] = useState([]);
   const [assets, setAssets] = useState([]);
+  const [yards, setYards] = useState([]);
   const [roles, setRoles] = useState(DEFAULT_ROLES);
   const [loading, setLoading] = useState(false);
 
@@ -204,6 +205,20 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  // v28.180 — Yards are the canonical fleet-origin locations (migration 010).
+  // Consumed by ticket-form surfaces (AddTicketModal, TicketDetail,
+  // TicketHeaderRow, AddTicketDateTimeFields) for the "left yard / returned
+  // to yard" dropdowns. The endpoint is open to any authenticated user
+  // (yards are public-within-FTI reference data).
+  const refreshYards = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_URL}/yards`);
+      if (r.ok) setYards((await r.json()) || []);
+    } catch (err) {
+      console.error("AppContext: yards fetch failed", err);
+    }
+  }, []);
+
   const refreshRoles = useCallback(async () => {
     try {
       const r = await fetch(`${API_URL}/config/roles`);
@@ -228,18 +243,19 @@ export function AppProvider({ children }) {
       setCustomers([]);
       setQbItems([]);
       setAssets([]);
+      setYards([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    Promise.all([refreshSettings(), refreshUsers(), refreshCustomers(), refreshQbItems(), refreshAssets(), refreshRoles()]).finally(() => {
+    Promise.all([refreshSettings(), refreshUsers(), refreshCustomers(), refreshQbItems(), refreshAssets(), refreshYards(), refreshRoles()]).finally(() => {
       if (!cancelled) setLoading(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshRoles]);
+  }, [currentUser, refreshSettings, refreshUsers, refreshCustomers, refreshQbItems, refreshAssets, refreshYards, refreshRoles]);
 
   // ── Heartbeat — keeps the logged-in user visible in /activity/online while the app is open.
   // Backend "online" window is 15 minutes; we ping every 10 so idle users don't drop off.
@@ -399,6 +415,7 @@ export function AppProvider({ children }) {
       customers,
       qbItems,
       assets,
+      yards,
       roles,
       userNames,
       userIdByName,
@@ -408,6 +425,7 @@ export function AppProvider({ children }) {
       refreshCustomers,
       refreshQbItems,
       refreshAssets,
+      refreshYards,
       refreshRoles,
       showNotice,
       theme,
@@ -425,6 +443,7 @@ export function AppProvider({ children }) {
       customers,
       qbItems,
       assets,
+      yards,
       roles,
       userNames,
       userIdByName,
@@ -434,6 +453,7 @@ export function AppProvider({ children }) {
       refreshCustomers,
       refreshQbItems,
       refreshAssets,
+      refreshYards,
       refreshRoles,
       showNotice,
       theme,

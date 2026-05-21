@@ -16,7 +16,7 @@ import FinalReviewPage from "./FinalReviewPage.jsx";
 import CrewPage from "./CrewPage.jsx";
 import JobHistoryPage from "./JobHistoryPage.jsx";
 import DeletedJobsPage from "./DeletedJobsPage.jsx";
-import SettingsModal from "./SettingsModal.jsx";
+import ComplianceConsentPage from "./ComplianceConsentPage.jsx";
 // v28.17 — PermissionsModal, UsersPage, EmployeesPage all consolidated
 // into PeoplePage (one canonical surface for all person-management).
 import PeoplePage from "./PeoplePage.jsx";
@@ -109,6 +109,7 @@ function FTIDashboard() {
     if (p.startsWith("/assets")) return "assets";
     if (p.startsWith("/vehicles")) return "vehicles";
     if (p.startsWith("/yards")) return "yards";
+    if (p.startsWith("/compliance-consent")) return "compliance";
     if (p.startsWith("/crew")) return "crew";
     if (p.startsWith("/safety")) return "safety";
     if (p.startsWith("/activity")) return "activity";
@@ -127,7 +128,9 @@ function FTIDashboard() {
   // ── UI state ──
   // v28.17 — showPermissions removed; the permissions matrix is now a tab
   // inside PeoplePage instead of a standalone modal.
-  const [showSettings, setShowSettings] = useState(false);
+  // v28.180 — showSettings removed. Legacy SettingsModal (which held YARD
+  // LOCATIONS + SMS CONSENT SCRIPTS) is retired: yards moved to top-level
+  // /yards page (v28.179); SMS Consent Scripts moved to /compliance-consent.
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
   const [showCompanyDocs, setShowCompanyDocs] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -299,7 +302,6 @@ function FTIDashboard() {
         can={can}
         myActiveTodosCount={myActiveTodos.length}
         deletedTotalCount={deletedJobs.length + deletedTickets.length}
-        setShowSettings={setShowSettings}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
         setShowAbout={setShowAbout}
@@ -319,7 +321,6 @@ function FTIDashboard() {
         deletedTotalCount={deletedJobs.length + deletedTickets.length}
         showSettingsMenu={showSettingsMenu}
         setShowSettingsMenu={setShowSettingsMenu}
-        setShowSettings={setShowSettings}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
         setShowAbout={setShowAbout}
@@ -377,6 +378,7 @@ function FTIDashboard() {
         {can("view_inventory") && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
         {can("view_inventory") && <Route path="/vehicles" element={<VehiclesPage />} />}
         {can("view_inventory") && <Route path="/yards" element={<YardsPage />} />}
+        {can("manage_settings") && <Route path="/compliance-consent" element={<ComplianceConsentPage />} />}
         {can("delete_jobs") && (
           <Route
             path="/deleted"
@@ -407,7 +409,8 @@ function FTIDashboard() {
       {/* MODALS */}
       {showNewJob && <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} />}
       {/* v28.17 — PermissionsModal removed; matrix lives inside /people. */}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {/* v28.180 — SettingsModal retired. Yard locations live on /yards;
+          SMS consent scripts live on /compliance-consent. */}
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
       {showCompanyDocs && <CompanyDocumentsModal onClose={() => setShowCompanyDocs(false)} />}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
-import { today, parseYards } from "./utils.js";
+import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
@@ -38,7 +38,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, [isMobile, onClose]);
-  const { qbItems, settings, currentUser, showNotice, users } = useApp();
+  // v28.180 — yards now come from /api/yards via AppContext (canonical yards
+  // table from migration 010). parseYards(settings) replaced; settings is no
+  // longer needed in this component (yards was its only consumer here).
+  const { qbItems, currentUser, yards, showNotice, users } = useApp();
   // v28.07.5 / v28.09 — stage Crew Selection BEFORE the ticket is saved.
   // Local state holds the planned crew; on CREATE TICKET we POST the
   // ticket, then bulk-POST the selection to /tickets/:id/crew using the
@@ -49,7 +52,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const [crewSelection, setCrewSelection] = useState([]); // [{ user_id, user_name, user_role, is_lead }]
   const [showCopyCrew, setShowCopyCrew] = useState(false);
   const [hasRigUpForCopy, setHasRigUpForCopy] = useState(false);
-  const yardsList = useMemo(() => parseYards(settings), [settings]);
+  const yardsList = yards;
   const [yardLocationIndex, setYardLocationIndex] = useState(1);
   const [type, setType] = useState(null);
   const [assignedWells, setAssignedWells] = useState([]);

@@ -118,7 +118,8 @@ function DesktopNavBar({
   setShowSettingsMenu,
   // Modal-open setters (v28.17 — setShowPermissions removed; the
   // permissions matrix lives inside /people now, not a standalone modal).
-  setShowSettings,
+  // v28.180 — setShowSettings removed; SettingsModal retired. Yard Locations
+  // → /yards top-level page; SMS Consent Scripts → /compliance-consent.
   setShowEmergencyContacts,
   setShowCompanyDocs,
   setShowAbout,
@@ -253,7 +254,7 @@ function DesktopNavBar({
                   >
                     {can("manage_users") && (
                       <GearMenuItem
-                        label="People"
+                        label="People & Permissions"
                         onClick={() => {
                           setShowSettingsMenu(false);
                           navigate("/people");
@@ -270,14 +271,17 @@ function DesktopNavBar({
                         }}
                       />
                     )}
-                    {/* v28.17 — Permissions gear item removed; matrix now lives as a tab inside /people. */}
-                    {currentUser.role === "owner" && (
+                    {/* v28.17 — Permissions gear item removed; matrix now lives as a tab inside /people.
+                        v28.180 — Yard Locations gear item removed; yards have their own top-level
+                                  /yards page now. Compliance & Consent (below) is the new home
+                                  for SMS consent scripts + future regulatory settings. */}
+                    {can("manage_settings") && (
                       <GearMenuItem
-                        label="Yard Locations"
+                        label="Compliance & Consent"
                         hasTopBorder
                         onClick={() => {
                           setShowSettingsMenu(false);
-                          setShowSettings(true);
+                          navigate("/compliance-consent");
                         }}
                       />
                     )}

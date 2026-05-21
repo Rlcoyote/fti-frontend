@@ -147,7 +147,8 @@ function MobileNavDrawer({
   deletedTotalCount,
   // v28.17 — setShowPermissions removed; the permissions matrix is a tab
   // inside /people now, not a standalone modal.
-  setShowSettings,
+  // v28.180 — setShowSettings removed; SettingsModal retired (Yard Locations
+  // → /yards top-level page; SMS Consent Scripts → /compliance-consent).
   setShowEmergencyContacts,
   setShowCompanyDocs,
   setShowAbout,
@@ -256,14 +257,16 @@ function MobileNavDrawer({
         })}
 
         {/* GEAR ITEMS — admin / owner only */}
-        {/* v28.17 — Permissions item removed; permissions matrix lives as a tab inside /people. */}
-        {currentUser.role === "owner" && (
+        {/* v28.17 — Permissions item removed; permissions matrix lives as a tab inside /people.
+            v28.180 — Yard Locations removed; yards are now a top-level page (/yards).
+                       Compliance & Consent added as the new home for SMS consent scripts. */}
+        {can && can("manage_settings") && (
           <DrawerItem
-            icon="⚙"
-            label="Yard Locations"
+            icon="⚖"
+            label="Compliance & Consent"
             onClick={() => {
               setDrawerOpen(false);
-              setShowSettings(true);
+              navigate("/compliance-consent");
             }}
           />
         )}

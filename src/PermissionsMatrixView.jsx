@@ -37,7 +37,27 @@ function PermissionsMatrixView() {
   const [permUsers, setPermUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
-  const [showTemplates, setShowTemplates] = useState(false);
+  // v28.180 — Role Templates expand state persists in localStorage so a user's
+  // last preference (open / closed) sticks across navigations. Default OPEN so
+  // first-time visitors see the editor without having to discover it. Old
+  // default was closed; the unhinted "▼" arrow didn't read as "click to
+  // reveal the per-role permission editor" to most users.
+  const [showTemplates, setShowTemplates] = useState(() => {
+    try {
+      const saved = localStorage.getItem("fti_perm_role_templates_open");
+      if (saved === "false") return false;
+      return true;
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("fti_perm_role_templates_open", String(showTemplates));
+    } catch {
+      /* ignore */
+    }
+  }, [showTemplates]);
   const [templateSaving, setTemplateSaving] = useState(false);
 
   const templates = useMemo(() => getRoleTemplates(settings), [settings]);
@@ -184,11 +204,33 @@ function PermissionsMatrixView() {
       {/* ── Role Template Editor (Owner/Admin only) ── */}
       {isOwnerOrAdmin && (
         <div style={{ borderBottom: `2px solid ${C.border}`, padding: "12px 0", marginBottom: 12 }}>
-          <div onClick={() => setShowTemplates(!showTemplates)} style={{ padding: "0 4px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+          {/* v28.180 — UX fix: the chevron alone was unintuitive (people didn't
+              realize clicking it revealed the per-role permission editor).
+              Adopted an explicit "Hide / Show defaults" label, larger target,
+              and a visible button-style affordance. State persists in
+              localStorage so the user's last preference holds across navs. */}
+          <button
+            type="button"
+            onClick={() => setShowTemplates(!showTemplates)}
+            style={{
+              padding: "8px 12px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              background: showTemplates ? C.steel : "transparent",
+              border: `1px solid ${showTemplates ? C.border : "transparent"}`,
+              borderRadius: 4,
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
             <span style={{ fontSize: 13, fontWeight: 800, color: C.blue, letterSpacing: "0.06em" }}>ROLE TEMPLATES</span>
-            <span style={{ fontSize: 10, color: C.muted, transform: showTemplates ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▼</span>
-            <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic", marginLeft: 4 }}>Define default permissions for each role</span>
-          </div>
+            <span style={{ fontSize: 11, color: C.muted, transform: showTemplates ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.15s" }}>▼</span>
+            <span style={{ fontSize: 11, color: C.text, fontStyle: "italic", marginLeft: 4 }}>
+              {showTemplates ? "Click to hide per-role permission defaults" : "Click to show per-role permission defaults"}
+            </span>
+          </button>
           {showTemplates && (
             <div style={{ padding: "12px 0 0", overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>

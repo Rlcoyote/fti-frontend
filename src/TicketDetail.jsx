@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
-import { calcLineTotal, parseYards } from "./utils.js";
+import { calcLineTotal } from "./utils.js";
 import TicketDeleteModal from "./TicketDeleteModal.jsx";
 import TicketVoidModal from "./TicketVoidModal.jsx";
 import TicketDuplicateModal from "./TicketDuplicateModal.jsx";
@@ -35,9 +35,11 @@ import { useApp } from "./AppContext.jsx";
 // from TicketRentalCycle.
 
 function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevise, jobs, tickets = [], openToSign = false, asPage = false }) {
-  const { qbItems, currentUser, settings, showNotice, can } = useApp();
+  // v28.180 — yards now come from /api/yards via AppContext (canonical yards
+  // table from migration 010). Previous parseYards(settings) lookup retired.
+  const { qbItems, currentUser, yards, showNotice, can } = useApp();
   const isMobile = useIsMobile();
-  const yardsList = useMemo(() => parseYards(settings), [settings]);
+  const yardsList = yards;
 
   // Parent WO this ticket belongs to (needed before useTicketState so the
   // hook can derive contact email / customer contacts).
