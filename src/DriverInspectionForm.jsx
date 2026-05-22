@@ -4,33 +4,42 @@ import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import { useNavigate } from "react-router-dom";
 
-// ─── DriverInspectionForm (v28.186) ──────────────────────────────────────────
+// ─── DriverInspectionForm (v28.187) ──────────────────────────────────────────
 // FMCSA Part 396.11 pre/post-trip Driver Vehicle Inspection Report capture.
 // Mobile-first per CAM Article XV — drivers do this in the field, often on a
 // phone in a yard with poor signal.
 //
+// v28.187 — tractor + trailer combined DVIR. Driver picks a tow vehicle
+// (pickup / tractor / straight truck) AND an optional trailer. When a trailer
+// is selected, the 396.11 checklist appears twice — once per unit. ONE
+// signature covers both. Each defect carries unit_id telling the audit trail
+// which unit it was found on.
+//
+// POLICY (set 2026-05-22 by Reggie): No DOT vs non-DOT branching anywhere.
+// Pre-trip AND post-trip are required for every operated vehicle — Class A
+// combo OR 3/4-ton + trailer. The code does NOT special-case `cdl_class`.
+//
 // Flow:
-//   1. Pick vehicle (auto-defaults to the lead crew member's assigned vehicle).
-//   2. Toggle pre-trip vs post-trip (defaults to pre-trip; first DVIR of the
-//      day is almost always pre-trip).
-//   3. Walk the 396.11 component checklist. Default = PASS. Tap a component
-//      to flip it to DEFECT, then provide severity (minor / major) + a short
-//      description. Optionally red-tag (out-of-service) if the driver holds
-//      the permission AND severity is major.
-//   4. Optional odometer + notes.
-//   5. Read the attestation language, check the box, SUBMIT.
+//   1. Pick TOW VEHICLE (auto-defaults to the lead crew member's assigned
+//      vehicle).
+//   2. Optionally pick TRAILER (only trailers with vehicle_kind='trailer'
+//      show up). When selected, the second checklist appears.
+//   3. Toggle pre-trip vs post-trip (defaults to pre-trip).
+//   4. Walk each component checklist. Default = PASS. Tap to flip to DEFECT,
+//      then provide severity (minor / major) + a short description.
+//      Optionally red-tag the unit (only when caller holds red_tag_vehicle
+//      AND severity is major). Red-tag attaches to the UNIT the defect was
+//      found on (trailer brakes → trailer red-tag, not the tractor).
+//   5. Optional odometer + general notes.
+//   6. Read the certification language, check the box, SUBMIT.
 //
-// GPS coords + device user agent capture silently on mount (so the field is
-// populated by the time the user submits; no extra prompts).
+// GPS coords + device user agent capture silently on mount.
 //
-// SCOPE NOTE: This first slice uses an "attestation" sign method (typed name
-// + checkbox + GPS). v28.187+ layers the WebAuthn biometric flow on top using
-// the same pattern as JSASignSubmitModal — the BE schema already carries
-// webauthn_assertion + pin_verified columns ready for that upgrade.
+// SCOPE NOTE: Sign method this slice = 'attestation' (typed name + ack + GPS).
+// WebAuthn biometric layer follows the JSASignSubmitModal pattern in v28.187+
+// — BE schema already carries webauthn_assertion + pin_verified ready.
 
-// FMCSA 396.11(a) component list. This is the federally-required inspection
-// scope; FTI uses it for both DOT and non-DOT vehicles (per the project doc:
-// the pre-trip sign-off is universal even for non-DOT vehicles).
+// FMCSA 396.11(a) component list. Universal coverage (DOT and non-DOT).
 const FMCSA_COMPONENTS = [
   "Service brakes (including trailer brake connections)",
   "Parking (hand) brake",
@@ -49,7 +58,116 @@ const FMCSA_COMPONENTS = [
   "Engine compartment (belts, hoses, fluids)",
 ];
 
-const PERJURY_ATTESTATION = `By submitting this inspection, I attest under penalty of perjury that I have personally walked around and physically inspected each component listed above on this vehicle; that the pass / defect statuses recorded here reflect my honest observation of the vehicle's condition at the time of inspection; and that I understand this is my legally binding signed Driver Vehicle Inspection Report under FMCSA 49 CFR § 396.11. I understand that falsifying an inspection record may result in immediate termination and may be referred for federal prosecution.`;
+// v28.187 — verbiage swap. "Penalty of perjury" was civil-document framing
+// (28 USC § 1746), not regulatory. FMCSA 49 CFR § 396.13 uses "certify".
+// Long version per Reggie's pick — explicit on consequences but in the
+// regulation's own language.
+const DVIR_CERTIFICATION = `By submitting this inspection, I certify under 49 CFR § 396.13 that I have personally inspected each component listed above on this vehicle, and that the pass / defect statuses recorded here accurately reflect the vehicle's condition at the time of inspection. This serves as my legally binding signed Driver Vehicle Inspection Report. Falsifying a DVIR may result in termination, federal enforcement action, and personal liability under DOT safety regulations.`;
+
+// What counts as a "tow vehicle" (vehicle that may pull a trailer). Anything
+// that is not itself a trailer.
+const TOW_KINDS = new Set(["pickup", "tractor", "straight_truck", "other"]);
+
+// v28.187 — checklist for one unit. Rendered once per unit (tractor / trailer)
+// so the JSX doesn't duplicate. unitKey ∈ {'tractor','trailer'} identifies
+// which state array the setItem callback should mutate.
+function ChecklistSection({ title, subtitle, items, unitKey, setItem, canRedTag }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: C.text, letterSpacing: "0.08em" }}>{title}</div>
+        <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>{subtitle}</div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {items.map((item, idx) => {
+          const isDef = item.status === "defect";
+          return (
+            <div
+              key={idx}
+              style={{
+                background: C.cardBg,
+                border: `1px solid ${isDef ? C.red + "55" : C.border}`,
+                borderLeft: `4px solid ${isDef ? C.red : C.green}`,
+                borderRadius: 4,
+                padding: "10px 12px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.text }}>{item.component}</div>
+                <div style={{ display: "flex", gap: 0, border: `1px solid ${C.border}`, borderRadius: 3, overflow: "hidden" }}>
+                  {["pass", "defect"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setItem(unitKey, idx, { status: s })}
+                      style={{
+                        padding: "5px 12px",
+                        background: item.status === s ? (s === "pass" ? C.green : C.red) : "transparent",
+                        color: item.status === s ? C.white : C.text,
+                        border: "none",
+                        fontSize: 11,
+                        fontWeight: 800,
+                        letterSpacing: "0.06em",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {s === "pass" ? "PASS" : "DEFECT"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {isDef && (
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>SEVERITY</span>
+                    {["minor", "major"].map((sv) => (
+                      <button
+                        key={sv}
+                        type="button"
+                        onClick={() => setItem(unitKey, idx, { severity: sv })}
+                        style={{
+                          padding: "4px 10px",
+                          background: item.severity === sv ? (sv === "major" ? C.red : "#8a6500") : "transparent",
+                          color: item.severity === sv ? C.white : C.text,
+                          border: `1px solid ${item.severity === sv ? "transparent" : C.border}`,
+                          borderRadius: 3,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {sv}
+                      </button>
+                    ))}
+                    {canRedTag && item.severity === "major" && (
+                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: C.red, cursor: "pointer" }}>
+                        <input
+                          type="checkbox"
+                          checked={item.red_tag}
+                          onChange={(e) => setItem(unitKey, idx, { red_tag: e.target.checked })}
+                          style={{ accentColor: C.red }}
+                        />
+                        RED-TAG (OUT OF SERVICE)
+                      </label>
+                    )}
+                  </div>
+                  <textarea
+                    value={item.description}
+                    onChange={(e) => setItem(unitKey, idx, { description: e.target.value })}
+                    placeholder="What's wrong with this component? (required)"
+                    style={{ ...inputStyle, minHeight: 50, fontFamily: "inherit", resize: "vertical" }}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function DriverInspectionForm() {
   const { vehicles, can, currentUser } = useApp();
@@ -59,19 +177,24 @@ function DriverInspectionForm() {
 
   // ── State ────────────────────────────────────────────────────────────────
   const [vehicleId, setVehicleId] = useState("");
+  const [trailerId, setTrailerId] = useState(""); // v28.187 — optional second unit
   const [type, setType] = useState("pre_trip");
   const [odometer, setOdometer] = useState("");
   const [notes, setNotes] = useState("");
-  // Each entry: { component, status: 'pass' | 'defect', severity: 'minor' | 'major', description, red_tag }
-  const [items, setItems] = useState(() =>
+  // v28.187 — checklists are now PER UNIT. tractorItems holds the 15-component
+  // checklist for the primary vehicle; trailerItems for the trailer when one
+  // is selected. Defect rows from both arrays merge at submit time, each
+  // carrying its own unit_id so the BE can attribute correctly.
+  const mkBlankList = () =>
     FMCSA_COMPONENTS.map((c) => ({
       component: c,
       status: "pass",
       severity: "minor",
       description: "",
       red_tag: false,
-    })),
-  );
+    }));
+  const [tractorItems, setTractorItems] = useState(mkBlankList);
+  const [trailerItems, setTrailerItems] = useState(mkBlankList);
   const [acknowledged, setAcknowledged] = useState(false);
   const [gps, setGps] = useState({ lat: null, lng: null });
   const [submitting, setSubmitting] = useState(false);
@@ -103,12 +226,26 @@ function DriverInspectionForm() {
   }, []);
   const isMob = winW < 900;
 
-  const defects = useMemo(() => items.filter((i) => i.status === "defect"), [items]);
+  // v28.187 — merged defect list with unit_id tagged so submit can pass each
+  // defect with its source unit. Only consider trailer defects when a trailer
+  // is selected (otherwise the trailer checklist is hidden anyway).
+  const tractorDefects = useMemo(() => tractorItems.filter((i) => i.status === "defect"), [tractorItems]);
+  const trailerDefects = useMemo(() => (trailerId ? trailerItems.filter((i) => i.status === "defect") : []), [trailerItems, trailerId]);
+  const defects = useMemo(
+    () => [...tractorDefects.map((d) => ({ ...d, unit_id: vehicleId })), ...trailerDefects.map((d) => ({ ...d, unit_id: trailerId }))],
+    [tractorDefects, trailerDefects, vehicleId, trailerId],
+  );
   const hasUnfilledDefect = defects.some((d) => !d.description.trim());
 
-  const setItem = (idx, patch) => {
-    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  // Per-unit item setter. unit ∈ {'tractor', 'trailer'}.
+  const setItem = (unit, idx, patch) => {
+    const setter = unit === "trailer" ? setTrailerItems : setTractorItems;
+    setter((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   };
+
+  // Vehicle list partitioned by kind for the two dropdowns.
+  const towVehicles = useMemo(() => (vehicles || []).filter((v) => v.lifecycle_status !== "retired" && TOW_KINDS.has(v.vehicle_kind || "pickup")), [vehicles]);
+  const trailerVehicles = useMemo(() => (vehicles || []).filter((v) => v.lifecycle_status !== "retired" && v.vehicle_kind === "trailer"), [vehicles]);
 
   const submit = async () => {
     if (!vehicleId) {
@@ -129,6 +266,7 @@ function DriverInspectionForm() {
     try {
       const payload = {
         vehicle_id: vehicleId,
+        trailer_id: trailerId || null,
         inspection_type: type,
         inspection_date: new Date().toISOString().slice(0, 10),
         odometer: odometer ? parseInt(odometer, 10) : null,
@@ -136,11 +274,12 @@ function DriverInspectionForm() {
           component: d.component,
           description: d.description.trim(),
           severity: d.severity,
+          unit_id: d.unit_id,
           red_tag: d.red_tag && canRedTag,
         })),
         signed_at: new Date().toISOString(),
         sign_method: "attestation",
-        attestation_text: PERJURY_ATTESTATION,
+        attestation_text: DVIR_CERTIFICATION,
         device_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
         gps_lat: gps.lat,
         gps_lng: gps.lng,
@@ -193,15 +332,9 @@ function DriverInspectionForm() {
             variant="ghost"
             onClick={() => {
               setSuccess(null);
-              setItems(
-                FMCSA_COMPONENTS.map((c) => ({
-                  component: c,
-                  status: "pass",
-                  severity: "minor",
-                  description: "",
-                  red_tag: false,
-                })),
-              );
+              setTractorItems(mkBlankList());
+              setTrailerItems(mkBlankList());
+              setTrailerId("");
               setAcknowledged(false);
               setNotes("");
               setOdometer("");
@@ -246,123 +379,68 @@ function DriverInspectionForm() {
         ))}
       </div>
 
-      {/* VEHICLE + ODOMETER */}
-      <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "2fr 1fr", gap: 10, marginBottom: 16 }}>
+      {/* TOW VEHICLE + TRAILER + ODOMETER */}
+      <div style={{ display: "grid", gridTemplateColumns: isMob ? "1fr" : "1fr 1fr 100px", gap: 10, marginBottom: 16 }}>
         <div>
-          <label style={labelStyle}>VEHICLE</label>
+          <label style={labelStyle}>TOW VEHICLE</label>
           <select value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} style={inputStyle}>
             <option value="">Pick a vehicle…</option>
-            {(vehicles || [])
-              .filter((v) => v.lifecycle_status !== "retired")
-              .map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.vehicle_number || v.vin || v.id.slice(0, 8)} — {[v.year, v.make, v.model].filter(Boolean).join(" ")}
-                </option>
-              ))}
+            {towVehicles.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.vehicle_number || v.vin || v.id.slice(0, 8)} — {[v.year, v.make, v.model].filter(Boolean).join(" ")}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>TRAILER (if pulling)</label>
+          <select value={trailerId} onChange={(e) => setTrailerId(e.target.value)} style={inputStyle}>
+            <option value="">— No trailer —</option>
+            {trailerVehicles.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.vehicle_number || v.vin || v.id.slice(0, 8)}
+                {v.subtype ? ` — ${v.subtype}` : ""}
+              </option>
+            ))}
           </select>
         </div>
         <div>
           <label style={labelStyle}>ODOMETER</label>
-          <input
-            style={inputStyle}
-            type="number"
-            inputMode="numeric"
-            value={odometer}
-            onChange={(e) => setOdometer(e.target.value)}
-            placeholder="e.g. 134950"
-          />
+          <input style={inputStyle} type="number" inputMode="numeric" value={odometer} onChange={(e) => setOdometer(e.target.value)} placeholder="134950" />
         </div>
       </div>
 
-      {/* CHECKLIST */}
       <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>FMCSA 396.11 COMPONENT CHECKLIST</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 16 }}>
-        {items.map((item, idx) => {
-          const isDef = item.status === "defect";
-          return (
-            <div
-              key={idx}
-              style={{
-                background: C.cardBg,
-                border: `1px solid ${isDef ? C.red + "55" : C.border}`,
-                borderLeft: `4px solid ${isDef ? C.red : C.green}`,
-                borderRadius: 4,
-                padding: "10px 12px",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: C.text }}>{item.component}</div>
-                <div style={{ display: "flex", gap: 0, border: `1px solid ${C.border}`, borderRadius: 3, overflow: "hidden" }}>
-                  {["pass", "defect"].map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setItem(idx, { status: s })}
-                      style={{
-                        padding: "5px 12px",
-                        background: item.status === s ? (s === "pass" ? C.green : C.red) : "transparent",
-                        color: item.status === s ? C.white : C.text,
-                        border: "none",
-                        fontSize: 11,
-                        fontWeight: 800,
-                        letterSpacing: "0.06em",
-                        cursor: "pointer",
-                      }}
-                    >
-                      {s === "pass" ? "PASS" : "DEFECT"}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {isDef && (
-                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>SEVERITY</span>
-                    {["minor", "major"].map((sv) => (
-                      <button
-                        key={sv}
-                        type="button"
-                        onClick={() => setItem(idx, { severity: sv })}
-                        style={{
-                          padding: "4px 10px",
-                          background: item.severity === sv ? (sv === "major" ? C.red : "#8a6500") : "transparent",
-                          color: item.severity === sv ? C.white : C.text,
-                          border: `1px solid ${item.severity === sv ? "transparent" : C.border}`,
-                          borderRadius: 3,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        {sv}
-                      </button>
-                    ))}
-                    {canRedTag && item.severity === "major" && (
-                      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontWeight: 700, color: C.red, cursor: "pointer" }}>
-                        <input
-                          type="checkbox"
-                          checked={item.red_tag}
-                          onChange={(e) => setItem(idx, { red_tag: e.target.checked })}
-                          style={{ accentColor: C.red }}
-                        />
-                        RED-TAG (OUT OF SERVICE)
-                      </label>
-                    )}
-                  </div>
-                  <textarea
-                    value={item.description}
-                    onChange={(e) => setItem(idx, { description: e.target.value })}
-                    placeholder="What's wrong with this component? (required)"
-                    style={{ ...inputStyle, minHeight: 50, fontFamily: "inherit", resize: "vertical" }}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+
+      {/* TRACTOR / TOW-VEHICLE CHECKLIST */}
+      <ChecklistSection
+        title="TRACTOR / TOW VEHICLE"
+        subtitle={(() => {
+          const v = towVehicles.find((x) => x.id === vehicleId);
+          if (!v) return "Pick a tow vehicle above";
+          return `${v.vehicle_number || ""} ${[v.year, v.make, v.model].filter(Boolean).join(" ")}`.trim();
+        })()}
+        items={tractorItems}
+        unitKey="tractor"
+        setItem={setItem}
+        canRedTag={canRedTag}
+      />
+
+      {/* TRAILER CHECKLIST — only when a trailer is selected */}
+      {trailerId && (
+        <ChecklistSection
+          title="TRAILER"
+          subtitle={(() => {
+            const t = trailerVehicles.find((x) => x.id === trailerId);
+            if (!t) return "";
+            return `${t.vehicle_number || ""} ${t.subtype || ""}`.trim();
+          })()}
+          items={trailerItems}
+          unitKey="trailer"
+          setItem={setItem}
+          canRedTag={canRedTag}
+        />
+      )}
 
       {/* NOTES */}
       <div style={{ marginBottom: 16 }}>
@@ -395,7 +473,7 @@ function DriverInspectionForm() {
           lineHeight: 1.55,
         }}
       >
-        {PERJURY_ATTESTATION}
+        {DVIR_CERTIFICATION}
       </div>
       <label
         style={{
