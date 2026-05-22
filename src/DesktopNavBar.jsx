@@ -225,7 +225,14 @@ function DesktopNavBar({
               no ambiguity. */}
           <ThemeToggleIcon />
 
-          {(can("manage_users") || currentUser.role === "owner") && (
+          {/* v28.184 — Gear visibility broadened. Was: manage_users || owner.
+              Now: manage_users || view_inventory || owner. Required because
+              Vehicles / Yards / Assets moved INTO the gear menu this version;
+              non-admin users with view_inventory still need access. Each item
+              inside still has its own per-permission gate, so non-admins see
+              only what they're allowed to see (master-data items + the always-
+              on items like Field Resources and About). */}
+          {(can("manage_users") || can("view_inventory") || currentUser.role === "owner") && (
             <div style={{ position: "relative" }}>
               <span
                 onClick={() => setShowSettingsMenu((v) => !v)}
@@ -274,7 +281,39 @@ function DesktopNavBar({
                     {/* v28.17 — Permissions gear item removed; matrix now lives as a tab inside /people.
                         v28.180 — Yard Locations gear item removed; yards have their own top-level
                                   /yards page now. Compliance & Consent (below) is the new home
-                                  for SMS consent scripts + future regulatory settings. */}
+                                  for SMS consent scripts + future regulatory settings.
+                        v28.184 — Master data block (Vehicles / Yards / Assets) moved into the gear
+                                  menu from the top nav. Top-bordered as their own group between the
+                                  People/Roles items above and the Compliance/Reference items below.
+                                  Gated on view_inventory (matches the page-level route gate). */}
+                    {can("view_inventory") && (
+                      <GearMenuItem
+                        label="Vehicles"
+                        hasTopBorder
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/vehicles");
+                        }}
+                      />
+                    )}
+                    {can("view_inventory") && (
+                      <GearMenuItem
+                        label="Yards"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/yards");
+                        }}
+                      />
+                    )}
+                    {can("view_inventory") && (
+                      <GearMenuItem
+                        label="Assets"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/assets");
+                        }}
+                      />
+                    )}
                     {can("manage_settings") && (
                       <GearMenuItem
                         label="Compliance & Consent"

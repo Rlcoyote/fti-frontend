@@ -256,10 +256,46 @@ function MobileNavDrawer({
           );
         })}
 
-        {/* GEAR ITEMS — admin / owner only */}
+        {/* GEAR ITEMS — admin / dispatch / owner */}
         {/* v28.17 — Permissions item removed; permissions matrix lives as a tab inside /people.
             v28.180 — Yard Locations removed; yards are now a top-level page (/yards).
-                       Compliance & Consent added as the new home for SMS consent scripts. */}
+                       Compliance & Consent added as the new home for SMS consent scripts.
+            v28.184 — Master data items (Vehicles / Yards / Assets) moved here from the upper
+                       NAV ITEMS section. Top nav was getting crowded; these are admin/dispatch-
+                       cadence master data, not daily field surfaces. Per-item gate matches the
+                       page-level route gate (view_inventory). Icons kept here in the drawer
+                       (vertical-list affordance is fine for emoji-style markers — the desktop
+                       top-nav glyph plan was rejected, but the drawer icons predate that). */}
+        {can && can("view_inventory") && (
+          <DrawerItem
+            icon={NAV_ICONS.Vehicles}
+            label="Vehicles"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/vehicles");
+            }}
+          />
+        )}
+        {can && can("view_inventory") && (
+          <DrawerItem
+            icon={NAV_ICONS.Yards}
+            label="Yards"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/yards");
+            }}
+          />
+        )}
+        {can && can("view_inventory") && (
+          <DrawerItem
+            icon={NAV_ICONS.Assets}
+            label="Assets"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/assets");
+            }}
+          />
+        )}
         {can && can("manage_settings") && (
           <DrawerItem
             icon="⚖"

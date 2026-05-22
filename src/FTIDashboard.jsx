@@ -231,26 +231,16 @@ function FTIDashboard() {
 
   // v28.19 — "Users" removed from the top nav. People management is
   // admin-cadence work and lives in the gear menu only ("People" → /people).
-  const ALL_NAV_ITEMS = [
-    "All Tickets",
-    "Work Order History",
-    "Action Items",
-    "Inventory",
-    "Assets",
-    "Vehicles",
-    "Yards",
-    "Crew",
-    "Safety",
-    "Final Review",
-    "Reports",
-    "Deleted",
-    "Archive",
-  ];
+  // v28.184 — Top nav cleanup: Vehicles, Yards, Assets moved OUT of the top
+  // nav and INTO the gear menu (per Reggie 2026-05-21: "master and gated items
+  // in the settings is fine for now"). The top nav was getting crowded again
+  // and these three are admin/dispatch-cadence master data, not daily field
+  // surfaces. The pages still exist at /vehicles, /yards, /assets — routes
+  // unchanged. Gear menu access broadened in DesktopNavBar so non-admins with
+  // view_inventory still reach them.
+  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Crew", "Safety", "Final Review", "Reports", "Deleted", "Archive"];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter((i) => {
     if (i === "Inventory" && !can("view_inventory")) return false;
-    if (i === "Assets" && !can("view_inventory")) return false;
-    if (i === "Vehicles" && !can("view_inventory")) return false;
-    if (i === "Yards" && !can("view_inventory")) return false;
     if (i === "Work Order History" && !can("view_jobs")) return false;
     if (i === "Deleted" && !can("delete_jobs")) return false;
     if (i === "Archive" && !can("view_archive")) return false;
