@@ -371,6 +371,12 @@ export const PERMISSION_CATEGORIES = [
   // v28.177 — GPS Phase 2 additions:
   { key: "view_gps_events", label: "View Live GPS Events", group: "GPS & Fleet" },
   { key: "manage_yards", label: "Manage Yards", group: "GPS & Fleet" },
+  // v28.186 — DVIR Phase 2 additions (FMCSA Part 396):
+  { key: "perform_inspections", label: "Perform Vehicle Inspections (DVIR)", group: "DVIR & Maintenance" },
+  { key: "view_vehicle_defects", label: "View Vehicle Defects + Repair Queue", group: "DVIR & Maintenance" },
+  { key: "perform_repairs", label: "Perform + Certify Repairs", group: "DVIR & Maintenance" },
+  { key: "red_tag_vehicle", label: "Red-Tag Vehicle (Out-of-Service)", group: "DVIR & Maintenance" },
+  { key: "manage_vehicles", label: "Manage Vehicles Master", group: "DVIR & Maintenance" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -378,8 +384,30 @@ export const PERMISSION_CATEGORIES = [
 export const DEFAULT_PERMS = {
   owner: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true])),
   admin: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, true])),
+  // v28.186 — DVIR grid ratified 2026-05-21 by Reggie:
+  //   owner/admin: all 5 new keys ON.
+  //   manager: view_vehicle_defects only.
+  //   lead + field: perform_inspections only.
+  //   salesman + dispatch: none.
+  //   hse: view_vehicle_defects + red_tag_vehicle + manage_vehicles (plus
+  //        view_jobs + view_reports + view_activity_log from the existing 17).
+  //   mechanic: view_vehicle_defects + perform_repairs + red_tag_vehicle +
+  //        manage_vehicles (all 17 existing keys OFF — tight boundary).
   manager: Object.fromEntries(
-    PERMISSION_CATEGORIES.map((p) => [p.key, !["manage_users", "view_activity_log", "manage_settings", "edit_contacts"].includes(p.key)]),
+    PERMISSION_CATEGORIES.map((p) => [
+      p.key,
+      // Existing exclusions + the new DVIR keys manager does NOT get.
+      ![
+        "manage_users",
+        "view_activity_log",
+        "manage_settings",
+        "edit_contacts",
+        "perform_inspections",
+        "perform_repairs",
+        "red_tag_vehicle",
+        "manage_vehicles",
+      ].includes(p.key),
+    ]),
   ),
   lead: {
     view_jobs: true,
@@ -399,6 +427,13 @@ export const DEFAULT_PERMS = {
     view_contacts: false,
     edit_contacts: false,
     manage_settings: false,
+    view_gps_events: false,
+    manage_yards: false,
+    perform_inspections: true,
+    view_vehicle_defects: false,
+    perform_repairs: false,
+    red_tag_vehicle: false,
+    manage_vehicles: false,
   },
   salesman: {
     view_jobs: true,
@@ -418,6 +453,13 @@ export const DEFAULT_PERMS = {
     view_contacts: true,
     edit_contacts: false,
     manage_settings: false,
+    view_gps_events: false,
+    manage_yards: false,
+    perform_inspections: false,
+    view_vehicle_defects: false,
+    perform_repairs: false,
+    red_tag_vehicle: false,
+    manage_vehicles: false,
   },
   field: {
     view_jobs: true,
@@ -437,17 +479,75 @@ export const DEFAULT_PERMS = {
     view_contacts: false,
     edit_contacts: false,
     manage_settings: false,
+    view_gps_events: false,
+    manage_yards: false,
+    perform_inspections: true,
+    view_vehicle_defects: false,
+    perform_repairs: false,
+    red_tag_vehicle: false,
+    manage_vehicles: false,
   },
-  // hse + mechanic — added v28.170. All permissions OFF by default; owner/admin
-  // sets each in the Permissions matrix. Mirror of fti-backend permissions.js.
-  hse: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, false])),
-  mechanic: Object.fromEntries(PERMISSION_CATEGORIES.map((p) => [p.key, false])),
+  // hse — added v28.170 (allFalse placeholder); ratified grid in v28.186.
+  // Cross-existing: view_jobs + view_reports + view_activity_log ON, other
+  // 14 OFF. DVIR-side: view_vehicle_defects + red_tag_vehicle + manage_vehicles.
+  hse: {
+    view_jobs: true,
+    edit_jobs: false,
+    edit_tickets: false,
+    sign_tickets: false,
+    approve_tickets: false,
+    send_to_qb: false,
+    void_tickets: false,
+    delete_jobs: false,
+    manage_users: false,
+    view_inventory: false,
+    edit_inventory: false,
+    view_reports: true,
+    view_archive: false,
+    view_activity_log: true,
+    view_contacts: false,
+    edit_contacts: false,
+    manage_settings: false,
+    view_gps_events: false,
+    manage_yards: false,
+    perform_inspections: false,
+    view_vehicle_defects: true,
+    perform_repairs: false,
+    red_tag_vehicle: true,
+    manage_vehicles: true,
+  },
+  // mechanic — added v28.170 (allFalse placeholder); ratified grid in v28.186.
+  // Tight boundary: every one of the 17 existing keys OFF. Only DVIR-side:
+  // view_vehicle_defects + perform_repairs + red_tag_vehicle + manage_vehicles.
+  mechanic: {
+    view_jobs: false,
+    edit_jobs: false,
+    edit_tickets: false,
+    sign_tickets: false,
+    approve_tickets: false,
+    send_to_qb: false,
+    void_tickets: false,
+    delete_jobs: false,
+    manage_users: false,
+    view_inventory: false,
+    edit_inventory: false,
+    view_reports: false,
+    view_archive: false,
+    view_activity_log: false,
+    view_contacts: false,
+    edit_contacts: false,
+    manage_settings: false,
+    view_gps_events: false,
+    manage_yards: false,
+    perform_inspections: false,
+    view_vehicle_defects: true,
+    perform_repairs: true,
+    red_tag_vehicle: true,
+    manage_vehicles: true,
+  },
   // dispatch — added v28.177. Operations / fleet dispatcher role. Defaults to
-  // GPS-relevant permissions ON (view_jobs, edit_jobs, edit_tickets,
-  // view_inventory, view_reports, view_activity_log, view_contacts,
-  // view_gps_events, manage_yards) plus reasonable office permissions; the
-  // rest OFF. Owner/admin can tune in the matrix. Mirror of fti-backend
-  // permissions.js DEFAULT_PERMS.dispatch.
+  // GPS-relevant permissions ON; DVIR keys OFF (dispatch isn't the inspection /
+  // mechanic / red-tag chain). Mirror of fti-backend permissions.js.
   dispatch: {
     view_jobs: true,
     edit_jobs: true,
@@ -468,6 +568,11 @@ export const DEFAULT_PERMS = {
     manage_settings: false,
     view_gps_events: true,
     manage_yards: true,
+    perform_inspections: false,
+    view_vehicle_defects: false,
+    perform_repairs: false,
+    red_tag_vehicle: false,
+    manage_vehicles: false,
   },
 };
 

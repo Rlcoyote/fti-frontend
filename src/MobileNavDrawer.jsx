@@ -307,6 +307,30 @@ function MobileNavDrawer({
             }}
           />
         )}
+        {/* v28.186 — DVIR entries. NEW INSPECTION for anyone who can
+            perform_inspections (driver / lead / field). The mobile drawer is
+            the primary entry point for field crews since they do their DVIRs
+            on phones in the yard. */}
+        {can && can("perform_inspections") && (
+          <DrawerItem
+            icon="📝"
+            label="New Inspection (DVIR)"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/inspection/new");
+            }}
+          />
+        )}
+        {can && (can("perform_inspections") || can("view_vehicle_defects")) && (
+          <DrawerItem
+            icon="📋"
+            label="Inspections"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/inspections");
+            }}
+          />
+        )}
         {can && can("manage_settings") && (
           <DrawerItem
             icon="⚖"

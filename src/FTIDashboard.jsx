@@ -29,6 +29,8 @@ import AssetsPage from "./AssetsPage.jsx";
 import VehiclesPage from "./VehiclesPage.jsx";
 import YardsPage from "./YardsPage.jsx";
 import LiveGpsEventsPage from "./LiveGpsEventsPage.jsx";
+import DriverInspectionForm from "./DriverInspectionForm.jsx";
+import InspectionsListPage from "./InspectionsListPage.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
@@ -111,6 +113,8 @@ function FTIDashboard() {
     if (p.startsWith("/vehicles")) return "vehicles";
     if (p.startsWith("/yards")) return "yards";
     if (p.startsWith("/gps-events")) return "gpsEvents";
+    if (p.startsWith("/inspection/new")) return "inspectionNew";
+    if (p.startsWith("/inspections")) return "inspections";
     if (p.startsWith("/compliance-consent")) return "compliance";
     if (p.startsWith("/crew")) return "crew";
     if (p.startsWith("/safety")) return "safety";
@@ -372,6 +376,9 @@ function FTIDashboard() {
         {can("view_inventory") && <Route path="/yards" element={<YardsPage />} />}
         {/* v28.185 — Live GPS Events real-time feed (gated view_gps_events). */}
         {can("view_gps_events") && <Route path="/gps-events" element={<LiveGpsEventsPage />} />}
+        {/* v28.186 — DVIR Phase 2: driver inspection form + list. */}
+        {can("perform_inspections") && <Route path="/inspection/new" element={<DriverInspectionForm />} />}
+        {(can("perform_inspections") || can("view_vehicle_defects")) && <Route path="/inspections" element={<InspectionsListPage />} />}
         {can("manage_settings") && <Route path="/compliance-consent" element={<ComplianceConsentPage />} />}
         {can("delete_jobs") && (
           <Route

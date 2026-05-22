@@ -232,7 +232,12 @@ function DesktopNavBar({
               inside still has its own per-permission gate, so non-admins see
               only what they're allowed to see (master-data items + the always-
               on items like Field Resources and About). */}
-          {(can("manage_users") || can("view_inventory") || can("view_gps_events") || currentUser.role === "owner") && (
+          {(can("manage_users") ||
+            can("view_inventory") ||
+            can("view_gps_events") ||
+            can("perform_inspections") ||
+            can("view_vehicle_defects") ||
+            currentUser.role === "owner") && (
             <div style={{ position: "relative" }}>
               <span
                 onClick={() => setShowSettingsMenu((v) => !v)}
@@ -324,6 +329,29 @@ function DesktopNavBar({
                         onClick={() => {
                           setShowSettingsMenu(false);
                           navigate("/gps-events");
+                        }}
+                      />
+                    )}
+                    {/* v28.186 — DVIR entries. NEW INSPECTION shows for anyone who
+                        can perform_inspections (driver, lead, field). INSPECTIONS
+                        list shows for performers (their own) OR full-view holders
+                        (admins/mechanics/hse). Top-bordered as their own group. */}
+                    {can("perform_inspections") && (
+                      <GearMenuItem
+                        label="New Inspection (DVIR)"
+                        hasTopBorder
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/inspection/new");
+                        }}
+                      />
+                    )}
+                    {(can("perform_inspections") || can("view_vehicle_defects")) && (
+                      <GearMenuItem
+                        label="Inspections"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/inspections");
                         }}
                       />
                     )}
