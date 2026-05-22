@@ -232,7 +232,7 @@ function DesktopNavBar({
               inside still has its own per-permission gate, so non-admins see
               only what they're allowed to see (master-data items + the always-
               on items like Field Resources and About). */}
-          {(can("manage_users") || can("view_inventory") || currentUser.role === "owner") && (
+          {(can("manage_users") || can("view_inventory") || can("view_gps_events") || currentUser.role === "owner") && (
             <div style={{ position: "relative" }}>
               <span
                 onClick={() => setShowSettingsMenu((v) => !v)}
@@ -311,6 +311,19 @@ function DesktopNavBar({
                         onClick={() => {
                           setShowSettingsMenu(false);
                           navigate("/assets");
+                        }}
+                      />
+                    )}
+                    {/* v28.185 — Live GPS Events entry. Separate gate
+                        (view_gps_events) so it shows for dispatch / manager /
+                        owner / admin but not for field/lead by default. Sits
+                        next to the master-data block since it's GPS-flavored. */}
+                    {can("view_gps_events") && (
+                      <GearMenuItem
+                        label="Live GPS Events"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/gps-events");
                         }}
                       />
                     )}

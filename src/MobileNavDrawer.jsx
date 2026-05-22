@@ -296,6 +296,17 @@ function MobileNavDrawer({
             }}
           />
         )}
+        {/* v28.185 — Live GPS Events real-time feed (gated view_gps_events). */}
+        {can && can("view_gps_events") && (
+          <DrawerItem
+            icon="📡"
+            label="Live GPS Events"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/gps-events");
+            }}
+          />
+        )}
         {can && can("manage_settings") && (
           <DrawerItem
             icon="⚖"

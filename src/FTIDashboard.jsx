@@ -28,6 +28,7 @@ import ArchivePage from "./ArchivePage.jsx";
 import AssetsPage from "./AssetsPage.jsx";
 import VehiclesPage from "./VehiclesPage.jsx";
 import YardsPage from "./YardsPage.jsx";
+import LiveGpsEventsPage from "./LiveGpsEventsPage.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
@@ -109,6 +110,7 @@ function FTIDashboard() {
     if (p.startsWith("/assets")) return "assets";
     if (p.startsWith("/vehicles")) return "vehicles";
     if (p.startsWith("/yards")) return "yards";
+    if (p.startsWith("/gps-events")) return "gpsEvents";
     if (p.startsWith("/compliance-consent")) return "compliance";
     if (p.startsWith("/crew")) return "crew";
     if (p.startsWith("/safety")) return "safety";
@@ -368,6 +370,8 @@ function FTIDashboard() {
         {can("view_inventory") && <Route path="/assets" element={<AssetsPage jobs={jobs} />} />}
         {can("view_inventory") && <Route path="/vehicles" element={<VehiclesPage />} />}
         {can("view_inventory") && <Route path="/yards" element={<YardsPage />} />}
+        {/* v28.185 — Live GPS Events real-time feed (gated view_gps_events). */}
+        {can("view_gps_events") && <Route path="/gps-events" element={<LiveGpsEventsPage />} />}
         {can("manage_settings") && <Route path="/compliance-consent" element={<ComplianceConsentPage />} />}
         {can("delete_jobs") && (
           <Route
