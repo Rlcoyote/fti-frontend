@@ -195,6 +195,19 @@ export const calcLineTotal = (li) => li.rate * li.qty * (li.days || 1);
 
 export const calcTicketTotal = (t) => t.lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
 
+// v28.188 — single source of truth for US phone formatting. Lifted from
+// useNewJobForm.js (was inline formatPhoneImpl) so AddTicketSiteManager and
+// any future caller share the same XXX-XXX-XXXX masking. Accepts whatever the
+// user types; strips non-digits and re-inserts hyphens as the field fills.
+export const formatPhone = (val) => {
+  const digits = String(val || "")
+    .replace(/\D/g, "")
+    .slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
 // Shared helper: maps camelCase ticket updates to snake_case backend payload
 export const buildTicketPayload = (updates) => {
   const p = {};

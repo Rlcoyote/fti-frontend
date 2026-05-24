@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
+import { formatPhone } from "./utils.js";
 
 // ─── AddTicketSiteManager (v28.80 — dropdown picker for known contacts) ────
 // Replaces the anonymous "Copy Point of Contact Info" shortcut from v28.61
@@ -65,7 +66,9 @@ export default function AddTicketSiteManager({ job, smFirst, smLast, smPhone, sm
     if (!c) return;
     setSmFirst(c.name?.split(" ")[0] || "");
     setSmLast(c.name?.split(" ").slice(1).join(" ") || "");
-    setSmPhone(c.phone_work || c.phone || "");
+    // v28.188 — normalize via formatPhone so a stored "5555555555" or
+    // "(555) 555-5555" both render as the canonical 555-555-5555.
+    setSmPhone(formatPhone(c.phone_work || c.phone || ""));
     setSmEmail(c.email || "");
   };
 
@@ -153,7 +156,9 @@ export default function AddTicketSiteManager({ job, smFirst, smLast, smPhone, sm
         </div>
         <div>
           <label style={labelStyle}>PHONE</label>
-          <input style={inputStyle} value={smPhone} onChange={(e) => wrapSetter(setSmPhone)(e.target.value)} placeholder="555-555-5555" />
+          {/* v28.188 — formatPhone wrap matches the WO-creation form so the
+              entered digits mask to XXX-XXX-XXXX as the user types. */}
+          <input style={inputStyle} value={smPhone} onChange={(e) => wrapSetter(setSmPhone)(formatPhone(e.target.value))} placeholder="555-555-5555" />
         </div>
         <div>
           <label style={labelStyle}>EMAIL</label>

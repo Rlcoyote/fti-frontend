@@ -113,6 +113,7 @@ function DesktopNavBar({
   myActiveTodosCount,
   totalInventoryOut,
   deletedTotalCount,
+  pendingFinalReviewCount, // v28.188 — Final Review badge
   // Gear-menu local UI state
   showSettingsMenu,
   setShowSettingsMenu,
@@ -213,6 +214,10 @@ function DesktopNavBar({
               {item === "Action Items" && <NavBadge count={myActiveTodosCount} />}
               {item === "Inventory" && totalInventoryOut > 0 && <NavBadge count={totalInventoryOut} />}
               {item === "Deleted" && deletedTotalCount > 0 && <NavBadge count={deletedTotalCount} />}
+              {/* v28.188 — Final Review badge. Count = approved tickets waiting
+                  to be sent to QB. Origin: 2026-05-22, Reggie reported the
+                  ticket landed in Final Review but the nav gave no signal. */}
+              {item === "Final Review" && pendingFinalReviewCount > 0 && <NavBadge count={pendingFinalReviewCount} />}
             </span>
           );
         })}

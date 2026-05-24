@@ -116,10 +116,17 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const jobGooglePin = job?.googlePin || job?.google_pin || "";
   const [ticketPin, setTicketPin] = useState(jobGooglePin);
   // Site Manager
-  const [smFirst, setSmFirst] = useState("");
-  const [smLast, setSmLast] = useState("");
-  const [smPhone, setSmPhone] = useState("");
-  const [smEmail, setSmEmail] = useState("");
+  // v28.188 — pre-populate from the parent WO's POC fields when the modal
+  // opens for a fresh ticket. Mirrors the ticketPin/ticketPinLat/ticketPinLng
+  // pattern just above: fall through camelCase then snake_case so it works
+  // whether the job came from the in-memory store (camelCase) or fresh API
+  // (snake_case). Empty fallback preserves the prior "blank when no POC"
+  // behavior. Bug origin: 2026-05-22 drive-test, Reggie reported the ticket's
+  // site-manager block stayed blank even though the WO had the POC set.
+  const [smFirst, setSmFirst] = useState(job?.contactFirst || job?.contact_first || "");
+  const [smLast, setSmLast] = useState(job?.contactLast || job?.contact_last || "");
+  const [smPhone, setSmPhone] = useState(job?.pocPhone || job?.poc_phone || "");
+  const [smEmail, setSmEmail] = useState(job?.pocEmail || job?.poc_email || "");
   const [ticketPinLat, setTicketPinLat] = useState(job?.pinLat || job?.pin_lat || null);
   const [ticketPinLng, setTicketPinLng] = useState(job?.pinLng || job?.pin_lng || null);
   const [ticketPinResolving, setTicketPinResolving] = useState(false);

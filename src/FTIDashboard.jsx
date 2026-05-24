@@ -194,6 +194,23 @@ function FTIDashboard() {
   // ── Derived state for dashboard list rendering + nav badges ──
   const myActiveTodos = todos.filter((t) => todoVisible(t) && !t.completed);
 
+  // v28.188 — Final Review badge. A ticket lands on the Final Review page once
+  // a lead approves it (status='approved'); it leaves once an owner sends it
+  // to QB (status='sentToQB'). Mirrors FinalReviewPage's filter (reviewStatuses
+  // = ['approved']) and its salesman-scoped visibility — salesmen only see
+  // tickets on jobs they sold, so the badge count must match what they'd
+  // actually see if they clicked through.
+  const pendingFinalReviewCount = useMemo(() => {
+    const approved = tickets.filter((t) => t.status === "approved");
+    if (currentUser?.role === "salesman") {
+      return approved.filter((t) => {
+        const j = jobs.find((x) => x.id === t.jobId);
+        return j?.salesman === currentUser.name;
+      }).length;
+    }
+    return approved.length;
+  }, [tickets, jobs, currentUser]);
+
   const pendingByJob = useMemo(() => {
     const map = {};
     todos
@@ -298,6 +315,7 @@ function FTIDashboard() {
         can={can}
         myActiveTodosCount={myActiveTodos.length}
         deletedTotalCount={deletedJobs.length + deletedTickets.length}
+        pendingFinalReviewCount={pendingFinalReviewCount}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowCompanyDocs={setShowCompanyDocs}
         setShowAbout={setShowAbout}

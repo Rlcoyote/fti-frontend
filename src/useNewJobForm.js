@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { API_URL } from "./config.js";
-import { today } from "./utils.js";
+// v28.188 — formatPhone moved to utils.js as a shared export so AddTicketSiteManager
+// (and any future caller) can mask US phone numbers without duplicating the
+// logic. Local re-bind to formatPhoneImpl keeps the hook's return-shape stable
+// for downstream consumers that destructure `formatPhone` off the bag.
+import { today, formatPhone as formatPhoneImpl } from "./utils.js";
 import { VALID_STATES } from "./Geography.js";
 
 // ─── useNewJobForm (v28.104 — ship 11 of NewJobModal split, arc final) ─────
@@ -31,13 +35,6 @@ import { VALID_STATES } from "./Geography.js";
 // past ~400 lines, split into useNewJobContactsState +
 // useNewJobLocationState + useNewJobValidation. Currently ~200 lines,
 // well under the threshold.
-
-const formatPhoneImpl = (val) => {
-  const digits = val.replace(/\D/g, "").slice(0, 10);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-};
 
 export default function useNewJobForm({ onClose, onCreateJob }) {
   // Customer

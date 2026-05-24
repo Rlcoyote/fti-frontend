@@ -145,6 +145,7 @@ function MobileNavDrawer({
   can,
   myActiveTodosCount,
   deletedTotalCount,
+  pendingFinalReviewCount, // v28.188 — Final Review badge
   // v28.17 — setShowPermissions removed; the permissions matrix is a tab
   // inside /people now, not a standalone modal.
   // v28.180 — setShowSettings removed; SettingsModal retired (Yard Locations
@@ -239,6 +240,11 @@ function MobileNavDrawer({
           if (item === "Deleted") {
             badge = deletedTotalCount;
             badgeColor = "#ffffff33";
+          }
+          // v28.188 — Final Review badge mirrors desktop's NavBadge wiring.
+          if (item === "Final Review" && pendingFinalReviewCount > 0) {
+            badge = pendingFinalReviewCount;
+            badgeColor = C.red;
           }
           return (
             <DrawerItem
