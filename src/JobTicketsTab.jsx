@@ -22,7 +22,7 @@
 
 import { useState } from "react";
 import { C, API_URL } from "./config.js";
-import { updateTicketApi } from "./utils.js";
+import { updateTicketApi, validateTicketForApproval } from "./utils.js";
 import TicketDetail from "./TicketDetail.jsx";
 import AddTicketModal from "./AddTicketModal.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -116,7 +116,18 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
           currentUser={currentUser}
           actions={{
             open: (mode) => openTicket(t, mode),
-            approve: () => handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() }),
+            // v28.189 — block approval when time-data is incomplete. Same
+            // validation as TicketDetail.handleApprove. The ticket object `t`
+            // already carries the camelCase fields off mapTicketFromApi, so
+            // pass it directly to the helper.
+            approve: () => {
+              const check = validateTicketForApproval(t);
+              if (!check.ok) {
+                showNotice("Cannot approve yet", check.error, "error");
+                return;
+              }
+              handleUpdate(t.id, { status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
+            },
             archiveVoided: () => archiveVoidedTicket(t.id),
             requestEmail: () => emailRequest.openEmailRequest(t, custEmail),
             requestDelete: () => setDeleteConfirmId(t.id),

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
-import { calcLineTotal } from "./utils.js";
+import { calcLineTotal, validateTicketForApproval } from "./utils.js";
 import TicketDeleteModal from "./TicketDeleteModal.jsx";
 import TicketVoidModal from "./TicketVoidModal.jsx";
 import TicketDuplicateModal from "./TicketDuplicateModal.jsx";
@@ -204,6 +204,21 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   };
 
   const handleApprove = () => {
+    // v28.189 — block approval when time-data is incomplete. Reggie 2026-05-24:
+    // a ticket reached "approved" with no Leave Yard or Return to Yard recorded.
+    // validateTicketForApproval checks both legacy manual fields (lvYard,
+    // retYard) and the v28.183 GPS-tracked equivalents (yardLeftAt,
+    // yardReturnedAt) — either source counts.
+    const check = validateTicketForApproval({
+      lvYard: s.lvYard,
+      retYard: s.retYard,
+      yardLeftAt: s.yardLeftAt,
+      yardReturnedAt: s.yardReturnedAt,
+    });
+    if (!check.ok) {
+      showNotice("Cannot approve yet", check.error, "error");
+      return;
+    }
     s.setStatus("approved");
     save({ status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
   };

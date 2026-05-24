@@ -195,6 +195,30 @@ export const calcLineTotal = (li) => li.rate * li.qty * (li.days || 1);
 
 export const calcTicketTotal = (t) => t.lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
 
+// v28.189 — approval-time data-completeness check. Reggie 2026-05-24: a
+// ticket should NOT be approvable until at least the workday bracket (leave
+// yard + return yard) is recorded. The check accepts EITHER the legacy
+// manual fields (lvYard / retYard varchar(10) like "07:30") OR the v28.183
+// GPS-tracked equivalents (yardLeftAt / yardReturnedAt timestamptz) — a GPS
+// pull may have populated the new columns without touching the legacy ones.
+// Returns { ok: true } on pass, { ok: false, error: '...' } with a
+// human-readable explanation on fail. Wire into every approve site.
+export const validateTicketForApproval = (t) => {
+  if (!t) return { ok: false, error: "Ticket data missing" };
+  const hasLeaveYard = !!(t.lvYard || t.yardLeftAt || t.yard_left_at);
+  const hasReturnYard = !!(t.retYard || t.yardReturnedAt || t.yard_returned_at);
+  if (!hasLeaveYard && !hasReturnYard) {
+    return { ok: false, error: "Time entry is required before approval. Set Leave Yard and Return to Yard." };
+  }
+  if (!hasLeaveYard) {
+    return { ok: false, error: "Leave Yard time is required before approval." };
+  }
+  if (!hasReturnYard) {
+    return { ok: false, error: "Return to Yard time is required before approval." };
+  }
+  return { ok: true };
+};
+
 // v28.188 — single source of truth for US phone formatting. Lifted from
 // useNewJobForm.js (was inline formatPhoneImpl) so AddTicketSiteManager and
 // any future caller share the same XXX-XXX-XXXX masking. Accepts whatever the

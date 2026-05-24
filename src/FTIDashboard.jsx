@@ -333,6 +333,7 @@ function FTIDashboard() {
         myActiveTodosCount={myActiveTodos.length}
         totalInventoryOut={totalOut}
         deletedTotalCount={deletedJobs.length + deletedTickets.length}
+        pendingFinalReviewCount={pendingFinalReviewCount}
         showSettingsMenu={showSettingsMenu}
         setShowSettingsMenu={setShowSettingsMenu}
         setShowEmergencyContacts={setShowEmergencyContacts}
