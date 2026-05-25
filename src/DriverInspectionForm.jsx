@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 // ─── DriverInspectionForm (v28.187) ──────────────────────────────────────────
 // FMCSA Part 396.11 pre/post-trip Driver Vehicle Inspection Report capture.
@@ -172,12 +172,19 @@ function ChecklistSection({ title, subtitle, items, unitKey, setItem, canRedTag 
 function DriverInspectionForm() {
   const { vehicles, can, currentUser } = useApp();
   const navigate = useNavigate();
+  // v28.190 — accept ?vehicleId=X and ?trailerId=Y from the URL so the
+  // ticket-side DVIR button can pre-fill the vehicle (and optional trailer)
+  // when navigating here from a ticket. Falls back to auto-pick of the
+  // user's assigned vehicle when no query param is present.
+  const [searchParams] = useSearchParams();
+  const queryVehicleId = searchParams.get("vehicleId") || "";
+  const queryTrailerId = searchParams.get("trailerId") || "";
   const canPerform = can("perform_inspections");
   const canRedTag = can("red_tag_vehicle");
 
   // ── State ────────────────────────────────────────────────────────────────
-  const [vehicleId, setVehicleId] = useState("");
-  const [trailerId, setTrailerId] = useState(""); // v28.187 — optional second unit
+  const [vehicleId, setVehicleId] = useState(queryVehicleId);
+  const [trailerId, setTrailerId] = useState(queryTrailerId); // v28.187 — optional second unit
   const [type, setType] = useState("pre_trip");
   const [odometer, setOdometer] = useState("");
   const [notes, setNotes] = useState("");

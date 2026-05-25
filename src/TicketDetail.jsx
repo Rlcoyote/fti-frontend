@@ -13,6 +13,7 @@ import TicketGpsTracking from "./TicketGpsTracking.jsx";
 import TicketActionBar from "./TicketActionBar.jsx";
 import TicketEditLockBanner from "./TicketEditLockBanner.jsx";
 import TicketJsaBar from "./TicketJsaBar.jsx";
+import TicketDvirBar from "./TicketDvirBar.jsx";
 import TicketHeaderRow from "./TicketHeaderRow.jsx";
 import TicketSignatureFlow from "./TicketSignatureFlow.jsx";
 import TicketStatusBanners from "./TicketStatusBanners.jsx";
@@ -23,6 +24,7 @@ import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.js
 import useEditLock from "./useEditLock.js";
 import useTicketState from "./useTicketState.js";
 import useTicketJSA from "./useTicketJSA.js";
+import useTicketDvir from "./useTicketDvir.js";
 import useSignaturePolling from "./useSignaturePolling.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
@@ -51,6 +53,13 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   // ── JSA lifecycle (v27.88) ──────────────────────────────────────────────
   const jsa = useTicketJSA(ticket, job, onUpdate);
+
+  // ── DVIR gate lookup (v28.190) — parallel to JSA. Loads "does the ticket's
+  // primary vehicle have a passing pre-trip on this ticket's date, and is it
+  // free of an active red-tag?" from /api/inspections/current. The
+  // TicketDvirBar renders the green/red status; the sign action enforces the
+  // gate (block when !dvir.ok). ──────────────────────────────────────────
+  const dvir = useTicketDvir(ticket);
 
   // ── Signature arrival polling (v27.88) ──────────────────────────────────
   // Fires every 30s while status === "emailed" and !signedBy. Flips local
@@ -162,8 +171,35 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     return true;
   };
 
+  // v28.190 — DVIR gate. Same posture as the future-dated check: returns true
+  // if the action should be BLOCKED. Block reasons (in priority order):
+  //   - vehicle red-tagged (most severe; cannot operate)
+  //   - no pre-trip on file for the ticket's date
+  //   - pre-trip exists but recorded defects (result !== 'pass')
+  // The "no vehicle" case does NOT block at sign time. A ticket can legitimately
+  // be signed without a vehicle assigned (admin-cadence work, paperwork-only
+  // tickets, etc.); only the DVIR bar nudges to assign a vehicle. If a vehicle
+  // IS assigned, its DVIR is enforced.
+  const blockIfDvirNotReady = (whichAction) => {
+    if (!dvir.loaded) return false; // don't block before the lookup finishes
+    if (dvir.reason === "no_vehicle") return false; // no vehicle = nothing to gate on
+    if (dvir.ok) return false; // green light
+    let title = "DVIR required";
+    let body = "A passing pre-trip DVIR is required for this vehicle on this ticket's date before " + whichAction + ".";
+    if (dvir.reason === "red_tagged") {
+      title = "Vehicle is red-tagged";
+      body = `This vehicle is out of service${dvir.activeRedTag?.reason ? ` (${dvir.activeRedTag.reason})` : ""}. Clear the red-tag before ${whichAction}.`;
+    } else if (dvir.reason === "failed_dvir") {
+      title = "Today's DVIR recorded defects";
+      body = `Today's pre-trip recorded defects. Re-inspect after repair before ${whichAction}.`;
+    }
+    showNotice(title, body, "error");
+    return true;
+  };
+
   const handleSign = ({ name, date, imageData }) => {
     if (blockIfFutureDated("collecting a signature")) return;
+    if (blockIfDvirNotReady("collecting a signature")) return;
     s.setSignedBy(name);
     s.setSignedAt(date);
     s.setSignatureImage(imageData);
@@ -198,6 +234,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     if (!s.sigNotReqReason) return;
     if (s.signedBy) return; // Don't allow if already signed
     if (blockIfFutureDated("marking signature not required")) return;
+    if (blockIfDvirNotReady("marking signature not required")) return;
     s.setStatus("sigNotReq");
     setShowSigOptions(false);
     save({ status: "sigNotReq", sigNotReqReason: s.sigNotReqReason, sigNotReqNote: s.sigNotReqNote, signedBy: null, signedAt: null, signatureImage: null });
@@ -280,6 +317,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {/* JSA bar — extracted to TicketJsaBar (v27.82). Single component handles
             both non-Rental (required) and Rental (optional) variants via ticket.type. */}
         <TicketJsaBar ticket={ticket} jsaLoaded={jsa.jsaLoaded} existingJSA={jsa.existingJSA} onOpen={() => jsa.setShowJSA(true)} />
+        {/* v28.190 — DVIR bar. Same row treatment as JSA. Tap opens the
+            inspection page with vehicleId pre-filled. */}
+        <TicketDvirBar ticket={ticket} dvirState={dvir} />
 
         {/* Header row — extracted to TicketHeaderRow (v27.83) */}
         <TicketHeaderRow
