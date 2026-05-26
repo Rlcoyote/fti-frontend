@@ -31,6 +31,7 @@ import YardsPage from "./YardsPage.jsx";
 import LiveGpsEventsPage from "./LiveGpsEventsPage.jsx";
 import DriverInspectionForm from "./DriverInspectionForm.jsx";
 import InspectionsListPage from "./InspectionsListPage.jsx";
+import RepairRequestForm from "./RepairRequestForm.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
@@ -115,6 +116,7 @@ function FTIDashboard() {
     if (p.startsWith("/gps-events")) return "gpsEvents";
     if (p.startsWith("/inspection/new")) return "inspectionNew";
     if (p.startsWith("/inspections")) return "inspections";
+    if (p.startsWith("/repair-request")) return "repairRequest";
     if (p.startsWith("/compliance-consent")) return "compliance";
     if (p.startsWith("/crew")) return "crew";
     if (p.startsWith("/safety")) return "safety";
@@ -398,6 +400,12 @@ function FTIDashboard() {
         {/* v28.186 — DVIR Phase 2: driver inspection form + list. */}
         {can("perform_inspections") && <Route path="/inspection/new" element={<DriverInspectionForm />} />}
         {(can("perform_inspections") || can("view_vehicle_defects")) && <Route path="/inspections" element={<InspectionsListPage />} />}
+        {/* v28.191 — Repair Request form. Anyone-in-yard can file. Same gate
+            as the BE: perform_inspections OR view_vehicle_defects OR
+            view_inventory OR manage_vehicles (salesman excluded). */}
+        {(can("perform_inspections") || can("view_vehicle_defects") || can("view_inventory") || can("manage_vehicles")) && (
+          <Route path="/repair-request" element={<RepairRequestForm />} />
+        )}
         {can("manage_settings") && <Route path="/compliance-consent" element={<ComplianceConsentPage />} />}
         {can("delete_jobs") && (
           <Route

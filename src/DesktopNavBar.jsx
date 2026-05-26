@@ -360,6 +360,18 @@ function DesktopNavBar({
                         }}
                       />
                     )}
+                    {/* v28.191 — Repair Request entry. Anyone-in-yard can file.
+                        Sits adjacent to the DVIR entries since both feed the
+                        same downstream mechanic queue. */}
+                    {(can("perform_inspections") || can("view_vehicle_defects") || can("view_inventory") || can("manage_vehicles")) && (
+                      <GearMenuItem
+                        label="+ Repair Request"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/repair-request");
+                        }}
+                      />
+                    )}
                     {can("manage_settings") && (
                       <GearMenuItem
                         label="Compliance & Consent"

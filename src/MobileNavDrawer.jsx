@@ -337,6 +337,17 @@ function MobileNavDrawer({
             }}
           />
         )}
+        {/* v28.191 — Repair Request entry. Same gate as DesktopNavBar. */}
+        {can && (can("perform_inspections") || can("view_vehicle_defects") || can("view_inventory") || can("manage_vehicles")) && (
+          <DrawerItem
+            icon="🔧"
+            label="+ Repair Request"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/repair-request");
+            }}
+          />
+        )}
         {can && can("manage_settings") && (
           <DrawerItem
             icon="⚖"
