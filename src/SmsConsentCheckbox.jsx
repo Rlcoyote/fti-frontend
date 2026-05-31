@@ -1,172 +1,109 @@
 import { useEffect, useState } from "react";
 import { C } from "./config.js";
 import { PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
-import { checkConsent, getActiveScripts } from "./smsConsent.js";
+import { checkConsent } from "./smsConsent.js";
 
-// ─── SMS CONSENT CHECKBOX (v28.54) ───────────────────────────────────────────
+// ─── SMS CONSENT STATUS DISPLAY (v28.197) ────────────────────────────────────
 //
-// Controlled inline widget that sits under a phone-number input on
-// New/EditJobModal (customer rep) or EditPersonModal (employee, admin-entered).
+// Was: a verbal/in-app "I got consent" checkbox.
+// Is now: a truthful status pill — the moment FTI moved to Telnyx + double
+// opt-in (v28.192–v28.196), verbal/biometric/retroactive consent rows stopped
+// authorizing sends. The single authority is now an active confirmed_sms
+// consent row (services/smsOptIn.isSendEligible). So this UI no longer captures
+// consent — the backend startOptIn trigger does that on job save / PIN setup,
+// and the recipient confirms by replying YES to the confirmation text.
 //
-// Behavior:
-//   - When `phone` is empty → muted placeholder ("Enter phone to capture
-//     consent"). No UI interaction.
-//   - When `phone` is non-empty → fetch /api/sms-consents/check?phone=...
-//     - If an active consent row exists → render a non-interactive
-//       "✓ SMS consent on file (method, date)" badge.
-//     - If none exists → render the checkbox bound to consentIntent +
-//       inline script preview (expand-arrow to reveal full text).
+// This component just reflects reality from /api/sms-consents/check:
+//   confirmed_sms (active)       → ✓ green "SMS confirmed"
+//   other method (active)         → ⚠ yellow "Will reconfirm by SMS on save"
+//   no row                        → gray  "Confirmation text will send on save"
+//   revoked (STOP)                → ✗ red  "Opted out (STOP)"
 //
-// Parent owns the consentIntent boolean. SmsConsentCheckbox does NOT POST
-// the consent itself — that happens in the parent on form save, after the
-// WO/employee save returns success (so we never record consent for a job
-// that wasn't actually created). See NewJobModal.handleSave for the
-// pattern.
-//
-// Props:
-//   phone           — string, the phone number to check
-//   recipientType   — "customer_rep" | "employee"
-//   consentIntent   — boolean from parent state
-//   setConsentIntent — setter from parent state
-//   labelHint       — optional short string above the checkbox; defaults to
-//                     a sensible recipient-type-specific label
+// Filename + props are preserved so existing call sites
+// (NewJobContactsPanel, EditJobContactGrid, PinSetupPage) don't need to change.
+// `consentIntent` / `setConsentIntent` / `labelHint` props are now accepted but
+// ignored — they kept their slots so v28.197 ships as a focused FE-only change
+// without touching parent state plumbing. A follow-up can rename + clean up.
 
-export default function SmsConsentCheckbox({
-  phone, recipientType, consentIntent, setConsentIntent, labelHint,
-}) {
+// Pill — single shape, four variants (color / icon / label) driven by state.
+// Defined at module scope so each render of SmsConsentCheckbox doesn't create
+// a new component identity (which causes unnecessary remounts / warnings).
+function Pill({ bg, border, iconColor, icon, label, detail }) {
+  return (
+    <div
+      style={{
+        marginTop: 4,
+        marginBottom: 4,
+        padding: "6px 10px",
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 4,
+        fontSize: 11,
+        color: PANEL_TEXT,
+        fontWeight: 600,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      <span style={{ color: iconColor, fontWeight: 800 }}>
+        {icon} {label}
+      </span>
+      {detail && <span style={{ color: PANEL_MUTED, fontWeight: 500 }}>· {detail}</span>}
+    </div>
+  );
+}
+
+export default function SmsConsentCheckbox({ phone, recipientType: _recipientType, consentIntent: _ci, setConsentIntent: _sci, labelHint: _lh }) {
   const [checking, setChecking] = useState(false);
-  const [existingConsent, setExistingConsent] = useState(null);
-  const [script, setScript] = useState("");
-  const [showScript, setShowScript] = useState(false);
+  const [consent, setConsent] = useState(null);
 
-  // Load active scripts once on mount — used for the inline preview.
-  // The actual consent record on POST pins to the active script_id
-  // server-side, so the UI script_text doesn't need to be sent.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getActiveScripts();
-        if (cancelled) return;
-        setScript(data[recipientType]?.script_text || "");
-      } catch (err) {
-        // Non-fatal — UI shows generic label without the script preview.
-        console.warn("SMS consent script load failed:", err);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [recipientType]);
-
-  // Re-check existing consent whenever the phone changes.
+  // Re-check whenever the phone changes.
   useEffect(() => {
     let cancelled = false;
     if (!phone || !String(phone).trim()) {
-      setExistingConsent(null);
+      setConsent(null);
       return;
     }
     setChecking(true);
     (async () => {
       const res = await checkConsent(phone);
       if (cancelled) return;
-      setExistingConsent(res.consent || null);
+      setConsent(res.consent || null);
       setChecking(false);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [phone]);
 
-  // Empty-phone state: muted placeholder.
+  // Empty phone: muted placeholder.
   if (!phone || !String(phone).trim()) {
-    return (
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 4, fontStyle: "italic" }}>
-        Enter phone to capture SMS consent
-      </div>
-    );
+    return <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 4, fontStyle: "italic" }}>Enter phone to check SMS consent status</div>;
   }
 
-  // Checking state: spinner-equivalent.
   if (checking) {
-    return (
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 4 }}>
-        Checking consent status…
-      </div>
-    );
+    return <div style={{ fontSize: 11, color: C.muted, marginTop: 4, marginBottom: 4 }}>Checking consent status…</div>;
   }
 
-  // Active consent on file: non-interactive badge.
-  if (existingConsent && !existingConsent.revoked_at) {
-    const when = existingConsent.consent_given_at
-      ? new Date(existingConsent.consent_given_at).toLocaleDateString()
-      : null;
-    const methodLabel = {
-      verbal: "verbal",
-      biometric_inapp: "in-app",
-      retroactive_assumed: "retroactive",
-    }[existingConsent.consent_method] || existingConsent.consent_method;
-    return (
-      <div style={{
-        marginTop: 4, marginBottom: 4, padding: "6px 10px",
-        background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 4,
-        fontSize: 11, color: PANEL_TEXT, fontWeight: 600,
-        display: "inline-flex", alignItems: "center", gap: 6,
-      }}>
-        <span style={{ color: C.green, fontWeight: 800 }}>✓ SMS consent on file</span>
-        <span style={{ color: PANEL_MUTED, fontWeight: 500 }}>
-          {when && `· ${when}`} · {methodLabel}
-        </span>
-      </div>
-    );
+  // Revoked (STOP) — wins regardless of method.
+  if (consent && consent.revoked_at) {
+    return <Pill bg="#fdecec" border={`${C.red}55`} iconColor={C.red} icon="✗" label="Opted out (STOP)" detail="will not receive SMS" />;
   }
 
-  // No consent on file → capture UI. Checkbox + script preview.
-  const defaultHint = recipientType === "customer_rep"
-    ? "Verbal consent given — sales rep asked the customer rep:"
-    : "Employee consented via in-app confirmation:";
-  const hint = labelHint || defaultHint;
+  // Confirmed via double opt-in (the only state that authorizes sends).
+  if (consent && consent.consent_method === "confirmed_sms") {
+    const when = consent.consent_given_at ? new Date(consent.consent_given_at).toLocaleDateString() : null;
+    return <Pill bg="#e6f5ec" border={`${C.green}44`} iconColor={C.green} icon="✓" label="SMS confirmed" detail={when ? `${when}` : null} />;
+  }
 
-  return (
-    <div style={{ marginTop: 4, marginBottom: 4 }}>
-      <label style={{
-        display: "flex", alignItems: "flex-start", gap: 8,
-        fontSize: 12, color: C.text, cursor: "pointer",
-        padding: "6px 8px", border: `1px solid ${C.border}`, borderRadius: 4,
-        background: C.steel,
-      }}>
-        <input
-          type="checkbox"
-          checked={!!consentIntent}
-          onChange={e => setConsentIntent(e.target.checked)}
-          style={{ width: 16, height: 16, marginTop: 1, cursor: "pointer", flexShrink: 0 }}
-        />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, color: C.text }}>
-            {hint}
-          </div>
-          {script && (
-            <div style={{ marginTop: 4 }}>
-              <div
-                onClick={(e) => { e.preventDefault(); setShowScript(s => !s); }}
-                style={{
-                  fontSize: 10, color: C.blue, fontWeight: 600,
-                  letterSpacing: "0.04em", cursor: "pointer",
-                  textDecoration: "underline",
-                }}
-              >
-                {showScript ? "▾ Hide script" : "▸ Show script"}
-              </div>
-              {showScript && (
-                <div style={{
-                  marginTop: 6, padding: "8px 10px",
-                  background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 3,
-                  fontSize: 11, color: C.muted, fontStyle: "italic", lineHeight: 1.5,
-                  whiteSpace: "pre-wrap",
-                }}>
-                  {script}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </label>
-    </div>
-  );
+  // Legacy consent on file (verbal / biometric_inapp / retroactive_assumed) —
+  // does NOT authorize sends post-v28.193. Next save fires startOptIn, which
+  // texts a confirmation; recipient replies YES to activate.
+  if (consent && !consent.revoked_at) {
+    return <Pill bg="#fff8e1" border={`${C.yellow}55`} iconColor={C.yellow} icon="⟳" label="Will reconfirm by SMS" detail="legacy consent on file" />;
+  }
+
+  // No consent row at all.
+  return <Pill bg={C.steel || "#f0f3f8"} border={C.border} iconColor={C.muted} icon="○" label="No consent yet" detail="confirmation text sends on save" />;
 }
