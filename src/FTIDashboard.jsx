@@ -33,6 +33,7 @@ import DriverInspectionForm from "./DriverInspectionForm.jsx";
 import InspectionsListPage from "./InspectionsListPage.jsx";
 import RepairRequestForm from "./RepairRequestForm.jsx";
 import SafetyPage from "./SafetyPage.jsx";
+import ClockPage from "./ClockPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
 import TicketPage from "./TicketPage.jsx";
@@ -263,7 +264,19 @@ function FTIDashboard() {
   // surfaces. The pages still exist at /vehicles, /yards, /assets — routes
   // unchanged. Gear menu access broadened in DesktopNavBar so non-admins with
   // view_inventory still reach them.
-  const ALL_NAV_ITEMS = ["All Tickets", "Work Order History", "Action Items", "Inventory", "Crew", "Safety", "Final Review", "Reports", "Deleted", "Archive"];
+  const ALL_NAV_ITEMS = [
+    "Clock",
+    "All Tickets",
+    "Work Order History",
+    "Action Items",
+    "Inventory",
+    "Crew",
+    "Safety",
+    "Final Review",
+    "Reports",
+    "Deleted",
+    "Archive",
+  ];
   const NAV_ITEMS = ALL_NAV_ITEMS.filter((i) => {
     if (i === "Inventory" && !can("view_inventory")) return false;
     if (i === "Work Order History" && !can("view_jobs")) return false;
@@ -386,6 +399,7 @@ function FTIDashboard() {
         {can("view_jobs") && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
+        <Route path="/clock" element={<ClockPage />} />
         <Route path="/ticket/:id" element={<TicketPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         {can("view_activity_log") && <Route path="/activity" element={<ActivityLogPage />} />}
         {canViewContacts && <Route path="/contacts" element={<ContactsPage />} />}
