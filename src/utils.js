@@ -414,6 +414,9 @@ export const PERMISSION_CATEGORIES = [
   { key: "perform_repairs", label: "Perform + Certify Repairs", group: "DVIR & Maintenance" },
   { key: "red_tag_vehicle", label: "Red-Tag Vehicle (Out-of-Service)", group: "DVIR & Maintenance" },
   { key: "manage_vehicles", label: "Manage Vehicles Master", group: "DVIR & Maintenance" },
+  // v28.202 — Labor Time Tracking Phase 1 additions:
+  { key: "view_all_hours", label: "View All Employee Hours", group: "Labor & Time" },
+  { key: "approve_time_corrections", label: "Approve Time Corrections", group: "Labor & Time" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
