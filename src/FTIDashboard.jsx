@@ -120,6 +120,7 @@ function FTIDashboard() {
     if (p.startsWith("/repair-request")) return "repairRequest";
     if (p.startsWith("/compliance-consent")) return "compliance";
     if (p.startsWith("/crew")) return "crew";
+    if (p.startsWith("/clock")) return "clock";
     if (p.startsWith("/safety")) return "safety";
     if (p.startsWith("/activity")) return "activity";
     if (p.startsWith("/contacts")) return "contacts";
