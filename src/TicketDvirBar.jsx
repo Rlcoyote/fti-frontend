@@ -45,7 +45,9 @@ function TicketDvirBar({ ticket, dvirState }) {
   const vehicleId = ticket?.gpsVehicleId || ticket?.gps_vehicle_id || "";
   const ticketDate = (ticket?.date || "").slice(0, 10);
   const queryDate = ticketDate ? `&date=${encodeURIComponent(ticketDate)}` : "";
-  const launchInspection = () => navigate(`/inspection/new?vehicleId=${encodeURIComponent(vehicleId)}${queryDate}`);
+  // v28.209 — pass the ticket so the pre-trip can auto-clock the driver into it.
+  const queryTicket = ticket?.id ? `&ticketId=${encodeURIComponent(ticket.id)}` : "";
+  const launchInspection = () => navigate(`/inspection/new?vehicleId=${encodeURIComponent(vehicleId)}${queryDate}${queryTicket}`);
 
   if (ok) {
     // Green — DVIR done for today.

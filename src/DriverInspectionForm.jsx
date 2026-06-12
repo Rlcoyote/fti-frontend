@@ -179,6 +179,7 @@ function DriverInspectionForm() {
   const [searchParams] = useSearchParams();
   const queryVehicleId = searchParams.get("vehicleId") || "";
   const queryTrailerId = searchParams.get("trailerId") || "";
+  const queryTicketId = searchParams.get("ticketId") || ""; // v28.209 — for pre-trip auto-clock-in
   const canPerform = can("perform_inspections");
   const canRedTag = can("red_tag_vehicle");
 
@@ -271,6 +272,14 @@ function DriverInspectionForm() {
       setError("You must acknowledge the attestation before submitting");
       return;
     }
+    // v28.209 — Phase 3b: walk-around standard is 5 min; over 8 needs a reason.
+    if (type === "pre_trip") {
+      const walkMin = (Date.now() - new Date(openedAt).getTime()) / 60000;
+      if (walkMin > 8 && !notes.trim()) {
+        setError(`Walk-around took ${Math.round(walkMin)} min (over 8). Add a note explaining why before submitting.`);
+        return;
+      }
+    }
 
     setSubmitting(true);
     setError("");
@@ -281,6 +290,7 @@ function DriverInspectionForm() {
         inspection_type: type,
         inspection_date: new Date().toISOString().slice(0, 10),
         opened_at: openedAt,
+        ticket_id: queryTicketId || null,
         odometer: odometer ? parseInt(odometer, 10) : null,
         defects: defects.map((d) => ({
           component: d.component,
