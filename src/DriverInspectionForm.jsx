@@ -207,6 +207,10 @@ function DriverInspectionForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null); // { id, defect_count, red_tag_count }
+  // v28.208 — capture the form-OPEN time once (Phase 3a). This is the driver's
+  // real start anchor (the walk-around happens BETWEEN open and submit), not the
+  // save time. Sent with the POST; the pre-trip auto-clock-in (3b) uses it.
+  const [openedAt] = useState(() => new Date().toISOString());
 
   // Auto-pick the user's vehicle on mount.
   useEffect(() => {
@@ -276,6 +280,7 @@ function DriverInspectionForm() {
         trailer_id: trailerId || null,
         inspection_type: type,
         inspection_date: new Date().toISOString().slice(0, 10),
+        opened_at: openedAt,
         odometer: odometer ? parseInt(odometer, 10) : null,
         defects: defects.map((d) => ({
           component: d.component,
