@@ -73,16 +73,20 @@ function CrewSelectionView({
   rowKeyFor,
 }) {
   const sectionStyle = {
-    background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6,
-    padding: 14, marginBottom: 14,
+    background: C.cardBg,
+    border: `1px solid ${C.border}`,
+    borderRadius: 6,
+    padding: 14,
+    marginBottom: 14,
   };
   const headerStyle = {
-    fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.1em",
+    fontSize: 11,
+    fontWeight: 800,
+    color: C.muted,
+    letterSpacing: "0.1em",
     textTransform: "uppercase",
   };
-  const defaultEmpty = canMutate
-    ? "No crew selected yet. Select an employee above to add — the first becomes lead."
-    : "No crew assigned yet.";
+  const defaultEmpty = canMutate ? "No crew selected yet. Select an employee above to add — the first becomes lead." : "No crew assigned yet.";
 
   return (
     <div style={sectionStyle}>
@@ -111,18 +115,17 @@ function CrewSelectionView({
             style={inputStyle}
             value=""
             disabled={busy || addableUsers.length === 0}
-            onChange={e => {
+            onChange={(e) => {
               const id = e.target.value;
               if (!id) return;
               onAdd(id, crew.length === 0);
             }}
           >
-            <option value="">
-              {addableUsers.length === 0 ? "— all employees added —" : "— select employee —"}
-            </option>
-            {addableUsers.map(u => (
+            <option value="">{addableUsers.length === 0 ? "— all employees added —" : "— select employee —"}</option>
+            {addableUsers.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.name}{u.role ? ` (${u.role})` : ""}
+                {u.name}
+                {u.role ? ` (${u.role})` : ""}
               </option>
             ))}
           </select>
@@ -131,10 +134,17 @@ function CrewSelectionView({
 
       {/* Crew list */}
       {!loading && crew.length === 0 && (
-        <div style={{
-          fontSize: 12, color: C.muted, fontStyle: "italic",
-          padding: "10px 12px", background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
-        }}>
+        <div
+          style={{
+            fontSize: 12,
+            color: C.muted,
+            fontStyle: "italic",
+            padding: "10px 12px",
+            background: C.steel,
+            border: `1px solid ${C.border}`,
+            borderRadius: 4,
+          }}
+        >
           {emptyMessage || defaultEmpty}
         </div>
       )}
@@ -145,7 +155,9 @@ function CrewSelectionView({
             <div
               key={rowKeyFor ? rowKeyFor(c) : c.user_id}
               style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
                 padding: "10px 14px",
                 borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                 background: c.is_lead ? "#fdf5d8" : C.cardBg,
@@ -157,19 +169,60 @@ function CrewSelectionView({
                     explicit dark colors when c.is_lead so the name + role line
                     are readable on the yellow band. Non-lead rows keep theme
                     colors. */}
-                <div style={{ fontSize: 13, fontWeight: 600, color: c.is_lead ? "#1a2340" : C.text }}>
+                {/* v28.206 — a crew member deactivated AFTER being assigned
+                    still lives in ticket_crew. Grey + flag them (the record
+                    stays honest) rather than vanish them. They're already
+                    blocked from new-add (POST) + the addable pool. */}
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: c.user_is_active === false ? C.muted : c.is_lead ? "#1a2340" : C.text,
+                    textDecoration: c.user_is_active === false ? "line-through" : "none",
+                    opacity: c.user_is_active === false ? 0.75 : 1,
+                  }}
+                >
                   {c.user_name}
                   {c.is_lead && (
-                    <span style={{
-                      marginLeft: 8, fontSize: 10, fontWeight: 800, color: "#8a6500",
-                      background: "#ffffffaa", border: `1px solid #8a650044`,
-                      padding: "1px 6px", borderRadius: 3, letterSpacing: "0.08em",
-                    }}>LEAD</span>
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: "#8a6500",
+                        background: "#ffffffaa",
+                        border: `1px solid #8a650044`,
+                        padding: "1px 6px",
+                        borderRadius: 3,
+                        letterSpacing: "0.08em",
+                      }}
+                    >
+                      LEAD
+                    </span>
+                  )}
+                  {c.user_is_active === false && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: C.red,
+                        background: "#fdecec",
+                        border: `1px solid ${C.red}44`,
+                        padding: "1px 6px",
+                        borderRadius: 3,
+                        letterSpacing: "0.08em",
+                        textDecoration: "none",
+                      }}
+                    >
+                      DEACTIVATED
+                    </span>
                   )}
                 </div>
                 {(c.user_role || c.user_job_title) && (
                   <div style={{ fontSize: 11, color: c.is_lead ? "#4a5570" : C.muted }}>
-                    {c.user_role}{c.user_job_title ? ` · ${c.user_job_title}` : ""}
+                    {c.user_role}
+                    {c.user_job_title ? ` · ${c.user_job_title}` : ""}
                   </div>
                 )}
               </div>
@@ -181,24 +234,38 @@ function CrewSelectionView({
                       disabled={busy}
                       title="Designate as lead"
                       style={{
-                        background: "transparent", border: `1px solid ${C.muted}55`,
-                        color: C.muted, fontSize: 10, fontWeight: 700,
-                        padding: "3px 8px", borderRadius: 3,
-                        cursor: busy ? "default" : "pointer", letterSpacing: "0.06em",
+                        background: "transparent",
+                        border: `1px solid ${C.muted}55`,
+                        color: C.muted,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "3px 8px",
+                        borderRadius: 3,
+                        cursor: busy ? "default" : "pointer",
+                        letterSpacing: "0.06em",
                       }}
-                    >MAKE LEAD</button>
+                    >
+                      MAKE LEAD
+                    </button>
                   )}
                   <button
                     onClick={() => onRemove(c.user_id, c.user_name)}
                     disabled={busy}
                     title="Remove from ticket"
                     style={{
-                      background: "transparent", border: `1px solid ${C.red}33`,
-                      color: C.red, fontSize: 10, fontWeight: 700,
-                      padding: "3px 8px", borderRadius: 3,
-                      cursor: busy ? "default" : "pointer", letterSpacing: "0.06em",
+                      background: "transparent",
+                      border: `1px solid ${C.red}33`,
+                      color: C.red,
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "3px 8px",
+                      borderRadius: 3,
+                      cursor: busy ? "default" : "pointer",
+                      letterSpacing: "0.06em",
                     }}
-                  >REMOVE</button>
+                  >
+                    REMOVE
+                  </button>
                 </div>
               )}
             </div>
@@ -206,11 +273,7 @@ function CrewSelectionView({
         </div>
       )}
 
-      {error && (
-        <div style={{ marginTop: 10, color: C.red, fontSize: 12, fontWeight: 700 }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={{ marginTop: 10, color: C.red, fontSize: 12, fontWeight: 700 }}>{error}</div>}
     </div>
   );
 }
