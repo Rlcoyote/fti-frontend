@@ -140,6 +140,26 @@ function ClockPage() {
         )}
       </div>
 
+      {/* v28.211 — Phase 4a in-app alert: surfaced when the post-trip auto-clocked
+          you out of the job (the SMS is the push; this is the in-app half). */}
+      {!open && segments[0] && (segments[0].notes || "").includes("post-trip") && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "10px 14px",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 600,
+            background: "#fff8e1",
+            color: "#8a6500",
+            border: `1px solid ${C.yellow}55`,
+          }}
+        >
+          You were clocked out of {segments[0].ticket_number ? `ticket #${segments[0].ticket_number}` : "the job"} by the post-trip. If you're still working,
+          clock into Yard/Shop below.
+        </div>
+      )}
+
       {/* TODAY'S TICKETS (clock into one) */}
       {!open && (
         <div style={{ marginBottom: 18 }}>
