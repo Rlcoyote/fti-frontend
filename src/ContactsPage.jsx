@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -28,6 +28,32 @@ function ContactsPage() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  // v28.210 — bulk customer-contact import (xlsx). Header-name mapped on the BE.
+  const importRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+  const handleImportContacts = async (file) => {
+    setImporting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const r = await fetch(`${API_URL}/customers/contacts/import`, { method: "POST", credentials: "include", body: fd });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        alert(`Import failed: ${data.error || r.status}`);
+        return;
+      }
+      const errs = (data.errors || []).slice(0, 12).join("\n");
+      alert(
+        `Imported ${data.inserted} contact(s). Skipped ${data.skipped}.` +
+          (data.errors?.length ? `\n\nIssues:\n${errs}${data.errors.length > 12 ? "\n…and more" : ""}` : ""),
+      );
+      if (data.inserted > 0) window.location.reload();
+    } catch (e) {
+      alert(`Import error: ${e.message}`);
+    } finally {
+      setImporting(false);
+    }
+  };
   const [filterCustomer, setFilterCustomer] = useState("All");
   const [filterCategory, setFilterCategory] = useState("All");
   const [showInactive, setShowInactive] = useState(false);
@@ -285,6 +311,24 @@ function ContactsPage() {
             )}
           </div>
         </div>
+        {isAdmin && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <input
+              ref={importRef}
+              type="file"
+              accept=".xlsx,.xls"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImportContacts(f);
+                e.target.value = "";
+              }}
+            />
+            <Btn variant="ghost" small onClick={() => importRef.current?.click()} disabled={importing}>
+              {importing ? "IMPORTING…" : "IMPORT FROM SPREADSHEET"}
+            </Btn>
+          </div>
+        )}
         {isAdmin && merged.length > 0 && (
           <div style={{ display: "flex", gap: 8 }}>
             {!selectMode ? (
