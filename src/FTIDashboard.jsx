@@ -11,6 +11,7 @@ import DashboardHome from "./DashboardHome.jsx";
 import NewJobModal from "./NewJobModal.jsx";
 import InventoryPage from "./InventoryPage.jsx";
 import LaborTimeRulesPage from "./LaborTimeRulesPage.jsx";
+import TimeReviewPage from "./TimeReviewPage.jsx";
 import ReportsPage from "./ReportsPage.jsx";
 import AllTicketsPage from "./AllTicketsPage.jsx";
 import FinalReviewPage from "./FinalReviewPage.jsx";
@@ -403,6 +404,7 @@ function FTIDashboard() {
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/clock" element={<ClockPage />} />
         {(userRole === "owner" || userRole === "admin") && <Route path="/labor-time-rules" element={<LaborTimeRulesPage />} />}
+        {can("approve_time_corrections") && <Route path="/time-review" element={<TimeReviewPage />} />}
         <Route path="/ticket/:id" element={<TicketPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
         {can("view_activity_log") && <Route path="/activity" element={<ActivityLogPage />} />}
         {canViewContacts && <Route path="/contacts" element={<ContactsPage />} />}

@@ -371,6 +371,16 @@ function MobileNavDrawer({
             }}
           />
         )}
+        {can && can("approve_time_corrections") && (
+          <DrawerItem
+            icon="⚑"
+            label="Time Review"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/time-review");
+            }}
+          />
+        )}
         {currentUser.role === "owner" && (
           <DrawerItem
             icon="🚨"

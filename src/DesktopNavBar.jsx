@@ -393,6 +393,15 @@ function DesktopNavBar({
                         }}
                       />
                     )}
+                    {can("approve_time_corrections") && (
+                      <GearMenuItem
+                        label="Time Review"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/time-review");
+                        }}
+                      />
+                    )}
                     {currentUser.role === "owner" && (
                       <GearMenuItem
                         label="Emergency Information"
