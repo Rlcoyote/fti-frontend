@@ -30,6 +30,12 @@ export const clockOut = () => j("POST", "/clock-out", {});
 export const getFlagged = (status) => j("GET", `/flagged${status ? `?status=${status}` : ""}`);
 export const approveEntry = (id) => j("POST", `/${id}/approve`, {});
 
+// Phase 5B — correction requests. requestCorrection is self (entry owner);
+// apply/reject are manager (approve_time_corrections) gated on the BE.
+export const requestCorrection = (id, body) => j("POST", `/${id}/request-correction`, body); // { requested_start_at?, requested_end_at?, note }
+export const applyCorrection = (id) => j("POST", `/${id}/apply-correction`, {});
+export const rejectCorrection = (id) => j("POST", `/${id}/reject-correction`, {});
+
 // Format a seconds duration as Hh Mm (timestamp-native — never decimal).
 export function fmtDur(seconds) {
   if (seconds == null) return "—";

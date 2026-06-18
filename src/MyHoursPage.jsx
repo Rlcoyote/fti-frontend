@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { C } from "./config.js";
-import { getMine, fmtDur } from "./clock.js";
+import { getMine, fmtDur, requestCorrection } from "./clock.js";
 
 // ─── MyHoursPage (v28.216, Labor Time Phase 6) ──────────────────────────────
 // Every employee's own read-only timesheet over a date range. Self-scoped
@@ -31,6 +31,14 @@ function fmtDayLabel(dateStr) {
 function fmtClock(iso) {
   return new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
+// ISO → "YYYY-MM-DDTHH:MM" in the device's local time, for <input type=datetime-local>.
+// Field employees' devices are on Central, so the round-trip (input → new Date → ISO) is correct.
+function toLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
 
 export default function MyHoursPage() {
   const today = ctToday();
@@ -39,6 +47,13 @@ export default function MyHoursPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
+  const [msg, setMsg] = useState(null);
+  // 5B — inline correction request
+  const [fixId, setFixId] = useState(null);
+  const [fixStart, setFixStart] = useState("");
+  const [fixEnd, setFixEnd] = useState("");
+  const [fixNote, setFixNote] = useState("");
+  const [fixBusy, setFixBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,6 +75,38 @@ export default function MyHoursPage() {
   const preset = (days) => {
     setFrom(addDaysStr(today, -(days - 1)));
     setTo(today);
+  };
+
+  const openFix = (r) => {
+    setFixId(r.id);
+    setFixStart(toLocalInput(r.start_at));
+    setFixEnd(r.end_at ? toLocalInput(r.end_at) : "");
+    setFixNote("");
+    setMsg(null);
+  };
+
+  const submitFix = async (r) => {
+    setFixBusy(true);
+    setMsg(null);
+    try {
+      const body = { note: fixNote };
+      const curStart = toLocalInput(r.start_at);
+      const curEnd = r.end_at ? toLocalInput(r.end_at) : "";
+      if (fixStart && fixStart !== curStart) body.requested_start_at = new Date(fixStart).toISOString();
+      if (fixEnd && fixEnd !== curEnd) body.requested_end_at = new Date(fixEnd).toISOString();
+      if (!body.requested_start_at && !body.requested_end_at) {
+        setMsg({ kind: "error", text: "Change the start or end time before submitting." });
+        return;
+      }
+      await requestCorrection(r.id, body);
+      setMsg({ kind: "success", text: "Correction requested — a manager will review it." });
+      setFixId(null);
+      await load();
+    } catch (e) {
+      setMsg({ kind: "error", text: e.message });
+    } finally {
+      setFixBusy(false);
+    }
   };
 
   // Roll-ups + day grouping.
@@ -145,6 +192,23 @@ export default function MyHoursPage() {
         </div>
       )}
 
+      {msg && (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: "8px 12px",
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 600,
+            background: msg.kind === "error" ? "#fdecec" : "#e6f5ec",
+            color: msg.kind === "error" ? C.red : C.green,
+            border: `1px solid ${msg.kind === "error" ? C.red : C.green}44`,
+          }}
+        >
+          {msg.text}
+        </div>
+      )}
+
       {/* Summary */}
       <div style={{ background: "#0f3d22", borderRadius: 12, padding: "16px 18px", marginBottom: 16 }}>
         <div style={{ color: "#9ff0bd", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 4 }}>
@@ -183,32 +247,117 @@ export default function MyHoursPage() {
               {segs
                 .slice()
                 .sort((a, b) => (a.start_at < b.start_at ? -1 : 1))
-                .map((r) => (
-                  <div
-                    key={r.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 10,
-                      padding: "9px 12px",
-                      marginBottom: 5,
-                      background: C.cardBg,
-                      border: `1px solid ${r.flagged ? `${C.yellow}66` : C.border}`,
-                      borderRadius: 6,
-                      fontSize: 13,
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <span style={{ color: C.text, fontWeight: 700 }}>{r.ticket_number ? `#${r.ticket_number}` : "Shop/Yard"}</span>{" "}
-                      <span style={{ color: C.muted }}>· {r.category}</span>
-                      {r.flagged && <span style={{ color: "#8a6500", fontWeight: 700 }}> · ⚑ under review</span>}
-                      <div style={{ color: C.muted, fontSize: 12, marginTop: 1 }}>
-                        {fmtClock(r.start_at)} → {r.end_at ? fmtClock(r.end_at) : <span style={{ color: C.green, fontWeight: 700 }}>open</span>}
+                .map((r) => {
+                  const pending = r.requested_start_at || r.requested_end_at;
+                  const inp = {
+                    marginTop: 3,
+                    padding: "5px 7px",
+                    fontSize: 13,
+                    color: C.text,
+                    background: C.cardBg,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 5,
+                  };
+                  return (
+                    <div
+                      key={r.id}
+                      style={{ marginBottom: 5, background: C.cardBg, border: `1px solid ${r.flagged ? `${C.yellow}66` : C.border}`, borderRadius: 6 }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, padding: "9px 12px", fontSize: 13 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ color: C.text, fontWeight: 700 }}>{r.ticket_number ? `#${r.ticket_number}` : "Shop/Yard"}</span>{" "}
+                          <span style={{ color: C.muted }}>· {r.category}</span>
+                          {pending ? (
+                            <span style={{ color: "#8a6500", fontWeight: 700 }}> · ✎ fix requested</span>
+                          ) : (
+                            r.flagged && <span style={{ color: "#8a6500", fontWeight: 700 }}> · ⚑ under review</span>
+                          )}
+                          <div style={{ color: C.muted, fontSize: 12, marginTop: 1 }}>
+                            {fmtClock(r.start_at)} → {r.end_at ? fmtClock(r.end_at) : <span style={{ color: C.green, fontWeight: 700 }}>open</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, whiteSpace: "nowrap" }}>
+                          <span style={{ color: C.text, fontWeight: 700 }}>{fmtDur(r.elapsed_seconds)}</span>
+                          {!pending && fixId !== r.id && (
+                            <button
+                              onClick={() => openFix(r)}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: C.muted,
+                                background: "transparent",
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 5,
+                                padding: "3px 8px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Request fix
+                            </button>
+                          )}
+                        </div>
                       </div>
+                      {fixId === r.id && (
+                        <div style={{ borderTop: `1px solid ${C.border}`, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
+                            <label style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
+                              Start
+                              <br />
+                              <input type="datetime-local" value={fixStart} onChange={(e) => setFixStart(e.target.value)} style={inp} />
+                            </label>
+                            {r.end_at && (
+                              <label style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
+                                End
+                                <br />
+                                <input type="datetime-local" value={fixEnd} onChange={(e) => setFixEnd(e.target.value)} style={inp} />
+                              </label>
+                            )}
+                          </div>
+                          <input
+                            placeholder="Reason (e.g. forgot to clock in; started at 6)"
+                            value={fixNote}
+                            onChange={(e) => setFixNote(e.target.value)}
+                            style={{ padding: "6px 8px", fontSize: 13, color: C.text, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 5 }}
+                          />
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => submitFix(r)}
+                              disabled={fixBusy}
+                              style={{
+                                padding: "6px 14px",
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color: "white",
+                                background: C.green,
+                                border: "none",
+                                borderRadius: 6,
+                                cursor: fixBusy ? "wait" : "pointer",
+                              }}
+                            >
+                              {fixBusy ? "…" : "Submit request"}
+                            </button>
+                            <button
+                              onClick={() => setFixId(null)}
+                              disabled={fixBusy}
+                              style={{
+                                padding: "6px 14px",
+                                fontSize: 13,
+                                fontWeight: 700,
+                                color: C.muted,
+                                background: "transparent",
+                                border: `1px solid ${C.border}`,
+                                borderRadius: 6,
+                                cursor: "pointer",
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <span style={{ color: C.text, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtDur(r.elapsed_seconds)}</span>
-                  </div>
-                ))}
+                  );
+                })}
             </div>
           );
         })
