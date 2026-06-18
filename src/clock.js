@@ -16,7 +16,12 @@ async function j(method, path, body) {
 }
 
 export const getCurrent = () => j("GET", "/current");
-export const getMine = () => j("GET", "/mine");
+export const getMine = (from, to) => {
+  const qs = [];
+  if (from) qs.push(`from=${from}`);
+  if (to) qs.push(`to=${to}`);
+  return j("GET", `/mine${qs.length ? `?${qs.join("&")}` : ""}`);
+};
 export const getClockable = () => j("GET", "/clockable");
 export const clockIn = (payload) => j("POST", "/clock-in", payload); // { ticket_id } | { shop_ticket_id }
 export const clockOut = () => j("POST", "/clock-out", {});

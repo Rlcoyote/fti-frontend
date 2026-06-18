@@ -71,6 +71,7 @@ const ROUTE_MAP = {
   Vehicles: "/vehicles",
   Yards: "/yards",
   Clock: "/clock",
+  "My Hours": "/my-hours",
   Crew: "/crew",
   Safety: "/safety",
   "Final Review": "/final-review",

@@ -12,6 +12,7 @@ import NewJobModal from "./NewJobModal.jsx";
 import InventoryPage from "./InventoryPage.jsx";
 import LaborTimeRulesPage from "./LaborTimeRulesPage.jsx";
 import TimeReviewPage from "./TimeReviewPage.jsx";
+import MyHoursPage from "./MyHoursPage.jsx";
 import ReportsPage from "./ReportsPage.jsx";
 import AllTicketsPage from "./AllTicketsPage.jsx";
 import FinalReviewPage from "./FinalReviewPage.jsx";
@@ -269,6 +270,7 @@ function FTIDashboard() {
   // view_inventory still reach them.
   const ALL_NAV_ITEMS = [
     "Clock",
+    "My Hours",
     "All Tickets",
     "Work Order History",
     "Action Items",
@@ -403,6 +405,7 @@ function FTIDashboard() {
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/clock" element={<ClockPage />} />
+        <Route path="/my-hours" element={<MyHoursPage />} />
         {(userRole === "owner" || userRole === "admin") && <Route path="/labor-time-rules" element={<LaborTimeRulesPage />} />}
         {can("approve_time_corrections") && <Route path="/time-review" element={<TimeReviewPage />} />}
         <Route path="/ticket/:id" element={<TicketPage jobs={jobs} tickets={tickets} setTickets={setTickets} />} />
