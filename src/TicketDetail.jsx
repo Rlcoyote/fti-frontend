@@ -15,6 +15,7 @@ import TicketEditLockBanner from "./TicketEditLockBanner.jsx";
 import TicketJsaBar from "./TicketJsaBar.jsx";
 import TicketDvirBar from "./TicketDvirBar.jsx";
 import TicketHeaderRow from "./TicketHeaderRow.jsx";
+import TicketClockInReadiness from "./TicketClockInReadiness.jsx";
 import TicketSignatureFlow from "./TicketSignatureFlow.jsx";
 import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import TicketJobInfo from "./TicketJobInfo.jsx";
@@ -341,6 +342,20 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           setYardLocationIndex={s.setYardLocationIndex}
           yardsList={yardsList}
         />
+
+        {/* v28.214 — Phase 4b: clock-in readiness. The lead sees the three
+            prerequisites (Location Time + Yard above, Pin below) and whether
+            the crew can clock into the job yet. Job tickets only (Rental
+            doesn't track time). */}
+        {!["Rental"].includes(ticket.type) && (
+          <TicketClockInReadiness
+            dueOnLoc={s.dueOnLoc}
+            yardName={yardsList[(s.yardLocationIndex || 1) - 1]?.name}
+            pinLat={s.ticketPinLat}
+            pinLng={s.ticketPinLng}
+            driveInfo={s.driveInfo}
+          />
+        )}
 
         {/* Job / Customer Info — extracted to TicketJobInfo (v27.86) */}
         <TicketJobInfo job={job} assignedWells={ticket.assignedWells} />
