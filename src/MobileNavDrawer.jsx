@@ -361,6 +361,16 @@ function MobileNavDrawer({
             }}
           />
         )}
+        {(currentUser.role === "owner" || currentUser.role === "admin") && (
+          <DrawerItem
+            icon="⏱"
+            label="Labor Time Rules"
+            onClick={() => {
+              setDrawerOpen(false);
+              navigate("/labor-time-rules");
+            }}
+          />
+        )}
         {currentUser.role === "owner" && (
           <DrawerItem
             icon="🚨"

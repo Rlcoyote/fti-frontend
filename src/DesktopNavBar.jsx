@@ -384,6 +384,15 @@ function DesktopNavBar({
                         }}
                       />
                     )}
+                    {(currentUser.role === "owner" || currentUser.role === "admin") && (
+                      <GearMenuItem
+                        label="Labor Time Rules"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/labor-time-rules");
+                        }}
+                      />
+                    )}
                     {currentUser.role === "owner" && (
                       <GearMenuItem
                         label="Emergency Information"
