@@ -62,6 +62,23 @@ export function validateTicketTimes({ lvYard, arrivalTime, jobStartTime, jobEndT
     prev = s;
   }
 
+  // Rule 1b — travel legs must be STRICTLY later. You can't cover road
+  // distance in zero minutes, so LV YARD→ARRIVAL and JOB END→RET YARD can't
+  // be the same stamp. This holds even when drive time can't be resolved (the
+  // route floor below self-skips in that case), so an impossible same-minute
+  // entry is still caught. The < case is already reported by Rule 1; here we
+  // only add the equal-time message so we don't double-report.
+  const lvM = toMinutes(lvYard);
+  const arM = toMinutes(arrivalTime);
+  const jeM = toMinutes(jobEndTime);
+  const ryM = toMinutes(retYard);
+  if (lvM != null && arM != null && arM === lvM) {
+    errors.push(`ARRIVAL (${arrivalTime}) can't be the same as LV YARD (${lvYard}) — there's a drive between leaving the yard and arriving.`);
+  }
+  if (jeM != null && ryM != null && ryM === jeM) {
+    errors.push(`RET YARD (${retYard}) can't be the same as JOB END (${jobEndTime}) — there's a drive back to the yard.`);
+  }
+
   // Rule 2 — route floor (skipped when drive time is unknown).
   const drive = Number.isFinite(driveMinutes) ? driveMinutes : null;
   if (drive != null) {

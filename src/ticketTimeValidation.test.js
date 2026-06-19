@@ -109,6 +109,37 @@ describe("validateTicketTimes", () => {
     expect(outOfOrder.ok).toBe(false); // ordering still applies
   });
 
+  it("blocks identical LV YARD / ARRIVAL even when drive can't resolve", () => {
+    // Reggie's Rig Down case: 9:25 leave, 9:25 arrival, drive unresolved.
+    const r = validateTicketTimes({
+      lvYard: "9:25 AM",
+      arrivalTime: "9:25 AM",
+      driveMinutes: null,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/ARRIVAL.*can't be the same as LV YARD/);
+  });
+
+  it("blocks identical JOB END / RET YARD (zero drive back)", () => {
+    const r = validateTicketTimes({
+      jobEndTime: "2:00 PM",
+      retYard: "2:00 PM",
+      driveMinutes: null,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/RET YARD.*can't be the same as JOB END/);
+  });
+
+  it("still allows equal non-travel adjacencies (arrive == job start)", () => {
+    const r = validateTicketTimes({
+      lvYard: "7:00 AM",
+      arrivalTime: "8:30 AM",
+      jobStartTime: "8:30 AM", // arrive and start immediately — legitimate
+      driveMinutes: null,
+    });
+    expect(r.ok).toBe(true);
+  });
+
   it("allows a partially-filled ticket (blanks skipped)", () => {
     const r = validateTicketTimes({
       lvYard: "7:00 AM",
