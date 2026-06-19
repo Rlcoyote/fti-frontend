@@ -303,99 +303,154 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
 
   const handleSave = async () => {
     if (!type || isSubmitting) return;
-    const isRental = type === "Rental";
-    // v28.221 — sanity gate on the Time & Mileage stamps. Block physically
-    // impossible entries (out-of-order, or arriving faster than the drive
-    // allows). Rentals have no time stamps. Drive time comes from the same
-    // /jobs/drive-distance result already shown in the modal; when it can't
-    // resolve, the route-floor check self-skips and only ordering is enforced.
-    if (!isRental) {
-      const { ok, errors } = validateTicketTimes({
-        lvYard,
-        arrivalTime,
-        jobStartTime,
-        jobEndTime,
-        retYard,
-        driveMinutes: driveMinutesFromInfo(driveInfo),
-        toleranceMin: 10,
-      });
-      if (!ok) {
-        showNotice(
-          "Check the times",
-          <div>
-            {errors.map((e, i) => (
-              <div key={i} style={{ marginBottom: i < errors.length - 1 ? 8 : 0 }}>
-                • {e}
-              </div>
-            ))}
-          </div>,
-          "error",
-        );
-        return;
-      }
-    }
-    const jobGooglePin = job?.googlePin || job?.google_pin || null;
-    const jobPinLat = job?.pinLat || job?.pin_lat || null;
-    const jobPinLng = job?.pinLng || job?.pin_lng || null;
-    const ticketData = {
-      jobId,
-      // v28.109 — carried so useAddTicket can upsert a manually-entered
-      // site manager as a customer contact for this customer.
-      customerId: job?.customerId || job?.customer_id || null,
-      type,
-      status: "incomplete",
-      date: isRental ? startDate : date,
-      signedBy: null,
-      signedAt: null,
-      lineItems,
-      notes,
-      assignedWells: assignedWells ?? jobWells,
-      siteMgrFirst: smFirst,
-      siteMgrLast: smLast,
-      siteMgrPhone: smPhone,
-      siteMgrEmail: smEmail,
-      yardLocationIndex,
-      gpsVehicleId,
-      hasJSA: !!existingJSA,
-      ...(type === "Rig Down" ? { missingPieces: null } : {}),
-      ...(isRental
-        ? {
-            startDate,
-            endDate,
-            cycleDays: parseInt(cycleDays) || 28,
-            isRecurring,
-            googlePin: ticketPin.trim() || jobGooglePin,
-            pinLat: ticketPinLat || jobPinLat,
-            pinLng: ticketPinLng || jobPinLng,
-          }
-        : {}),
-      ...(!isRental
-        ? {
-            lvYard,
-            arrivalTime,
-            dueOnLoc,
-            jobStartTime,
-            jobEndTime,
-            retYard,
-            timeZone,
-            mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
-            mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
-            googlePin: ticketPin.trim() || jobGooglePin,
-            pinLat: ticketPinLat || jobPinLat,
-            pinLng: ticketPinLng || jobPinLng,
-          }
-        : {}),
-    };
-    // If ticket was already auto-saved (for JSA), pass the ID so parent knows to update, not create
-    if (savedTicketId) ticketData.id = savedTicketId;
-    // v28.07.5 / v28.09 — pass selected crew along so the parent
-    // (JobTicketsTab.handleAdd) can bulk-POST them to /tickets/:id/crew
-    // after the ticket POST succeeds. If savedTicketId is already set
-    // (autoSaveForJSA path), commitCrewSelection already ran and
-    // crewSelection is empty — passing the empty array is a no-op.
-    if (crewSelection.length > 0) ticketData.crewSelection = crewSelection;
     setIsSubmitting(true);
     try {
+      const isRental = type === "Rental";
+      const jobGooglePin = job?.googlePin || job?.google_pin || null;
+      const jobPinLat = job?.pinLat || job?.pin_lat || null;
+      const jobPinLng = job?.pinLng || job?.pin_lng || null;
+      // Effective pin coords for this save (resolved below if needed).
+      let effPinLat = ticketPinLat || jobPinLat;
+      let effPinLng = ticketPinLng || jobPinLng;
+      let driveMin = driveMinutesFromInfo(driveInfo);
+
+      // v28.224 — auto-resolve the pin on save. Coords only populated on an
+      // explicit RESOLVE click, and typing cleared them — so a ticket could
+      // save with a pin string but no coordinates, silently nulling drive time
+      // (which breaks BOTH this gate's route-floor AND the labor clock-in
+      // anchor's drive_minutes). Resolve here so coords are always present when
+      // a pin is. If it genuinely can't resolve, stop and tell the lead —
+      // never save a coordinate-less pin silently.
+      if (!isRental) {
+        const effPin = (ticketPin || "").trim() || jobGooglePin || "";
+        if (effPin && (!effPinLat || !effPinLng)) {
+          let rlat = null;
+          let rlng = null;
+          try {
+            const rr = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ url: effPin }),
+            });
+            if (rr.ok) {
+              const j = await rr.json();
+              rlat = j.lat;
+              rlng = j.lng;
+            }
+          } catch {
+            // fall through to the not-resolved notice
+          }
+          if (!rlat || !rlng) {
+            showNotice(
+              "Pin not resolved",
+              "This ticket has a Google pin that couldn't be turned into coordinates. Drive time and the clock-in window depend on it — check the pin link and tap RESOLVE, or clear the pin, then save again.",
+              "error",
+            );
+            return;
+          }
+          effPinLat = rlat;
+          effPinLng = rlng;
+          setTicketPinLat(rlat);
+          setTicketPinLng(rlng);
+          driveMin = null; // force a fresh drive calc with the new coords
+        }
+
+        // Fresh drive calc when we don't have one but now have coords.
+        if (driveMin == null && effPinLat && effPinLng) {
+          try {
+            const dr = await fetch(`${API_URL}/jobs/drive-distance`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ destLat: effPinLat, destLng: effPinLng, yard_index: yardLocationIndex }),
+            });
+            if (dr.ok) driveMin = driveMinutesFromInfo(await dr.json());
+          } catch {
+            // leave null — gate self-skips the route floor, ordering still applies
+          }
+        }
+
+        // Sanity gate on the Time & Mileage stamps (v28.221–223).
+        const { ok, errors } = validateTicketTimes({
+          lvYard,
+          arrivalTime,
+          jobStartTime,
+          jobEndTime,
+          retYard,
+          driveMinutes: driveMin,
+          toleranceMin: 10,
+        });
+        if (!ok) {
+          showNotice(
+            "Check the times",
+            <div>
+              {errors.map((e, i) => (
+                <div key={i} style={{ marginBottom: i < errors.length - 1 ? 8 : 0 }}>
+                  • {e}
+                </div>
+              ))}
+            </div>,
+            "error",
+          );
+          return;
+        }
+      }
+      const ticketData = {
+        jobId,
+        // v28.109 — carried so useAddTicket can upsert a manually-entered
+        // site manager as a customer contact for this customer.
+        customerId: job?.customerId || job?.customer_id || null,
+        type,
+        status: "incomplete",
+        date: isRental ? startDate : date,
+        signedBy: null,
+        signedAt: null,
+        lineItems,
+        notes,
+        assignedWells: assignedWells ?? jobWells,
+        siteMgrFirst: smFirst,
+        siteMgrLast: smLast,
+        siteMgrPhone: smPhone,
+        siteMgrEmail: smEmail,
+        yardLocationIndex,
+        gpsVehicleId,
+        hasJSA: !!existingJSA,
+        ...(type === "Rig Down" ? { missingPieces: null } : {}),
+        ...(isRental
+          ? {
+              startDate,
+              endDate,
+              cycleDays: parseInt(cycleDays) || 28,
+              isRecurring,
+              googlePin: ticketPin.trim() || jobGooglePin,
+              pinLat: effPinLat,
+              pinLng: effPinLng,
+            }
+          : {}),
+        ...(!isRental
+          ? {
+              lvYard,
+              arrivalTime,
+              dueOnLoc,
+              jobStartTime,
+              jobEndTime,
+              retYard,
+              timeZone,
+              mileageBegin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
+              mileageEnd: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
+              googlePin: ticketPin.trim() || jobGooglePin,
+              pinLat: effPinLat,
+              pinLng: effPinLng,
+            }
+          : {}),
+      };
+      // If ticket was already auto-saved (for JSA), pass the ID so parent knows to update, not create
+      if (savedTicketId) ticketData.id = savedTicketId;
+      // v28.07.5 / v28.09 — pass selected crew along so the parent
+      // (JobTicketsTab.handleAdd) can bulk-POST them to /tickets/:id/crew
+      // after the ticket POST succeeds. If savedTicketId is already set
+      // (autoSaveForJSA path), commitCrewSelection already ran and
+      // crewSelection is empty — passing the empty array is a no-op.
+      if (crewSelection.length > 0) ticketData.crewSelection = crewSelection;
       await onSave(ticketData);
     } finally {
       // On success the parent unmounts this modal, so this is a no-op then;

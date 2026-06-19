@@ -108,6 +108,14 @@ export default function AddTicketGooglePin({
         )}
       </div>
       {ticketPinError && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 700 }}>⚠ {ticketPinError}</div>}
+      {/* v28.224 — pin entered but not yet resolved to coordinates. Drive time
+          and the clock-in window depend on the coords; saving will auto-resolve,
+          but flag it here so it's never silent. */}
+      {ticketPin.trim() && (!ticketPinLat || !ticketPinLng) && !ticketPinResolving && !ticketPinError && (
+        <div style={{ fontSize: 11, color: "#8a6500", marginTop: 4, fontWeight: 700 }}>
+          ⚠ Pin not resolved to coordinates — tap RESOLVE (needed for drive time &amp; clock-in). Saving will try automatically.
+        </div>
+      )}
       {ticketPinLat && ticketPinLng && (
         <div
           style={{
