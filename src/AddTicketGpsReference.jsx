@@ -60,9 +60,16 @@ export default function AddTicketGpsReference({ driveLoading, driveInfo, dueOnLo
           )}
         </div>
         <div>
+          {/* v28.227 — drive time promoted to its own evident, equally-sized
+              field (was buried in the small sub-lines). */}
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>DRIVE TIME</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{driveInfo.duration}</div>
+          <div style={{ fontSize: 10, color: C.muted }}>Yard → location</div>
+        </div>
+        <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>EXPECTED DISTANCE</div>
           <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{driveInfo.distance}</div>
-          <div style={{ fontSize: 10, color: C.muted }}>From yard · Est. {driveInfo.duration}</div>
+          <div style={{ fontSize: 10, color: C.muted }}>From yard</div>
         </div>
       </div>
     </div>
