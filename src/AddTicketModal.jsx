@@ -4,7 +4,7 @@ import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
-import { validateTicketTimes } from "./ticketTimeValidation.js";
+import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
 import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
@@ -316,7 +316,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         jobStartTime,
         jobEndTime,
         retYard,
-        driveMinutes: driveInfo?.ok ? driveInfo.driveMinutes : null,
+        driveMinutes: driveMinutesFromInfo(driveInfo),
         toleranceMin: 10,
       });
       if (!ok) {

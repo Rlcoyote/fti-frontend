@@ -1,5 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { toMinutes, fmtMinutes, validateTicketTimes } from "./ticketTimeValidation.js";
+import { toMinutes, fmtMinutes, validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
+
+describe("driveMinutesFromInfo", () => {
+  it("reads minutes from the route response shape (durationSeconds)", () => {
+    // exactly what POST /jobs/drive-distance returns on success
+    expect(driveMinutesFromInfo({ distance: "63.2 mi", duration: "1 hour 22 mins", distanceMeters: 101700, durationSeconds: 4920 })).toBe(82);
+  });
+  it("returns null for the failure / unresolved shapes", () => {
+    expect(driveMinutesFromInfo(null)).toBeNull(); // coords not resolved yet
+    expect(driveMinutesFromInfo({ error: "Could not calculate" })).toBeNull();
+    expect(driveMinutesFromInfo({})).toBeNull();
+  });
+  it("tolerates the service shape too", () => {
+    expect(driveMinutesFromInfo({ ok: true, driveMinutes: 82 })).toBe(82);
+  });
+});
 
 describe("toMinutes", () => {
   it("parses 12-hour clock strings", () => {

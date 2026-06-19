@@ -38,6 +38,24 @@ export function fmtMinutes(mins) {
   return `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
+// Normalize the /jobs/drive-distance RESPONSE into integer minutes (or null).
+//
+// IMPORTANT shape note: the route returns
+//   { distance, duration, distanceMeters, durationSeconds }   on success
+//   { error }                                                 on failure
+//   (and the caller holds `null` before coords resolve)
+// This is NOT the same as driveTime.js's service shape ({ ok, driveMinutes }).
+// v28.221 conflated the two — the gate read driveInfo.ok / .driveMinutes, which
+// don't exist on the route response, so the route-floor silently passed null
+// for everyone. This helper makes the contract explicit and is unit-tested.
+export function driveMinutesFromInfo(driveInfo) {
+  if (!driveInfo || driveInfo.error) return null;
+  if (driveInfo.durationSeconds != null) return Math.round(driveInfo.durationSeconds / 60);
+  // Tolerate the service shape too, in case a caller passes it directly.
+  if (Number.isFinite(driveInfo.driveMinutes)) return driveInfo.driveMinutes;
+  return null;
+}
+
 // Returns { ok, errors[] }. driveMinutes is the cached yard→pin drive (integer)
 // or null when it can't be resolved — in which case the route-floor checks are
 // skipped (we never block real work on a routing outage; the ordering check
