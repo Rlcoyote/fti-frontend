@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { C, API_URL } from "./config.js";
-import { mapTicketFromApi, buildTicketPayload, reviseTicketRequest } from "./utils.js";
+import { mapTicketFromApi, buildTicketPayload, reviseTicketRequest, ticketSaveErrorMessage } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 import TicketDetail from "./TicketDetail.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
@@ -33,46 +33,75 @@ function TicketPage({ jobs, tickets, setTickets }) {
         const r = await fetch(`${API_URL}/tickets?job_id=&include_voided=true`);
         if (r.ok) {
           const all = await r.json();
-          const found = all.find(t => t.id === parseInt(id));
+          const found = all.find((t) => t.id === parseInt(id));
           if (found) setTicket(mapTicketFromApi(found));
         }
-      } catch (err) { console.error("Fetch ticket failed:", err); }
+      } catch (err) {
+        console.error("Fetch ticket failed:", err);
+      }
       setLoading(false);
     };
     fetchTicket();
   }, [id, location.state]);
 
-  const handleUpdate = (ticketId, updates) => {
-    // Update local state
-    setTicket(prev => prev ? { ...prev, ...updates } : null);
-    // Also update the tickets array in FTIDashboard if available
-    if (setTickets) {
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
-    }
-    // Persist to backend
+  // v28.228 — persist FIRST, reflect locally only on success. Previously this
+  // optimistically updated state before the PUT and ignored the response, so a
+  // rejected save (time gate, future-date, lock, perms) looked saved until a
+  // refresh reverted it. Now a rejection surfaces its reason and the UI stays
+  // truthful.
+  const handleUpdate = async (ticketId, updates) => {
     const payload = buildTicketPayload(updates);
-    fetch(`${API_URL}/tickets/${ticketId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).catch(err => console.error("Ticket update failed:", err));
+    try {
+      const r = await fetch(`${API_URL}/tickets/${ticketId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) {
+        showNotice("Couldn't save", await ticketSaveErrorMessage(r), "error");
+        return;
+      }
+    } catch (err) {
+      console.error("Ticket update failed:", err);
+      showNotice("Couldn't save", "A network error occurred while saving the ticket.", "error");
+      return;
+    }
+    setTicket((prev) => (prev ? { ...prev, ...updates } : null));
+    if (setTickets) setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, ...updates } : t)));
   };
 
   const handleDelete = async (ticketId) => {
     try {
       await fetch(`${API_URL}/tickets/${ticketId}`, { method: "DELETE" });
-    } catch (err) { console.error("Delete failed:", err); }
-    if (setTickets) setTickets(prev => prev.filter(t => t.id !== ticketId));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+    if (setTickets) setTickets((prev) => prev.filter((t) => t.id !== ticketId));
     navigate(-1);
   };
 
   if (loading) return <BrandedSplash tagline="Loading ticket..." />;
-  if (!ticket) return (
-    <div style={{ padding: "40px 20px", textAlign: "center", color: C.muted }}>
-      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Ticket not found</div>
-      <button onClick={() => navigate(-1)} style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>GO BACK</button>
-    </div>
-  );
+  if (!ticket)
+    return (
+      <div style={{ padding: "40px 20px", textAlign: "center", color: C.muted }}>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Ticket not found</div>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            background: C.blue,
+            color: C.white,
+            border: "none",
+            borderRadius: 4,
+            padding: "10px 20px",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          GO BACK
+        </button>
+      </div>
+    );
 
   return (
     <TicketDetail
@@ -81,13 +110,14 @@ function TicketPage({ jobs, tickets, setTickets }) {
       tickets={tickets}
       openToSign={openToSign}
       asPage={true}
-      onUpdate={(ticketId, updates) => { handleUpdate(ticketId, updates); setTicket(prev => prev ? { ...prev, ...updates } : null); }}
+      onUpdate={handleUpdate}
       onClose={() => navigate(-1)}
       onDelete={handleDelete}
       onDuplicate={async (t, opts = {}) => {
         try {
           const r = await fetch(`${API_URL}/tickets/${t.id}/duplicate`, {
-            method: "POST", headers: { "Content-Type": "application/json" },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               new_date: opts.new_date || (t.date ? t.date.slice(0, 10) : new Date().toLocaleDateString("en-CA")),
               new_job_id: opts.new_job_id || undefined,
@@ -98,15 +128,20 @@ function TicketPage({ jobs, tickets, setTickets }) {
           if (r.ok) {
             const saved = await r.json();
             if (setTickets) {
-              setTickets(prev => [...prev, mapTicketFromApi(saved)]);
+              setTickets((prev) => [...prev, mapTicketFromApi(saved)]);
             }
           }
-        } catch (err) { console.error("Duplicate failed:", err); }
+        } catch (err) {
+          console.error("Duplicate failed:", err);
+        }
       }}
       onRevise={async (t, reason, opts = {}) => {
         const result = await reviseTicketRequest({
-          ticket: t, reason, alsoCreateNew: !!opts.alsoCreateNew,
-          setTickets, showNotice,
+          ticket: t,
+          reason,
+          alsoCreateNew: !!opts.alsoCreateNew,
+          setTickets,
+          showNotice,
         });
         if (result.newTicket) {
           navigate(`/ticket/${result.newTicket.id}`, { state: { ticket: result.newTicket } });

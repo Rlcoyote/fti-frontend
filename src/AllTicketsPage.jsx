@@ -5,8 +5,10 @@ import { C, API_URL } from "./config.js";
 import { formatDate, updateTicketApi } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import TicketDetail from "./TicketDetail.jsx";
+import { useApp } from "./AppContext.jsx";
 
 function AllTicketsPage({ tickets, setTickets, jobs }) {
+  const { showNotice } = useApp();
   const navigate = useNavigate();
   const isMobileNav = useIsMobile();
   const [viewTicket, setViewTicket] = useState(null);
@@ -100,7 +102,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
 
   const typeKeys = ["All", ...Object.keys(TICKET_TYPES)];
 
-  const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets);
+  const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets, (msg) => showNotice("Couldn't save", msg, "error"));
 
   const selStyle = { border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg };
 
@@ -221,9 +223,9 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
       {viewTicket && (
         <TicketDetail
           ticket={viewTicket}
-          onUpdate={(id, updates) => {
-            handleUpdate(id, updates);
-            setViewTicket((prev) => (prev ? { ...prev, ...updates } : null));
+          onUpdate={async (id, updates) => {
+            const res = await handleUpdate(id, updates);
+            if (res?.ok) setViewTicket((prev) => (prev ? { ...prev, ...updates } : null));
           }}
           onClose={() => setViewTicket(null)}
           onDelete={async (id) => {

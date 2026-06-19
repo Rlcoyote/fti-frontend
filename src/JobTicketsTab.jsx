@@ -56,7 +56,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const job = jobs.find((j) => j.id === jobId);
   const custEmail = job?.pocEmail || job?.poc_email || null;
 
-  const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets);
+  const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets, (msg) => showNotice("Couldn't save", msg, "error"));
 
   // v28.87 — unified delete path. Used by both the detail-modal onDelete
   // and the row-level delete-confirm modal. Returns true on success so
@@ -143,9 +143,9 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
           jobs={jobs}
           tickets={tickets}
           openToSign={viewTicketMode === "sign"}
-          onUpdate={(id, updates) => {
-            handleUpdate(id, updates);
-            setViewTicket((prev) => (prev ? { ...prev, ...updates } : null));
+          onUpdate={async (id, updates) => {
+            const res = await handleUpdate(id, updates);
+            if (res?.ok) setViewTicket((prev) => (prev ? { ...prev, ...updates } : null));
           }}
           onClose={closeViewTicket}
           onDelete={handleDelete}

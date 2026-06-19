@@ -281,15 +281,46 @@ export const buildTicketPayload = (updates) => {
   return p;
 };
 
-// Shared helper: sends ticket update to backend and updates local state
-export const updateTicketApi = async (id, updates, setTickets) => {
+// Shared helper: pull a human-readable message out of a failed ticket-save
+// response. The backend returns { error, errors[] } (errors[] from the
+// time-sanity gate); fall back to the HTTP status.
+export const ticketSaveErrorMessage = async (r) => {
+  try {
+    const d = await r.json();
+    if (Array.isArray(d.errors) && d.errors.length) return d.errors.join(" ");
+    if (d.error) return d.error;
+  } catch {
+    /* non-JSON body */
+  }
+  return `Could not save the ticket (HTTP ${r.status}).`;
+};
+
+// Shared helper: sends ticket update to backend and updates local state.
+// v28.228 — now respects the response: ONLY updates local state on success,
+// and reports failures via the optional onError(message) callback. Previously
+// it ignored r.ok and optimistically updated regardless, so a rejected save
+// (time gate, future-date, lock, perms) looked saved until a refresh reverted
+// it. Returns { ok, error }.
+export const updateTicketApi = async (id, updates, setTickets, onError) => {
   const payload = buildTicketPayload(updates);
   try {
-    await fetch(`${API_URL}/tickets/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const r = await fetch(`${API_URL}/tickets/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const msg = await ticketSaveErrorMessage(r);
+      if (onError) onError(msg);
+      return { ok: false, error: msg };
+    }
   } catch (err) {
     console.error("Ticket update failed:", err);
+    if (onError) onError("A network error occurred while saving the ticket.");
+    return { ok: false, error: "network" };
   }
   setTickets((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+  return { ok: true };
 };
 
 // Shared helper: POST /tickets/:id/revise + refetch + map the new ticket.
