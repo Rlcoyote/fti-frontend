@@ -15,9 +15,17 @@ import { makeCan } from "./utils.js";
   if (typeof window === "undefined" || window.__ftiFetchWrapped) return;
   const origFetch = window.fetch.bind(window);
   window.fetch = (input, init = {}) => {
+    let hadToken = false;
+    let isApiCall = false;
+    let isAuthFlow = false;
     try {
       const url = typeof input === "string" ? input : (input && input.url) || "";
       if (url.startsWith(API_URL)) {
+        isApiCall = true;
+        // The /auth/* endpoints (login, webauthn verify, password reset) are the
+        // UNAUTHENTICATED login flow — a 401 there means "bad password," which
+        // must surface inline on the login screen, NOT trigger a force-logout.
+        isAuthFlow = url.includes("/auth/");
         const raw = sessionStorage.getItem("fti_user");
         if (raw) {
           const parsed = JSON.parse(raw);
@@ -26,13 +34,40 @@ import { makeCan } from "./utils.js";
             const headers = new Headers(init.headers || (typeof input !== "string" ? input.headers : undefined));
             if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`);
             init = { ...init, headers };
+            hadToken = true;
           }
         }
       }
     } catch (_e) {
       // Fetch wrapper must never break the actual request — fail open.
     }
-    return origFetch(input, init);
+    const resultPromise = origFetch(input, init);
+    // ── Session-expiry guard (v28.220) ───────────────────────────────────────
+    // If an AUTHENTICATED API call comes back 401, the stored token is dead —
+    // expired, or revoked by a token_version bump (role change, admin
+    // force-logout, password reset). Before this guard, the app left the user
+    // on a rendered-but-unauthenticated page: every subsequent GET 401'd and
+    // returned nothing, so an empty list looked like DATA LOSS ("all my
+    // customers were deleted") and saves failed with a cryptic "not logged in."
+    // Now: clear the dead session and bounce to the login screen with a
+    // friendly "session expired — your data is safe" flag. Excludes /auth/ (the
+    // login flow) and only fires when a token was actually attached.
+    if (hadToken && isApiCall && !isAuthFlow) {
+      return resultPromise.then((res) => {
+        if (res && res.status === 401 && !window.__ftiSessionExpiring) {
+          window.__ftiSessionExpiring = true;
+          try {
+            sessionStorage.removeItem("fti_user");
+            sessionStorage.setItem("fti_session_expired", "1");
+          } catch (_e) {
+            // ignore — redirect still clears the in-memory session
+          }
+          window.location.href = "/";
+        }
+        return res;
+      });
+    }
+    return resultPromise;
   };
   window.__ftiFetchWrapped = true;
 })();

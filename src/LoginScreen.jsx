@@ -92,6 +92,22 @@ function LoginScreen() {
 
   const webauthnSupported = typeof window !== "undefined" ? browserSupportsWebAuthn() : true;
 
+  // v28.220 — Session-expiry note. The fetch wrapper sets fti_session_expired
+  // when an authenticated call 401s and force-logs-out (expired/revoked token).
+  // Surface a calm, reassuring banner so the user reads it as "sign in again,"
+  // not "my data is gone." Read once, then clear the flag.
+  const [sessionExpiredNote, setSessionExpiredNote] = useState("");
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("fti_session_expired")) {
+        setSessionExpiredNote("Your session expired for security — please sign in again. Your data is safe.");
+        sessionStorage.removeItem("fti_session_expired");
+      }
+    } catch (_e) {
+      // ignore — banner is non-critical
+    }
+  }, []);
+
   // Check URL for reset token on mount, OR for v28.03 enrollment token,
   // OR for v28.07 JSA-sign magic-link.
   // Three link types share the same landing page; disambiguated by which
@@ -568,6 +584,25 @@ function LoginScreen() {
             }}
           >
             Your browser doesn't support biometric sign-in. Use Chrome, Safari, Edge, or Firefox.
+          </div>
+        )}
+
+        {/* v28.220 — calm session-expiry banner (info, not error). Shown only
+            on the password form, after a force-logout from a dead token. */}
+        {showLoginForm && sessionExpiredNote && (
+          <div
+            style={{
+              background: "#eef5ff",
+              border: `1px solid ${C.darkBlue}33`,
+              color: C.darkBlue,
+              padding: "10px 14px",
+              borderRadius: 4,
+              fontSize: 12,
+              marginBottom: 16,
+              fontWeight: 600,
+            }}
+          >
+            {sessionExpiredNote}
           </div>
         )}
 
