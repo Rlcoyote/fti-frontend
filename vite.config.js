@@ -1,6 +1,8 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { execSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import process from "node:process";
 
 // App version for the UI (login screen + dashboard nav). Extracted at build
@@ -34,10 +36,48 @@ function resolveAppVersion() {
   return "unknown";
 }
 
+// The building commit's SHA. Locally `git rev-parse HEAD`; on Railway the
+// build image has no .git, so fall back to the injected RAILWAY_GIT_COMMIT_SHA
+// (the same env family that already feeds __APP_VERSION__ above).
+function resolveCommitSha() {
+  try {
+    return execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  } catch {
+    return process.env.RAILWAY_GIT_COMMIT_SHA || "unknown";
+  }
+}
+
+// Deploy-verification marker for the FRONTEND — the static-site analogue of the
+// backend's GET /api/version (v28.217). Bakes the building commit SHA into the
+// output so a deploy is verified by SHA MATCH, not by bundle-hash flip (which
+// CAM Article XXIII explicitly says is NOT sufficient). Exposed twice:
+//   - <meta name="fti-commit"> in index.html — always served, even if an SPA
+//     catch-all rewrites unknown paths to index.html
+//   - /version.json — clean JSON for scripts/verify-deploy.sh
+function deployVersionPlugin(version, sha) {
+  return {
+    name: "fti-deploy-version",
+    transformIndexHtml(html) {
+      const tags = `<meta name="fti-version" content="${version}" />\n    <meta name="fti-commit" content="${sha}" />`;
+      return html.replace("</head>", `  ${tags}\n  </head>`);
+    },
+    closeBundle() {
+      try {
+        writeFileSync(resolve("dist/version.json"), JSON.stringify({ version, commit: sha, commitShort: sha.slice(0, 7) }));
+      } catch {
+        /* non-fatal — the <meta> tag still carries the SHA */
+      }
+    },
+  };
+}
+
+const APP_VERSION = resolveAppVersion();
+const COMMIT_SHA = resolveCommitSha();
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), deployVersionPlugin(APP_VERSION, COMMIT_SHA)],
   define: {
-    __APP_VERSION__: JSON.stringify(resolveAppVersion()),
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
   },
   // Vitest — scope the runner to our own suites under src/. Without an
   // explicit include, `vitest run` walks the whole working directory,
