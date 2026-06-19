@@ -4,6 +4,7 @@ import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
 import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
+import { validateTicketTimes } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
 import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
@@ -303,6 +304,36 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const handleSave = async () => {
     if (!type || isSubmitting) return;
     const isRental = type === "Rental";
+    // v28.221 — sanity gate on the Time & Mileage stamps. Block physically
+    // impossible entries (out-of-order, or arriving faster than the drive
+    // allows). Rentals have no time stamps. Drive time comes from the same
+    // /jobs/drive-distance result already shown in the modal; when it can't
+    // resolve, the route-floor check self-skips and only ordering is enforced.
+    if (!isRental) {
+      const { ok, errors } = validateTicketTimes({
+        lvYard,
+        arrivalTime,
+        jobStartTime,
+        jobEndTime,
+        retYard,
+        driveMinutes: driveInfo?.ok ? driveInfo.driveMinutes : null,
+        toleranceMin: 10,
+      });
+      if (!ok) {
+        showNotice(
+          "Check the times",
+          <div>
+            {errors.map((e, i) => (
+              <div key={i} style={{ marginBottom: i < errors.length - 1 ? 8 : 0 }}>
+                • {e}
+              </div>
+            ))}
+          </div>,
+          "error",
+        );
+        return;
+      }
+    }
     const jobGooglePin = job?.googlePin || job?.google_pin || null;
     const jobPinLat = job?.pinLat || job?.pin_lat || null;
     const jobPinLng = job?.pinLng || job?.pin_lng || null;
