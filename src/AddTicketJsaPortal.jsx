@@ -1,5 +1,6 @@
 import { API_URL } from "./config.js";
 import JSAModal from "./JSAModal.jsx";
+import { useApp } from "./AppContext.jsx";
 
 // ─── AddTicketJsaPortal (v28.63 — extracted from AddTicketModal) ──────────────
 // Conditional JSAModal portal mounted by AddTicketModal. Encapsulates the
@@ -28,6 +29,7 @@ export default function AddTicketJsaPortal({
   setExistingJSA,
   onClose,
 }) {
+  const { showNotice } = useApp();
   if (!(open && savedTicketId)) return null;
 
   return (
@@ -69,11 +71,19 @@ export default function AddTicketJsaPortal({
               additional_steps: jsaData.additionalSteps,
             }),
           });
+          // v28.232 — fetch doesn't throw on 4xx/5xx; a failed JSA save must
+          // not set existingJSA as if it saved (safety paperwork).
+          if (!r.ok) {
+            const errBody = await r.json().catch(() => ({}));
+            showNotice("JSA didn't save", errBody.error || "The Job Safety Analysis could not be saved. Try again.", "error");
+            return;
+          }
           const responseData = await r.json().catch(() => null);
           const newId = responseData?.jsaId || existingJSA?.id || null;
           setExistingJSA({ ...jsaData, id: newId });
         } catch (err) {
           console.error("JSA save failed:", err);
+          showNotice("JSA didn't save", "A network error occurred saving the Job Safety Analysis.", "error");
         }
       }}
       onComplete={() => {

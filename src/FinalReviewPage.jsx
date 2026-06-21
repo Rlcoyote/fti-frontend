@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import { ticketSaveErrorMessage } from "./utils.js";
 
 function FinalReviewPage({ jobs, tickets, setTickets }) {
-  const { currentUser } = useApp();
+  const { currentUser, showNotice } = useApp();
   const [expandedId, setExpandedId] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
@@ -33,29 +34,44 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
   const formatDate = (d) => (d ? new Date(d + "T00:00:00").toLocaleDateString("en-US") : "—");
 
   const handleApproveAndSend = async (ticketId) => {
+    // v28.232 — fetch doesn't throw on 4xx/5xx; don't flash "sent to QB" on a
+    // rejected accounting transition.
     try {
-      await fetch(`${API_URL}/tickets/${ticketId}`, {
+      const r = await fetch(`${API_URL}/tickets/${ticketId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "sentToQB", sentToQBAt: new Date().toISOString() }),
       });
+      if (!r.ok) {
+        showNotice("Couldn't send to QB", await ticketSaveErrorMessage(r), "error");
+        setAccountingMenu(null);
+        return;
+      }
       setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: "sentToQB", sentToQBAt: new Date().toISOString() } : t)));
     } catch (err) {
       console.error("Approve & send failed:", err);
+      showNotice("Couldn't send to QB", "A network error occurred.", "error");
     }
     setAccountingMenu(null);
   };
 
   const handleMarkAsProcessed = async (ticketId) => {
+    // v28.232 — gate on r.ok so a rejected "mark processed" doesn't show as done.
     try {
-      await fetch(`${API_URL}/tickets/${ticketId}`, {
+      const r = await fetch(`${API_URL}/tickets/${ticketId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "sentToQB", sentToQBAt: new Date().toISOString(), manuallyProcessed: true }),
       });
+      if (!r.ok) {
+        showNotice("Couldn't mark processed", await ticketSaveErrorMessage(r), "error");
+        setAccountingMenu(null);
+        return;
+      }
       setTickets((prev) => prev.map((t) => (t.id === ticketId ? { ...t, status: "sentToQB", sentToQBAt: new Date().toISOString() } : t)));
     } catch (err) {
       console.error("Mark processed failed:", err);
+      showNotice("Couldn't mark processed", "A network error occurred.", "error");
     }
     setAccountingMenu(null);
   };
