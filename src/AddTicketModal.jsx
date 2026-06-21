@@ -180,18 +180,26 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   // existing lead in the same transaction.
   const commitCrewSelection = async (ticketId) => {
     if (!ticketId || crewSelection.length === 0) return;
+    // v28.230 — track per-member failures (fetch doesn't throw on 4xx) so a
+    // crew member silently dropping off the ticket gets surfaced, not buried.
+    const failed = [];
     for (const c of crewSelection) {
       try {
-        await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
+        const r = await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: c.user_id, is_lead: !!c.is_lead }),
         });
+        if (!r.ok) failed.push(c.user_name || c.user_id);
       } catch (err) {
         console.warn("Crew selection member failed to commit:", c.user_name, err);
+        failed.push(c.user_name || c.user_id);
       }
     }
     setCrewSelection([]); // clear local; the live CrewSelectionManager will fetch the just-inserted rows
+    if (failed.length) {
+      showNotice("Some crew didn't attach", `These weren't added to the ticket — re-add them from the crew section: ${failed.join(", ")}.`, "error");
+    }
   };
 
   // v28.57 — autoSaveForJSA dormant. Initially marked for deletion under

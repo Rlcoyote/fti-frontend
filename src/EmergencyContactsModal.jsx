@@ -16,7 +16,9 @@ function EmergencyContactsModal({ onClose }) {
     try {
       const parsed = JSON.parse(settings?.emergency_contacts || "[]");
       return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -25,62 +27,114 @@ function EmergencyContactsModal({ onClose }) {
     try {
       const parsed = JSON.parse(settings?.emergency_contacts || "[]");
       if (Array.isArray(parsed)) setContacts(parsed);
-    } catch { /* keep current state */ }
+    } catch {
+      /* keep current state */
+    }
   }, [settings]);
 
   const updateContact = (i, field, value) => {
-    setContacts(prev => prev.map((c, idx) => idx === i ? { ...c, [field]: value } : c));
+    setContacts((prev) => prev.map((c, idx) => (idx === i ? { ...c, [field]: value } : c)));
   };
 
   const addContact = () => {
     if (contacts.length >= 10) return;
-    setContacts(prev => [...prev, { label: "", phone: "" }]);
+    setContacts((prev) => [...prev, { label: "", phone: "" }]);
   };
 
   const removeContact = (i) => {
-    setContacts(prev => prev.filter((_, idx) => idx !== i));
+    setContacts((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const handleSave = async () => {
+    // v28.230 — fetch doesn't throw on 4xx/5xx; check r.ok so a rejected save
+    // doesn't flash "saved".
     try {
-      await fetch(`${API_URL}/settings`, {
+      const r = await fetch(`${API_URL}/settings`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ emergency_contacts: JSON.stringify(contacts) }),
       });
+      if (!r.ok) {
+        setError("Failed to save.");
+        return;
+      }
       await refreshSettings();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch { setError("Failed to save."); }
+    } catch {
+      setError("Failed to save.");
+    }
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-      onClick={onClose}>
-      <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderTop: `4px solid ${C.red}`, borderRadius: 8, padding: 28, width: 520, maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}
-        onClick={e => e.stopPropagation()}>
+    <div
+      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
+          borderTop: `4px solid ${C.red}`,
+          borderRadius: 8,
+          padding: 28,
+          width: 520,
+          maxWidth: "95vw",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>EMERGENCY INFORMATION</div>
         <div style={{ fontSize: 11, color: C.muted, marginBottom: 16 }}>
           Displayed on JSA forms. Add emergency phone numbers for air life, life flight, local hospitals, or any custom contact. Owner-only.
         </div>
 
         {contacts.map((c, i) => (
-          <div key={i} style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 10, display: "flex", gap: 10, alignItems: "flex-end" }}>
+          <div
+            key={i}
+            style={{
+              background: C.steel,
+              border: `1px solid ${C.border}`,
+              borderRadius: 6,
+              padding: 14,
+              marginBottom: 10,
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-end",
+            }}
+          >
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>LABEL</label>
-              <input style={inputStyle} value={c.label}
-                onChange={e => updateContact(i, "label", e.target.value)}
-                placeholder="AIRLIFE" readOnly={!isOwner} />
+              <input style={inputStyle} value={c.label} onChange={(e) => updateContact(i, "label", e.target.value)} placeholder="AIRLIFE" readOnly={!isOwner} />
             </div>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>PHONE NUMBER</label>
-              <input style={inputStyle} value={c.phone}
-                onChange={e => updateContact(i, "phone", e.target.value)}
-                placeholder="800-627-2376" readOnly={!isOwner} />
+              <input
+                style={inputStyle}
+                value={c.phone}
+                onChange={(e) => updateContact(i, "phone", e.target.value)}
+                placeholder="800-627-2376"
+                readOnly={!isOwner}
+              />
             </div>
             {isOwner && (
-              <button type="button" onClick={() => removeContact(i)}
-                style={{ background: "transparent", color: C.red, border: `1px solid ${C.red}`, borderRadius: 4, padding: "6px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer", flexShrink: 0, marginBottom: 1 }}>
+              <button
+                type="button"
+                onClick={() => removeContact(i)}
+                style={{
+                  background: "transparent",
+                  color: C.red,
+                  border: `1px solid ${C.red}`,
+                  borderRadius: 4,
+                  padding: "6px 10px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  marginBottom: 1,
+                }}
+              >
                 REMOVE
               </button>
             )}
@@ -88,8 +142,22 @@ function EmergencyContactsModal({ onClose }) {
         ))}
 
         {isOwner && contacts.length < 10 && (
-          <button type="button" onClick={addContact}
-            style={{ background: "transparent", color: C.blue, border: `1px dashed ${C.blue}`, borderRadius: 4, padding: "8px 14px", fontSize: 11, fontWeight: 700, cursor: "pointer", width: "100%", marginBottom: 14 }}>
+          <button
+            type="button"
+            onClick={addContact}
+            style={{
+              background: "transparent",
+              color: C.blue,
+              border: `1px dashed ${C.blue}`,
+              borderRadius: 4,
+              padding: "8px 14px",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer",
+              width: "100%",
+              marginBottom: 14,
+            }}
+          >
             + ADD EMERGENCY CONTACT
           </button>
         )}
@@ -98,7 +166,9 @@ function EmergencyContactsModal({ onClose }) {
 
         <div style={{ display: "flex", gap: 8 }}>
           {isOwner && <Btn onClick={handleSave}>{saved ? "SAVED ✓" : "SAVE"}</Btn>}
-          <Btn variant="ghost" onClick={onClose}>CLOSE</Btn>
+          <Btn variant="ghost" onClick={onClose}>
+            CLOSE
+          </Btn>
         </div>
       </div>
     </div>

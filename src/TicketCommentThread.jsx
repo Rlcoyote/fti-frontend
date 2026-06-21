@@ -30,22 +30,39 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
     let cancelled = false;
     const loadComments = () => {
       fetch(`${API_URL}/signature/comments/${ticket.id}`)
-        .then(r => r.ok ? r.json() : [])
-        .then(data => { if (!cancelled) { setComments(data); setLoading(false); } })
-        .catch(() => { if (!cancelled) setLoading(false); });
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => {
+          if (!cancelled) {
+            setComments(data);
+            setLoading(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setLoading(false);
+        });
     };
     setLoading(true);
     loadComments();
     // Ticket was opened — clear any pending-comment flag on the backend.
     if (ticket.hasPendingComment || ticket.has_pending_comment) {
+      // v28.230 — only clear the flag in the UI if the backend actually
+      // cleared it; otherwise the unread dot lies. Background call → no
+      // user-facing error, just don't lie on failure.
       fetch(`${API_URL}/tickets/${ticket.id}`, {
-        method: "PUT", headers: { "Content-Type": "application/json" },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ has_pending_comment: false }),
-      }).catch(() => {});
-      if (onPendingCleared) onPendingCleared(ticket.id);
+      })
+        .then((r) => {
+          if (r.ok && onPendingCleared) onPendingCleared(ticket.id);
+        })
+        .catch(() => {});
     }
     const interval = setInterval(loadComments, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket?.id]);
 
@@ -54,7 +71,8 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
     setSending(true);
     try {
       const r = await fetch(`${API_URL}/signature/reply/${ticket.id}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ author: currentUser?.name || "FTI", message: reply.trim() }),
       });
       if (!r.ok) {
@@ -63,12 +81,15 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
         setSending(false);
         return;
       }
-      setComments(prev => [...prev, {
-        author: currentUser?.name || "FTI",
-        author_type: "fti",
-        message: reply.trim(),
-        created_at: new Date().toISOString(),
-      }]);
+      setComments((prev) => [
+        ...prev,
+        {
+          author: currentUser?.name || "FTI",
+          author_type: "fti",
+          message: reply.trim(),
+          created_at: new Date().toISOString(),
+        },
+      ]);
       setReply("");
       if (onPendingCleared) onPendingCleared(ticket.id);
     } catch (err) {
@@ -82,7 +103,21 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <span style={{ fontWeight: 700, fontSize: 14 }}>Site Manager Comments</span>
         {(ticket.hasPendingComment || ticket.has_pending_comment) && (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fdecea", color: "#B01020", borderRadius: 4, padding: "2px 8px", fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", border: "1px solid #B0102044" }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              background: "#fdecea",
+              color: "#B01020",
+              borderRadius: 4,
+              padding: "2px 8px",
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.04em",
+              border: "1px solid #B0102044",
+            }}
+          >
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
             COMMENT PENDING
           </span>
@@ -96,21 +131,44 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
         const time = new Date(c.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
         return (
           <div key={i} style={{ background: bg, borderRadius: 6, padding: "8px 12px", marginBottom: 6 }}>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}><strong>{who}</strong> · {time}</div>
+            <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>
+              <strong>{who}</strong> · {time}
+            </div>
             <div style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{c.message}</div>
           </div>
         );
       })}
       <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "flex-end" }}>
         <textarea
-          style={{ flex: 1, padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, minHeight: 50, resize: "vertical", boxSizing: "border-box" }}
+          style={{
+            flex: 1,
+            padding: "8px 10px",
+            border: `1px solid ${C.border}`,
+            borderRadius: 6,
+            fontSize: 13,
+            minHeight: 50,
+            resize: "vertical",
+            boxSizing: "border-box",
+          }}
           value={reply}
-          onChange={e => setReply(e.target.value)}
+          onChange={(e) => setReply(e.target.value)}
           placeholder="Reply to site manager..."
         />
         <button
           type="button"
-          style={{ background: C.blue, color: "#fff", border: "none", borderRadius: 6, padding: "8px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: sending ? 0.6 : 1, whiteSpace: "nowrap", height: 36 }}
+          style={{
+            background: C.blue,
+            color: "#fff",
+            border: "none",
+            borderRadius: 6,
+            padding: "8px 16px",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+            opacity: sending ? 0.6 : 1,
+            whiteSpace: "nowrap",
+            height: 36,
+          }}
           disabled={sending || !reply.trim()}
           onClick={sendReply}
         >

@@ -71,8 +71,14 @@ function CompanyDocumentsModal({ onClose }) {
   };
 
   const handleDelete = async (id) => {
+    // v28.230 — fetch doesn't throw on 4xx/5xx; check r.ok so a rejected
+    // delete reports failure instead of silently appearing to succeed.
     try {
-      await fetch(`${API_URL}/safety/documents/${id}`, { method: "DELETE" });
+      const r = await fetch(`${API_URL}/safety/documents/${id}`, { method: "DELETE" });
+      if (!r.ok) {
+        setMsg("Delete failed.");
+        return;
+      }
       await fetchDocs();
       if (viewDoc?.id === id) setViewDoc(null);
     } catch {

@@ -71,10 +71,18 @@ function TicketPage({ jobs, tickets, setTickets }) {
   };
 
   const handleDelete = async (ticketId) => {
+    // v28.230 — fetch doesn't throw on 4xx/5xx; check r.ok so a rejected
+    // delete doesn't vanish from the UI (and navigate away) as if it worked.
     try {
-      await fetch(`${API_URL}/tickets/${ticketId}`, { method: "DELETE" });
+      const r = await fetch(`${API_URL}/tickets/${ticketId}`, { method: "DELETE" });
+      if (!r.ok) {
+        showNotice("Couldn't delete", await ticketSaveErrorMessage(r), "error");
+        return;
+      }
     } catch (err) {
       console.error("Delete failed:", err);
+      showNotice("Couldn't delete", "A network error occurred while deleting the ticket.", "error");
+      return;
     }
     if (setTickets) setTickets((prev) => prev.filter((t) => t.id !== ticketId));
     navigate(-1);

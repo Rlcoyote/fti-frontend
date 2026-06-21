@@ -164,18 +164,23 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
     setBusy(true);
     setError("");
     let leadAssigned = crew.some((c) => c.is_lead);
+    // v28.230 — fetch doesn't throw on 4xx; track per-member non-ok responses
+    // so a member that silently failed to copy is surfaced, not lost.
+    const failed = [];
     try {
       for (const m of members) {
         const isLead = !!m.is_lead && !leadAssigned;
         if (isLead) leadAssigned = true;
-        await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
+        const r = await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ user_id: m.user_id, is_lead: isLead }),
         });
+        if (!r.ok) failed.push(m.user_name || m.user_id);
       }
       await fetchCrew();
-      setShowCopy(false);
+      if (failed.length) setError(`Couldn't add: ${failed.join(", ")}`);
+      else setShowCopy(false);
     } catch {
       setError("Connection error during copy");
     } finally {
