@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { API_URL } from "./config.js";
+import { useApp } from "./AppContext.jsx";
 
 // ─── useTicketJSA (v27.88) ───────────────────────────────────────────────────
 // Owns the JSA lifecycle for a ticket: loading, modal-open state, and the
@@ -25,6 +26,7 @@ import { API_URL } from "./config.js";
 //     on the ticket row without a full refetch
 
 export default function useTicketJSA(ticket, job, onUpdate) {
+  const { showNotice } = useApp();
   const [existingJSA, setExistingJSA] = useState(null);
   const [jsaLoaded, setJsaLoaded] = useState(false);
   const [showJSA, setShowJSA] = useState(false);
@@ -33,8 +35,8 @@ export default function useTicketJSA(ticket, job, onUpdate) {
   useEffect(() => {
     if (!ticket.id) return;
     fetch(`${API_URL}/jsas/ticket/${ticket.id}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
         if (data) {
           setExistingJSA({
             ...data,
@@ -47,9 +49,11 @@ export default function useTicketJSA(ticket, job, onUpdate) {
               toolsTrained: data.ppe_tools_trained,
               confinedSpace: data.ppe_confined_space,
             },
-            signatures: (data.signatures || []).map(s => s.name || s),
-            additionalSteps: (data.additional_steps || []).map(s => ({
-              step: s.step, hazard: s.hazard, procedure: s.procedure,
+            signatures: (data.signatures || []).map((s) => s.name || s),
+            additionalSteps: (data.additional_steps || []).map((s) => ({
+              step: s.step,
+              hazard: s.hazard,
+              procedure: s.procedure,
             })),
           });
         }
@@ -72,9 +76,7 @@ export default function useTicketJSA(ticket, job, onUpdate) {
   const handleJsaSave = async (jsaData) => {
     if (!job) return null;
     try {
-      const endpoint = ticket.id
-        ? `${API_URL}/jsas/ticket/${ticket.id}`
-        : `${API_URL}/jsas/${job.id}`;
+      const endpoint = ticket.id ? `${API_URL}/jsas/ticket/${ticket.id}` : `${API_URL}/jsas/${job.id}`;
       const r = await fetch(endpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -96,6 +98,13 @@ export default function useTicketJSA(ticket, job, onUpdate) {
           additional_steps: jsaData.additionalSteps,
         }),
       });
+      // v28.231 — fetch doesn't throw on 4xx/5xx. A failed JSA save must NOT
+      // flip hasJSA / set existingJSA as if it saved — this is safety paperwork.
+      if (!r.ok) {
+        const errBody = await r.json().catch(() => ({}));
+        showNotice("JSA didn't save", errBody.error || "The Job Safety Analysis could not be saved. Try again.", "error");
+        return null;
+      }
       const responseData = await r.json().catch(() => null);
       // v28.20 — JSA ids are UUIDs (jsas.id is UUID per schema.sql), not
       // integers. The v28.09 numeric-only check was wrong: it coerced UUIDs
@@ -103,9 +112,8 @@ export default function useTicketJSA(ticket, job, onUpdate) {
       // !jsaId and never fetches required-signers, hanging on the loading
       // state forever). Accept any non-empty string from the response.
       const candidate = responseData?.jsaId ?? existingJSA?.id;
-      const newId = typeof candidate === 'string' && candidate.trim()
-        ? candidate.trim()
-        : (typeof candidate === 'number' && candidate > 0 ? String(candidate) : null);
+      const newId =
+        typeof candidate === "string" && candidate.trim() ? candidate.trim() : typeof candidate === "number" && candidate > 0 ? String(candidate) : null;
       const merged = { ...jsaData, id: newId };
       setExistingJSA(merged);
       // v28.41 — flip hasJSA but NOT jsaCompleted. Saving creates a draft;
@@ -122,7 +130,7 @@ export default function useTicketJSA(ticket, job, onUpdate) {
   // Flips jsaCompleted on the parent ticket row so the badge turns green
   // immediately, without waiting for a full ticket refetch.
   const handleJsaCompleted = () => {
-    setExistingJSA(prev => prev ? { ...prev, completed_at: new Date().toISOString() } : prev);
+    setExistingJSA((prev) => (prev ? { ...prev, completed_at: new Date().toISOString() } : prev));
     if (onUpdate) onUpdate(ticket.id, { jsaCompleted: true, jsa_completed: true });
   };
 

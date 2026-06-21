@@ -18,6 +18,7 @@ import { inputStyle, labelStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx"
 function JSALocationPin({ lat, setLat, lng, setLng }) {
   const [mapLink, setMapLink] = useState(() => (lat && lng ? `${lat}, ${lng}` : ""));
   const [mapResolving, setMapResolving] = useState(false);
+  const [mapErr, setMapErr] = useState(""); // v28.231 — surface failed pin resolves
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
 
   // Auto-fetch nearest hospitals when coordinates are available
@@ -62,25 +63,34 @@ function JSALocationPin({ lat, setLat, lng, setLng }) {
           // If it's a URL but no coords found, call backend resolver
           if (!matched && (val.includes("maps.app.goo.gl") || val.includes("goo.gl/maps") || val.includes("google.com/maps"))) {
             setMapResolving(true);
+            setMapErr("");
             fetch(`${API_URL}/jobs/resolve-map-pin`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ url: val }),
             })
-              .then((r) => r.json())
+              // v28.231 — fetch doesn't throw on 4xx; check r.ok and surface a
+              // failed resolve instead of silently leaving the pin unset.
+              .then(async (r) => (r.ok ? r.json() : Promise.reject(new Error((await r.json().catch(() => ({}))).error || "resolve failed"))))
               .then((data) => {
                 if (data.lat && data.lng) {
                   setLat(data.lat);
                   setLng(data.lng);
+                } else {
+                  setMapErr("Couldn't pull coordinates from that link.");
                 }
                 setMapResolving(false);
               })
-              .catch(() => setMapResolving(false));
+              .catch(() => {
+                setMapErr("Couldn't resolve that map link — check it and try again.");
+                setMapResolving(false);
+              });
           }
         }}
         placeholder="Paste Google Maps link or lat, lon"
       />
       {mapResolving && <div style={{ fontSize: 11, color: C.blue, marginTop: 4, fontWeight: 600 }}>Resolving location...</div>}
+      {!mapResolving && mapErr && <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 600 }}>⚠ {mapErr}</div>}
       {!mapResolving && lat && lng && (
         <div style={{ marginTop: 6, display: "flex", gap: 12, alignItems: "center", fontSize: 11 }}>
           <span style={{ color: C.green, fontWeight: 700 }}>
