@@ -1,28 +1,9 @@
 import { C } from "./config.js";
-import { vehicleTypeDisplay, regStatus, REG_FILL, REG_LABEL_COLOR, LIFECYCLE_COLORS } from "./vehicleDisplay.js";
+import { vehicleTypeDisplay, regStatus, REG_FILL, REG_LABEL_COLOR } from "./vehicleDisplay.js";
+import LifecycleBadge from "./LifecycleBadge.jsx";
 
 // ─── VehiclesTable (extracted from VehiclesPage v28.235) ─────────────────────
 // Desktop grid + mobile cards for the vehicle list. Row click → onRowClick(v).
-
-function lifecycleBadge(s) {
-  const cfg = LIFECYCLE_COLORS[s] || LIFECYCLE_COLORS.active;
-  return (
-    <span
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        padding: "2px 8px",
-        borderRadius: 3,
-        background: cfg.bg,
-        color: cfg.color,
-        letterSpacing: "0.06em",
-        border: `1px solid ${cfg.color}33`,
-      }}
-    >
-      {cfg.label}
-    </span>
-  );
-}
 
 const COLS = "70px 1fr 1.4fr 90px 140px 1.2fr 90px 110px 100px 100px";
 const HEADERS = ["#", "TYPE", "YEAR / MAKE / MODEL", "PLATE", "VIN", "DRIVER", "ODO", "REG EXP", "GPS ID", "STATUS"];
@@ -48,7 +29,7 @@ export default function VehiclesTable({ vehicles, isMob, onRowClick }) {
                   <span style={{ fontSize: 16, fontWeight: 800, fontFamily: "monospace", marginRight: 8 }}>{v.vehicle_number || "—"}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}</span>
                 </div>
-                {lifecycleBadge(v.lifecycle_status)}
+                <LifecycleBadge status={v.lifecycle_status} />
               </div>
               <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>{vehicleTypeDisplay(v)}</div>
               <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>
@@ -138,7 +119,9 @@ export default function VehiclesTable({ vehicles, isMob, onRowClick }) {
               {v.registration_expires || "—"}
             </div>
             <div style={{ fontSize: 10, color: v.gps_vehicle_id ? C.text : C.muted, fontFamily: "monospace" }}>{v.gps_vehicle_id || "—"}</div>
-            <div>{lifecycleBadge(v.lifecycle_status)}</div>
+            <div>
+              <LifecycleBadge status={v.lifecycle_status} />
+            </div>
           </div>
         );
       })}

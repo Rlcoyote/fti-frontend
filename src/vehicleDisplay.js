@@ -73,7 +73,4 @@ export const REG_LABEL_COLOR = {
   ok: C.muted,
   unknown: C.muted,
 };
-export const LIFECYCLE_COLORS = {
-  active: { color: C.green, bg: "#e6f5ec", label: "ACTIVE" },
-  retired: { color: C.muted, bg: "#eeeeee", label: "RETIRED" },
-};
+// LIFECYCLE_COLORS moved to LifecycleBadge.jsx (shared with yards) — v28.236.
