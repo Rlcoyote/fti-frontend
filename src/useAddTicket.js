@@ -52,10 +52,16 @@ export default function useAddTicket({ setTickets }) {
   const openAdd = () => setShowAdd(true);
   const closeAdd = () => setShowAdd(false);
 
-  const handleAdd = async (ticketData) => {
+  const handleAdd = async (ticketData, opts = {}) => {
     // Ignore a re-entrant call (fast double-click) while a save is in flight.
     if (submittingRef.current) return;
     submittingRef.current = true;
+    // v28.243 — return the saved ticket so the JSA soft-save path can capture
+    // the new id, and honor opts.keepOpen to skip the close-on-success (the
+    // soft-save creates the ticket but leaves the modal open for the JSA).
+    // Normal saves pass no opts → behaves exactly as before (closes, return
+    // value ignored).
+    let savedTicket;
     const payload = {
       job_id: ticketData.jobId,
       type: ticketData.type,
@@ -116,6 +122,7 @@ export default function useAddTicket({ setTickets }) {
           if (exists) return prev.map((t) => (t.id === ticketData.id ? { ...ticketData, createdBy: currentUser?.name || null, createdAt: t.createdAt } : t));
           return [...prev, { ...ticketData, createdBy: currentUser?.name || null, createdAt: new Date().toISOString() }];
         });
+        savedTicket = { ...ticketData };
       } else {
         const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
         if (!r.ok) {
@@ -133,6 +140,7 @@ export default function useAddTicket({ setTickets }) {
           createdAt: new Date().toISOString(),
         };
         setTickets((prev) => [...prev, newTicket]);
+        savedTicket = newTicket;
         // v28.07.5 / v28.09 — bulk-POST any selected crew to /tickets/:id/crew.
         // AddTicketModal sets ticketData.crewSelection when the user added
         // crew before clicking CREATE TICKET (rather than via autoSaveForJSA
@@ -182,7 +190,10 @@ export default function useAddTicket({ setTickets }) {
       // so a legitimate retry after a failure is never blocked.
       submittingRef.current = false;
     }
-    setShowAdd(false);
+    // Soft-save (opts.keepOpen) leaves the modal open so the JSA can be filled
+    // in against the just-created ticket; normal saves close as before.
+    if (!opts.keepOpen) setShowAdd(false);
+    return savedTicket;
   };
 
   return { showAdd, openAdd, closeAdd, handleAdd };

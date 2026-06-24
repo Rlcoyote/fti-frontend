@@ -22,10 +22,11 @@ import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const isMobile = useIsMobile();
-  // The only path that ever set this was _autoSaveForJSA (removed as dead code) —
-  // so it is permanently null. Kept as a const (still passed to the JSA portal +
-  // crew section) until/unless the open-JSA-before-save flow is rebuilt.
-  const savedTicketId = null;
+  // Set by the JSA soft-save (softSaveForJsa): creating a JSA from this modal
+  // first soft-saves the ticket, then this id flips the modal into update mode
+  // (so the final save updates rather than creating a duplicate) and feeds the
+  // JSA portal + crew section the real ticket id.
+  const [savedTicketId, setSavedTicketId] = useState(null);
   const [showJSA, setShowJSA] = useState(false);
   const [existingJSA, setExistingJSA] = useState(null);
   // Disables + relabels the CREATE/UPDATE button while a save is in flight,
@@ -168,7 +169,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
 
   const isDirty = type || lineItems.length > 0 || notes;
   const handleClose = () => {
-    if (isDirty) {
+    // Once soft-saved the ticket is persisted (it's already in the parent list),
+    // so "DONE" closes without the unsaved-work warning — that guard only exists
+    // to protect a never-saved ticket.
+    if (isDirty && !savedTicketId) {
       setShowUnsaved(true);
     } else {
       onClose();
@@ -205,10 +209,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   };
   const selectAllWells = () => setAssignedWells([...jobWells]);
 
-  const handleSave = async () => {
-    if (!type || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
+  // Pin-resolve + drive calc + time gate + payload build — shared by the final
+  // save and the JSA soft-save so the two can never construct a ticket
+  // differently. Returns the ticketData, or null when a validation gate stopped
+  // the save (the relevant notice has already been shown). Does NOT manage
+  // isSubmitting — the caller owns that.
+  const prepareTicketData = async () => {
+    {
       const isRental = type === "Rental";
       const jobGooglePin = job?.googlePin || job?.google_pin || null;
       const jobPinLat = job?.pinLat || job?.pin_lat || null;
@@ -250,7 +257,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               "This ticket has a Google pin that couldn't be turned into coordinates. Drive time and the clock-in window depend on it — check the pin link and tap RESOLVE, or clear the pin, then save again.",
               "error",
             );
-            return;
+            return null;
           }
           effPinLat = rlat;
           effPinLng = rlng;
@@ -295,7 +302,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             </div>,
             "error",
           );
-          return;
+          return null;
         }
       }
       const ticketData = {
@@ -351,10 +358,50 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
       // (JobTicketsTab.handleAdd) can bulk-POST them to /tickets/:id/crew
       // after the ticket POST succeeds.
       if (crewSelection.length > 0) ticketData.crewSelection = crewSelection;
+      return ticketData;
+    }
+  };
+
+  const handleSave = async () => {
+    if (!type || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const ticketData = await prepareTicketData();
+      if (!ticketData) return;
+      // After a JSA soft-save the ticket already exists — carry its id so the
+      // parent updates it instead of creating a duplicate.
+      if (savedTicketId) ticketData.id = savedTicketId;
       await onSave(ticketData);
     } finally {
       // On success the parent unmounts this modal, so this is a no-op then;
       // on failure the modal stays open and the button re-enables for retry.
+      setIsSubmitting(false);
+    }
+  };
+
+  // v28.243 — restored "soft save for JSA" (removed as dead code in v28.240; it
+  // was a disconnected feature, not garbage — see git history). Creating a JSA
+  // from the new-ticket modal first soft-saves the ticket so the JSA has a real
+  // ticket to attach to, keeps the modal open, then flips it into update mode so
+  // the final save updates rather than duplicating. No JSA is ever opened
+  // against an unsaved ticket — the portal also guards on savedTicketId.
+  const softSaveForJsa = async () => {
+    if (isSubmitting) return;
+    if (savedTicketId) {
+      setShowJSA(true); // ticket already soft-saved this session — just open the JSA
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const ticketData = await prepareTicketData();
+      if (!ticketData) return;
+      const saved = await onSave(ticketData, { keepOpen: true });
+      if (saved?.id) {
+        setSavedTicketId(saved.id);
+        setCrewSelection([]); // crew was committed by the create path; the live manager takes over
+        setShowJSA(true);
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -402,13 +449,38 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         {/* Job info banner — always visible once type selected */}
         {type && <AddTicketJobBanner job={job} />}
 
-        {/* v28.42 — CREATE JSA button removed from this surface. JSA creation
-            now lives only on the ticket-detail modal (post-creation), per
-            CAM Article III Amendment 2 Q6 — two paths to the same destination
-            invite drift. The "Required before signing" gate is enforced at
-            the ticket-row level via t.jsaCompleted (JobTicketsTab needsJSA),
-            so this affordance was redundant. The VIEW / EDIT JSA button for
-            an already-saved JSA stays — it's a useful jump-back. */}
+        {/* v28.243 — SAVE & START JSA restores the soft-save flow. The v28.42
+            removal forced every new-ticket JSA through save → close → reopen;
+            this brings back the one-click path: soft-save the ticket (kept
+            open) and open the JSA against it. Shown only for a non-Rental
+            ticket with no JSA yet; once a JSA exists the VIEW / EDIT button
+            below takes over. The ticket-row JSA entry point is unchanged. */}
+        {type && type !== "Rental" && !existingJSA && (
+          <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              type="button"
+              onClick={softSaveForJsa}
+              disabled={isSubmitting}
+              style={{
+                background: "#eef3fb",
+                color: C.blue,
+                border: `1px solid ${C.blue}44`,
+                borderRadius: 4,
+                padding: "5px 14px",
+                fontSize: 11,
+                fontWeight: 800,
+                cursor: isSubmitting ? "default" : "pointer",
+                letterSpacing: "0.04em",
+                opacity: isSubmitting ? 0.6 : 1,
+              }}
+            >
+              {savedTicketId ? "OPEN JSA" : isSubmitting ? "SAVING…" : "SAVE & START JSA"}
+            </button>
+            <span style={{ fontSize: 11, color: C.muted }}>Saves the ticket so the JSA can attach — no need to save &amp; reopen.</span>
+          </div>
+        )}
+
+        {/* VIEW / EDIT JSA — shown once a JSA exists on this ticket. */}
         {type && type !== "Rental" && existingJSA && (
           <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
             {/* v28.69 — button state mirrors the v28.41 badge pattern.
@@ -597,10 +669,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
 
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn onClick={handleSave} disabled={isSubmitting}>
-                  {isSubmitting ? "CREATING…" : "CREATE TICKET"}
+                  {isSubmitting ? (savedTicketId ? "UPDATING…" : "CREATING…") : savedTicketId ? "UPDATE TICKET" : "CREATE TICKET"}
                 </Btn>
                 <Btn onClick={handleClose} variant="ghost">
-                  CANCEL
+                  {savedTicketId ? "DONE" : "CANCEL"}
                 </Btn>
               </div>
             </>
