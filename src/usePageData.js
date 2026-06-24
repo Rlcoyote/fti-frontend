@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_URL } from "./config.js";
+import { api } from "./api.js";
 import { mapTicketFromApi } from "./utils.js";
 
 // ─── usePageData (v28.05) ───────────────────────────────────────────────────
@@ -33,16 +33,14 @@ export function usePageData() {
     const load = async () => {
       try {
         const [jobsR, ticketsR, todosR, invR, delTicketsR] = await Promise.all([
-          fetch(`${API_URL}/jobs`).then((r) => r.json()),
-          fetch(`${API_URL}/tickets?include_voided=true`).then((r) => r.json()),
-          fetch(`${API_URL}/todos`).then((r) => r.json()),
-          // r.ok-guarded: GET /api/inventory is permission-gated (view_inventory,
-          // backend Pass 2b). A 403 here must NOT throw — without the guard the
-          // 403 body parses as JSON and the inventory transform .map() throws,
-          // aborting this whole Promise.all load and blanking the dashboard for
-          // field/salesman. Fall back to [] — they simply have no inventory.
-          fetch(`${API_URL}/inventory`).then((r) => (r.ok ? r.json() : [])),
-          fetch(`${API_URL}/tickets?include_deleted=true`).then((r) => r.json()),
+          api.get("/jobs"),
+          api.get("/tickets?include_voided=true"),
+          api.get("/todos"),
+          // GET /api/inventory is permission-gated (view_inventory). A 403 must
+          // NOT abort the whole load — field/salesman simply have no inventory.
+          // api.get throws on 403 (or any error), so .catch falls back to [].
+          api.get("/inventory").catch(() => []),
+          api.get("/tickets?include_deleted=true"),
         ]);
         // Transform jobs from API format to app format
         const jobsMapped = (jobsR || []).map((j) => ({
@@ -124,7 +122,7 @@ export function usePageData() {
         setInventory(invMapped);
 
         // Trigger rental cycle check on load
-        fetch(`${API_URL}/tickets/check-cycles`, { method: "POST" }).catch(() => {});
+        api.post("/tickets/check-cycles").catch(() => {});
       } catch (err) {
         console.error("Failed to load data:", err);
       } finally {
@@ -139,11 +137,8 @@ export function usePageData() {
   // tickets are filtered out by the backend's GET /tickets default.
   const refreshDeletedTickets = async () => {
     try {
-      const r = await fetch(`${API_URL}/tickets?include_deleted=true`);
-      if (r.ok) {
-        const data = await r.json();
-        setDeletedTickets(data.map(mapTicketFromApi));
-      }
+      const data = await api.get("/tickets?include_deleted=true");
+      setDeletedTickets((data || []).map(mapTicketFromApi));
     } catch (err) {
       console.error("Deleted tickets refresh failed:", err);
     }
