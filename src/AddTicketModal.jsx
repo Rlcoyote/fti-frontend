@@ -22,7 +22,10 @@ import { useApp } from "./AppContext.jsx";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const isMobile = useIsMobile();
-  const [savedTicketId, setSavedTicketId] = useState(null); // set after auto-save for JSA
+  // The only path that ever set this was _autoSaveForJSA (removed as dead code) —
+  // so it is permanently null. Kept as a const (still passed to the JSA portal +
+  // crew section) until/unless the open-JSA-before-save flow is rebuilt.
+  const savedTicketId = null;
   const [showJSA, setShowJSA] = useState(false);
   const [existingJSA, setExistingJSA] = useState(null);
   // Disables + relabels the CREATE/UPDATE button while a save is in flight,
@@ -43,7 +46,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   // v28.180 — yards now come from /api/yards via AppContext (canonical yards
   // table from migration 010). parseYards(settings) replaced; settings is no
   // longer needed in this component (yards was its only consumer here).
-  const { qbItems, currentUser, yards, showNotice, users } = useApp();
+  const { qbItems, yards, showNotice, users } = useApp();
   // v28.07.5 / v28.09 — stage Crew Selection BEFORE the ticket is saved.
   // Local state holds the planned crew; on CREATE TICKET we POST the
   // ticket, then bulk-POST the selection to /tickets/:id/crew using the
@@ -169,113 +172,6 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
       setShowUnsaved(true);
     } else {
       onClose();
-    }
-  };
-
-  // v28.07.5 / v28.09 — Bulk-POST the staged Crew Selection to
-  // /tickets/:id/crew after the ticket exists. Called from autoSaveForJSA
-  // (when user opens JSA before explicit save) AND from
-  // JobTicketsTab.handleAdd (after explicit CREATE TICKET). Lead-promotion
-  // is atomic on the server side — POST with is_lead=true demotes any
-  // existing lead in the same transaction.
-  const commitCrewSelection = async (ticketId) => {
-    if (!ticketId || crewSelection.length === 0) return;
-    // v28.230 — track per-member failures (fetch doesn't throw on 4xx) so a
-    // crew member silently dropping off the ticket gets surfaced, not buried.
-    const failed = [];
-    for (const c of crewSelection) {
-      try {
-        const r = await fetch(`${API_URL}/tickets/${ticketId}/crew`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_id: c.user_id, is_lead: !!c.is_lead }),
-        });
-        if (!r.ok) failed.push(c.user_name || c.user_id);
-      } catch (err) {
-        console.warn("Crew selection member failed to commit:", c.user_name, err);
-        failed.push(c.user_name || c.user_id);
-      }
-    }
-    setCrewSelection([]); // clear local; the live CrewSelectionManager will fetch the just-inserted rows
-    if (failed.length) {
-      showNotice("Some crew didn't attach", `These weren't added to the ticket — re-add them from the crew section: ${failed.join(", ")}.`, "error");
-    }
-  };
-
-  // v28.57 — autoSaveForJSA dormant. Initially marked for deletion under
-  // CAM Article XII (Kill Stale Code), but removing it exposed half-wired
-  // surrounding code: `savedTicketId` / `setSavedTicketId` / `showNotice`
-  // and the `commitCrewSelection` helper are all still referenced by
-  // defensive conditional branches throughout this file (e.g., line ~206
-  // `if (savedTicketId) ticketData.id = savedTicketId`, line ~710 button
-  // label `savedTicketId ? "UPDATE TICKET" : "CREATE TICKET"`).
-  //
-  // Those branches currently always take the "no saved ticket" path because
-  // the only path that set savedTicketId was this function — and no caller
-  // remains. Resolving the architectural drift here is beyond the v28.57
-  // lint-enforcement scope. Function is renamed with `_` prefix to signal
-  // intentional dormancy + queued for the post-v28.57 audit pass.
-  const _autoSaveForJSA = async () => {
-    if (savedTicketId) {
-      setShowJSA(true);
-      return;
-    } // already saved
-    if (!type) return;
-    const isRental = type === "Rental";
-    const jobGooglePin = job?.googlePin || job?.google_pin || null;
-    const jobPinLat = job?.pinLat || job?.pin_lat || null;
-    const jobPinLng = job?.pinLng || job?.pin_lng || null;
-    const payload = {
-      job_id: jobId,
-      type,
-      status: "incomplete",
-      date: isRental ? startDate : date,
-      notes,
-      created_by: currentUser?.id || null,
-      assigned_wells: assignedWells ?? jobWells,
-      site_mgr_first: smFirst || null,
-      site_mgr_last: smLast || null,
-      site_mgr_phone: smPhone || null,
-      site_mgr_email: smEmail || null,
-      yard_location_index: yardLocationIndex,
-      google_pin: ticketPin.trim() || jobGooglePin,
-      pin_lat: ticketPinLat || jobPinLat,
-      pin_lng: ticketPinLng || jobPinLng,
-      lineItems: (lineItems || []).map((li) => ({
-        qb_code: li.qbCode,
-        description: li.desc,
-        rate: li.rate,
-        qty: li.qty,
-        unit_measure: li.um,
-        days: li.days || 1,
-      })),
-      ...(isRental ? { start_date: startDate, end_date: endDate, cycle_days: parseInt(cycleDays) || 28, is_recurring: isRecurring } : {}),
-      ...(!isRental
-        ? {
-            lv_yard: lvYard || null,
-            arrival_time: arrivalTime || null,
-            due_on_loc: dueOnLoc || null,
-            job_start_time: jobStartTime || null,
-            job_end_time: jobEndTime || null,
-            ret_yard: retYard || null,
-            time_zone: timeZone || null,
-            mileage_begin: mileageBegin !== "" ? parseFloat(mileageBegin) : null,
-            mileage_end: mileageEnd !== "" ? parseFloat(mileageEnd) : null,
-          }
-        : {}),
-    };
-    try {
-      const r = await fetch(`${API_URL}/tickets`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (r.ok) {
-        const saved = await r.json();
-        setSavedTicketId(saved.id);
-        await commitCrewSelection(saved.id);
-        setShowJSA(true);
-      } else {
-        showNotice("Save Failed", "Could not save the ticket. Please try again.", "error");
-      }
-    } catch {
-      showNotice("Network Error", "A network error occurred while saving the ticket.", "error");
     }
   };
 
@@ -451,13 +347,9 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             }
           : {}),
       };
-      // If ticket was already auto-saved (for JSA), pass the ID so parent knows to update, not create
-      if (savedTicketId) ticketData.id = savedTicketId;
       // v28.07.5 / v28.09 — pass selected crew along so the parent
       // (JobTicketsTab.handleAdd) can bulk-POST them to /tickets/:id/crew
-      // after the ticket POST succeeds. If savedTicketId is already set
-      // (autoSaveForJSA path), commitCrewSelection already ran and
-      // crewSelection is empty — passing the empty array is a no-op.
+      // after the ticket POST succeeds.
       if (crewSelection.length > 0) ticketData.crewSelection = crewSelection;
       await onSave(ticketData);
     } finally {
@@ -705,10 +597,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
 
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn onClick={handleSave} disabled={isSubmitting}>
-                  {isSubmitting ? (savedTicketId ? "UPDATING…" : "CREATING…") : savedTicketId ? "UPDATE TICKET" : "CREATE TICKET"}
+                  {isSubmitting ? "CREATING…" : "CREATE TICKET"}
                 </Btn>
                 <Btn onClick={handleClose} variant="ghost">
-                  {savedTicketId ? "DONE" : "CANCEL"}
+                  CANCEL
                 </Btn>
               </div>
             </>
