@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
-import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS, ROLE_OPTIONS, getRoleTemplates } from "./utils.js";
+import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS, ROLE_OPTIONS, getRoleTemplates } from "./permissions.js";
 import { useApp } from "./AppContext.jsx";
 
 // ─── PermissionsMatrixView (v28.17, extracted from PermissionsModal v27.x) ─

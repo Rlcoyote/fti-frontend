@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { canModifyUser } from "./utils.js";
+import { canModifyUser } from "./permissions.js";
 
 // ─── PersonRowActions (v28.148 — ship 3 of the PeoplePage split) ───────────
 // The per-person lifecycle buttons for a PeoplePage roster row — EDIT, SEND

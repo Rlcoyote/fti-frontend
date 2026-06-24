@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { API_URL, setCurrentUser as setGlobalUser, applyTheme, getTheme } from "./config.js";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { NoticeModal } from "./SharedUI.jsx";
-import { makeCan } from "./utils.js";
+import { makeCan } from "./permissions.js";
 
 // ─── Fetch wrapper: auto-attach JWT on API calls (v27.65) ───────────────────
 // Installed once on module load. Every fetch() to our API_URL gets the

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, ConfirmModal, inputStyle } from "./SharedUI.jsx";
-import { ROLE_OPTIONS } from "./utils.js";
+import { ROLE_OPTIONS } from "./permissions.js";
 import { useApp } from "./AppContext.jsx";
 import EditPersonModal from "./EditPersonModal.jsx";
 import PermissionsMatrixView from "./PermissionsMatrixView.jsx";
