@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { API_URL } from "./config.js";
+import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
 
 // ─── usePeopleActions (v28.147 — ship 2 of the PeoplePage split) ───────────
@@ -16,6 +16,13 @@ import { useApp } from "./AppContext.jsx";
 // the button that fired it, and the pending pill disables every action
 // button on that row (see PeoplePage's rowButtons), so a fast-clicking
 // auditor can't fire 15 invite emails in a row.
+//
+// v28.245 — migrated to the shared api client. The old per-action
+// `const data = await r.json(); if (!r.ok) setError(data.error || '…')` is
+// exactly what ApiError carries: a non-ok response throws ApiError whose .body
+// holds the server JSON, so `err.body?.error || '<friendly>'` reproduces the
+// prior message (server error when present, friendly fallback otherwise) and
+// the same catch also covers the network-error path it used to.
 //
 // fetchPeople is passed in — three actions refetch the roster on success.
 // refreshUsers comes from AppContext (deactivate + wipeBio touch the
@@ -49,88 +56,55 @@ export default function usePeopleActions(fetchPeople) {
   const sendPinSetup = async (p) => {
     setRowMsg(p.id, "pending", "Sending PIN setup…");
     try {
-      const r = await fetch(`${API_URL}/employees/${p.id}/send-pin-setup`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not send PIN setup link.", 6000);
-        return;
-      }
+      await api.post(`/employees/${p.id}/send-pin-setup`);
       setRowMsg(p.id, "success", `✓ PIN setup link sent to ${p.phone || "phone"}`, 5000);
       fetchPeople();
     } catch (err) {
-      setRowMsg(p.id, "error", err.message || "Send failed", 6000);
+      setRowMsg(p.id, "error", err.body?.error || "Could not send PIN setup link.", 6000);
     }
   };
 
   const resetPin = async (p) => {
     setRowMsg(p.id, "pending", "Resetting PIN…");
     try {
-      const r = await fetch(`${API_URL}/employees/${p.id}/reset-pin`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not reset PIN.", 6000);
-        return;
-      }
+      await api.post(`/employees/${p.id}/reset-pin`);
       setRowMsg(p.id, "success", `✓ PIN reset; new link sent to ${p.phone || "phone"}`, 5000);
       fetchPeople();
     } catch (err) {
-      setRowMsg(p.id, "error", err.message || "Reset failed", 6000);
+      setRowMsg(p.id, "error", err.body?.error || "Could not reset PIN.", 6000);
     }
   };
 
   const deactivate = async (p) => {
     setRowMsg(p.id, "pending", "Deactivating…");
     try {
-      const r = await fetch(`${API_URL}/employees/${p.id}/deactivate`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not deactivate.", 6000);
-        return;
-      }
+      await api.post(`/employees/${p.id}/deactivate`);
       setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} deactivated`, 5000);
       fetchPeople();
       refreshUsers();
     } catch (err) {
-      setRowMsg(p.id, "error", err.message || "Deactivate failed", 6000);
+      setRowMsg(p.id, "error", err.body?.error || "Could not deactivate.", 6000);
     }
   };
 
   const resendInvite = async (p) => {
     setRowMsg(p.id, "pending", "Sending invite…");
     try {
-      const r = await fetch(`${API_URL}/auth/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: p.id }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Failed to resend invite", 8000);
-        return;
-      }
+      await api.post("/auth/invite", { user_id: p.id });
       setRowMsg(p.id, "success", `✓ Invite sent to ${p.email}`, 5000);
     } catch (err) {
-      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
+      setRowMsg(p.id, "error", err.body?.error || "Failed to resend invite", 8000);
     }
   };
 
   const wipeBio = async (p) => {
     setRowMsg(p.id, "pending", "Wiping biometric…");
     try {
-      const r = await fetch(`${API_URL}/auth/webauthn/admin-disable`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: p.id }),
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not wipe biometric devices.", 6000);
-        return;
-      }
+      await api.post("/auth/webauthn/admin-disable", { user_id: p.id });
       setRowMsg(p.id, "success", `✓ Biometric wiped — ${p.first_name} ${p.last_name} re-registers next login`, 5000);
       refreshUsers();
     } catch (err) {
-      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
+      setRowMsg(p.id, "error", err.body?.error || "Could not wipe biometric devices.", 6000);
     }
   };
 
@@ -142,18 +116,10 @@ export default function usePeopleActions(fetchPeople) {
   const forceLogout = async (p) => {
     setRowMsg(p.id, "pending", "Forcing sign-out…");
     try {
-      const r = await fetch(`${API_URL}/users/${p.id}/force-logout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRowMsg(p.id, "error", data.error || "Could not force sign-out.", 6000);
-        return;
-      }
+      await api.post(`/users/${p.id}/force-logout`);
       setRowMsg(p.id, "success", `✓ ${p.first_name} ${p.last_name} signed out of all devices`, 5000);
     } catch (err) {
-      setRowMsg(p.id, "error", err?.message || "Connection error", 6000);
+      setRowMsg(p.id, "error", err.body?.error || "Could not force sign-out.", 6000);
     }
   };
 

@@ -1,4 +1,4 @@
-import { API_URL } from "./config.js";
+import { api } from "./api.js";
 import { mapTicketFromApi } from "./utils.js";
 import { recordConsent } from "./smsConsent.js";
 
@@ -40,19 +40,15 @@ export function useJobActions({
   // Helper to log audit events
   const logAudit = async (action, entityType, entityId, oldValue, newValue, notes) => {
     try {
-      await fetch(`${API_URL}/audit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: currentUser.id,
-          user_name: currentUser.name,
-          action,
-          entity_type: entityType,
-          entity_id: String(entityId),
-          old_value: oldValue,
-          new_value: newValue,
-          notes,
-        }),
+      await api.post("/audit", {
+        user_id: currentUser.id,
+        user_name: currentUser.name,
+        action,
+        entity_type: entityType,
+        entity_id: String(entityId),
+        old_value: oldValue,
+        new_value: newValue,
+        notes,
       });
     } catch (err) {
       console.error("Audit log failed:", err);
@@ -110,58 +106,51 @@ export function useJobActions({
       equipment: newJob.equipment || [],
     };
     try {
-      const r = await fetch(`${API_URL}/jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (r.ok) {
-        const saved = await r.json();
-        const mappedJob = {
-          ...newJob,
-          id: saved.id,
-          pocEmail: newJob.email || "",
-          poc_email: newJob.email || "",
-          pocPhone: newJob.phone || "",
-          approverEmail: newJob.approverEmail || "",
-          approverPhone: newJob.approverPhone || "",
-          customer_name: cust?.name || newJob.customer,
-          wells: (newJob.wells || []).map((w, i) => ({ well_name: w, sort_order: i })),
-          createdBy: currentUser?.name || null,
-          createdAt: new Date().toISOString(),
-        };
-        setJobs((prev) => [mappedJob, ...prev]);
-        setShowNewJob(false);
-        setExpandedId(saved.id);
+      const saved = await api.post("/jobs", payload);
+      const mappedJob = {
+        ...newJob,
+        id: saved.id,
+        pocEmail: newJob.email || "",
+        poc_email: newJob.email || "",
+        pocPhone: newJob.phone || "",
+        approverEmail: newJob.approverEmail || "",
+        approverPhone: newJob.approverPhone || "",
+        customer_name: cust?.name || newJob.customer,
+        wells: (newJob.wells || []).map((w, i) => ({ well_name: w, sort_order: i })),
+        createdBy: currentUser?.name || null,
+        createdAt: new Date().toISOString(),
+      };
+      setJobs((prev) => [mappedJob, ...prev]);
+      setShowNewJob(false);
+      setExpandedId(saved.id);
 
-        // v28.54 — record any SMS consent intents captured during the new-
-        // WO flow. Posted AFTER the WO insert returns success so we never
-        // record consent for a job that wasn't actually created. Failures
-        // here are logged but don't break the WO save — consent capture
-        // is best-effort at this stage.
-        if (newJob.pocConsentIntent && newJob.phone) {
-          try {
-            await recordConsent({
-              phone_number: newJob.phone,
-              recipient_type: "customer_rep",
-              consent_method: "verbal",
-              context: `job_setup:${saved.id}`,
-            });
-          } catch (err) {
-            console.warn("POC SMS consent record failed:", err);
-          }
+      // v28.54 — record any SMS consent intents captured during the new-
+      // WO flow. Posted AFTER the WO insert returns success so we never
+      // record consent for a job that wasn't actually created. Failures
+      // here are logged but don't break the WO save — consent capture
+      // is best-effort at this stage.
+      if (newJob.pocConsentIntent && newJob.phone) {
+        try {
+          await recordConsent({
+            phone_number: newJob.phone,
+            recipient_type: "customer_rep",
+            consent_method: "verbal",
+            context: `job_setup:${saved.id}`,
+          });
+        } catch (err) {
+          console.warn("POC SMS consent record failed:", err);
         }
-        if (newJob.approverConsentIntent && newJob.approverPhone) {
-          try {
-            await recordConsent({
-              phone_number: newJob.approverPhone,
-              recipient_type: "customer_rep",
-              consent_method: "verbal",
-              context: `job_setup:${saved.id}:approver`,
-            });
-          } catch (err) {
-            console.warn("Approver SMS consent record failed:", err);
-          }
+      }
+      if (newJob.approverConsentIntent && newJob.approverPhone) {
+        try {
+          await recordConsent({
+            phone_number: newJob.approverPhone,
+            recipient_type: "customer_rep",
+            consent_method: "verbal",
+            context: `job_setup:${saved.id}:approver`,
+          });
+        } catch (err) {
+          console.warn("Approver SMS consent record failed:", err);
         }
       }
     } catch (err) {
@@ -173,11 +162,7 @@ export function useJobActions({
     if (!can("delete_jobs")) return;
     const job = jobs.find((j) => j.id === jobId);
     try {
-      await fetch(`${API_URL}/jobs/${jobId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Deleted" }),
-      });
+      await api.put(`/jobs/${jobId}`, { status: "Deleted" });
       await logAudit(
         "job_delete",
         "job",
@@ -199,22 +184,15 @@ export function useJobActions({
 
   const handleRestoreJob = async (jobId) => {
     try {
-      await fetch(`${API_URL}/jobs/${jobId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "Scheduled" }),
-      });
+      await api.put(`/jobs/${jobId}`, { status: "Scheduled" });
       await logAudit("job_restore", "job", jobId, { status: "Deleted" }, { status: "Scheduled" }, `Work Order #${jobId} restored by ${currentUser.name}`);
       setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: "Scheduled" } : j)));
       // Backend cascade-restored tickets that were deleted_with_wo=true on this WO —
       // pull fresh active + deleted lists so UI matches DB.
       try {
-        const r = await fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`);
-        if (r.ok) {
-          const data = await r.json();
-          const mapped = data.map(mapTicketFromApi);
-          setTickets((prev) => [...prev.filter((t) => t.jobId !== jobId), ...mapped]);
-        }
+        const data = await api.get(`/tickets?job_id=${jobId}&include_voided=true`);
+        const mapped = (data || []).map(mapTicketFromApi);
+        setTickets((prev) => [...prev.filter((t) => t.jobId !== jobId), ...mapped]);
       } catch (err) {
         console.error("Ticket refresh after restore failed:", err);
       }
@@ -227,11 +205,7 @@ export function useJobActions({
   const handleArchiveJob = async (jobId) => {
     if (!can("view_archive")) return;
     try {
-      await fetch(`${API_URL}/archive`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "deleted" }),
-      });
+      await api.post("/archive", { entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "deleted" });
       setJobs((prev) => prev.filter((j) => j.id !== jobId));
     } catch (err) {
       console.error("Archive job failed:", err);
@@ -248,15 +222,7 @@ export function useJobActions({
     if (!can("view_archive")) return;
     const job = jobs.find((j) => j.id === jobId);
     try {
-      const r = await fetch(`${API_URL}/archive`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "job_closed" }),
-      });
-      if (!r.ok) {
-        console.error("Close job failed:", r.status, await r.text());
-        return;
-      }
+      await api.post("/archive", { entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "job_closed" });
       await logAudit(
         "job_closed",
         "job",
@@ -273,12 +239,7 @@ export function useJobActions({
 
   const handleRestoreTicket = async (ticketId) => {
     try {
-      const r = await fetch(`${API_URL}/tickets/${ticketId}/restore`, { method: "POST" });
-      if (!r.ok) {
-        console.error("Restore ticket failed:", r.status);
-        return;
-      }
-      const result = await r.json().catch(() => ({}));
+      const result = (await api.post(`/tickets/${ticketId}/restore`)) || {};
       const restored = deletedTickets.find((t) => t.id === ticketId);
       setDeletedTickets((prev) => prev.filter((t) => t.id !== ticketId));
       if (restored) setTickets((prev) => [...prev, { ...restored, deletedAt: null, deletedWithWo: false }]);
@@ -296,11 +257,7 @@ export function useJobActions({
   const handleArchiveTicket = async (ticketId, reason = "deleted") => {
     if (!can("view_archive")) return;
     try {
-      await fetch(`${API_URL}/archive`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ entity_type: "ticket", entity_id: ticketId, archived_by: currentUser.id, archive_reason: reason }),
-      });
+      await api.post("/archive", { entity_type: "ticket", entity_id: ticketId, archived_by: currentUser.id, archive_reason: reason });
       setDeletedTickets((prev) => prev.filter((t) => t.id !== ticketId));
       setTickets((prev) => prev.filter((t) => t.id !== ticketId));
     } catch (err) {
@@ -311,11 +268,7 @@ export function useJobActions({
   const handleFlagCancel = async (jobId) => {
     const job = jobs.find((j) => j.id === jobId);
     try {
-      await fetch(`${API_URL}/jobs/${jobId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "flaggedCancel" }),
-      });
+      await api.put(`/jobs/${jobId}`, { status: "flaggedCancel" });
       await logAudit(
         "job_flag_cancel",
         "job",
@@ -363,7 +316,7 @@ export function useJobActions({
         payload.wells = updates.wells.map((w) => (typeof w === "string" ? { well_name: w } : w));
       }
       if (updates.crew) payload.crew = updates.crew.map((c) => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
-      await fetch(`${API_URL}/jobs/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      await api.put(`/jobs/${id}`, payload);
       await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Work Order #${id} edited by ${currentUser.name}`);
 
       // v28.54 — record SMS consents for any newly-captured phones. Posted
