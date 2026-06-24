@@ -3,6 +3,7 @@ import { API_URL, setCurrentUser as setGlobalUser, applyTheme, getTheme } from "
 import BrandedSplash from "./BrandedSplash.jsx";
 import { NoticeModal } from "./SharedUI.jsx";
 import { makeCan } from "./permissions.js";
+import { api } from "./api.js";
 
 // ─── Fetch wrapper: auto-attach JWT on API calls (v27.65) ───────────────────
 // Installed once on module load. Every fetch() to our API_URL gets the
@@ -197,10 +198,13 @@ export function AppProvider({ children }) {
   }, [currentUser]);
 
   // ── Fetch functions (also used as refresh handles) ──
+  // v28.244 — migrated to the shared api client. Each loader keeps the same
+  // contract: on success set state, on failure (api.get throws on non-ok, or a
+  // network error) log and KEEP the prior data — never blank a list because one
+  // refresh failed.
   const refreshSettings = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/settings`);
-      if (r.ok) setSettings(await r.json());
+      setSettings(await api.get("/settings"));
     } catch (err) {
       console.error("AppContext: settings fetch failed", err);
     }
@@ -208,8 +212,7 @@ export function AppProvider({ children }) {
 
   const refreshUsers = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/users`);
-      if (r.ok) setUsers((await r.json()) || []);
+      setUsers((await api.get("/users")) || []);
     } catch (err) {
       console.error("AppContext: users fetch failed", err);
     }
@@ -217,8 +220,7 @@ export function AppProvider({ children }) {
 
   const refreshCustomers = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/customers`);
-      if (r.ok) setCustomers((await r.json()) || []);
+      setCustomers((await api.get("/customers")) || []);
     } catch (err) {
       console.error("AppContext: customers fetch failed", err);
     }
@@ -226,11 +228,8 @@ export function AppProvider({ children }) {
 
   const refreshQbItems = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/qb-items`);
-      if (r.ok) {
-        const raw = await r.json();
-        setQbItems((raw || []).map(mapQbItem));
-      }
+      const raw = await api.get("/qb-items");
+      setQbItems((raw || []).map(mapQbItem));
     } catch (err) {
       console.error("AppContext: qb-items fetch failed", err);
     }
@@ -238,8 +237,7 @@ export function AppProvider({ children }) {
 
   const refreshAssets = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/assets`);
-      if (r.ok) setAssets((await r.json()) || []);
+      setAssets((await api.get("/assets")) || []);
     } catch (err) {
       console.error("AppContext: assets fetch failed", err);
     }
@@ -252,8 +250,7 @@ export function AppProvider({ children }) {
   // (yards are public-within-FTI reference data).
   const refreshYards = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/yards`);
-      if (r.ok) setYards((await r.json()) || []);
+      setYards((await api.get("/yards")) || []);
     } catch (err) {
       console.error("AppContext: yards fetch failed", err);
     }
@@ -263,8 +260,7 @@ export function AppProvider({ children }) {
   // Read endpoint is auth-only (no view_inventory gate) — see routes/vehicles.js.
   const refreshVehicles = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/vehicles`);
-      if (r.ok) setVehicles((await r.json()) || []);
+      setVehicles((await api.get("/vehicles")) || []);
     } catch (err) {
       console.error("AppContext: vehicles fetch failed", err);
     }
@@ -272,13 +268,10 @@ export function AppProvider({ children }) {
 
   const refreshRoles = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/config/roles`);
-      if (r.ok) {
-        const data = await r.json();
-        // Server is source of truth; only accept if shape looks right.
-        if (data && Array.isArray(data.all) && Array.isArray(data.allowedForEmployee)) {
-          setRoles(data);
-        }
+      const data = await api.get("/config/roles");
+      // Server is source of truth; only accept if shape looks right.
+      if (data && Array.isArray(data.all) && Array.isArray(data.allowedForEmployee)) {
+        setRoles(data);
       }
     } catch (err) {
       console.error("AppContext: roles fetch failed (using fallback)", err);
@@ -326,11 +319,7 @@ export function AppProvider({ children }) {
   useEffect(() => {
     if (!currentUser?.id) return;
     const ping = () => {
-      fetch(`${API_URL}/activity`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name, action: "heartbeat" }),
-      }).catch(() => {});
+      api.post("/activity", { user_id: currentUser.id, user_name: currentUser.name, action: "heartbeat" }).catch(() => {});
     };
     ping(); // fire once immediately so session-restored users appear online without waiting 10 min
     const interval = setInterval(ping, 10 * 60 * 1000);
@@ -347,19 +336,17 @@ export function AppProvider({ children }) {
   // ── Activity logging ──
   const logActivity = useCallback(
     (action, entityType, entityId, details) => {
-      // Fire-and-forget — don't block UI for logging
-      fetch(`${API_URL}/activity`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // Fire-and-forget — don't block UI for logging; silent fail never breaks the app.
+      api
+        .post("/activity", {
           user_id: currentUser?.id || null,
           user_name: currentUser?.name || null,
           action,
           entity_type: entityType || null,
           entity_id: entityId ? String(entityId) : null,
           details: details || null,
-        }),
-      }).catch(() => {}); // silent fail — logging should never break the app
+        })
+        .catch(() => {});
     },
     [currentUser],
   );
@@ -376,16 +363,7 @@ export function AppProvider({ children }) {
       // permission resolves quickly. Two writes are noisier than one but
       // the alternative (delayed login row) costs more in observability.
       const postLogin = (geoDetails) => {
-        fetch(`${API_URL}/activity`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: user.id,
-            user_name: user.name,
-            action: "login",
-            details: geoDetails || null,
-          }),
-        }).catch(() => {});
+        api.post("/activity", { user_id: user.id, user_name: user.name, action: "login", details: geoDetails || null }).catch(() => {});
       };
       if (typeof navigator !== "undefined" && navigator.geolocation) {
         // 6-second timeout — login row should land promptly even if the
@@ -402,16 +380,14 @@ export function AppProvider({ children }) {
           (pos) => {
             if (resolved) {
               // Login row already posted without GPS — write a follow-up.
-              fetch(`${API_URL}/activity`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+              api
+                .post("/activity", {
                   user_id: user.id,
                   user_name: user.name,
                   action: "login_gps",
                   details: { lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy_m: Math.round(pos.coords.accuracy) },
-                }),
-              }).catch(() => {});
+                })
+                .catch(() => {});
               return;
             }
             resolved = true;
@@ -438,11 +414,7 @@ export function AppProvider({ children }) {
   const logout = useCallback(() => {
     // Log logout before clearing user
     if (currentUser) {
-      fetch(`${API_URL}/activity`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: currentUser.id, user_name: currentUser.name, action: "logout" }),
-      }).catch(() => {});
+      api.post("/activity", { user_id: currentUser.id, user_name: currentUser.name, action: "logout" }).catch(() => {});
     }
     setCurrentUser(null);
     window.location.href = "/";
