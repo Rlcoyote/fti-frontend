@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { C, API_URL } from "./config.js";
+import { C } from "./config.js";
+import { api } from "./api.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import { CATEGORY_OPTIONS } from "./ContactsConstants.js";
@@ -36,12 +37,7 @@ function ContactsPage() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const r = await fetch(`${API_URL}/customers/contacts/import`, { method: "POST", credentials: "include", body: fd });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        alert(`Import failed: ${data.error || r.status}`);
-        return;
-      }
+      const data = await api.post("/customers/contacts/import", fd, { credentials: "include" });
       const errs = (data.errors || []).slice(0, 12).join("\n");
       alert(
         `Imported ${data.inserted} contact(s). Skipped ${data.skipped}.` +
@@ -49,7 +45,7 @@ function ContactsPage() {
       );
       if (data.inserted > 0) window.location.reload();
     } catch (e) {
-      alert(`Import error: ${e.message}`);
+      alert(`Import failed: ${e.body?.error || e.message}`);
     } finally {
       setImporting(false);
     }
@@ -84,9 +80,10 @@ function ContactsPage() {
       // a future ship can add one if needed).
       const results = await Promise.all(
         (customers || []).map((c) =>
-          fetch(`${API_URL}/customers/${c.id}/contacts?include_inactive=true`)
-            .then((r) => (r.ok ? r.json() : []))
-            .then((contacts) => contacts.map((ct) => ({ ...ct, customer_name: c.name }))),
+          api
+            .get(`/customers/${c.id}/contacts?include_inactive=true`)
+            .catch(() => [])
+            .then((contacts) => (contacts || []).map((ct) => ({ ...ct, customer_name: c.name }))),
         ),
       );
       setContacts(results.flat());
@@ -153,15 +150,7 @@ function ContactsPage() {
   const openEdit = (contactRow) => setEditContact(contactRow.rows ? contactRow.rows[0] : contactRow);
 
   // Soft-delete: any auth user. Single-row.
-  const handleSoftDeleteOne = async (id, reason = null) => {
-    const r = await fetch(`${API_URL}/customers/contacts/${id}/soft-delete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reason: reason || null }),
-    });
-    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Soft-delete failed");
-    return r.json();
-  };
+  const handleSoftDeleteOne = (id, reason = null) => api.post(`/customers/contacts/${id}/soft-delete`, { reason: reason || null });
 
   // Batch soft-delete from selectMode
   const handleBatchSoftDelete = async () => {
@@ -218,13 +207,8 @@ function ContactsPage() {
     let fail = 0;
     for (const id of ids) {
       try {
-        const r = await fetch(`${API_URL}/customers/contacts/${id}/hard-delete`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason }),
-        });
-        if (r.ok) ok++;
-        else fail++;
+        await api.post(`/customers/contacts/${id}/hard-delete`, { reason });
+        ok++;
       } catch {
         fail++;
       }
@@ -259,17 +243,7 @@ function ContactsPage() {
     if (!mergeModal || !keeperId) return;
     const killedId = keeperId === mergeModal.a.id ? mergeModal.b.id : mergeModal.a.id;
     try {
-      const r = await fetch(`${API_URL}/customers/contacts/merge`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keeper_id: keeperId, killed_id: killedId, reason: mergeReason || null }),
-      });
-      if (!r.ok) {
-        const j = await r.json().catch(() => ({}));
-        setMsg(`Merge failed: ${j.error || r.statusText}`);
-        return;
-      }
-      const result = await r.json();
+      const result = await api.post("/customers/contacts/merge", { keeper_id: keeperId, killed_id: killedId, reason: mergeReason || null });
       await fetchAll();
       setMergeModal(null);
       setSelected(new Set());
@@ -278,7 +252,7 @@ function ContactsPage() {
       setMsg(`Merged successfully${carried}.`);
       setTimeout(() => setMsg(""), 4000);
     } catch (err) {
-      setMsg(`Merge failed: ${err.message}`);
+      setMsg(`Merge failed: ${err.body?.error || err.message}`);
     }
   };
 
