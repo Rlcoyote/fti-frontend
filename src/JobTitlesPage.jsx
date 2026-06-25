@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { C, API_URL } from "./config.js";
+import { C } from "./config.js";
+import { api } from "./api.js";
 import { Btn, inputStyle, labelStyle, ConfirmModal } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -37,8 +38,7 @@ function JobTitlesPage() {
   const fetchTitles = async () => {
     setLoading(true);
     try {
-      const r = await fetch(`${API_URL}/job-titles${includeInactive ? "?include_inactive=true" : ""}`);
-      if (r.ok) setTitles(await r.json());
+      setTitles((await api.get(`/job-titles${includeInactive ? "?include_inactive=true" : ""}`)) || []);
     } catch (err) {
       console.error("Fetch job titles failed:", err);
     }
@@ -51,16 +51,11 @@ function JobTitlesPage() {
 
   const deactivate = async (title) => {
     try {
-      const r = await fetch(`${API_URL}/job-titles/${title.id}/deactivate`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        showNotice("Deactivate failed", data.error || "Could not deactivate.", "error");
-        return;
-      }
+      await api.post(`/job-titles/${title.id}/deactivate`);
       showNotice("Title deactivated", `"${title.name}" will no longer appear in the Employees dropdown. Existing employees keep their stored title unchanged.`);
       fetchTitles();
     } catch (err) {
-      showNotice("Deactivate failed", err.message, "error");
+      showNotice("Deactivate failed", err.body?.error || err.message || "Could not deactivate.", "error");
     }
   };
 
@@ -111,22 +106,11 @@ function JobTitlesPage() {
     setReordering(true);
     try {
       const items = next.map((t, i) => ({ id: t.id, sort_order: i }));
-      const r = await fetch(`${API_URL}/job-titles/reorder`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
-      });
-      if (!r.ok) {
-        const data = await r.json().catch(() => ({}));
-        showNotice("Reorder failed", data.error || "Could not save the new order.", "error");
-        // Revert local state by refetching so the UI matches the server.
-        fetchTitles();
-        return;
-      }
+      await api.put("/job-titles/reorder", { items });
       // No refetch needed on success — the local order matches what we
       // just sent. Skipping the round-trip keeps the UI snappy.
     } catch (err) {
-      showNotice("Reorder failed", err.message, "error");
+      showNotice("Reorder failed", err.body?.error || err.message || "Could not save the new order.", "error");
       fetchTitles();
     } finally {
       setReordering(false);
@@ -304,21 +288,13 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
     setSubmitting(true);
     try {
       const payload = { name: name.trim() };
-      const url = mode === "new" ? `${API_URL}/job-titles` : `${API_URL}/job-titles/${initial.id}`;
-      const method = mode === "new" ? "POST" : "PUT";
-      const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      const data = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setFormError(data.error || "Save failed.");
-        setSubmitting(false);
-        return;
-      }
+      const data = mode === "new" ? await api.post("/job-titles", payload) : await api.put(`/job-titles/${initial.id}`, payload);
       onSaved(
         mode === "new" ? "Title added" : "Title updated",
         `"${data.name}" ${mode === "new" ? "has been added to the Employees dropdown" : "has been updated"}.`,
       );
     } catch (err) {
-      setFormError("Save failed: " + err.message);
+      setFormError(err.body?.error || "Save failed: " + err.message);
       setSubmitting(false);
     }
   };

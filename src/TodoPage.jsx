@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { C, API_URL, getCurrentUser } from "./config.js";
+import { C, getCurrentUser } from "./config.js";
+import { api } from "./api.js";
 import { todoVisible } from "./utils.js";
 import { Btn, FilterBtn } from "./SharedUI.jsx";
 import { TodoForm, TodoRow } from "./TodoComponents.jsx";
@@ -30,20 +31,17 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
       assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
     };
     try {
-      const r = await fetch(`${API_URL}/todos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (r.ok) {
-        const saved = await r.json();
-        const newTodo = {
-          id: saved.id,
-          ...form,
-          createdBy: getCurrentUser(),
-          assignedTo: form.assignedTo,
-          completed: false,
-          completedBy: null,
-          completedAt: null,
-        };
-        setTodos((prev) => [newTodo, ...prev]);
-      }
+      const saved = await api.post("/todos", payload);
+      const newTodo = {
+        id: saved.id,
+        ...form,
+        createdBy: getCurrentUser(),
+        assignedTo: form.assignedTo,
+        completed: false,
+        completedBy: null,
+        completedAt: null,
+      };
+      setTodos((prev) => [newTodo, ...prev]);
     } catch (err) {
       console.error("Todo create failed:", err);
     }
@@ -55,11 +53,7 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
     if (!todo) return;
     const nowComplete = !todo.completed;
     try {
-      await fetch(`${API_URL}/todos/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: nowComplete, completed_by: nowComplete ? userIdByName[getCurrentUser()] : null }),
-      });
+      await api.put(`/todos/${id}`, { completed: nowComplete, completed_by: nowComplete ? userIdByName[getCurrentUser()] : null });
     } catch (err) {
       console.error("Todo toggle failed:", err);
     }
@@ -140,14 +134,11 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
       assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
     };
     try {
-      const r = await fetch(`${API_URL}/todos`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (r.ok) {
-        const saved = await r.json();
-        setTodos((prev) => [
-          { id: saved.id, ...form, createdBy: getCurrentUser(), assignedTo: form.assignedTo, completed: false, completedBy: null, completedAt: null },
-          ...prev,
-        ]);
-      }
+      const saved = await api.post("/todos", payload);
+      setTodos((prev) => [
+        { id: saved.id, ...form, createdBy: getCurrentUser(), assignedTo: form.assignedTo, completed: false, completedBy: null, completedAt: null },
+        ...prev,
+      ]);
     } catch (err) {
       console.error("Todo create failed:", err);
     }
@@ -159,11 +150,7 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
     if (!todo) return;
     const nowComplete = !todo.completed;
     try {
-      await fetch(`${API_URL}/todos/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: nowComplete, completed_by: nowComplete ? userIdByName[getCurrentUser()] : null }),
-      });
+      await api.put(`/todos/${id}`, { completed: nowComplete, completed_by: nowComplete ? userIdByName[getCurrentUser()] : null });
     } catch (err) {
       console.error("Todo toggle failed:", err);
     }
