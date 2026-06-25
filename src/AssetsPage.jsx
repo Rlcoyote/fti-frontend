@@ -88,7 +88,7 @@ function AssetsPage({ jobs }) {
       setMsg("Asset added.");
       setTimeout(() => setMsg(""), 3000);
     } catch {
-      setMsg("Failed to create");
+      setMsg("Create failed");
     }
   };
 
@@ -111,7 +111,7 @@ function AssetsPage({ jobs }) {
       setMsg("Saved.");
       setTimeout(() => setMsg(""), 3000);
     } catch {
-      setMsg("Failed to save");
+      setMsg("Save failed");
     }
   };
 
