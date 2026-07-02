@@ -73,16 +73,22 @@ function TakeTest({ testId, onDone, onCancel }) {
   const [test, setTest] = useState(null);
   const [answers, setAnswers] = useState({});
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
+  // v28.255 — load error and submit error are SEPARATE states. The original
+  // used one `err` for both, and the early-return error render meant a failed
+  // SUBMIT blanked the whole test (Reggie hit this on the v28.254 submit bug:
+  // answers gone, just "failed to submit test" at the top). A submit failure
+  // now keeps every answer on screen and the button live for a retry.
+  const [loadErr, setLoadErr] = useState(null);
+  const [submitErr, setSubmitErr] = useState(null);
 
   useEffect(() => {
     api
       .get(`/training/tests/${testId}`)
       .then(setTest)
-      .catch((e) => setErr(e.message));
+      .catch((e) => setLoadErr(e.message));
   }, [testId]);
 
-  if (err) return <div style={{ color: C.red, padding: 20 }}>{err}</div>;
+  if (loadErr) return <div style={{ color: C.red, padding: 20 }}>{loadErr}</div>;
   if (!test) return <div style={{ padding: 20, opacity: 0.7 }}>Loading test…</div>;
 
   const total = test.questions.length;
@@ -91,12 +97,12 @@ function TakeTest({ testId, onDone, onCancel }) {
 
   const submit = async () => {
     setBusy(true);
-    setErr(null);
+    setSubmitErr(null);
     try {
       const result = await api.post(`/training/tests/${testId}/submit`, { answers });
       onDone(result);
     } catch (e) {
-      setErr(e.message);
+      setSubmitErr(`Your test could not be submitted (${e.message}). Your answers are still here — press SUBMIT TEST to try again.`);
       setBusy(false);
     }
   };
@@ -148,7 +154,21 @@ function TakeTest({ testId, onDone, onCancel }) {
           {q.type === "mc" ? q.options.map((opt, i) => optBtn(q, i, `${LETTERS[i]}.  ${opt}`)) : [optBtn(q, true, "True"), optBtn(q, false, "False")]}
         </div>
       ))}
-      {err && <div style={{ color: C.red, marginBottom: 10 }}>{err}</div>}
+      {submitErr && (
+        <div
+          style={{
+            color: C.red,
+            border: `1px solid ${C.red}66`,
+            background: `${C.red}18`,
+            borderRadius: 8,
+            padding: "10px 12px",
+            marginBottom: 10,
+            fontWeight: 700,
+          }}
+        >
+          {submitErr}
+        </div>
+      )}
       <button
         onClick={submit}
         disabled={!allAnswered || busy}
@@ -247,6 +267,25 @@ function AttemptReview({ attemptId, onBack }) {
                 {q.is_correct ? "✓" : "✗"} Your answer: {giveLabel}
               </div>
               {!q.is_correct && <div style={{ fontSize: 13, marginTop: 2, color: C.green, fontWeight: 700 }}>Correct answer: {correctLabel}</div>}
+              {/* v28.255 — the teaching moment (Reggie): a missed question shows
+                  the answer straight from the PPM so the retest is studied, not
+                  guessed. Correct answers stay uncluttered. */}
+              {!q.is_correct && q.ref && (
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    marginTop: 8,
+                    padding: "8px 10px",
+                    borderLeft: `3px solid ${C.blue}`,
+                    background: `${C.blue}12`,
+                    borderRadius: "0 6px 6px 0",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <span style={{ fontWeight: 800, color: C.blue }}>FROM THE POLICY MANUAL: </span>
+                  {q.ref}
+                </div>
+              )}
             </div>
           );
         })}
