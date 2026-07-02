@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { PAGE_MAP, ROUTE_MAP } from "./navMap.js";
 import { useApp } from "./AppContext.jsx";
 
 // v28.25 — theme toggle row for the mobile drawer. Mirrors the desktop
@@ -42,47 +43,6 @@ function ThemeDrawerItem() {
 // curated NAV_ITEMS list, the navigate function, the handful of count
 // badges (myActiveTodos.length, deletedJobs.length + deletedTickets.length),
 // and the modal-open setters for the gear items.
-
-const PAGE_MAP = {
-  Dashboard: "dashboard",
-  "All Tickets": "allTickets",
-  "Work Order History": "jobHistory",
-  "Action Items": "todos",
-  Inventory: "inventory",
-  Assets: "assets",
-  Vehicles: "vehicles",
-  Yards: "yards",
-  Clock: "clock",
-  Crew: "crew",
-  Safety: "safety",
-  Training: "training",
-  "Final Review": "finalReview",
-  Reports: "reports",
-  Deleted: "deleted",
-  Archive: "archive",
-};
-
-const ROUTE_MAP = {
-  Dashboard: "/",
-  "All Tickets": "/all-tickets",
-  "Work Order History": "/job-history",
-  "Action Items": "/todos",
-  Inventory: "/inventory",
-  Assets: "/assets",
-  Vehicles: "/vehicles",
-  Yards: "/yards",
-  Clock: "/clock",
-  "My Hours": "/my-hours",
-  Crew: "/crew",
-  Safety: "/safety",
-  Training: "/training",
-  "Final Review": "/final-review",
-  Reports: "/reports",
-  Deleted: "/deleted",
-  Archive: "/archive",
-  // v28.19 — Users drawer entry removed. People management lives in the gear
-  // menu only (admin-cadence, not daily-use surface).
-};
 
 const NAV_ICONS = {
   Dashboard: "⌂",

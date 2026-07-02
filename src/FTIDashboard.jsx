@@ -38,6 +38,7 @@ import RepairRequestForm from "./RepairRequestForm.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ClockPage from "./ClockPage.jsx";
 import TrainingPage from "./TrainingPage.jsx";
+import { pageFromPath } from "./navMap.js";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
 import TicketPage from "./TicketPage.jsx";
@@ -108,35 +109,10 @@ function FTIDashboard() {
   // ── URL-driven page string for nav highlighting ──
   const navigate = useNavigate();
   const location = useLocation();
-  const page = (() => {
-    const p = location.pathname;
-    if (p === "/" || p === "") return "dashboard";
-    if (p.startsWith("/all-tickets")) return "allTickets";
-    if (p.startsWith("/job-history")) return "jobHistory";
-    if (p.startsWith("/todos")) return "todos";
-    if (p.startsWith("/inventory")) return "inventory";
-    if (p.startsWith("/assets")) return "assets";
-    if (p.startsWith("/vehicles")) return "vehicles";
-    if (p.startsWith("/yards")) return "yards";
-    if (p.startsWith("/gps-events")) return "gpsEvents";
-    if (p.startsWith("/inspection/new")) return "inspectionNew";
-    if (p.startsWith("/inspections")) return "inspections";
-    if (p.startsWith("/repair-request")) return "repairRequest";
-    if (p.startsWith("/compliance-consent")) return "compliance";
-    if (p.startsWith("/crew")) return "crew";
-    if (p.startsWith("/clock")) return "clock";
-    if (p.startsWith("/safety")) return "safety";
-    if (p.startsWith("/activity")) return "activity";
-    if (p.startsWith("/contacts")) return "contacts";
-    if (p.startsWith("/final-review")) return "finalReview";
-    if (p.startsWith("/reports")) return "reports";
-    if (p.startsWith("/deleted")) return "deleted";
-    if (p.startsWith("/archive")) return "archive";
-    if (p.startsWith("/people")) return "people";
-    if (p.startsWith("/users")) return "people"; // v28.17 alias for legacy bookmarks
-    if (p.startsWith("/employees")) return "people"; // v28.17 alias for legacy bookmarks
-    return "dashboard";
-  })();
+  // v28.253 — derived from the ONE nav map (src/navMap.js). The old inline
+  // if-chain was a third copy of the nav routing knowledge and had drifted
+  // (missing /training + /my-hours -> active-tab highlight never fired there).
+  const page = pageFromPath(location.pathname);
   const navigateToPage = (path) => navigate(path);
 
   // ── UI state ──

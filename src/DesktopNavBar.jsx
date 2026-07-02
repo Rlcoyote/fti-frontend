@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { PAGE_MAP, ROUTE_MAP } from "./navMap.js";
 import { NavBadge } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -44,48 +45,6 @@ function ThemeToggleIcon() {
 // a clear contract (page string in, navigate/setShow* callbacks out). Caller
 // also passes badge counts so this component doesn't need to know about
 // active todos, total inventory out, or deleted item counts.
-
-const PAGE_MAP = {
-  Dashboard: "dashboard",
-  "All Tickets": "allTickets",
-  "Work Order History": "jobHistory",
-  "Action Items": "todos",
-  Inventory: "inventory",
-  Assets: "assets",
-  Vehicles: "vehicles",
-  Yards: "yards",
-  Clock: "clock",
-  "My Hours": "myHours",
-  Crew: "crew",
-  Safety: "safety",
-  Training: "training",
-  "Final Review": "finalReview",
-  Reports: "reports",
-  Deleted: "deleted",
-  Archive: "archive",
-  // v28.19 — Users top-nav slot removed. People management is admin-cadence
-  // work and now lives in the gear menu only ("People" → /people).
-};
-
-const ROUTE_MAP = {
-  Dashboard: "/",
-  "All Tickets": "/all-tickets",
-  "Work Order History": "/job-history",
-  "Action Items": "/todos",
-  Inventory: "/inventory",
-  Assets: "/assets",
-  Vehicles: "/vehicles",
-  Yards: "/yards",
-  Clock: "/clock",
-  "My Hours": "/my-hours",
-  Crew: "/crew",
-  Safety: "/safety",
-  Training: "/training",
-  "Final Review": "/final-review",
-  Reports: "/reports",
-  Deleted: "/deleted",
-  Archive: "/archive",
-};
 
 // Inline helper to render a single dropdown menu item with consistent style
 // + hover background. Cuts down JSX repetition in the gear menu.
@@ -205,13 +164,19 @@ function DesktopNavBar({
                 if (clickable) navigate(ROUTE_MAP[item]);
               }}
               style={{
+                // v28.253 — active tab is DEFINITE: red pill + thicker underline,
+                // not just a color shift (Reggie: "no indication you are on any
+                // tab"; the mapping bug is fixed in navMap.js — this makes the
+                // state unmissable once it fires).
                 fontSize: 13,
-                color: active ? C.headerText : clickable ? C.headerMuted : "#6b7a99",
+                color: active ? C.white : clickable ? C.headerMuted : "#6b7a99",
                 letterSpacing: "0.08em",
                 cursor: clickable ? "pointer" : "default",
-                borderBottom: active ? `2px solid ${C.red}` : "2px solid transparent",
-                paddingBottom: 4,
-                fontWeight: active ? 700 : 600,
+                borderBottom: active ? `3px solid ${C.red}` : "3px solid transparent",
+                background: active ? `${C.red}33` : "transparent",
+                borderRadius: active ? "6px 6px 0 0" : 0,
+                padding: active ? "4px 8px" : "4px 0",
+                fontWeight: active ? 800 : 600,
                 display: "flex",
                 alignItems: "center",
               }}
