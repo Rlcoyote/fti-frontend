@@ -74,6 +74,8 @@ export const PERMISSION_CATEGORIES = [
   // v28.202 — Labor Time Tracking Phase 1 additions:
   { key: "view_all_hours", label: "View All Employee Hours", group: "Labor & Time" },
   { key: "approve_time_corrections", label: "Approve Time Corrections", group: "Labor & Time" },
+  // v28.251 — Training Tests addition:
+  { key: "view_all_training", label: "View All Training Results", group: "Training" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -131,6 +133,7 @@ export const DEFAULT_PERMS = {
     perform_repairs: false,
     red_tag_vehicle: false,
     manage_vehicles: false,
+    view_all_training: false,
   },
   salesman: {
     view_jobs: true,
@@ -157,6 +160,7 @@ export const DEFAULT_PERMS = {
     perform_repairs: false,
     red_tag_vehicle: false,
     manage_vehicles: false,
+    view_all_training: false,
   },
   field: {
     view_jobs: true,
@@ -183,6 +187,7 @@ export const DEFAULT_PERMS = {
     perform_repairs: false,
     red_tag_vehicle: false,
     manage_vehicles: false,
+    view_all_training: false,
   },
   // hse — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Cross-existing: view_jobs + view_reports + view_activity_log ON, other
@@ -212,6 +217,7 @@ export const DEFAULT_PERMS = {
     perform_repairs: false,
     red_tag_vehicle: true,
     manage_vehicles: true,
+    view_all_training: true,
   },
   // mechanic — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Tight boundary: every one of the 17 existing keys OFF. Only DVIR-side:
@@ -241,6 +247,7 @@ export const DEFAULT_PERMS = {
     perform_repairs: true,
     red_tag_vehicle: true,
     manage_vehicles: true,
+    view_all_training: false,
   },
   // dispatch — added v28.177. Operations / fleet dispatcher role. Defaults to
   // GPS-relevant permissions ON; DVIR keys OFF (dispatch isn't the inspection /
@@ -270,6 +277,7 @@ export const DEFAULT_PERMS = {
     perform_repairs: false,
     red_tag_vehicle: false,
     manage_vehicles: false,
+    view_all_training: false,
   },
 };
 

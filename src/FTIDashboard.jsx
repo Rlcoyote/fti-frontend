@@ -37,6 +37,7 @@ import InspectionsListPage from "./InspectionsListPage.jsx";
 import RepairRequestForm from "./RepairRequestForm.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import ClockPage from "./ClockPage.jsx";
+import TrainingPage from "./TrainingPage.jsx";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
 import TicketPage from "./TicketPage.jsx";
@@ -277,6 +278,7 @@ function FTIDashboard() {
     "Inventory",
     "Crew",
     "Safety",
+    "Training",
     "Final Review",
     "Reports",
     "Deleted",
@@ -405,6 +407,7 @@ function FTIDashboard() {
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/clock" element={<ClockPage />} />
+        <Route path="/training" element={<TrainingPage />} />
         <Route path="/my-hours" element={<MyHoursPage />} />
         {(userRole === "owner" || userRole === "admin") && <Route path="/labor-time-rules" element={<LaborTimeRulesPage />} />}
         {can("approve_time_corrections") && <Route path="/time-review" element={<TimeReviewPage />} />}
