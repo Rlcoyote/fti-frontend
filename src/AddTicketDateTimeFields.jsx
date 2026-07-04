@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { typeCaps } from "./ticketFamilies.js";
 import { inputStyle, labelStyle, PANEL_TEXT } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 
@@ -43,7 +44,7 @@ export default function AddTicketDateTimeFields({
   setWindowTo,
   showWindow,
 }) {
-  if (type === "Rental") {
+  if (typeCaps(type).cycle) {
     return (
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>

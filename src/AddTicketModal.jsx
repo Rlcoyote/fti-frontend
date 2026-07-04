@@ -6,7 +6,7 @@ import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT,
 import TimePicker from "./TimePicker.jsx";
 import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
-import { windowDaysInclusive } from "./ticketFamilies.js";
+import { windowDaysInclusive, typeCaps, TICKET_FAMILY } from "./ticketFamilies.js";
 import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
@@ -184,8 +184,31 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     const n = windowDaysInclusive(effWindowFrom, effWindowTo);
     if (n === null) return;
     setLineItems((prev) => prev.map((li) => ({ ...li, days: n })));
-     
   }, [effWindowFrom, effWindowTo]);
+
+  // v28.262 — the master-ticket type selector. v28.182 REMOVED the old
+  // "CHANGE TYPE" button because type-specific state (Rental's cycleDays)
+  // silently survived a switch and landed on the wrong ticket. The dropdown
+  // returns with the crossover class killed by EXPLICIT residue mapping:
+  // every field that doesn't apply to the new type is carried or cleared, on
+  // purpose, right here. Once a JSA soft-save has created the real ticket,
+  // switches lock to the same family (BE v28.260 refuses cross-family PUTs).
+  const caps = typeCaps(type);
+  const switchType = (next) => {
+    if (!next || next === type) return;
+    if (savedTicketId && TICKET_FAMILY[next] !== TICKET_FAMILY[type]) return;
+    if (next === "Rental") {
+      if (windowFrom) setStartDate(windowFrom); // carry the window into the cycle start
+      setWindowFrom("");
+      setWindowTo("");
+    } else if (type === "Rental") {
+      if (typeCaps(next).window && startDate) {
+        setWindowFrom(startDate); // carry the cycle window into RU/RD From/To
+        if (endDate) setWindowTo(endDate);
+      }
+    }
+    setType(next);
+  };
 
   const isDirty = type || lineItems.length > 0 || notes;
   const handleClose = () => {
@@ -476,7 +499,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             open) and open the JSA against it. Shown only for a non-Rental
             ticket with no JSA yet; once a JSA exists the VIEW / EDIT button
             below takes over. The ticket-row JSA entry point is unchanged. */}
-        {type && type !== "Rental" && !existingJSA && (
+        {type && caps.jsaInCreate && !existingJSA && (
           <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
             <button
               type="button"
@@ -502,7 +525,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         )}
 
         {/* VIEW / EDIT JSA — shown once a JSA exists on this ticket. */}
-        {type && type !== "Rental" && existingJSA && (
+        {type && caps.jsaInCreate && existingJSA && (
           <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
             {/* v28.69 — button state mirrors the v28.41 badge pattern.
                 Before this fix the button was hardcoded green ✓ the moment
@@ -579,6 +602,27 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <TicketTypeBadge type={type} />
+                <select
+                  value={type || ""}
+                  onChange={(e) => switchType(e.target.value)}
+                  title="Switch ticket type — the form recolors and keeps everything that applies"
+                  style={{
+                    border: `2px solid ${C.border}`,
+                    borderRadius: 6,
+                    padding: "4px 8px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    background: C.cardBg,
+                    color: C.text,
+                    cursor: "pointer",
+                  }}
+                >
+                  {Object.keys(TICKET_TYPES).map((t) => (
+                    <option key={t} value={t} disabled={!!savedTicketId && TICKET_FAMILY[t] !== TICKET_FAMILY[type]}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
                 {/* v28.44 — main-form heading on the always-light pastel
                     tcfg.bg panel uses PANEL_TEXT (single source of truth in
                     SharedUI). */}
@@ -613,7 +657,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 setWindowFrom={setWindowFrom}
                 windowTo={windowTo}
                 setWindowTo={setWindowTo}
-                showWindow={type === "Rig Up" || type === "Rig Down"}
+                showWindow={caps.window}
               />
 
               <AddTicketSiteManager
@@ -645,7 +689,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                   set) — the picker auto-defaults to the lead crew member's
                   assigned vehicle and is the source of the GPS pull on
                   TicketDetail later. */}
-              {type !== "Rental" && <AddTicketGpsVehicle gpsVehicleId={gpsVehicleId} setGpsVehicleId={setGpsVehicleId} crewSelection={crewSelection} />}
+              {caps.gps && <AddTicketGpsVehicle gpsVehicleId={gpsVehicleId} setGpsVehicleId={setGpsVehicleId} crewSelection={crewSelection} />}
 
               {type && (
                 <AddTicketGooglePin
@@ -666,7 +710,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
 
               <AddTicketGpsReference driveLoading={driveLoading} driveInfo={driveInfo} dueOnLoc={dueOnLoc} />
 
-              {type !== "Rental" && (
+              {caps.times && (
                 <AddTicketTimeMileage
                   lvYard={lvYard}
                   arrivalTime={arrivalTime}

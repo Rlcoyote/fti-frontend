@@ -247,6 +247,7 @@ export const buildTicketPayload = (updates) => {
   if (updates.emailTo) p.email_to = updates.emailTo;
   if (updates.notes !== undefined) p.notes = updates.notes;
   if (updates.date) p.date = updates.date;
+  if (updates.type !== undefined) p.type = updates.type; // v28.262 — family-guarded switch (BE v28.260)
   if (updates.startDate !== undefined) p.start_date = updates.startDate;
   if (updates.endDate !== undefined) p.end_date = updates.endDate;
   if (updates.cycleDays !== undefined) p.cycle_days = updates.cycleDays;

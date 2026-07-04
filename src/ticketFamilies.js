@@ -29,3 +29,18 @@ export const windowDaysInclusive = (from, to) => {
   if (ms < 0) return null;
   return Math.round(ms / 86400000) + 1;
 };
+
+// Per-type capability flags — ONE home for the section gates that used to be
+// scattered `type === "Rental"` checks across 7 files (the v28.182 bug class:
+// scattered gates drift). Faithful to pre-v28.262 behavior: Rental hides JSA
+// in the create modal + treats JSA as optional at signing, hides GPS + the
+// time/mileage block, and runs the cycle machinery instead of a From/To
+// window. Log types keep the visit-style form until Phase 4 builds theirs.
+export const TYPE_CAPS = {
+  "Rig Up": { jsaInCreate: true, jsaOptional: false, gps: true, times: true, window: true, cycle: false },
+  "Rig Down": { jsaInCreate: true, jsaOptional: false, gps: true, times: true, window: true, cycle: false },
+  Rental: { jsaInCreate: false, jsaOptional: true, gps: false, times: false, window: false, cycle: true },
+  Tester: { jsaInCreate: true, jsaOptional: false, gps: true, times: true, window: false, cycle: false },
+  Pumper: { jsaInCreate: true, jsaOptional: false, gps: true, times: true, window: false, cycle: false },
+};
+export const typeCaps = (type) => TYPE_CAPS[type] || { jsaInCreate: false, jsaOptional: true, gps: false, times: false, window: false, cycle: false };

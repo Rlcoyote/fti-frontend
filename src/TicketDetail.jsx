@@ -29,7 +29,7 @@ import useTicketDvir from "./useTicketDvir.js";
 import useSignaturePolling from "./useSignaturePolling.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
-import { windowDaysInclusive } from "./ticketFamilies.js";
+import { windowDaysInclusive, TICKET_FAMILY } from "./ticketFamilies.js";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
 import JSAModal from "./JSAModal.jsx";
 import TicketRentalCycle, { RentalCountdown } from "./TicketRentalCycle.jsx";
@@ -219,6 +219,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     onClose();
   };
 
+  // v28.262 — same-family type switch on an existing ticket (Reggie: "the
+  // ability to switch back to another ticket if the situation arises"). Saves
+  // immediately through the normal save path; a signed ticket's signature
+  // wipes (the document changed) exactly as any other billing edit. Cross-
+  // family options are disabled in the dropdown AND refused by BE v28.260.
+  const handleTypeSwitch = (next) => {
+    if (!next || next === ticket.type) return;
+    const wasSigned = !!s.signedBy;
+    handleSigWipe();
+    save({ type: next, ...(wasSigned ? { signedBy: null, signedAt: null, signatureImage: null, status: "incomplete" } : {}) });
+  };
+
   const handleSave = () => {
     if (s.sigWiped) {
       // v28.40 — wipe lands at incomplete (was inField).
@@ -293,7 +305,32 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {/* Ticket type header bar */}
         <div style={{ background: tcfg.color, padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
+              {editable && (
+                <select
+                  value={ticket.type}
+                  onChange={(e) => handleTypeSwitch(e.target.value)}
+                  title="Switch ticket type (same family). The form recolors; a signed ticket's signature clears."
+                  style={{
+                    background: "rgba(255,255,255,0.15)",
+                    border: "1px solid rgba(255,255,255,0.4)",
+                    borderRadius: 4,
+                    color: "#fff",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "3px 6px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {Object.keys(TICKET_TYPES).map((t) => (
+                    <option key={t} value={t} style={{ color: "#222" }} disabled={TICKET_FAMILY[t] !== TICKET_FAMILY[ticket.type]}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
             <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em" }}>TICKET DETAIL</div>
           </div>
           <button

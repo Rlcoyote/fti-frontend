@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { typeCaps } from "./ticketFamilies.js";
 
 // ─── TicketJsaBar (v27.82) ──────────────────────────────────────────────────
 // Extracted from TicketDetail.jsx. Top-of-ticket bar that surfaces the JSA
@@ -23,7 +24,7 @@ import { C } from "./config.js";
 
 function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
   if (!jsaLoaded) return null;
-  const isRental = ticket.type === "Rental";
+  const jsaOptional = typeCaps(ticket.type).jsaOptional; // v28.262 — one home for the rule
 
   if (existingJSA) {
     return (
@@ -31,9 +32,23 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
         <button
           type="button"
           onClick={onOpen}
-          style={{ background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-          onMouseEnter={e => { e.currentTarget.style.background = "#d4edda"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#e6f5ec"; }}
+          style={{
+            background: "#e6f5ec",
+            color: C.green,
+            border: `1px solid ${C.green}44`,
+            borderRadius: 4,
+            padding: "5px 14px",
+            fontSize: 11,
+            fontWeight: 800,
+            cursor: "pointer",
+            letterSpacing: "0.04em",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#d4edda";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#e6f5ec";
+          }}
         >
           ✓ VIEW / EDIT JSA
         </button>
@@ -42,12 +57,12 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
   }
 
   // No existing JSA — show CREATE variant (different urgency by ticket type)
-  const accentColor = isRental ? C.blue : C.red;
-  const hintColor = isRental ? C.muted : C.red;
+  const accentColor = jsaOptional ? C.blue : C.red;
+  const hintColor = jsaOptional ? C.muted : C.red;
   const hintStyle = { fontSize: 10, color: hintColor, fontWeight: 600, fontStyle: "italic" };
-  const hint = isRental ? "Optional for rentals" : "Required before signing";
-  const hoverBg = isRental ? "#e8f0fb" : "#fdecea";
-  const borderWidth = isRental ? "1px" : "2px";
+  const hint = jsaOptional ? "Optional for rentals" : "Required before signing";
+  const hoverBg = jsaOptional ? "#e8f0fb" : "#fdecea";
+  const borderWidth = jsaOptional ? "1px" : "2px";
 
   return (
     <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
@@ -55,9 +70,23 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
         <button
           type="button"
           onClick={onOpen}
-          style={{ background: "#fff", color: accentColor, border: `${borderWidth} solid ${accentColor}`, borderRadius: 4, padding: "5px 14px", fontSize: 11, fontWeight: 800, cursor: "pointer", letterSpacing: "0.04em" }}
-          onMouseEnter={e => { e.currentTarget.style.background = hoverBg; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "#fff"; }}
+          style={{
+            background: "#fff",
+            color: accentColor,
+            border: `${borderWidth} solid ${accentColor}`,
+            borderRadius: 4,
+            padding: "5px 14px",
+            fontSize: 11,
+            fontWeight: 800,
+            cursor: "pointer",
+            letterSpacing: "0.04em",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = hoverBg;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "#fff";
+          }}
         >
           CREATE JSA
         </button>
