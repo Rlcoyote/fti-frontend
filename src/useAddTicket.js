@@ -139,6 +139,7 @@ export default function useAddTicket({ setTickets }) {
           ...ticketData,
           id: saved.id,
           ticketNumber: saved.ticket_number,
+          weekStart: saved.week_start || null, // v28.270 — no-refresh week anchor
           createdBy: currentUser?.name || null,
           createdAt: new Date().toISOString(),
         };

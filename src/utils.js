@@ -316,6 +316,11 @@ export const updateTicketApi = async (id, updates, setTickets, onError) => {
       if (onError) onError(msg);
       return { ok: false, error: msg };
     }
+    // v28.270 — the server owns week_start (recomputed when a log ticket's
+    // date moves, v28.269); merge its answer so the weekly grid re-anchors
+    // without a page refresh.
+    const body = await r.json().catch(() => null);
+    if (body && body.week_start !== undefined) updates = { ...updates, weekStart: body.week_start };
   } catch (err) {
     console.error("Ticket update failed:", err);
     if (onError) onError("A network error occurred while saving the ticket.");
