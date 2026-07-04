@@ -16,14 +16,6 @@ import { Btn, TICKET_TYPES } from "./SharedUI.jsx";
 // to TICKET_TYPES it'll appear in this grid automatically; only the
 // description line needs adding to the lookup below.
 
-const DESCRIPTIONS = {
-  "Rig Up": "Crew mobilization, equipment, Day 1 rental",
-  "Rig Down": "Teardown, equipment return, DLR check",
-  Tester: "Flo-back testing, hourly logging",
-  Pumper: "Field specialist, daily operations",
-  Rental: "Ongoing equipment rental (Day 2+)",
-};
-
 export default function AddTicketTypeSelector({ onSelect, onCancel }) {
   return (
     <>
@@ -46,7 +38,7 @@ export default function AddTicketTypeSelector({ onSelect, onCancel }) {
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = cfg.color + "33")}
           >
             <div style={{ fontSize: 14, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{DESCRIPTIONS[key] || ""}</div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{cfg.desc || ""}</div>
           </button>
         ))}
       </div>

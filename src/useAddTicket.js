@@ -49,7 +49,12 @@ export default function useAddTicket({ setTickets }) {
   // bug; the modal's disabled button is the visible-feedback layer on top.
   const submittingRef = useRef(false);
 
-  const openAdd = () => setShowAdd(true);
+  // v28.271 — the ADD TICKET type menu preselects; the modal opens typed.
+  const [initialType, setInitialType] = useState(null);
+  const openAdd = (type) => {
+    setInitialType(typeof type === "string" ? type : null);
+    setShowAdd(true);
+  };
   const closeAdd = () => setShowAdd(false);
 
   const handleAdd = async (ticketData, opts = {}) => {
@@ -200,5 +205,5 @@ export default function useAddTicket({ setTickets }) {
     return savedTicket;
   };
 
-  return { showAdd, openAdd, closeAdd, handleAdd };
+  return { showAdd, openAdd, closeAdd, handleAdd, initialType };
 }

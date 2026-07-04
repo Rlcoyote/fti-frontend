@@ -23,11 +23,13 @@ export const Z_INDEX = {
 
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────
 export const TICKET_TYPES = {
-  "Rig Up": { color: "#B01020", bg: "#fdecea", label: "RIG UP", abbr: "RU" },
-  "Rig Down": { color: "#000000", bg: "#e8e8e8", label: "RIG DOWN", abbr: "RD" },
-  Tester: { color: "#1a7a3c", bg: "#e6f5ec", label: "TESTER", abbr: "TST" },
-  Pumper: { color: "#1a5fa8", bg: "#e8f0fb", label: "PUMPER", abbr: "PMP" },
-  Rental: { color: "#8a6500", bg: "#fdf5d8", label: "RENTAL", abbr: "RNT" },
+  // v28.271 — desc lives here (ONE home): the ADD TICKET type menu and the
+  // in-modal fallback grid both read it.
+  "Rig Up": { color: "#B01020", bg: "#fdecea", label: "RIG UP", abbr: "RU", desc: "Crew mobilization, equipment, Day 1 rental" },
+  "Rig Down": { color: "#000000", bg: "#e8e8e8", label: "RIG DOWN", abbr: "RD", desc: "Teardown, equipment return, DLR check" },
+  Tester: { color: "#1a7a3c", bg: "#e6f5ec", label: "TESTER", abbr: "TST", desc: "Flo-back testing, weekly hours + well log" },
+  Pumper: { color: "#1a5fa8", bg: "#e8f0fb", label: "PUMPER", abbr: "PMP", desc: "Field specialist, weekly hours + well log" },
+  Rental: { color: "#8a6500", bg: "#fdf5d8", label: "RENTAL", abbr: "RNT", desc: "Ongoing equipment rental (Day 2+)" },
 };
 
 // v28.40 — inField removed. Functionally identical to incomplete (both meant

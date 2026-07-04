@@ -39,7 +39,7 @@ import useTicketDetailModalActions from "./useTicketDetailModalActions.js";
 
 function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
-  const { showAdd, openAdd, closeAdd, handleAdd } = useAddTicket({ setTickets });
+  const { showAdd, openAdd, closeAdd, handleAdd, initialType } = useAddTicket({ setTickets });
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const emailRequest = useTicketEmailRequest({ setTickets });
   const isMobile = useIsMobile();
@@ -135,7 +135,16 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         />
       ))}
 
-      {showAdd && <AddTicketModal jobId={jobId} job={job} onSave={handleAdd} onClose={closeAdd} jobWells={(job?.wells || []).map((w) => w.well_name || w)} />}
+      {showAdd && (
+        <AddTicketModal
+          jobId={jobId}
+          job={job}
+          initialType={initialType}
+          onSave={handleAdd}
+          onClose={closeAdd}
+          jobWells={(job?.wells || []).map((w) => w.well_name || w)}
+        />
+      )}
       {viewTicket && (
         <TicketDetail
           key={viewTicket.id}

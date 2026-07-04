@@ -23,7 +23,7 @@ import AddTicketTimeMileage from "./AddTicketTimeMileage.jsx";
 import { useApp } from "./AppContext.jsx";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 
-function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
+function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialType = null }) {
   const isMobile = useIsMobile();
   // v28.268 — the create modal locks the page behind it (scroll-chain fix).
   useBodyScrollLock(true);
@@ -65,7 +65,9 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const [hasRigUpForCopy, setHasRigUpForCopy] = useState(false);
   const yardsList = yards;
   const [yardLocationIndex, setYardLocationIndex] = useState(1);
-  const [type, setType] = useState(null);
+  // v28.271 — the type menu preselects; the in-modal grid remains only as the
+  // fallback empty state for any path that opens without a type.
+  const [type, setType] = useState(initialType);
   const [assignedWells, setAssignedWells] = useState([]);
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
   const [lineItems, setLineItems] = useState([]);
