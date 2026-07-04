@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import useIsMobile from "./useIsMobile.js";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal, validateTicketForApproval } from "./utils.js";
 import TicketDeleteModal from "./TicketDeleteModal.jsx";
@@ -313,6 +314,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   const isPageMode = asPage || isMobile;
 
+  // v28.268 — modal mode locks the page behind (scroll-chain bug fix).
+
+  useBodyScrollLock(!isPageMode);
+
   return (
     <div
       style={
@@ -335,6 +340,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 maxWidth: "95vw",
                 maxHeight: "90vh",
                 overflowY: "auto",
+                overscrollBehavior: "contain",
               }
         }
         onClick={isPageMode ? undefined : (e) => e.stopPropagation()}

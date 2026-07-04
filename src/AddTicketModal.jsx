@@ -21,9 +21,12 @@ import AddTicketGpsReference from "./AddTicketGpsReference.jsx";
 import AddTicketGpsVehicle from "./AddTicketGpsVehicle.jsx";
 import AddTicketTimeMileage from "./AddTicketTimeMileage.jsx";
 import { useApp } from "./AppContext.jsx";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 
 function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const isMobile = useIsMobile();
+  // v28.268 — the create modal locks the page behind it (scroll-chain fix).
+  useBodyScrollLock(true);
   // Set by the JSA soft-save (softSaveForJsa): creating a JSA from this modal
   // first soft-saves the ticket, then this id flips the modal into update mode
   // (so the final save updates rather than creating a duplicate) and feeds the
@@ -472,6 +475,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               background: (type && TICKET_TYPES[type]?.bg) || C.cardBg,
               zIndex: 100,
               overflowY: "auto",
+              overscrollBehavior: "contain",
               WebkitOverflowScrolling: "touch",
             }
           : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
@@ -496,6 +500,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 maxWidth: "95vw",
                 maxHeight: "90vh",
                 overflowY: "auto",
+                overscrollBehavior: "contain",
               }
         }
         onClick={isMobile ? undefined : (e) => e.stopPropagation()}
