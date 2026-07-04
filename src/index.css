@@ -46,3 +46,46 @@ body[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator:ho
 body[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* ─── v28.266 — .fti-btn: the ONE interaction home for every Btn ─────────────
+   Reggie: "all buttons dynamic and sexy... let the user know this app is
+   first class." Inline React styles can't reach :hover/:active/:focus-visible,
+   so the motion lives here; Btn (SharedUI.jsx) supplies the variant colors
+   inline and carries this class. Hover: lift + glow. Press: settle. Keyboard:
+   a visible ring. Honors prefers-reduced-motion. */
+.fti-btn {
+  position: relative;
+  transition:
+    transform 0.14s cubic-bezier(0.2, 0.9, 0.3, 1.4),
+    box-shadow 0.14s ease,
+    filter 0.14s ease,
+    opacity 0.14s ease;
+  will-change: transform;
+}
+.fti-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.09) saturate(1.05);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.fti-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  filter: brightness(0.96);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition-duration: 0.05s;
+}
+.fti-btn:focus-visible {
+  outline: 2px solid #e63946;
+  outline-offset: 2px;
+}
+.fti-btn:disabled {
+  transform: none;
+  box-shadow: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fti-btn,
+  .fti-btn:hover:not(:disabled),
+  .fti-btn:active:not(:disabled) {
+    transform: none;
+    transition: none;
+  }
+}

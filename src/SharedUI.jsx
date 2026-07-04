@@ -148,30 +148,28 @@ export function Btn({ onClick, children, variant = "primary", small, disabled, s
     // v27.98 — danger variant for destructive confirmations (disable 2FA, etc.)
     danger: { background: "#8b1010", color: C.white, border: "none" },
   };
+  // v28.266 — interaction states moved to .fti-btn (index.css): hover lift +
+  // glow, press settle, keyboard focus ring, reduced-motion honored. The old
+  // JS opacity-dim hover is gone — CSS pseudo-classes are the structural home
+  // (inline styles can't express them; the listeners were the workaround).
   return (
     <button
       type="button"
+      className="fti-btn"
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       title={title}
       style={{
         ...styles[variant],
         padding: small ? "5px 12px" : "9px 18px",
-        borderRadius: 4,
+        borderRadius: 6,
         fontSize: small ? 12 : 13,
         fontWeight: 700,
         cursor: disabled ? "not-allowed" : "pointer",
         fontFamily: "'Arial', sans-serif",
         letterSpacing: "0.04em",
-        transition: "opacity 0.12s, transform 0.1s",
         opacity: disabled ? 0.4 : 1,
         ...extraStyle,
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled) e.currentTarget.style.opacity = "0.85";
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled) e.currentTarget.style.opacity = disabled ? "0.4" : "1";
       }}
       onMouseDown={(e) => {
         if (!disabled) e.currentTarget.style.transform = "scale(0.97)";
