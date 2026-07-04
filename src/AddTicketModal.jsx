@@ -7,6 +7,7 @@ import TimePicker from "./TimePicker.jsx";
 import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
 import { windowDaysInclusive, typeCaps, TICKET_FAMILY } from "./ticketFamilies.js";
+import TicketEquipmentSection from "./TicketEquipmentSection.jsx";
 import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
@@ -65,6 +66,9 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   const [assignedWells, setAssignedWells] = useState([]);
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
   const [lineItems, setLineItems] = useState([]);
+  // v28.264 — equipment-on-location rows (master-ticket Phase 3). Separate
+  // from lineItems by design: what's ON LOCATION vs what's BILLED.
+  const [equipment, setEquipment] = useState([]);
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(() => (job?.dateStarted ? String(job.dateStarted).slice(0, 10) : today()));
   // v28.70 — Rental tickets default to WO scheduled date + 1 day, not
@@ -359,6 +363,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
         signedBy: null,
         signedAt: null,
         lineItems,
+        equipment,
         notes,
         assignedWells: assignedWells ?? jobWells,
         siteMgrFirst: smFirst,
@@ -731,6 +736,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               )}
 
               <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
+              <TicketEquipmentSection rows={equipment} setRows={setEquipment} ticketType={type} jobId={jobId} readOnly={false} />
               <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} jobId={jobId} />
               <div style={{ marginTop: 16, marginBottom: 16 }}>
                 <label style={labelStyle}>NOTES</label>

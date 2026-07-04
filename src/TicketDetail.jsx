@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal, validateTicketForApproval } from "./utils.js";
@@ -30,6 +30,8 @@ import useSignaturePolling from "./useSignaturePolling.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
 import { windowDaysInclusive, TICKET_FAMILY } from "./ticketFamilies.js";
+import TicketEquipmentSection from "./TicketEquipmentSection.jsx";
+import { api } from "./api.js";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
 import JSAModal from "./JSAModal.jsx";
 import TicketRentalCycle, { RentalCountdown } from "./TicketRentalCycle.jsx";
@@ -114,11 +116,43 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     }).catch(() => {});
   };
 
+  // v28.264 — equipment-on-location rows (Phase 3). Loaded per ticket; saved
+  // via PUT /tickets/:id/equipment on SAVE (only when touched). Edits wipe the
+  // signature via the section's onSigWipe like any other on-page change.
+  const [equipment, setEquipment] = useState([]);
+  const [equipDirty, setEquipDirty] = useState(false);
+  useEffect(() => {
+    api
+      .get(`/tickets/${ticket.id}/equipment`)
+      .then((rows) => {
+        setEquipment(rows.map((r) => ({ inventory_id: r.inventory_id, item: r.item, size: r.size || "", qty: r.qty, note: r.note || "" })));
+        setEquipDirty(false);
+      })
+      .catch(() => setEquipment([]));
+     
+  }, [ticket.id]);
+  const setEquipmentDirty = (updater) => {
+    setEquipDirty(true);
+    setEquipment(updater);
+  };
+  const saveEquipment = () => {
+    if (!equipDirty) return;
+    api
+      .put(`/tickets/${ticket.id}/equipment`, {
+        rows: equipment
+          .filter((r) => r.item && String(r.item).trim())
+          .map((r) => ({ inventory_id: r.inventory_id || null, item: r.item, size: r.size || null, qty: r.qty || 1, note: r.note || null })),
+      })
+      .then(() => setEquipDirty(false))
+      .catch((e) => showNotice?.("Equipment Save Failed", e.message, "error"));
+  };
+
   const save = (overrides = {}) => {
     if (!editable && !overrides.status) return; // Don't save if locked and no status override
     saveSiteMgrAsContact();
     const updates = { ...s.buildPayload(ticket.type), ...overrides };
     onUpdate(ticket.id, updates);
+    saveEquipment();
   };
 
   const handleClose = () => {
@@ -543,6 +577,15 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
           {/* Line items — v28.44: PANEL_MUTED for the section header
               (renders directly on the pastel tcfg.bg panel). */}
+          <TicketEquipmentSection
+            rows={equipment}
+            setRows={setEquipmentDirty}
+            ticketType={ticket.type}
+            jobId={ticket.jobId}
+            readOnly={isLocked}
+            onSigWipe={handleSigWipe}
+          />
+
           <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
           {!isLocked ? (
             <LineItemEditor
