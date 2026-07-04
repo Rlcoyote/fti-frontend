@@ -6,6 +6,7 @@ import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT,
 import TimePicker from "./TimePicker.jsx";
 import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
+import { windowDaysInclusive } from "./ticketFamilies.js";
 import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
@@ -82,6 +83,12 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   });
   const [cycleDays, setCycleDays] = useState(28);
   const [isRecurring, setIsRecurring] = useState(true);
+  // v28.261 — optional rental window on RU/RD (maps to start_date/end_date,
+  // the same columns Rental already uses). Both set -> every line's DAYS
+  // auto-fills (Option 2); hand edits after still override until the window
+  // changes again.
+  const [windowFrom, setWindowFrom] = useState("");
+  const [windowTo, setWindowTo] = useState("");
   const [showUnsaved, setShowUnsaved] = useState(false);
 
   // v28.09 — detect whether the parent job has a non-voided Rig Up so the
@@ -166,6 +173,19 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
     d.setDate(d.getDate() + (cycleDays - 1));
     return d.toLocaleDateString("en-CA");
   }, [startDate, cycleDays]);
+
+  // v28.261 — Option 2 auto-fill: a completed window (RU/RD From/To, or the
+  // Rental start+computed end) fills every line's DAYS; per-line hand edits
+  // override until the window changes again. Declared AFTER the endDate memo
+  // it reads (TDZ). effWindow* are plain derivations — the effect keys on them.
+  const effWindowFrom = type === "Rental" ? startDate : windowFrom;
+  const effWindowTo = type === "Rental" ? endDate : windowTo;
+  useEffect(() => {
+    const n = windowDaysInclusive(effWindowFrom, effWindowTo);
+    if (n === null) return;
+    setLineItems((prev) => prev.map((li) => ({ ...li, days: n })));
+     
+  }, [effWindowFrom, effWindowTo]);
 
   const isDirty = type || lineItems.length > 0 || notes;
   const handleClose = () => {
@@ -337,6 +357,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
               pinLng: effPinLng,
             }
           : {}),
+        ...(!isRental && windowFrom && windowTo ? { startDate: windowFrom, endDate: windowTo } : {}),
         ...(!isRental
           ? {
               lvYard,
@@ -588,6 +609,11 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
                 yardsList={yardsList}
                 yardLocationIndex={yardLocationIndex}
                 setYardLocationIndex={setYardLocationIndex}
+                windowFrom={windowFrom}
+                setWindowFrom={setWindowFrom}
+                windowTo={windowTo}
+                setWindowTo={setWindowTo}
+                showWindow={type === "Rig Up" || type === "Rig Down"}
               />
 
               <AddTicketSiteManager

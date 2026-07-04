@@ -3,6 +3,7 @@ import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal } from "./utils.js";
 import { Btn, inputStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { isVisitType } from "./ticketFamilies.js";
 import { useApp } from "./AppContext.jsx";
 import CopyLineItemsModal from "./CopyLineItemsModal.jsx";
 
@@ -17,7 +18,11 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   const [allowedCodes, setAllowedCodes] = useState(null);
   const [editingIdx, setEditingIdx] = useState(null); // Mobile: which card is expanded for editing
   const isMob = useIsMobile();
-  const isRental = ticketType === "Rental";
+  // v28.261 — DAYS is a VISIT-family column (Rig Up / Rig Down / Rental), not
+  // a Rental special. The paper RU/RD forms bill Rate × Days on every charge
+  // row; the old showDays gate silently saved days=1 on RU/RD (the "REST @
+  // $40 × 1 DAY with no days field" bug). Log-family lines come in Phase 4.
+  const showDays = isVisitType(ticketType);
   const isRigDown = ticketType === "Rig Down";
 
   // Check if a non-voided Rig Up exists on this job AND (for Rig Down) collect allowed QB codes.
@@ -79,7 +84,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
       : qbItems;
 
   const addItem = (qb) => {
-    const item = { qbCode: qb.code, desc: qb.desc, rate: qb.price, qty: 1, um: qb.um, ...(isRental ? { days: 1 } : {}) };
+    const item = { qbCode: qb.code, desc: qb.desc, rate: qb.price, qty: 1, um: qb.um, ...(showDays ? { days: 1 } : {}) };
     // Rig Down validation: warn if item is not on any Rig Up or Rental ticket
     if (isRigDown && allowedCodes && allowedCodes.size > 0 && !allowedCodes.has(qb.code)) {
       setWarnItem(item);
@@ -94,7 +99,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   };
 
   const addBlank = () => {
-    setLineItems((prev) => [...prev, { qbCode: "", desc: "", rate: 0, qty: 1, um: "DAY", ...(isRental ? { days: 1 } : {}) }]);
+    setLineItems((prev) => [...prev, { qbCode: "", desc: "", rate: 0, qty: 1, um: "DAY", ...(showDays ? { days: 1 } : {}) }]);
     onSigWipe?.();
   };
 
@@ -110,8 +115,8 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
 
   const total = lineItems.reduce((s, li) => s + calcLineTotal(li), 0);
 
-  const cols = isRental ? "40px 90px 1fr 65px 55px 60px 55px 85px 36px" : "40px 100px 1fr 70px 70px 70px 90px 36px";
-  const headers = isRental
+  const cols = showDays ? "40px 90px 1fr 65px 55px 60px 55px 85px 36px" : "40px 100px 1fr 70px 70px 70px 90px 36px";
+  const headers = showDays
     ? ["#", "CODE", "DESCRIPTION", "RATE", "QTY", "U/M", "DAYS", "TOTAL", ""]
     : ["#", "CODE", "DESCRIPTION", "RATE", "QTY", "U/M", "TOTAL", ""];
 
@@ -150,7 +155,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                     </div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
                       ${Number(li.rate || 0).toLocaleString()} × {li.qty || 0} {li.um || ""}
-                      {isRental && li.days > 1 ? ` × ${li.days}d` : ""} ={" "}
+                      {showDays && li.days > 1 ? ` × ${li.days}d` : ""} ={" "}
                       <strong style={{ color: C.text }}>${liTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong>
                     </div>
                   </div>
@@ -198,7 +203,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                       <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>DESCRIPTION</label>
                       <input style={{ ...inputStyle, fontSize: 12 }} value={li.desc} onChange={(e) => updateItem(idx, "desc", e.target.value)} />
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: isRental ? "1fr 1fr 1fr" : "1fr 1fr", gap: 6 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: showDays ? "1fr 1fr 1fr" : "1fr 1fr", gap: 6 }}>
                       <div>
                         <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>RATE</label>
                         <input
@@ -223,7 +228,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                           }}
                         />
                       </div>
-                      {isRental && (
+                      {showDays && (
                         <div>
                           <label style={{ fontSize: 9, fontWeight: 700, color: C.muted }}>DAYS</label>
                           <input
@@ -328,7 +333,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                     <option key={u}>{u}</option>
                   ))}
                 </select>
-                {isRental && (
+                {showDays && (
                   <input
                     inputMode="numeric"
                     style={{ ...inputStyle, padding: "4px 6px", fontSize: 11, textAlign: "right" }}

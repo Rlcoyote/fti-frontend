@@ -33,6 +33,15 @@ export default function AddTicketDateTimeFields({
   yardsList,
   yardLocationIndex,
   setYardLocationIndex,
+  // v28.261 — optional rental window for the non-Rental visit types (the paper
+  // RU/RD forms carry "Rental Date From / To" on their charges block). When
+  // both are set the parent auto-fills every line item's DAYS (Option 2);
+  // per-line hand edits still override.
+  windowFrom,
+  setWindowFrom,
+  windowTo,
+  setWindowTo,
+  showWindow,
 }) {
   if (type === "Rental") {
     return (
@@ -102,6 +111,18 @@ export default function AddTicketDateTimeFields({
             ))}
           </div>
         </div>
+        {showWindow && (
+          <>
+            <div>
+              <label style={labelStyle}>RENTAL FROM</label>
+              <input type="date" style={{ ...inputStyle, width: 160 }} value={windowFrom} onChange={(e) => setWindowFrom(e.target.value)} />
+            </div>
+            <div>
+              <label style={labelStyle}>RENTAL TO</label>
+              <input type="date" style={{ ...inputStyle, width: 160 }} value={windowTo} onChange={(e) => setWindowTo(e.target.value)} />
+            </div>
+          </>
+        )}
         {yardsList.length > 1 && (
           <div>
             <label style={labelStyle}>YARD</label>

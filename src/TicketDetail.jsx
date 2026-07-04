@@ -29,6 +29,7 @@ import useTicketDvir from "./useTicketDvir.js";
 import useSignaturePolling from "./useSignaturePolling.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
+import { windowDaysInclusive } from "./ticketFamilies.js";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
 import JSAModal from "./JSAModal.jsx";
 import TicketRentalCycle, { RentalCountdown } from "./TicketRentalCycle.jsx";
@@ -450,6 +451,16 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             if (partial.endDate !== undefined) s.setRentalEndDate(partial.endDate);
             if (partial.cycleDays !== undefined) s.setRentalCycleDays(partial.cycleDays);
             if (partial.recurring !== undefined) s.setRentalRecurring(partial.recurring);
+            // v28.261 — Option 2: a completed window re-fills every line's DAYS
+            // (hand edits per line still override after). Changes billing, so
+            // the signature wipes like any other line-item edit.
+            const from = partial.startDate !== undefined ? partial.startDate : s.rentalStartDate;
+            const to = partial.endDate !== undefined ? partial.endDate : s.rentalEndDate;
+            const n = windowDaysInclusive(from, to);
+            if (n !== null) {
+              s.setLineItems((prev) => prev.map((li) => ({ ...li, days: n })));
+              handleSigWipe();
+            }
           }}
         />
 

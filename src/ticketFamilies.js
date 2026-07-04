@@ -19,3 +19,13 @@ export const TICKET_FAMILY = {
 
 export const isLogType = (type) => TICKET_FAMILY[type] === "log";
 export const isVisitType = (type) => TICKET_FAMILY[type] === "visit";
+
+// Inclusive day count of a rental window: 07-01 → 07-03 = 3 days. Null when
+// either date is missing/invalid or the range is backwards. Option 2 (Reggie):
+// the window FILLS each line's DAYS; a hand edit per line still overrides.
+export const windowDaysInclusive = (from, to) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from || "") || !/^\d{4}-\d{2}-\d{2}$/.test(to || "")) return null;
+  const ms = new Date(to + "T00:00:00Z") - new Date(from + "T00:00:00Z");
+  if (ms < 0) return null;
+  return Math.round(ms / 86400000) + 1;
+};
