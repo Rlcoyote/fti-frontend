@@ -6,7 +6,6 @@ import { Btn, TicketDot, TodoBadge, ConfirmModal, PANEL_TEXT, PANEL_MUTED } from
 import { JobTodoTab } from "./TodoPage.jsx";
 import JobTicketsTab from "./JobTicketsTab.jsx";
 import EditJobModal from "./EditJobModal.jsx";
-import FlowbackModal from "./FlowbackModal.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function JobCard({
@@ -32,7 +31,6 @@ function JobCard({
   const jobTickets = tickets.filter((t) => t.jobId === job.id);
   const [activeTab, setActiveTab] = useState("tickets");
   const [showEditJob, setShowEditJob] = useState(false);
-  const [showFlowback, setShowFlowback] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
   const isMobile = useIsMobile();
@@ -438,7 +436,6 @@ function JobCard({
                   const canDelete = can("delete_jobs");
                   const actions = [
                     { label: "Add / View Field Tickets", action: () => setActiveTab("tickets") },
-                    { label: "Flowback Data", action: () => setShowFlowback(true) },
                     { label: "Edit Work Order", action: () => setShowEditJob(true) },
                   ];
                   // v28.40 — CLOSE OUT WORK ORDER moved to the MARK FOR
@@ -534,7 +531,6 @@ function JobCard({
           onClose={() => setShowEditJob(false)}
         />
       )}
-      {showFlowback && <FlowbackModal job={job} onClose={() => setShowFlowback(false)} />}
       {showCompleteConfirm && (
         <ConfirmModal
           title={`Mark Work Order #${job.id} complete?`}

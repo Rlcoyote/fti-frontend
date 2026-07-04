@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { typeCaps } from "./ticketFamilies.js";
+import { typeCaps, isLogType } from "./ticketFamilies.js";
 import { inputStyle, labelStyle, PANEL_TEXT } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 
@@ -71,6 +71,12 @@ export default function AddTicketDateTimeFields({
 
   return (
     <div style={{ marginBottom: 14 }}>
+      {isLogType(type) && (
+        <div style={{ fontSize: 11.5, fontWeight: 600, color: PANEL_TEXT, opacity: 0.75, marginBottom: 6 }}>
+          Tester/Pumper tickets run Monday–Sunday. Pick your first working day — the ticket anchors to that week, and you'll fill each day's hours on the ticket
+          itself.
+        </div>
+      )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", alignItems: "flex-end" }}>
         <div>
           <label style={labelStyle}>DATE</label>

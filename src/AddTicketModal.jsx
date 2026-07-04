@@ -6,7 +6,7 @@ import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT,
 import TimePicker from "./TimePicker.jsx";
 import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
-import { windowDaysInclusive, typeCaps, TICKET_FAMILY } from "./ticketFamilies.js";
+import { windowDaysInclusive, typeCaps, TICKET_FAMILY, isLogType } from "./ticketFamilies.js";
 import TicketEquipmentSection from "./TicketEquipmentSection.jsx";
 import AddTicketJsaPortal from "./AddTicketJsaPortal.jsx";
 import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
@@ -252,6 +252,13 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [] }) {
   };
 
   const toggleWell = (well) => {
+    // v28.267 — a Tester/Pumper weekly ticket covers ONE well (the paper form
+    // has a single Well Name); picking a well replaces the pick. Visit
+    // tickets keep multi-select.
+    if (isLogType(type)) {
+      setAssignedWells([well]);
+      return;
+    }
     setAssignedWells((prev) => (prev.includes(well) ? prev.filter((w) => w !== well) : [...prev, well]));
   };
   const selectAllWells = () => setAssignedWells([...jobWells]);

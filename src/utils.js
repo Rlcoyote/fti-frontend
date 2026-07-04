@@ -104,6 +104,7 @@ export const mapTicketFromApi = (t) => {
     ticketNumber: t.ticket_number || null,
     startDate: t.start_date || null,
     endDate: t.end_date || null,
+    weekStart: t.week_start || null, // v28.267 — log-family Mon anchor
     cycleDays: t.cycle_days || 28,
     isRecurring: t.is_recurring || false,
     voidedAt: t.voided_at || null,

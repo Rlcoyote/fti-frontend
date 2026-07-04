@@ -29,7 +29,9 @@ import useTicketDvir from "./useTicketDvir.js";
 import useSignaturePolling from "./useSignaturePolling.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
-import { windowDaysInclusive, TICKET_FAMILY } from "./ticketFamilies.js";
+import { windowDaysInclusive, TICKET_FAMILY, isLogType } from "./ticketFamilies.js";
+import TicketWeekDays from "./TicketWeekDays.jsx";
+import WellLogTab from "./WellLogTab.jsx";
 import TicketEquipmentSection from "./TicketEquipmentSection.jsx";
 import { api } from "./api.js";
 import ReadOnlyLineItems from "./ReadOnlyLineItems.jsx";
@@ -120,6 +122,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   // via PUT /tickets/:id/equipment on SAVE (only when touched). Edits wipe the
   // signature via the section's onSigWipe like any other on-page change.
   const [equipment, setEquipment] = useState([]);
+  // v28.267 — log-family (Tester/Pumper) body: DAYS & HOURS | WELL LOG tabs.
+  const [logTab, setLogTab] = useState("days");
   const [equipDirty, setEquipDirty] = useState(false);
   useEffect(() => {
     api
@@ -129,7 +133,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         setEquipDirty(false);
       })
       .catch(() => setEquipment([]));
-     
   }, [ticket.id]);
   const setEquipmentDirty = (updater) => {
     setEquipDirty(true);
@@ -577,6 +580,67 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
           {/* Line items — v28.44: PANEL_MUTED for the section header
               (renders directly on the pastel tcfg.bg panel). */}
+          {isLogType(ticket.type) && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                {[
+                  ["days", "DAYS & HOURS"],
+                  ["well", "WELL LOG"],
+                ].map(([key, label]) => (
+                  <span
+                    key={key}
+                    onClick={() => setLogTab(key)}
+                    style={{
+                      padding: "7px 16px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      letterSpacing: "0.06em",
+                      cursor: "pointer",
+                      border: `2px solid ${logTab === key ? tcfg.color : C.border}`,
+                      background: logTab === key ? `${tcfg.color}22` : "transparent",
+                      color: logTab === key ? tcfg.color : PANEL_MUTED,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+              {logTab === "days" ? (
+                <TicketWeekDays
+                  ticket={ticket}
+                  accent={tcfg.color}
+                  readOnly={isLocked}
+                  showNotice={showNotice}
+                  onTotalHours={(total, meta) => {
+                    // v28.267 — auto-sum: the saved week total flows into any
+                    // line item measured in hours (U/M starting HR/HOUR).
+                    // Office adjusts before approval; the signature wipes
+                    // (billing changed).
+                    if (!meta?.saved || !total) return;
+                    let touched = false;
+                    s.setLineItems((prev) =>
+                      prev.map((li) => {
+                        if (/^(hr|hour)/i.test(String(li.um || ""))) {
+                          touched = true;
+                          return { ...li, qty: total };
+                        }
+                        return li;
+                      }),
+                    );
+                    if (touched) {
+                      handleSigWipe();
+                      showNotice?.("Test Hours Applied", `${total} hours filled into the hourly line item(s). Press SAVE to keep it.`, "success");
+                    }
+                  }}
+                />
+              ) : (
+                <WellLogTab ticket={ticket} accent={tcfg.color} readOnly={isLocked} />
+              )}
+            </div>
+          )}
+
           <TicketEquipmentSection
             rows={equipment}
             setRows={setEquipmentDirty}
