@@ -115,7 +115,11 @@ function TimeCell({ value, onChange, disabled, accent, isOut }) {
   );
 }
 
-function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated, showNotice }) {
+function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated, showNotice, onOpenJsa, jsaBump = 0 }) {
+  // v28.273 — per-day JSA chips: one JSA per day (jsas UNIQUE(ticket_id,
+  // date), live since Phase 1). jsaBump increments when the parent's JSA
+  // modal closes so the chips refresh.
+  const [jsaIndex, setJsaIndex] = useState({});
   const [days, setDays] = useState({}); // date -> { in1, out1, in2, out2, note }
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -123,6 +127,21 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
 
   const weekStart = ticket.weekStart ? String(ticket.weekStart).slice(0, 10) : null;
   const dates = weekStart ? DAY_NAMES.map((_, i) => addDays(weekStart, i)) : [];
+
+  useEffect(() => {
+    if (!ticket.id) return;
+    api
+      .get(`/jsas/ticket/${ticket.id}/index`)
+      .then((rows) => {
+        const map = {};
+        (rows || []).forEach((r) => {
+          map[String(r.date).slice(0, 10)] = { id: r.id, complete: !!r.completed_at };
+        });
+        setJsaIndex(map);
+      })
+      .catch(() => {});
+     
+  }, [ticket.id, jsaBump]);
 
   useEffect(() => {
     if (!ticket.id) return;
@@ -262,6 +281,34 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
             <TimeCell value={r.in2} onChange={(v) => setField(date, "in2", v)} disabled={readOnly} accent={accent} />
             <span style={{ opacity: 0.4, fontSize: 11 }}>to</span>
             <TimeCell value={r.out2} onChange={(v) => setField(date, "out2", v)} disabled={readOnly} accent={accent} isOut />
+            {onOpenJsa && (
+              <span
+                onClick={() => !readOnly && onOpenJsa(date)}
+                title={
+                  jsaIndex[date]?.complete
+                    ? "JSA complete — tap to view"
+                    : jsaIndex[date]
+                      ? "JSA started — tap to finish"
+                      : "No JSA for this day yet — tap to start one"
+                }
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: "0.03em",
+                  padding: "3px 8px",
+                  borderRadius: 6,
+                  cursor: readOnly ? "default" : "pointer",
+                  border: `1px solid ${jsaIndex[date]?.complete ? accent : jsaIndex[date] ? "#c99700" : C.border}`,
+                  background: jsaIndex[date]?.complete ? `${accent}22` : jsaIndex[date] ? "#c9970022" : "transparent",
+                  color: jsaIndex[date]?.complete ? accent : jsaIndex[date] ? "#c99700" : C.text,
+                  opacity: jsaIndex[date] ? 1 : 0.55,
+                  whiteSpace: "nowrap",
+                  transition: "all 0.15s",
+                }}
+              >
+                {jsaIndex[date]?.complete ? "✓ JSA" : jsaIndex[date] ? "● JSA" : "+ JSA"}
+              </span>
+            )}
             <span
               style={{
                 marginLeft: "auto",

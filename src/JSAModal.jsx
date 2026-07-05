@@ -13,7 +13,7 @@ import JSAJobSteps from "./JSAJobSteps.jsx";
 import JSAPpeWeather from "./JSAPpeWeather.jsx";
 import JSALocationPin from "./JSALocationPin.jsx";
 
-function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
+function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targetDate = null }) {
   const { settings, currentUser } = useApp();
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
   const [showUnsaved, setShowUnsaved] = useState(false);
@@ -47,7 +47,10 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
   // and silently drops anything longer, leaving the field blank. Slice both
   // sources before handing them to the input.
   const toDateInput = (d) => (d ? String(d).slice(0, 10) : "");
-  const [date, setDate] = useState(toDateInput(jsa?.date) || toDateInput(ticket?.date) || today());
+  // v28.273 — targetDate: a weekly (Tester/Pumper) ticket opens one JSA PER
+  // DAY; the strip passes the day and the date locks (moving it would slide
+  // the JSA onto another day's slot).
+  const [date, setDate] = useState(targetDate || toDateInput(jsa?.date) || toDateInput(ticket?.date) || today());
   const [operator, setOperator] = useState(jsa?.operator || job.customer);
   // Auto-populate all wells from the ticket's assigned wells (not editable — Article X).
   const wellName = jsa?.wellName || jsa?.well_name || wellsList.join(", ") || "—";
@@ -356,7 +359,14 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 14 }}>
             <div>
               <label style={labelStyle}>DATE</label>
-              <input type="date" style={inputStyle} value={date} onChange={(e) => setDate(e.target.value)} />
+              <input
+                type="date"
+                style={{ ...inputStyle, ...(targetDate ? { opacity: 0.7 } : {}) }}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                readOnly={!!targetDate}
+                title={targetDate ? "This JSA belongs to this day of the weekly ticket" : undefined}
+              />
             </div>
             <div>
               <label style={labelStyle}>TIME</label>

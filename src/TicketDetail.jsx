@@ -125,6 +125,18 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [equipment, setEquipment] = useState([]);
   // v28.267 — log-family (Tester/Pumper) body: DAYS & HOURS | WELL LOG tabs.
   const [logTab, setLogTab] = useState("days");
+  // v28.273 — per-day JSA: chip click loads that DAY's JSA (may be null) and
+  // opens JSAModal locked to the date. jsaBump refreshes the chips on close.
+  const [dayJsa, setDayJsa] = useState(null); // { date, existing } | null
+  const [jsaBump, setJsaBump] = useState(0);
+  const openDayJsa = async (jsaDate) => {
+    try {
+      const existing = await api.get(`/jsas/ticket/${ticket.id}?date=${jsaDate}`);
+      setDayJsa({ date: jsaDate, existing: existing || null });
+    } catch {
+      setDayJsa({ date: jsaDate, existing: null });
+    }
+  };
   const [equipDirty, setEquipDirty] = useState(false);
   useEffect(() => {
     api
@@ -619,6 +631,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   accent={tcfg.color}
                   readOnly={isLocked}
                   showNotice={showNotice}
+                  onOpenJsa={openDayJsa}
+                  jsaBump={jsaBump}
                   onTotalHours={(total, meta) => {
                     // v28.267 — auto-sum: the saved week total flows into any
                     // line item measured in hours (U/M starting HR/HOUR).
@@ -753,6 +767,20 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {showVoidConfirm && <TicketVoidModal ticket={ticket} onClose={() => setShowVoidConfirm(false)} onRevise={onRevise} />}
 
         {/* JSA Modal — save handler lives in useTicketJSA (v27.88) */}
+        {dayJsa && job && (
+          <JSAModal
+            job={job}
+            ticket={{ ...ticket, date: dayJsa.date }}
+            targetDate={dayJsa.date}
+            existingJSA={dayJsa.existing}
+            onClose={() => {
+              setDayJsa(null);
+              setJsaBump((n) => n + 1);
+            }}
+            onSave={jsa.handleJsaSave}
+            onComplete={jsa.handleJsaCompleted}
+          />
+        )}
         {jsa.showJSA && job && (
           <JSAModal
             job={job}
