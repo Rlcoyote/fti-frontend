@@ -25,6 +25,7 @@
 // thin coherent unit can stay inline.
 
 import useIsMobile from "./useIsMobile.js";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -40,6 +41,7 @@ import NewJobContactsPanel from "./NewJobContactsPanel.jsx";
 import NewJobCustomerPicker from "./NewJobCustomerPicker.jsx";
 
 function NewJobModal({ onClose, onCreateJob }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const { customers, users, refreshCustomers } = useApp();
   const isMobile = useIsMobile();
   useNewJobMobileBack(onClose);

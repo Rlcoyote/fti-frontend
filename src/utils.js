@@ -152,28 +152,6 @@ export const mapTicketFromApi = (t) => {
 // JSON string; fall back to the legacy single-yard columns when it's absent
 // or empty. Always returns at least one yard.
 const BLANK_YARD = { name: "", address: "", lat: "", lng: "" };
-export const parseYards = (settings) => {
-  if (!settings) return [{ ...BLANK_YARD }];
-  let arr = [];
-  if (settings.yards) {
-    try {
-      arr = JSON.parse(settings.yards);
-    } catch {
-      arr = [];
-    }
-  }
-  if (!Array.isArray(arr) || arr.length === 0) {
-    arr = [
-      {
-        name: "Yard #1",
-        address: settings.yard_address || "",
-        lat: settings.yard_lat || "",
-        lng: settings.yard_lng || "",
-      },
-    ];
-  }
-  return arr;
-};
 
 export const formatShortStamp = (d) => {
   if (!d) return "";

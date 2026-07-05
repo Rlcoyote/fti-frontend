@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -9,6 +10,7 @@ import { useApp } from "./AppContext.jsx";
 // a phone number. The JSA reads these from Context settings.
 
 function EmergencyContactsModal({ onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const { currentUser, settings, refreshSettings } = useApp();
   const isOwner = currentUser?.role === "owner";
 

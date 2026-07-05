@@ -1,4 +1,5 @@
 import { useState } from "react";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C } from "./config.js";
 import { Btn, Z_INDEX } from "./SharedUI.jsx";
 import { today } from "./utils.js";
@@ -23,6 +24,7 @@ import { today } from "./utils.js";
 const DUP_TYPES = ["Rig Up", "Tester", "Pumper", "Rental", "Rig Down"];
 
 function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDuplicate }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const [dupType, setDupType] = useState(ticket.type);
   const [dupDate, setDupDate] = useState(() => today());
   const [dupJobId, setDupJobId] = useState(ticket.jobId);
@@ -36,17 +38,15 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
 
   // Source defaults to the ticket this modal was opened on. User can change
   // via the "(change)" link for the ~10% case where a different source is wanted.
-  const dupSource = (tickets || []).find(t => t.id === dupSourceId) || ticket;
-  const dupTargetJob = (jobs || []).find(j => j.id === dupJobId);
-  const dupSourceJob = (jobs || []).find(j => j.id === dupSource.jobId);
+  const dupSource = (tickets || []).find((t) => t.id === dupSourceId) || ticket;
+  const dupTargetJob = (jobs || []).find((j) => j.id === dupJobId);
+  const dupSourceJob = (jobs || []).find((j) => j.id === dupSource.jobId);
   const dupCustChanged = dupTargetJob && dupSourceJob && dupTargetJob.customer !== dupSourceJob.customer;
-  const dupActiveJobs = (jobs || []).filter(j => j.status !== "Deleted");
+  const dupActiveJobs = (jobs || []).filter((j) => j.status !== "Deleted");
   // Eligible sources: same-WO tickets that aren't deleted. Voided tickets
   // stay listed (copying FROM a voided original is legitimate for reissue flows)
   // but are badged so the user sees what they're picking.
-  const sourceOptions = (tickets || [])
-    .filter(t => t.jobId === ticket.jobId && !t.deletedAt)
-    .sort((a, b) => (b.ticketNumber || 0) - (a.ticketNumber || 0));
+  const sourceOptions = (tickets || []).filter((t) => t.jobId === ticket.jobId && !t.deletedAt).sort((a, b) => (b.ticketNumber || 0) - (a.ticketNumber || 0));
 
   const chk = { width: 16, height: 16, cursor: "pointer", accentColor: C.blue };
   const lbl = { fontSize: 13, cursor: "pointer", userSelect: "none" };
@@ -73,19 +73,29 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
   return (
     <div
       style={{
-        position: "fixed", inset: 0, background: "#00000088",
-        display: "flex", alignItems: "center", justifyContent: "center",
+        position: "fixed",
+        inset: 0,
+        background: "#00000088",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         zIndex: Z_INDEX.nested,
       }}
       onClick={onClose}
     >
       <div
         style={{
-          background: C.cardBg, border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.blue}`, borderRadius: 8, padding: 28,
-          width: 500, maxWidth: "95vw", maxHeight: "85vh", overflowY: "auto",
+          background: C.cardBg,
+          border: `1px solid ${C.border}`,
+          borderTop: `4px solid ${C.blue}`,
+          borderRadius: 8,
+          padding: 28,
+          width: 500,
+          maxWidth: "95vw",
+          maxHeight: "85vh",
+          overflowY: "auto",
         }}
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Duplicate Ticket</div>
 
@@ -96,7 +106,8 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
             <div style={{ fontSize: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
               <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>DUPLICATING FROM:</span>
               <span style={{ color: C.text, fontWeight: 600 }}>
-                #{dupSource.jobId}{dupSource.ticketNumber ? `-${dupSource.ticketNumber}` : ""}
+                #{dupSource.jobId}
+                {dupSource.ticketNumber ? `-${dupSource.ticketNumber}` : ""}
               </span>
               {dupSource.date && <span style={{ color: C.muted }}>· {String(dupSource.date).slice(0, 10)}</span>}
               <span style={{ color: C.muted }}>· {dupSource.type || "—"}</span>
@@ -105,7 +116,17 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
                 <button
                   type="button"
                   onClick={() => setDupSourcePickerOpen(true)}
-                  style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.blue, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                  style={{
+                    marginLeft: "auto",
+                    background: "transparent",
+                    border: "none",
+                    color: C.blue,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: 0,
+                    textDecoration: "underline",
+                  }}
                 >
                   (change)
                 </button>
@@ -116,19 +137,30 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
               <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>DUPLICATING FROM</div>
               <select
                 value={dupSourceId}
-                onChange={e => setDupSourceId(Number(e.target.value))}
+                onChange={(e) => setDupSourceId(Number(e.target.value))}
                 style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
               >
-                {sourceOptions.map(t => (
+                {sourceOptions.map((t) => (
                   <option key={t.id} value={t.id}>
-                    #{t.jobId}{t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)} · {t.type || "—"}{t.voidedAt ? " · VOIDED" : ""}
+                    #{t.jobId}
+                    {t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)} · {t.type || "—"}
+                    {t.voidedAt ? " · VOIDED" : ""}
                   </option>
                 ))}
               </select>
               <button
                 type="button"
                 onClick={() => setDupSourcePickerOpen(false)}
-                style={{ background: "transparent", border: "none", color: C.blue, fontSize: 12, fontWeight: 700, cursor: "pointer", padding: "8px 0 0", textDecoration: "underline" }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: C.blue,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  padding: "8px 0 0",
+                  textDecoration: "underline",
+                }}
               >
                 done
               </button>
@@ -141,10 +173,14 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>TICKET TYPE</div>
           <select
             value={dupType}
-            onChange={e => setDupType(e.target.value)}
+            onChange={(e) => setDupType(e.target.value)}
             style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
           >
-            {DUP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            {DUP_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -154,7 +190,7 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
           <input
             type="date"
             value={dupDate}
-            onChange={e => setDupDate(e.target.value)}
+            onChange={(e) => setDupDate(e.target.value)}
             style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, boxSizing: "border-box" }}
           />
         </div>
@@ -164,40 +200,52 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
           <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>ASSIGN TO WORK ORDER</div>
           <select
             value={dupJobId}
-            onChange={e => setDupJobId(Number(e.target.value))}
+            onChange={(e) => setDupJobId(Number(e.target.value))}
             style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
           >
-            {dupActiveJobs.map(j => <option key={j.id} value={j.id}>#{j.id} — {j.customer} ({j.location})</option>)}
+            {dupActiveJobs.map((j) => (
+              <option key={j.id} value={j.id}>
+                #{j.id} — {j.customer} ({j.location})
+              </option>
+            ))}
           </select>
-          {dupJobId !== dupSource.jobId && dupTargetJob && (
-            <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Customer: {dupTargetJob.customer}</div>
-          )}
+          {dupJobId !== dupSource.jobId && dupTargetJob && <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Customer: {dupTargetJob.customer}</div>}
         </div>
 
         {/* Carry Over Options — all counts/flags reflect the chosen SOURCE */}
         <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>CARRY OVER</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20, padding: "12px 14px", background: C.steel, borderRadius: 6 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-            <input type="checkbox" checked={incLineItems} onChange={e => setIncLineItems(e.target.checked)} style={chk} />
+            <input type="checkbox" checked={incLineItems} onChange={(e) => setIncLineItems(e.target.checked)} style={chk} />
             Line Items ({dupSource.lineItems?.length || 0} items)
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-            <input type="checkbox" checked={incNotes} onChange={e => setIncNotes(e.target.checked)} style={chk} />
+            <input type="checkbox" checked={incNotes} onChange={(e) => setIncNotes(e.target.checked)} style={chk} />
             Notes
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl, opacity: dupCustChanged ? 0.5 : 1 }}>
-            <input type="checkbox" checked={dupCustChanged ? false : incPin} onChange={e => setIncPin(e.target.checked)} disabled={dupCustChanged} style={{ ...chk, cursor: dupCustChanged ? "not-allowed" : "pointer" }} />
+            <input
+              type="checkbox"
+              checked={dupCustChanged ? false : incPin}
+              onChange={(e) => setIncPin(e.target.checked)}
+              disabled={dupCustChanged}
+              style={{ ...chk, cursor: dupCustChanged ? "not-allowed" : "pointer" }}
+            />
             Google Pin {dupCustChanged && <span style={{ fontSize: 10, color: C.muted, fontStyle: "italic" }}>(different customer)</span>}
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 10, ...lbl }}>
-            <input type="checkbox" checked={incWells} onChange={e => setIncWells(e.target.checked)} style={chk} />
+            <input type="checkbox" checked={incWells} onChange={(e) => setIncWells(e.target.checked)} style={chk} />
             Assigned Wells
           </label>
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn variant="blue" onClick={handleSubmit} disabled={dupSubmitting}>{dupSubmitting ? "DUPLICATING..." : "DUPLICATE"}</Btn>
-          <Btn variant="ghost" onClick={onClose}>CANCEL</Btn>
+          <Btn variant="blue" onClick={handleSubmit} disabled={dupSubmitting}>
+            {dupSubmitting ? "DUPLICATING..." : "DUPLICATE"}
+          </Btn>
+          <Btn variant="ghost" onClick={onClose}>
+            CANCEL
+          </Btn>
         </div>
       </div>
     </div>

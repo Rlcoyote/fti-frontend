@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { Btn } from "./SharedUI.jsx";
 
 // ─── AddTicketUnsavedConfirm (v28.58 — extracted from AddTicketModal) ─────────
@@ -16,6 +17,7 @@ import { Btn } from "./SharedUI.jsx";
 // same regardless of the parent modal's pastel tint.
 
 export default function AddTicketUnsavedConfirm({ onDiscard, onDismiss }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}

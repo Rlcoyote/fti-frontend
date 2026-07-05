@@ -1,4 +1,5 @@
 import { useState } from "react";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { categoryLabel } from "./ContactsConstants.js";
@@ -10,6 +11,7 @@ import { categoryLabel } from "./ContactsConstants.js";
 // owns the pair and runs the merge in onConfirm(keeperId, reason).
 
 function ContactMergeModal({ pair, onConfirm, onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const [keeperId, setKeeperId] = useState(pair.a.id);
   const [reason, setReason] = useState("");
 

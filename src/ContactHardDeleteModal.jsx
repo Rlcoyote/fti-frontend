@@ -1,4 +1,5 @@
 import { useState } from "react";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 
@@ -9,6 +10,7 @@ import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 // button stays disabled until a reason is entered.
 
 function ContactHardDeleteModal({ contact, onConfirm, onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const [reason, setReason] = useState("");
 
   return (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
@@ -14,6 +15,7 @@ import JSAPpeWeather from "./JSAPpeWeather.jsx";
 import JSALocationPin from "./JSALocationPin.jsx";
 
 function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targetDate = null }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const { settings, currentUser } = useApp();
   const [showEmergencyEdit, setShowEmergencyEdit] = useState(false);
   const [showUnsaved, setShowUnsaved] = useState(false);

@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { Btn } from "./SharedUI.jsx";
 import { APP_VERSION } from "./version.js";
 
@@ -13,6 +14,7 @@ import { APP_VERSION } from "./version.js";
 const LINK_STYLE = { color: C.blue, textDecoration: "underline" };
 
 function AboutModal({ onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}

@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
 
 // ─── MODAL Z-INDEX LAYERS (v27.67) ────────────────────────────────────────
@@ -393,6 +394,7 @@ export function ModalWrap({ title, onClose, children, width = 440 }) {
 // custom primary-button label (e.g. "Delete", "Deactivate"). The primary
 // action uses the red Btn; cancel is a ghost Btn.
 export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}
@@ -426,6 +428,7 @@ export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCa
 // dismiss with OK, so they don't miss the message. `variant` picks the accent
 // color (green = success, red = error).
 export function NoticeModal({ title, message, variant = "ok", onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const accent = variant === "error" ? C.red : C.green;
   return (
     <div

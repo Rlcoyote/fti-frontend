@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { Btn } from "./SharedUI.jsx";
 
 // ─── UnsavedChangesModal (v28.165 — dedup of EditJobUnsavedModal + the ──────
@@ -9,6 +10,7 @@ import { Btn } from "./SharedUI.jsx";
 // the showUnsaved flag and renders this conditionally.
 
 function UnsavedChangesModal({ message, onDiscard, onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}

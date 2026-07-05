@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C, API_URL } from "./config.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function CompanyDocumentsModal({ onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const { currentUser, can } = useApp();
   const isAdmin = can("manage_settings");
   const [docs, setDocs] = useState([]);

@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import useBodyScrollLock from "./useBodyScrollLock.js";
 import { Btn } from "./SharedUI.jsx";
 
 // ─── ContactSoftDeleteModal (v28.152 — ship 3 of the ContactsPage split) ──
@@ -7,6 +8,7 @@ import { Btn } from "./SharedUI.jsx";
 // runs the batch soft-delete in onConfirm.
 
 function ContactSoftDeleteModal({ count, onConfirm, onClose }) {
+  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   return (
     <div
       style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}

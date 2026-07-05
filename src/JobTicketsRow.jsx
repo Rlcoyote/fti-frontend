@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { typeCaps } from "./ticketFamilies.js";
 import { formatDate, calcTicketTotal } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketRentalCycle.jsx";
@@ -70,7 +71,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
   const cycleEnded = !!t.cycleEnded || !!t.cycle_ended;
   // v28.41 — gate on jsaCompleted, not hasJSA. A draft JSA (saved but not
   // MARK COMPLETE'd) is no longer enough to unlock signing/email/approve.
-  const needsJSA = !t.jsaCompleted && !t.voidedAt && t.type !== "Rental";
+  const needsJSA = !t.jsaCompleted && !t.voidedAt && !typeCaps(t.type).jsaOptional; // v28.274 — one home for the rule
   // Three badge states: completed (green ✓), draft (amber pill), none (gray).
   const jsaBadge = t.jsaCompleted
     ? { bg: "#e6f5ec", color: C.green, border: C.green + "44", label: "✓ JSA" }
