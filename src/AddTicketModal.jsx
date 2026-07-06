@@ -348,6 +348,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
           retYard,
           driveMinutes: driveMin,
           toleranceMin: 10,
+          logFamily: isLogType(type),
         });
         if (!ok) {
           showNotice(
@@ -731,6 +732,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
 
               {caps.times && (
                 <AddTicketTimeMileage
+                  ticketType={type}
                   lvYard={lvYard}
                   arrivalTime={arrivalTime}
                   jobStartTime={jobStartTime}

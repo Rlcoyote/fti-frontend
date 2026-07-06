@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { isLogType } from "./ticketFamilies.js";
 import TimePicker from "./TimePicker.jsx";
 
 // ─── TicketTimeAndMileage (v27.78) ──────────────────────────────────────────
@@ -23,7 +24,8 @@ const parseTime = (s) => {
   if (!s) return null;
   const match = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (!match) return null;
-  let h = parseInt(match[1]), min = parseInt(match[2]);
+  let h = parseInt(match[1]),
+    min = parseInt(match[2]);
   const p = match[3].toUpperCase();
   if (p === "PM" && h !== 12) h += 12;
   if (p === "AM" && h === 12) h = 0;
@@ -37,10 +39,19 @@ const fmtDiff = (a, b) => {
   return `${Math.floor(d / 60)}h ${d % 60}m`;
 };
 
-function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
+function TicketTimeAndMileage({ editable, values, onChange, driveInfo, ticketType }) {
+  // v28.276 — LOG family: travel legs only (out week 1, back the final week).
+  const isLog = isLogType(ticketType);
   const {
-    lvYard = "", arrivalTime = "", jobStartTime = "", jobEndTime = "", retYard = "",
-    timeZone = "", mileageBegin = "", mileageEnd = "", dueOnLoc = "",
+    lvYard = "",
+    arrivalTime = "",
+    jobStartTime = "",
+    jobEndTime = "",
+    retYard = "",
+    timeZone = "",
+    mileageBegin = "",
+    mileageEnd = "",
+    dueOnLoc = "",
   } = values || {};
 
   const tLv = parseTime(lvYard);
@@ -51,14 +62,17 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
   const onLoc = fmtDiff(tArr, tJe);
   let driveTime = null;
   if (tLv !== null && tArr !== null && tJe !== null && tRy !== null) {
-    let d1 = tArr - tLv; if (d1 < 0) d1 += 1440;
-    let d2 = tRy - tJe; if (d2 < 0) d2 += 1440;
+    let d1 = tArr - tLv;
+    if (d1 < 0) d1 += 1440;
+    let d2 = tRy - tJe;
+    if (d2 < 0) d2 += 1440;
     const tot = d1 + d2;
     driveTime = `${Math.floor(tot / 60)}h ${tot % 60}m`;
   }
-  const totalMiles = (mileageBegin !== "" && mileageEnd !== "" && mileageBegin != null && mileageEnd != null)
-    ? Math.max(0, parseFloat(mileageEnd) - parseFloat(mileageBegin))
-    : null;
+  const totalMiles =
+    mileageBegin !== "" && mileageEnd !== "" && mileageBegin != null && mileageEnd != null
+      ? Math.max(0, parseFloat(mileageEnd) - parseFloat(mileageBegin))
+      : null;
 
   const roStyle = { fontSize: 12, color: C.text, fontWeight: 600, padding: "3px 0" };
   const lblStyle = { fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.06em", marginBottom: 3 };
@@ -71,7 +85,8 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
   if (dueOnLoc && driveInfo?.durationSeconds && !driveInfo.error) {
     const dueMatch = dueOnLoc.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
     if (dueMatch) {
-      let h = parseInt(dueMatch[1]), min = parseInt(dueMatch[2]);
+      let h = parseInt(dueMatch[1]),
+        min = parseInt(dueMatch[2]);
       const p = dueMatch[3].toUpperCase();
       if (p === "PM" && h !== 12) h += 12;
       if (p === "AM" && h === 12) h = 0;
@@ -88,15 +103,20 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
   }
 
   const timeFields = [
-    { label: "LV YARD",    key: "lvYard",       val: lvYard,       startHour: 6,  startPeriod: "AM" },
-    { label: "ARRIVAL",    key: "arrivalTime",  val: arrivalTime,  startHour: 6,  startPeriod: "AM" },
-    { label: "JOB START",  key: "jobStartTime", val: jobStartTime, startHour: 6,  startPeriod: "AM" },
-    { label: "JOB END",    key: "jobEndTime",   val: jobEndTime,   startHour: 12, startPeriod: "PM" },
-    { label: "RET YARD",   key: "retYard",      val: retYard,      startHour: 12, startPeriod: "PM" },
+    { label: "LV YARD", key: "lvYard", val: lvYard, startHour: 6, startPeriod: "AM" },
+    { label: "ARRIVAL", key: "arrivalTime", val: arrivalTime, startHour: 6, startPeriod: "AM" },
+    { label: "JOB START", key: "jobStartTime", val: jobStartTime, startHour: 6, startPeriod: "AM" },
+    { label: "JOB END", key: "jobEndTime", val: jobEndTime, startHour: 12, startPeriod: "PM" },
+    { label: "RET YARD", key: "retYard", val: retYard, startHour: 12, startPeriod: "PM" },
   ];
+  const shownTimeFields = isLog
+    ? timeFields
+        .filter((t) => t.key !== "jobStartTime")
+        .map((t) => (t.key === "jobEndTime" ? { ...t, label: "LEAVE LOCATION" } : t.key === "arrivalTime" ? { ...t, label: "LOCATION ARRIVAL" } : t))
+    : timeFields;
   const mileageFields = [
     { label: "MILEAGE — BEGINNING", key: "mileageBegin", val: mileageBegin },
-    { label: "MILEAGE — END",       key: "mileageEnd",   val: mileageEnd },
+    { label: "MILEAGE — END", key: "mileageEnd", val: mileageEnd },
   ];
 
   return (
@@ -105,12 +125,14 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
 
       {/* Time fields */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end", marginBottom: 8 }}>
-        {timeFields.map(({ label, key, val, startHour, startPeriod }) => (
+        {shownTimeFields.map(({ label, key, val, startHour, startPeriod }) => (
           <div key={key}>
             <div style={lblStyle}>{label}</div>
-            {editable
-              ? <TimePicker value={val} onChange={v => onChange({ [key]: v })} startHour={startHour} startPeriod={startPeriod} />
-              : <div style={roStyle}>{val || "—"}</div>}
+            {editable ? (
+              <TimePicker value={val} onChange={(v) => onChange({ [key]: v })} startHour={startHour} startPeriod={startPeriod} />
+            ) : (
+              <div style={roStyle}>{val || "—"}</div>
+            )}
           </div>
         ))}
         <div>
@@ -122,9 +144,13 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
       {/* Totals */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", borderTop: `1px solid ${C.border}`, paddingTop: 7, marginBottom: 8 }}>
         {[
-          { label: "OVERALL TIME", val: overall, sub: "LV Yard → Ret Yard" },
-          { label: "TIME ON LOC",  val: onLoc,   sub: "Arrival → Job End" },
-          { label: "DRIVE TIME",   val: driveTime, sub: "LV Yard→Arrival + Job End→Ret Yard" },
+          ...(isLog
+            ? [{ label: "DRIVE TIME", val: driveTime, sub: "Out leg + return leg (billed)" }]
+            : [
+                { label: "OVERALL TIME", val: overall, sub: "LV Yard → Ret Yard" },
+                { label: "TIME ON LOC", val: onLoc, sub: "Arrival → Job End" },
+                { label: "DRIVE TIME", val: driveTime, sub: "LV Yard→Arrival + Job End→Ret Yard" },
+              ]),
         ].map(({ label, val, sub }) => (
           <div key={label} style={{ marginRight: 8 }}>
             <div style={lblStyle}>{label}</div>
@@ -139,16 +165,18 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
         {mileageFields.map(({ label, key, val }) => (
           <div key={key}>
             <div style={lblStyle}>{label}</div>
-            {editable
-              ? <input
-                  type="number"
-                  value={val}
-                  onChange={e => onChange({ [key]: e.target.value })}
-                  min={0}
-                  placeholder="0"
-                  style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 8px", fontSize: 12, color: C.text, background: C.cardBg, width: 98 }}
-                />
-              : <div style={roStyle}>{val !== "" && val != null ? val : "—"}</div>}
+            {editable ? (
+              <input
+                type="number"
+                value={val}
+                onChange={(e) => onChange({ [key]: e.target.value })}
+                min={0}
+                placeholder="0"
+                style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "3px 8px", fontSize: 12, color: C.text, background: C.cardBg, width: 98 }}
+              />
+            ) : (
+              <div style={roStyle}>{val !== "" && val != null ? val : "—"}</div>
+            )}
           </div>
         ))}
         <div>
@@ -159,12 +187,18 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo }) {
 
       {/* GPS Reference — recommended leave time + expected distance (requires
           live drive info from the Google Pin section). */}
-      {(driveInfo && !driveInfo.error) && (
+      {driveInfo && !driveInfo.error && (
         <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, marginTop: 4, display: "flex", flexWrap: "wrap", gap: "6px 24px" }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>RECOMMENDED TIME TO LEAVE YARD</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: recLeave ? C.text : C.muted }}>{recLeave || (dueOnLoc ? "Calculating..." : "Set Location Time first")}</div>
-            {recLeave && <div style={{ fontSize: 10, color: C.muted }}>Location Time ({dueOnLoc}) − Drive Time ({driveInfo.duration})</div>}
+            <div style={{ fontSize: 14, fontWeight: 800, color: recLeave ? C.text : C.muted }}>
+              {recLeave || (dueOnLoc ? "Calculating..." : "Set Location Time first")}
+            </div>
+            {recLeave && (
+              <div style={{ fontSize: 10, color: C.muted }}>
+                Location Time ({dueOnLoc}) − Drive Time ({driveInfo.duration})
+              </div>
+            )}
           </div>
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: C.blue, letterSpacing: "0.06em", marginBottom: 3 }}>EXPECTED DISTANCE</div>

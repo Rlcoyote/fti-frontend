@@ -508,6 +508,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {/* Time & Mileage — extracted to TicketTimeAndMileage (v27.78) */}
         {!["Rental"].includes(ticket.type) && (
           <TicketTimeAndMileage
+            ticketType={ticket.type}
             editable={editable}
             values={{
               lvYard: s.lvYard,

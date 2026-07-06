@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { isLogType } from "./ticketFamilies.js";
 import TimePicker from "./TimePicker.jsx";
 
 // ─── AddTicketTimeMileage (v28.64 — extracted from AddTicketModal) ────────────
@@ -13,6 +14,7 @@ import TimePicker from "./TimePicker.jsx";
 const LBL_SM = { fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", marginBottom: 3 };
 
 export default function AddTicketTimeMileage({
+  ticketType,
   lvYard,
   arrivalTime,
   jobStartTime,
@@ -30,6 +32,10 @@ export default function AddTicketTimeMileage({
   setMileageEnd,
 }) {
   const lblSm = { ...LBL_SM, color: C.muted };
+  // v28.276 — LOG family: the stamps are the two TRAVEL legs (billed drive):
+  // out on week 1's ticket, back on the final week's. JOB START is gone;
+  // JOB END wears its honest name, LEAVE LOCATION.
+  const isLog = isLogType(ticketType);
   const times = [
     { label: "LV YARD", val: lvYard, set: setLvYard, startHour: 6, startPeriod: "AM" },
     { label: "ARRIVAL", val: arrivalTime, set: setArrivalTime, startHour: 6, startPeriod: "AM" },
@@ -37,6 +43,11 @@ export default function AddTicketTimeMileage({
     { label: "JOB END", val: jobEndTime, set: setJobEndTime, startHour: 12, startPeriod: "PM" },
     { label: "RET YARD", val: retYard, set: setRetYard, startHour: 12, startPeriod: "PM" },
   ];
+  const shownTimes = isLog
+    ? times
+        .filter((t) => t.label !== "JOB START")
+        .map((t) => (t.label === "JOB END" ? { ...t, label: "LEAVE LOCATION" } : t.label === "ARRIVAL" ? { ...t, label: "LOCATION ARRIVAL" } : t))
+    : times;
   const mileages = [
     { label: "MILEAGE — BEGINNING", val: mileageBegin, set: setMileageBegin },
     { label: "MILEAGE — END", val: mileageEnd, set: setMileageEnd },
@@ -46,7 +57,7 @@ export default function AddTicketTimeMileage({
     <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14 }}>
       <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>TIME &amp; MILEAGE</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end", marginBottom: 8 }}>
-        {times.map(({ label, val, set, startHour, startPeriod }) => (
+        {shownTimes.map(({ label, val, set, startHour, startPeriod }) => (
           <div key={label}>
             <div style={lblSm}>{label}</div>
             <TimePicker value={val} onChange={set} startHour={startHour} startPeriod={startPeriod} />

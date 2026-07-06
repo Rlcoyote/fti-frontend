@@ -60,7 +60,23 @@ export function driveMinutesFromInfo(driveInfo) {
 // or null when it can't be resolved — in which case the route-floor checks are
 // skipped (we never block real work on a routing outage; the ordering check
 // still applies).
-export function validateTicketTimes({ lvYard, arrivalTime, jobStartTime, jobEndTime, retYard, driveMinutes, toleranceMin = 10 }) {
+export function validateTicketTimes({ lvYard, arrivalTime, jobStartTime, jobEndTime, retYard, driveMinutes, toleranceMin = 10, logFamily = false }) {
+  // v28.276 — LOG family (Tester/Pumper): the stamps are TRAVEL legs that can
+  // sit days or weeks apart (out-leg week 1, return-leg the final week) —
+  // only per-leg ordering applies. MIRRORS the backend validator; keep in sync.
+  if (logFamily) {
+    const legErrors = [];
+    const legs = [
+      ["LV YARD", lvYard, "LOCATION ARRIVAL", arrivalTime],
+      ["LEAVE LOCATION", jobEndTime, "RET YARD", retYard],
+    ];
+    for (const [ak, av, bk, bv] of legs) {
+      const a2 = toMinutes(av);
+      const b2 = toMinutes(bv);
+      if (a2 != null && b2 != null && b2 <= a2) legErrors.push(`${bk} (${bv}) must be after ${ak} (${av}) — travel takes time`);
+    }
+    return legErrors;
+  }
   const errors = [];
   const stamps = [
     { key: "LV YARD", raw: lvYard, v: toMinutes(lvYard) },
