@@ -657,7 +657,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   }}
                 />
               ) : (
-                <WellLogTab ticket={ticket} accent={tcfg.color} readOnly={isLocked} />
+                <WellLogTab ticket={ticket} accent={tcfg.color} readOnly={isLocked} showNotice={showNotice} />
               )}
             </div>
           )}

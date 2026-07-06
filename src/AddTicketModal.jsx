@@ -257,13 +257,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
   };
 
   const toggleWell = (well) => {
-    // v28.267 — a Tester/Pumper weekly ticket covers ONE well (the paper form
-    // has a single Well Name); picking a well replaces the pick. Visit
-    // tickets keep multi-select.
-    if (isLogType(type)) {
-      setAssignedWells([well]);
-      return;
-    }
+    // v28.278 — multi-well restored for log tickets: the master workbook runs
+    // up to SIX wells per flowback under one tester (Reggie, C5). The v28.267
+    // single-well read came from the paper ticket's lone Well Name line — the
+    // WORKSHEET is the well-data authority, and it's multi-well.
     setAssignedWells((prev) => (prev.includes(well) ? prev.filter((w) => w !== well) : [...prev, well]));
   };
   const selectAllWells = () => setAssignedWells([...jobWells]);

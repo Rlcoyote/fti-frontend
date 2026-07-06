@@ -1,5 +1,4 @@
 import { C } from "./config.js";
-import { isLogType } from "./ticketFamilies.js";
 import { Btn, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 
 // ─── AddTicketWellsConfirm (v28.67 — extracted from AddTicketModal) ───────────
@@ -30,24 +29,22 @@ export default function AddTicketWellsConfirm({ type, jobWells, assignedWells, o
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <label style={{ fontSize: 11, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
-          {!isLogType(type) && (
-            <button
-              type="button"
-              onClick={onSelectAll}
-              style={{
-                background: "transparent",
-                border: `1px solid ${C.border}`,
-                borderRadius: 3,
-                padding: "2px 10px",
-                fontSize: 11,
-                fontWeight: 700,
-                color: PANEL_TEXT,
-                cursor: "pointer",
-              }}
-            >
-              SELECT ALL
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onSelectAll}
+            style={{
+              background: "transparent",
+              border: `1px solid ${C.border}`,
+              borderRadius: 3,
+              padding: "2px 10px",
+              fontSize: 11,
+              fontWeight: 700,
+              color: PANEL_TEXT,
+              cursor: "pointer",
+            }}
+          >
+            SELECT ALL
+          </button>
         </div>
         {jobWells.map((well, idx) => {
           const checked = assignedWells.includes(well);

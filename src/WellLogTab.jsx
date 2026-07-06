@@ -3,28 +3,34 @@ import { C } from "./config.js";
 import { api } from "./api.js";
 import { Btn, inputStyle } from "./SharedUI.jsx";
 
-// ─── WellLogTab (v28.267, master-ticket Phase 4) ────────────────────────────
-// The tester's WELL LOG: choke / pressures / rates, hourly, per well + real
-// calendar date. Replaces the buried job-level FlowbackModal (relative Day
-// 1/2/3, no well, no dates — retired this version). Keyed job+well+date on
-// the server (well_readings), so the day tester and the night tester — each
-// on their own weekly ticket — write ONE continuous stream for the well.
+// ─── WellLogTab (v28.267; ledger upgrade v28.278) ───────────────────────────
+// The tester's WELL LOG, now carrying the master workbook's full layer
+// (FT - MASTER - Flowback Data Multiple Wells): hourly readings per well +
+// real date, PLUS the recovery ledger — LOAD TO RECOVER (frac load, barrels,
+// tester-entered, lives on the WO's well), today's totals, overall
+// cumulatives, oil cut %, and FLUID LEFT TO RECOVER. All rollups computed
+// SERVER-side (GET /well-readings/:jobId/summary) — the spreadsheet's
+// INDIRECT carry-over chain became a live SUM.
 //
-// Day picker = the ticket's week; a green dot marks days that already have
-// entries. Save is per day, whole-day replace (server validates numbers).
+// The field day starts at the OPERATOR'S hour (06/07/08:00 all exist) —
+// jobs.field_day_start drives the grid order and is editable here.
+// PRINT gives the POC a PDF via the browser; EMAIL sends the print-quality
+// HTML summary to any list of addresses (they don't need a login).
 
 const COLS = [
-  ["choke", "CHOKE", 64],
-  ["fl_psi", "FL PSI", 70],
-  ["tbg_psi", "TBG PSI", 70],
-  ["csg_psi", "CSG PSI", 70],
-  ["temp", "TEMP", 60],
-  ["h2o_hr", "H2O/HR", 70],
-  ["oil_hr", "OIL/HR", 70],
-  ["gas_hr", "GAS/HR", 70],
-  ["remarks", "REMARKS", 170],
+  ["choke", "CHOKE", 60],
+  ["fl_psi", "FL PSI", 64],
+  ["tbg_psi", "TBG PSI", 64],
+  ["csg_psi", "CSG PSI", 64],
+  ["interm_psi", "INT PSI", 64],
+  ["surf_psi", "SURF PSI", 64],
+  ["temp", "TEMP", 56],
+  ["h2o_hr", "H2O/HR", 64],
+  ["oil_hr", "OIL/HR", 64],
+  ["gas_hr", "GAS/HR", 64],
+  ["remarks", "REMARKS", 150],
 ];
-const HOURS = Array.from({ length: 24 }, (_, i) => `${String((i + 7) % 24).padStart(2, "0")}:00`); // 07:00 → 06:00, the field day
+const hoursFrom = (start) => Array.from({ length: 24 }, (_, i) => `${String((i + start) % 24).padStart(2, "0")}:00`);
 
 const addDays = (iso, n) => {
   const d = new Date(iso + "T00:00:00Z");
@@ -36,8 +42,18 @@ const fmtMD = (iso) => {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 };
 const DAY_ABBR = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+const emptyRow = () => Object.fromEntries(COLS.map(([k]) => [k, ""]));
 
-function WellLogTab({ ticket, accent, readOnly }) {
+function Stat({ label, value, accent, big }) {
+  return (
+    <div style={{ minWidth: 90 }}>
+      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.05em", opacity: 0.6 }}>{label}</div>
+      <div style={{ fontSize: big ? 20 : 14, fontWeight: 900, color: accent || C.text }}>{value ?? "—"}</div>
+    </div>
+  );
+}
+
+function WellLogTab({ ticket, accent, readOnly, showNotice }) {
   const wells = ticket.assignedWells?.length ? ticket.assignedWells : [];
   const [well, setWell] = useState(wells[0] || "");
   const weekStart = ticket.weekStart ? String(ticket.weekStart).slice(0, 10) : null;
@@ -46,11 +62,18 @@ function WellLogTab({ ticket, accent, readOnly }) {
     const today = new Date().toLocaleDateString("en-CA");
     return dates.includes(today) ? today : dates[0] || today;
   });
-  const [rows, setRows] = useState(HOURS.map(() => ({})));
-  const [haveData, setHaveData] = useState({}); // "well|date" -> true
+  const [dayStart, setDayStart] = useState(7);
+  const [rows, setRows] = useState(hoursFrom(7).map(() => emptyRow()));
+  const [summary, setSummary] = useState(null);
+  const [loadInput, setLoadInput] = useState("");
+  const [haveData, setHaveData] = useState({});
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState(null);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+
+  const HOURS = hoursFrom(dayStart);
 
   const loadIndex = useCallback(() => {
     api
@@ -65,7 +88,20 @@ function WellLogTab({ ticket, accent, readOnly }) {
       .catch(() => {});
   }, [ticket.jobId]);
 
+  const loadSummary = useCallback(() => {
+    if (!well || !date) return;
+    api
+      .get(`/well-readings/${ticket.jobId}/summary?well=${encodeURIComponent(well)}&date=${date}`)
+      .then((s) => {
+        setSummary(s);
+        setDayStart(s.field_day_start ?? 7);
+        setLoadInput(s.load_to_recover != null ? String(s.load_to_recover) : "");
+      })
+      .catch(() => setSummary(null));
+  }, [ticket.jobId, well, date]);
+
   useEffect(loadIndex, [loadIndex]);
+  useEffect(loadSummary, [loadSummary]);
 
   useEffect(() => {
     if (!well || !date) return;
@@ -77,19 +113,9 @@ function WellLogTab({ ticket, accent, readOnly }) {
           byHour[r.hour.padStart(5, "0")] = r;
         });
         setRows(
-          HOURS.map((h) => {
+          hoursFrom(dayStart).map((h) => {
             const r = byHour[h] || {};
-            return {
-              choke: r.choke || "",
-              fl_psi: r.fl_psi ?? "",
-              tbg_psi: r.tbg_psi ?? "",
-              csg_psi: r.csg_psi ?? "",
-              temp: r.temp ?? "",
-              h2o_hr: r.h2o_hr ?? "",
-              oil_hr: r.oil_hr ?? "",
-              gas_hr: r.gas_hr ?? "",
-              remarks: r.remarks || "",
-            };
+            return Object.fromEntries(COLS.map(([k]) => [k, r[k] ?? ""]));
           }),
         );
         setDirty(false);
@@ -97,7 +123,7 @@ function WellLogTab({ ticket, accent, readOnly }) {
       })
       .catch((e) => setBanner({ kind: "error", text: e.message }));
      
-  }, [well, date, ticket.jobId]);
+  }, [well, date, ticket.jobId, dayStart]);
 
   const setCell = (i, field, value) => {
     setDirty(true);
@@ -113,6 +139,7 @@ function WellLogTab({ ticket, accent, readOnly }) {
       setDirty(false);
       setBanner({ kind: "ok", text: `${fmtMD(date)} saved — ${result.saved} hourly entries.` });
       loadIndex();
+      loadSummary();
     } catch (e) {
       setBanner({ kind: "error", text: e.message });
     } finally {
@@ -120,12 +147,50 @@ function WellLogTab({ ticket, accent, readOnly }) {
     }
   };
 
+  const saveLoad = async () => {
+    try {
+      await api.put(`/well-readings/${ticket.jobId}/meta`, { well, load_to_recover: loadInput === "" ? null : loadInput });
+      loadSummary();
+      showNotice?.("Saved", `Load to recover set for ${well}.`, "success");
+    } catch (e) {
+      showNotice?.("Save Failed", e.message, "error");
+    }
+  };
+
+  const saveDayStart = async (h) => {
+    setDayStart(h);
+    try {
+      await api.put(`/well-readings/${ticket.jobId}/meta`, { field_day_start: h });
+    } catch (e) {
+      showNotice?.("Save Failed", e.message, "error");
+    }
+  };
+
+  const sendEmail = async () => {
+    const to = emailTo
+      .split(/[,;\s]+/)
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (!to.length) return;
+    try {
+      await api.post(`/well-readings/${ticket.jobId}/email-summary`, { well, date, to });
+      setEmailOpen(false);
+      showNotice?.("Summary Sent", `${fmtMD(date)} summary for ${well} emailed to ${to.length} recipient${to.length === 1 ? "" : "s"}.`, "success");
+    } catch (e) {
+      showNotice?.("Email Failed", e.message, "error");
+    }
+  };
+
   if (!weekStart) return null;
 
+  const num = (v) => (v == null ? "—" : Number(v).toLocaleString());
+
   return (
-    <div style={{ marginBottom: 18 }}>
-      {/* Well + day pickers */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+    <div style={{ marginBottom: 18 }} className="well-log-print">
+      <style>{`@media print { .no-print { display: none !important; } .well-log-print, .well-log-print * { color: #000 !important; background: #fff !important; border-color: #999 !important; } @page { size: letter landscape; margin: 0.4in; } }`}</style>
+
+      {/* Well + day pickers + actions */}
+      <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
         {wells.length > 1 ? (
           <select value={well} onChange={(e) => setWell(e.target.value)} style={{ ...inputStyle, width: "auto", fontWeight: 700 }}>
             {wells.map((w) => (
@@ -152,7 +217,6 @@ function WellLogTab({ ticket, accent, readOnly }) {
                   borderRadius: 6,
                   fontSize: 11,
                   fontWeight: 800,
-                  letterSpacing: "0.04em",
                   cursor: "pointer",
                   border: `1px solid ${active ? accent : C.border}`,
                   background: active ? accent : "transparent",
@@ -179,11 +243,103 @@ function WellLogTab({ ticket, accent, readOnly }) {
             );
           })}
         </div>
+        <span style={{ marginLeft: "auto", display: "flex", gap: 6, alignItems: "center" }}>
+          <label style={{ fontSize: 10, fontWeight: 700, opacity: 0.6 }} title="The operator's field-day start — the grid runs 24 hours from here">
+            DAY STARTS
+          </label>
+          <select
+            value={dayStart}
+            onChange={(e) => saveDayStart(parseInt(e.target.value, 10))}
+            disabled={readOnly}
+            style={{ ...inputStyle, width: 82, padding: "4px 6px", fontSize: 12 }}
+          >
+            {Array.from({ length: 24 }, (_, h) => (
+              <option key={h} value={h}>
+                {String(h).padStart(2, "0")}:00
+              </option>
+            ))}
+          </select>
+          <Btn small variant="ghost" onClick={() => window.print()} title="Print / save this day's log and ledger as a PDF">
+            PRINT
+          </Btn>
+          <Btn small variant="blue" onClick={() => setEmailOpen((o) => !o)} title="Email this day's summary — no login needed on their end">
+            EMAIL
+          </Btn>
+        </span>
       </div>
 
-      {/* Hourly grid — the paper flowback sheet */}
+      {emailOpen && (
+        <div
+          className="no-print"
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 10,
+            padding: "8px 10px",
+            border: `1px solid ${C.blue}55`,
+            borderRadius: 8,
+            background: `${C.blue}11`,
+          }}
+        >
+          <input
+            style={{ ...inputStyle, flex: "1 1 280px" }}
+            placeholder="Email addresses — separate with commas"
+            value={emailTo}
+            onChange={(e) => setEmailTo(e.target.value)}
+          />
+          <Btn small variant="blue" onClick={sendEmail}>
+            SEND {fmtMD(date)} SUMMARY
+          </Btn>
+        </div>
+      )}
+
+      {/* The recovery ledger — the workbook's computed layer */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: 18,
+          flexWrap: "wrap",
+          padding: "10px 12px",
+          marginBottom: 10,
+          borderLeft: `4px solid ${accent}`,
+          borderRadius: "0 8px 8px 0",
+          background: `linear-gradient(90deg, ${accent}18, transparent 75%)`,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.05em", opacity: 0.6 }}>LOAD TO RECOVER (BBL)</div>
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <input
+              style={{ ...inputStyle, width: 100, fontWeight: 800 }}
+              value={loadInput}
+              onChange={(e) => setLoadInput(e.target.value)}
+              disabled={readOnly}
+              placeholder="frac load"
+              className="no-print-border"
+            />
+            {!readOnly && loadInput !== String(summary?.load_to_recover ?? "") && (
+              <Btn small variant="ghost" onClick={saveLoad} style={{ borderColor: accent, color: accent }}>
+                SET
+              </Btn>
+            )}
+          </div>
+        </div>
+        <Stat label="FLUID LEFT TO RECOVER (BBL)" value={num(summary?.fluid_left)} accent={accent} big />
+        <Stat label="H2O TODAY" value={num(summary?.today?.h2o)} />
+        <Stat label="OIL TODAY" value={num(summary?.today?.oil)} />
+        <Stat label="GAS TODAY (MCF)" value={num(summary?.today?.gas)} />
+        <Stat label="OIL CUT" value={summary?.oil_cut_today != null ? `${summary.oil_cut_today}%` : "—"} />
+        <Stat label="TOTAL H2O REC" value={num(summary?.cumulative?.h2o)} />
+        <Stat label="TOTAL OIL REC" value={num(summary?.cumulative?.oil)} />
+        <Stat label="TOTAL GAS REC" value={num(summary?.cumulative?.gas)} />
+      </div>
+
+      {/* Hourly grid */}
       <div style={{ overflowX: "auto", border: `1px solid ${C.border}`, borderRadius: 8 }}>
-        <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 780 }}>
+        <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 900 }}>
           <thead>
             <tr style={{ background: `${accent}18` }}>
               <th
@@ -217,7 +373,7 @@ function WellLogTab({ ticket, accent, readOnly }) {
                   <td key={k} style={{ padding: 2 }}>
                     <input
                       style={{ ...inputStyle, width: w, padding: "4px 6px", fontSize: 12 }}
-                      value={rows[i][k] ?? ""}
+                      value={rows[i]?.[k] ?? ""}
                       onChange={(e) => setCell(i, k, e.target.value)}
                       disabled={readOnly}
                     />
@@ -229,7 +385,7 @@ function WellLogTab({ ticket, accent, readOnly }) {
         </table>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
+      <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 10 }}>
         {!readOnly && (
           <Btn
             onClick={saveDay}
