@@ -105,6 +105,7 @@ export const mapTicketFromApi = (t) => {
     startDate: t.start_date || null,
     endDate: t.end_date || null,
     weekStart: t.week_start || null, // v28.267 — log-family Mon anchor
+    trailerId: t.trailer_id || null, // v28.280 — which trailer hauled the iron
     cycleDays: t.cycle_days || 28,
     isRecurring: t.is_recurring || false,
     voidedAt: t.voided_at || null,
@@ -227,6 +228,7 @@ export const buildTicketPayload = (updates) => {
   if (updates.notes !== undefined) p.notes = updates.notes;
   if (updates.date) p.date = updates.date;
   if (updates.type !== undefined) p.type = updates.type; // v28.262 — family-guarded switch (BE v28.260)
+  if (updates.trailerId !== undefined) p.trailer_id = updates.trailerId; // v28.280
   if (updates.startDate !== undefined) p.start_date = updates.startDate;
   if (updates.endDate !== undefined) p.end_date = updates.endDate;
   if (updates.cycleDays !== undefined) p.cycle_days = updates.cycleDays;

@@ -123,6 +123,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
   // the lead crew's assigned vehicle but only on the first pass — user
   // can override anytime.
   const [gpsVehicleId, setGpsVehicleId] = useState(null);
+  const [trailerId, setTrailerId] = useState(null); // v28.280 — which trailer hauled the iron
   // Time & mileage
   const [lvYard, setLvYard] = useState("");
   const [arrivalTime, setArrivalTime] = useState("");
@@ -382,6 +383,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         siteMgrEmail: smEmail,
         yardLocationIndex,
         gpsVehicleId,
+        trailerId,
         hasJSA: !!existingJSA,
         ...(type === "Rig Down" ? { missingPieces: null } : {}),
         ...(isRental
@@ -706,7 +708,15 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
                   set) — the picker auto-defaults to the lead crew member's
                   assigned vehicle and is the source of the GPS pull on
                   TicketDetail later. */}
-              {caps.gps && <AddTicketGpsVehicle gpsVehicleId={gpsVehicleId} setGpsVehicleId={setGpsVehicleId} crewSelection={crewSelection} />}
+              {caps.gps && (
+                <AddTicketGpsVehicle
+                  gpsVehicleId={gpsVehicleId}
+                  setGpsVehicleId={setGpsVehicleId}
+                  trailerId={trailerId}
+                  setTrailerId={setTrailerId}
+                  crewSelection={crewSelection}
+                />
+              )}
 
               {type && (
                 <AddTicketGooglePin

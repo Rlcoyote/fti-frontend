@@ -22,7 +22,8 @@ import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import TicketJobInfo from "./TicketJobInfo.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
-import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, ConfirmModal } from "./SharedUI.jsx";
+import { toMinutes } from "./ticketTimeValidation.js";
 import useEditLock from "./useEditLock.js";
 import useTicketState from "./useTicketState.js";
 import useTicketJSA from "./useTicketJSA.js";
@@ -128,6 +129,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   // v28.273 — per-day JSA: chip click loads that DAY's JSA (may be null) and
   // opens JSAModal locked to the date. jsaBump refreshes the chips on close.
   const [dayJsa, setDayJsa] = useState(null); // { date, existing } | null
+  // v28.280 (Reggie B3) — approval-time clock-vs-ticket variance. logHours
+  // mirrors the saved week total for log tickets; varianceAsk holds the
+  // numbers while the approver decides.
+  const [logHours, setLogHours] = useState(null);
+  const [varianceAsk, setVarianceAsk] = useState(null);
   const [jsaBump, setJsaBump] = useState(0);
   const openDayJsa = async (jsaDate) => {
     try {
@@ -319,6 +325,44 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     if (!check.ok) {
       showNotice("Cannot approve yet", check.error, "error");
       return;
+    }
+    doApprove();
+  };
+
+  // v28.280 — the variance gate (Reggie B3): payroll time and ticket time are
+  // legitimately different numbers, but a gap over 30 minutes gets shown to
+  // the approver and noted in the audit trail before approval proceeds.
+  const doApprove = async () => {
+    try {
+      const clock = await api.get(`/time/ticket/${ticket.id}/total`);
+      let ticketMin = null;
+      if (isLogType(ticket.type)) {
+        ticketMin = logHours != null ? Math.round(logHours * 60) : null;
+      } else {
+        const a2 = toMinutes(s.lvYard);
+        const b2 = toMinutes(s.retYard);
+        if (a2 != null && b2 != null && b2 > a2) ticketMin = b2 - a2;
+      }
+      if (clock?.segments > 0 && ticketMin != null && Math.abs(clock.minutes - ticketMin) > 30) {
+        setVarianceAsk({ clockMin: clock.minutes, ticketMin });
+        return;
+      }
+    } catch {
+      // clock total unavailable — approval is not hostage to telemetry
+    }
+    finishApprove();
+  };
+
+  const finishApprove = (variance = null) => {
+    if (variance) {
+      api
+        .post(`/audit`, {
+          action: "ticket_time_variance_approved",
+          entity_type: "ticket",
+          entity_id: String(ticket.id),
+          details: { clock_minutes: variance.clockMin, ticket_minutes: variance.ticketMin, delta_minutes: variance.clockMin - variance.ticketMin },
+        })
+        .catch(() => {});
     }
     s.setStatus("approved");
     save({ status: "approved", approvedBy: currentUser?.name, approvedAt: new Date().toISOString() });
@@ -635,6 +679,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   onOpenJsa={openDayJsa}
                   jsaBump={jsaBump}
                   onTotalHours={(total, meta) => {
+                    setLogHours(total || null);
                     // v28.267 — auto-sum: the saved week total flows into any
                     // line item measured in hours (U/M starting HR/HOUR).
                     // Office adjusts before approval; the signature wipes
@@ -768,6 +813,19 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {showVoidConfirm && <TicketVoidModal ticket={ticket} onClose={() => setShowVoidConfirm(false)} onRevise={onRevise} />}
 
         {/* JSA Modal — save handler lives in useTicketJSA (v27.88) */}
+        {varianceAsk && (
+          <ConfirmModal
+            title="Time difference — approve anyway?"
+            message={`The crew clocked ${(varianceAsk.clockMin / 60).toFixed(1)} hours on this ticket, but the ticket bills ${(varianceAsk.ticketMin / 60).toFixed(1)} hours — a ${Math.abs(varianceAsk.clockMin - varianceAsk.ticketMin)} minute difference. Approving will note this in the audit trail.`}
+            yesLabel="APPROVE ANYWAY"
+            onYes={() => {
+              const v = varianceAsk;
+              setVarianceAsk(null);
+              finishApprove(v);
+            }}
+            onCancel={() => setVarianceAsk(null)}
+          />
+        )}
         {dayJsa && job && (
           <JSAModal
             job={job}

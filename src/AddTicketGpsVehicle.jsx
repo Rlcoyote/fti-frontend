@@ -21,7 +21,7 @@ import { useApp } from "./AppContext.jsx";
 // then all others below a separator so the user can still select a vehicle
 // that's awaiting GPS provisioning.
 
-export default function AddTicketGpsVehicle({ gpsVehicleId, setGpsVehicleId, crewSelection }) {
+export default function AddTicketGpsVehicle({ trailerId, setTrailerId, gpsVehicleId, setGpsVehicleId, crewSelection }) {
   const { vehicles, users } = useApp();
 
   // Auto-default to lead's assigned vehicle when the lead changes — only if
@@ -35,6 +35,9 @@ export default function AddTicketGpsVehicle({ gpsVehicleId, setGpsVehicleId, cre
   }, [lead?.user_id, vehicles, gpsVehicleId, setGpsVehicleId]);
 
   const trackable = (vehicles || []).filter((v) => v.lifecycle_status !== "retired" && v.gps_vehicle_id);
+  // v28.280 — which trailer hauled the iron (Reggie C3). Same vehicles list
+  // the DVIR validates against.
+  const trailers = (vehicles || []).filter((v) => v.lifecycle_status !== "retired" && v.vehicle_kind === "trailer");
   const untracked = (vehicles || []).filter((v) => v.lifecycle_status !== "retired" && !v.gps_vehicle_id);
   const userById = useMemo(() => {
     const m = {};
@@ -76,6 +79,17 @@ export default function AddTicketGpsVehicle({ gpsVehicleId, setGpsVehicleId, cre
           </optgroup>
         )}
       </select>
+      <div style={{ marginTop: 10 }}>
+        <label style={labelStyle}>TRAILER</label>
+        <select style={inputStyle} value={trailerId || ""} onChange={(e) => setTrailerId?.(e.target.value || null)}>
+          <option value="">(none — no trailer on this ticket)</option>
+          {trailers.map((v) => (
+            <option key={v.id} value={v.id}>
+              {label(v)}
+            </option>
+          ))}
+        </select>
+      </div>
       <div style={{ fontSize: 11, color: PANEL_MUTED, marginTop: 4 }}>
         Auto-fills to the lead crew member&rsquo;s assigned vehicle when a lead is selected. Override anytime.
       </div>

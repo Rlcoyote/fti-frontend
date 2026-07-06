@@ -99,6 +99,7 @@ export default function useAddTicket({ setTickets }) {
       // v28.183 — GPS vehicle picker on ticket-create. Null = no vehicle
       // assigned (PULL FROM GPS unavailable on the ticket until set).
       gps_vehicle_id: ticketData.gpsVehicleId || null,
+      trailer_id: ticketData.trailerId || null,
       equipment: (ticketData.equipment || [])
         .filter((r) => r.item && String(r.item).trim())
         .map((r) => ({ inventory_id: r.inventory_id || null, item: r.item, size: r.size || null, qty: r.qty || 1, note: r.note || null })),
