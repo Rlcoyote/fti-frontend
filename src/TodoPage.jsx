@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { C, getCurrentUser } from "./config.js";
-import { api } from "./api.js";
+import { C } from "./config.js";
 import { todoVisible } from "./utils.js";
-import { Btn, FilterBtn } from "./SharedUI.jsx";
+import { Btn, FilterBtn, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
 import { TodoForm, TodoRow } from "./TodoComponents.jsx";
+import { makeTodoActions } from "./todoActions.js";
 
 function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByName }) {
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null); // the todo being edited (v28.282)
+  const [confirmDelete, setConfirmDelete] = useState(null); // the todo pending deletion
+  const [notice, setNotice] = useState(null);
   const [filter, setFilter] = useState("active");
   const [typeFilter, setTypeFilter] = useState("all");
+
+  const { createTodo, updateTodo, toggleTodo, deleteTodo } = makeTodoActions({ todos, setTodos, userIdByName, onError: setNotice });
 
   const myTodos = todos.filter(todoVisible);
 
@@ -20,57 +25,6 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
     return true;
   });
 
-  const handleSave = async (form) => {
-    const payload = {
-      title: form.title,
-      description: form.description,
-      job_id: form.jobId,
-      priority: form.priority,
-      due_date: form.dueDate,
-      created_by: userIdByName[getCurrentUser()],
-      assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
-    };
-    try {
-      const saved = await api.post("/todos", payload);
-      const newTodo = {
-        id: saved.id,
-        ...form,
-        createdBy: getCurrentUser(),
-        assignedTo: form.assignedTo,
-        completed: false,
-        completedBy: null,
-        completedAt: null,
-      };
-      setTodos((prev) => [newTodo, ...prev]);
-    } catch (err) {
-      console.error("Todo create failed:", err);
-    }
-    setShowForm(false);
-  };
-
-  const toggleTodo = async (id) => {
-    const todo = todos.find((t) => t.id === id);
-    if (!todo) return;
-    const nowComplete = !todo.completed;
-    try {
-      await api.put(`/todos/${id}`, { completed: nowComplete, completed_by: nowComplete ? userIdByName[getCurrentUser()] : null });
-    } catch (err) {
-      console.error("Todo toggle failed:", err);
-    }
-    setTodos((prev) =>
-      prev.map((t) =>
-        t.id !== id
-          ? t
-          : {
-              ...t,
-              completed: nowComplete,
-              completedBy: nowComplete ? getCurrentUser() : null,
-              completedAt: nowComplete ? new Date().toISOString() : null,
-            },
-      ),
-    );
-  };
-
   return (
     <div style={{ padding: "24px 28px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
@@ -80,10 +34,27 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
             {myTodos.filter((t) => !t.completed).length} active · {myTodos.filter((t) => t.completed).length} completed
           </div>
         </div>
-        <Btn onClick={() => setShowForm((s) => !s)}>{showForm ? "CANCEL" : "+ NEW TASK"}</Btn>
+        <Btn
+          onClick={() => {
+            setEditing(null);
+            setShowForm((s) => !s);
+          }}
+        >
+          {showForm ? "CANCEL" : "+ NEW TASK"}
+        </Btn>
       </div>
 
-      {showForm && <TodoForm onSave={handleSave} onCancel={() => setShowForm(false)} jobs={jobs} userNames={userNames} />}
+      {showForm && (
+        <TodoForm
+          onSave={async (form) => {
+            await createTodo(form);
+            setShowForm(false);
+          }}
+          onCancel={() => setShowForm(false)}
+          jobs={jobs}
+          userNames={userNames}
+        />
+      )}
 
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4, alignSelf: "center" }}>STATUS:</span>
@@ -108,9 +79,49 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
       </div>
 
       {filtered.length === 0 && <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 14 }}>No tasks here.</div>}
-      {filtered.map((t) => (
-        <TodoRow key={t.id} todo={t} onToggle={toggleTodo} onNavigateJob={onNavigateJob} jobs={jobs} />
-      ))}
+      {filtered.map((t) =>
+        editing?.id === t.id ? (
+          // v28.282 — edit in place: the form opens where the row was
+          <TodoForm
+            key={t.id}
+            initial={editing}
+            onSave={async (form) => {
+              await updateTodo(editing.id, form);
+              setEditing(null);
+            }}
+            onCancel={() => setEditing(null)}
+            jobs={jobs}
+            userNames={userNames}
+          />
+        ) : (
+          <TodoRow
+            key={t.id}
+            todo={t}
+            onToggle={toggleTodo}
+            onEdit={(todo) => {
+              setShowForm(false);
+              setEditing(todo);
+            }}
+            onDelete={setConfirmDelete}
+            onNavigateJob={onNavigateJob}
+            jobs={jobs}
+          />
+        ),
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          title="Delete this task?"
+          message={`"${confirmDelete.title}" will be permanently deleted. It will NOT be kept under Completed. To keep the record instead, cancel and check its DONE box.`}
+          yesLabel="DELETE TASK"
+          onYes={async () => {
+            await deleteTodo(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {notice && <NoticeModal title="Task error" message={notice} variant="error" onClose={() => setNotice(null)} />}
     </div>
   );
 }
@@ -118,55 +129,15 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
 // ─── JOB TODO TAB ─────────────────────────────────────────────────────────────
 function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
+
+  const { createTodo, updateTodo, toggleTodo, deleteTodo } = makeTodoActions({ todos, setTodos, userIdByName, onError: setNotice });
 
   const jobTodos = todos.filter((t) => t.jobId === jobId && todoVisible(t));
   const visible = jobTodos.filter((t) => showCompleted || !t.completed);
-
-  const handleSave = async (form) => {
-    const payload = {
-      title: form.title,
-      description: form.description,
-      job_id: form.jobId,
-      priority: form.priority,
-      due_date: form.dueDate,
-      created_by: userIdByName[getCurrentUser()],
-      assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
-    };
-    try {
-      const saved = await api.post("/todos", payload);
-      setTodos((prev) => [
-        { id: saved.id, ...form, createdBy: getCurrentUser(), assignedTo: form.assignedTo, completed: false, completedBy: null, completedAt: null },
-        ...prev,
-      ]);
-    } catch (err) {
-      console.error("Todo create failed:", err);
-    }
-    setShowForm(false);
-  };
-
-  const toggleTodo = async (id) => {
-    const todo = todos.find((t) => t.id === id);
-    if (!todo) return;
-    const nowComplete = !todo.completed;
-    try {
-      await api.put(`/todos/${id}`, { completed: nowComplete, completed_by: nowComplete ? userIdByName[getCurrentUser()] : null });
-    } catch (err) {
-      console.error("Todo toggle failed:", err);
-    }
-    setTodos((prev) =>
-      prev.map((t) =>
-        t.id !== id
-          ? t
-          : {
-              ...t,
-              completed: nowComplete,
-              completedBy: nowComplete ? getCurrentUser() : null,
-              completedAt: nowComplete ? new Date().toISOString() : null,
-            },
-      ),
-    );
-  };
 
   return (
     <div style={{ padding: "16px 0" }}>
@@ -190,18 +161,73 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
           >
             {showCompleted ? "HIDE COMPLETED" : "SHOW COMPLETED"}
           </button>
-          <Btn small onClick={() => setShowForm((s) => !s)}>
+          <Btn
+            small
+            onClick={() => {
+              setEditing(null);
+              setShowForm((s) => !s);
+            }}
+          >
             {showForm ? "CANCEL" : "+ ADD TASK"}
           </Btn>
         </div>
       </div>
 
-      {showForm && <TodoForm onSave={handleSave} onCancel={() => setShowForm(false)} defaultJobId={jobId} jobs={jobs} userNames={userNames} />}
+      {showForm && (
+        <TodoForm
+          onSave={async (form) => {
+            await createTodo(form);
+            setShowForm(false);
+          }}
+          onCancel={() => setShowForm(false)}
+          defaultJobId={jobId}
+          jobs={jobs}
+          userNames={userNames}
+        />
+      )}
 
       {visible.length === 0 && <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 13 }}>No tasks for this job.</div>}
-      {visible.map((t) => (
-        <TodoRow key={t.id} todo={t} onToggle={toggleTodo} jobs={jobs} />
-      ))}
+      {visible.map((t) =>
+        editing?.id === t.id ? (
+          <TodoForm
+            key={t.id}
+            initial={editing}
+            onSave={async (form) => {
+              await updateTodo(editing.id, form);
+              setEditing(null);
+            }}
+            onCancel={() => setEditing(null)}
+            jobs={jobs}
+            userNames={userNames}
+          />
+        ) : (
+          <TodoRow
+            key={t.id}
+            todo={t}
+            onToggle={toggleTodo}
+            onEdit={(todo) => {
+              setShowForm(false);
+              setEditing(todo);
+            }}
+            onDelete={setConfirmDelete}
+            jobs={jobs}
+          />
+        ),
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          title="Delete this task?"
+          message={`"${confirmDelete.title}" will be permanently deleted. It will NOT be kept under Completed. To keep the record instead, cancel and check its DONE box.`}
+          yesLabel="DELETE TASK"
+          onYes={async () => {
+            await deleteTodo(confirmDelete.id);
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {notice && <NoticeModal title="Task error" message={notice} variant="error" onClose={() => setNotice(null)} />}
     </div>
   );
 }

@@ -3,12 +3,17 @@ import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
 import { Btn, PriorityBadge, inputStyle, labelStyle } from "./SharedUI.jsx";
 
-function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [] }) {
+function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [], initial = null }) {
+  // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
   const [form, setForm] = useState({
-    title: "", description: "", jobId: defaultJobId,
-    assignedTo: getCurrentUser(), priority: "normal", dueDate: "",
+    title: initial?.title || "",
+    description: initial?.description || "",
+    jobId: initial ? initial.jobId : defaultJobId,
+    assignedTo: initial?.assignedTo || getCurrentUser(),
+    priority: initial?.priority || "normal",
+    dueDate: (initial?.dueDate || "").slice(0, 10), // date input needs YYYY-MM-DD
   });
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = () => {
     if (!form.title.trim()) return;
@@ -19,29 +24,40 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [] 
     <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginBottom: 12 }}>
       <div style={{ marginBottom: 10 }}>
         <label style={labelStyle}>TITLE *</label>
-        <input style={inputStyle} value={form.title} onChange={e => set("title", e.target.value)} placeholder="Task title..." />
+        <input style={inputStyle} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Task title..." />
       </div>
       <div style={{ marginBottom: 10 }}>
         <label style={labelStyle}>DESCRIPTION</label>
-        <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={form.description} onChange={e => set("description", e.target.value)} placeholder="Optional details..." />
+        <textarea
+          style={{ ...inputStyle, resize: "vertical", minHeight: 56 }}
+          value={form.description}
+          onChange={(e) => set("description", e.target.value)}
+          placeholder="Optional details..."
+        />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
         <div>
           <label style={labelStyle}>LINK TO WORK ORDER</label>
-          <select style={inputStyle} value={form.jobId ?? ""} onChange={e => set("jobId", e.target.value || null)}>
+          <select style={inputStyle} value={form.jobId ?? ""} onChange={(e) => set("jobId", e.target.value || null)}>
             <option value="">— General Task —</option>
-            {jobs.map(j => <option key={j.id} value={j.id}>#{j.id} {j.customer}</option>)}
+            {jobs.map((j) => (
+              <option key={j.id} value={j.id}>
+                #{j.id} {j.customer}
+              </option>
+            ))}
           </select>
         </div>
         <div>
           <label style={labelStyle}>ASSIGN TO</label>
-          <select style={inputStyle} value={form.assignedTo} onChange={e => set("assignedTo", e.target.value)}>
-            {userNames.map(u => <option key={u}>{u}</option>)}
+          <select style={inputStyle} value={form.assignedTo} onChange={(e) => set("assignedTo", e.target.value)}>
+            {userNames.map((u) => (
+              <option key={u}>{u}</option>
+            ))}
           </select>
         </div>
         <div>
           <label style={labelStyle}>PRIORITY</label>
-          <select style={inputStyle} value={form.priority} onChange={e => set("priority", e.target.value)}>
+          <select style={inputStyle} value={form.priority} onChange={(e) => set("priority", e.target.value)}>
             <option value="low">Low</option>
             <option value="normal">Normal</option>
             <option value="high">High</option>
@@ -49,68 +65,145 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [] 
         </div>
         <div>
           <label style={labelStyle}>DUE DATE</label>
-          <input type="date" style={inputStyle} value={form.dueDate} onChange={e => set("dueDate", e.target.value)} />
+          <input type="date" style={inputStyle} value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <Btn onClick={handleSave}>SAVE TASK</Btn>
-        <Btn onClick={onCancel} variant="ghost">CANCEL</Btn>
+        <Btn onClick={handleSave}>{initial ? "SAVE CHANGES" : "SAVE TASK"}</Btn>
+        <Btn onClick={onCancel} variant="ghost">
+          CANCEL
+        </Btn>
       </div>
     </div>
   );
 }
 
 // ─── TODO ROW ─────────────────────────────────────────────────────────────────
-function TodoRow({ todo, onToggle, onNavigateJob, jobs }) {
+function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
   const overdue = isOverdue(todo);
-  const job = jobs.find(j => j.id === todo.jobId);
+  const job = jobs.find((j) => j.id === todo.jobId);
+
+  // v28.282 — small labeled action buttons; the bare mystery-box era is over.
+  const actionBtn = (color) => ({
+    background: "transparent",
+    border: `1px solid ${color}55`,
+    color,
+    padding: "3px 9px",
+    borderRadius: 4,
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: "0.06em",
+    cursor: "pointer",
+    flexShrink: 0,
+  });
 
   return (
-    <div style={{
-      display: "flex", alignItems: "flex-start", gap: 12,
-      padding: "10px 14px",
-      background: overdue ? C.overdueB : C.cardBg,
-      border: `1px solid ${overdue ? C.overdue + "44" : C.border}`,
-      borderLeft: `3px solid ${overdue ? C.overdue : todo.priority === "high" ? C.priHigh : todo.priority === "low" ? C.priLow : C.border}`,
-      borderRadius: 5, marginBottom: 6,
-      opacity: todo.completed ? 0.6 : 1,
-    }}>
-      <div onClick={() => onToggle(todo.id)} style={{
-        width: 18, height: 18, borderRadius: 3, flexShrink: 0, marginTop: 1,
-        border: `2px solid ${todo.completed ? C.green : C.muted}`,
-        background: todo.completed ? C.green : "transparent",
-        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-      }}>
-        {todo.completed && <span style={{ color: C.white, fontSize: 11, fontWeight: 900 }}>✓</span>}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+        padding: "10px 14px",
+        background: overdue ? C.overdueB : C.cardBg,
+        border: `1px solid ${overdue ? C.overdue + "44" : C.border}`,
+        borderLeft: `3px solid ${overdue ? C.overdue : todo.priority === "high" ? C.priHigh : todo.priority === "low" ? C.priLow : C.border}`,
+        borderRadius: 5,
+        marginBottom: 6,
+        opacity: todo.completed ? 0.6 : 1,
+      }}
+    >
+      <div
+        onClick={() => onToggle(todo.id)}
+        title={todo.completed ? "Mark as not done" : "Mark task done"}
+        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, cursor: "pointer" }}
+      >
+        <div
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 3,
+            marginTop: 1,
+            border: `2px solid ${todo.completed ? C.green : C.muted}`,
+            background: todo.completed ? C.green : "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {todo.completed && <span style={{ color: C.white, fontSize: 11, fontWeight: 900 }}>✓</span>}
+        </div>
+        <span style={{ fontSize: 8, fontWeight: 700, color: todo.completed ? C.green : C.muted, letterSpacing: "0.08em" }}>DONE</span>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{
-            fontSize: 13, fontWeight: 700, color: C.text,
-            textDecoration: todo.completed ? "line-through" : "none",
-          }}>{todo.title}</span>
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: C.text,
+              textDecoration: todo.completed ? "line-through" : "none",
+            }}
+          >
+            {todo.title}
+          </span>
           <PriorityBadge priority={todo.priority} />
-          {overdue && <span style={{ fontSize: 10, fontWeight: 700, color: C.overdue, background: C.overdueB, border: `1px solid ${C.overdue}44`, padding: "2px 7px", borderRadius: 3, letterSpacing: "0.06em" }}>OVERDUE</span>}
+          {overdue && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: C.overdue,
+                background: C.overdueB,
+                border: `1px solid ${C.overdue}44`,
+                padding: "2px 7px",
+                borderRadius: 3,
+                letterSpacing: "0.06em",
+              }}
+            >
+              OVERDUE
+            </span>
+          )}
         </div>
         {todo.description && <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{todo.description}</div>}
         <div style={{ display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
           {job && (
-            <span onClick={() => onNavigateJob && onNavigateJob(job.id)} style={{
-              fontSize: 11, color: C.blue, fontWeight: 700, cursor: onNavigateJob ? "pointer" : "default",
-              textDecoration: onNavigateJob ? "underline" : "none",
-            }}>#{job.id} {job.customer}</span>
+            <span
+              onClick={() => onNavigateJob && onNavigateJob(job.id)}
+              style={{
+                fontSize: 11,
+                color: C.blue,
+                fontWeight: 700,
+                cursor: onNavigateJob ? "pointer" : "default",
+                textDecoration: onNavigateJob ? "underline" : "none",
+              }}
+            >
+              #{job.id} {job.customer}
+            </span>
           )}
           {!job && <span style={{ fontSize: 11, color: C.muted }}>General Task</span>}
           {todo.dueDate && <span style={{ fontSize: 11, color: overdue ? C.overdue : C.muted }}>Due: {todo.dueDate}</span>}
           <span style={{ fontSize: 11, color: C.muted }}>→ {todo.assignedTo}</span>
           {todo.completed && todo.completedBy && (
-            <span style={{ fontSize: 11, color: C.green }}>✓ {todo.completedBy} · {todo.completedAt?.slice(0, 10)}</span>
+            <span style={{ fontSize: 11, color: C.green }}>
+              ✓ {todo.completedBy} · {todo.completedAt?.slice(0, 10)}
+            </span>
           )}
         </div>
+      </div>
+      <div style={{ display: "flex", gap: 6, marginTop: 1 }}>
+        {onEdit && (
+          <button title="Edit this task" onClick={() => onEdit(todo)} style={actionBtn(C.blue)}>
+            EDIT
+          </button>
+        )}
+        {onDelete && (
+          <button title="Delete this task" onClick={() => onDelete(todo)} style={actionBtn(C.red)}>
+            DELETE
+          </button>
+        )}
       </div>
     </div>
   );
 }
-
 
 export { TodoForm, TodoRow };
