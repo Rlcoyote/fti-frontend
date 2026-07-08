@@ -207,6 +207,35 @@ export function FilterBtn({ active, onClick, children }) {
   );
 }
 
+// v28.283 — a JOINED filter group: one bordered pill with the buttons as
+// segments, so mutually-exclusive choices (ACTIVE | COMPLETED) read as one
+// switch instead of scattered look-alike buttons.
+export function SegmentedBtns({ value, onChange, options }) {
+  return (
+    <div style={{ display: "inline-flex", border: `1px solid ${C.border}`, borderRadius: 5, overflow: "hidden" }}>
+      {options.map(([v, label], i) => (
+        <button
+          key={v}
+          onClick={() => onChange(v)}
+          style={{
+            background: value === v ? C.blue : "transparent",
+            border: "none",
+            borderLeft: i > 0 ? `1px solid ${C.border}` : "none",
+            color: value === v ? C.white : C.muted,
+            padding: "6px 14px",
+            fontSize: 11,
+            fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "'Arial', sans-serif",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── BADGES ───────────────────────────────────────────────────────────────────
 export function PriorityBadge({ priority }) {
   if (priority === "normal") return null;

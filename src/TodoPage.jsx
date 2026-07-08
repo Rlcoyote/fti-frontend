@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "./config.js";
 import { todoVisible } from "./utils.js";
-import { Btn, FilterBtn, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
+import { Btn, SegmentedBtns, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
 import { TodoForm, TodoRow } from "./TodoComponents.jsx";
 import { makeTodoActions } from "./todoActions.js";
 
@@ -56,26 +56,27 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
         />
       )}
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4, alignSelf: "center" }}>STATUS:</span>
-        {[
-          ["active", "ACTIVE"],
-          ["completed", "COMPLETED"],
-        ].map(([v, l]) => (
-          <FilterBtn key={v} active={filter === v} onClick={() => setFilter(v)}>
-            {l}
-          </FilterBtn>
-        ))}
-        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginLeft: 12, marginRight: 4, alignSelf: "center" }}>TYPE:</span>
-        {[
-          ["all", "ALL"],
-          ["job", "JOB-LINKED"],
-          ["general", "GENERAL"],
-        ].map(([v, l]) => (
-          <FilterBtn key={v} active={typeFilter === v} onClick={() => setTypeFilter(v)}>
-            {l}
-          </FilterBtn>
-        ))}
+      {/* v28.283 — filters joined into segmented groups: each set reads as ONE switch */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4 }}>STATUS:</span>
+        <SegmentedBtns
+          value={filter}
+          onChange={setFilter}
+          options={[
+            ["active", "ACTIVE"],
+            ["completed", "COMPLETED"],
+          ]}
+        />
+        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginLeft: 12, marginRight: 4 }}>TYPE:</span>
+        <SegmentedBtns
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            ["all", "ALL"],
+            ["job", "JOB-LINKED"],
+            ["general", "GENERAL"],
+          ]}
+        />
       </div>
 
       {filtered.length === 0 && <div style={{ textAlign: "center", padding: "40px 0", color: C.muted, fontSize: 14 }}>No tasks here.</div>}

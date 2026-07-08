@@ -83,23 +83,12 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
   const overdue = isOverdue(todo);
   const job = jobs.find((j) => j.id === todo.jobId);
 
-  // v28.282 — small labeled action buttons; the bare mystery-box era is over.
-  const actionBtn = (color) => ({
-    background: "transparent",
-    border: `1px solid ${color}55`,
-    color,
-    padding: "3px 9px",
-    borderRadius: 4,
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: "0.06em",
-    cursor: "pointer",
-    flexShrink: 0,
-  });
-
   return (
     <div
+      onClick={() => onEdit && onEdit(todo)}
+      title={onEdit ? "Click to open and edit this task" : undefined}
       style={{
+        cursor: onEdit ? "pointer" : "default",
         display: "flex",
         alignItems: "flex-start",
         gap: 12,
@@ -113,7 +102,10 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
       }}
     >
       <div
-        onClick={() => onToggle(todo.id)}
+        onClick={(e) => {
+          e.stopPropagation(); // the box completes; it must not open the editor
+          onToggle(todo.id);
+        }}
         title={todo.completed ? "Mark as not done" : "Mark task done"}
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, cursor: "pointer" }}
       >
@@ -168,7 +160,11 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
         <div style={{ display: "flex", gap: 12, marginTop: 4, flexWrap: "wrap" }}>
           {job && (
             <span
-              onClick={() => onNavigateJob && onNavigateJob(job.id)}
+              onClick={(e) => {
+                if (!onNavigateJob) return;
+                e.stopPropagation();
+                onNavigateJob(job.id);
+              }}
               style={{
                 fontSize: 11,
                 color: C.blue,
@@ -190,18 +186,31 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
           )}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6, marginTop: 1 }}>
-        {onEdit && (
-          <button title="Edit this task" onClick={() => onEdit(todo)} style={actionBtn(C.blue)}>
-            EDIT
-          </button>
-        )}
-        {onDelete && (
-          <button title="Delete this task" onClick={() => onDelete(todo)} style={actionBtn(C.red)}>
-            DELETE
-          </button>
-        )}
-      </div>
+      {/* v28.283 — EDIT button retired: the whole row opens the editor. DELETE stays explicit. */}
+      {onDelete && (
+        <button
+          title="Delete this task"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(todo);
+          }}
+          style={{
+            background: "transparent",
+            border: `1px solid ${C.red}55`,
+            color: C.red,
+            padding: "3px 9px",
+            borderRadius: 4,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            cursor: "pointer",
+            flexShrink: 0,
+            marginTop: 1,
+          }}
+        >
+          DELETE
+        </button>
+      )}
     </div>
   );
 }
