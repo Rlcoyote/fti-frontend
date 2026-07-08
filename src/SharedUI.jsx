@@ -1,4 +1,4 @@
-import { C } from "./config.js";
+import { C, F, SP, R } from "./config.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
 
@@ -380,38 +380,53 @@ export function TicketStatusBadge({ status }) {
 }
 
 // ─── MODAL WRAPPER ────────────────────────────────────────────────────────────
-// On mobile (≤900px): renders as full-screen page with native scroll.
-// On desktop: centered modal overlay with max-height scroll.
-export function ModalWrap({ title, onClose, children, width = 440 }) {
+// v28.286 (theme arc) — THE one modal shell. Every modal in the app renders
+// through this component; site-wide modal aesthetics change HERE and nowhere
+// else. Two presentations:
+//
+//   variant="sheet" (default) — edit forms / add flows. On mobile (≤900px)
+//     a full-screen page with native scroll; on desktop a centered overlay
+//     with max-height scroll. Desktop overlay click closes (onClose).
+//   variant="dialog" — confirms / notices / small pickers. Centered on EVERY
+//     screen size, heavier 4px accent, no overlay-click dismiss (a stray
+//     click must never answer a destructive question).
+//
+// `accent` colors the top border (default C.red; ticket modals pass their
+// type color). `z` stacks per the Z_INDEX tiers above. Page scroll behind
+// the modal is always locked (the v28.274 sweep missed this wrapper).
+export function ModalWrap({ title, onClose, children, width = 440, accent = C.red, z = Z_INDEX.modal, variant = "sheet" }) {
   const isMob = useIsMobile();
+  useBodyScrollLock(true);
+  const dialog = variant === "dialog";
+  const asSheet = !dialog && isMob;
   return (
     <div
       style={
-        isMob
-          ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
-          : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+        asSheet
+          ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: z, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+          : { position: "fixed", inset: 0, background: C.scrim, display: "flex", alignItems: "center", justifyContent: "center", zIndex: z }
       }
-      onClick={isMob ? undefined : onClose}
+      onClick={asSheet || dialog ? undefined : onClose}
     >
       <div
         style={
-          isMob
-            ? { background: C.cardBg, borderTop: `3px solid ${C.red}`, padding: 24, minHeight: "100%" }
+          asSheet
+            ? { background: C.cardBg, borderTop: `3px solid ${accent}`, padding: SP.card, minHeight: "100%" }
             : {
                 background: C.cardBg,
                 border: `1px solid ${C.border}`,
-                borderTop: `3px solid ${C.red}`,
-                borderRadius: 8,
-                padding: 24,
+                borderTop: dialog ? `4px solid ${accent}` : `3px solid ${accent}`,
+                borderRadius: R.card,
+                padding: dialog ? SP.page : SP.card,
                 width,
-                maxWidth: "92vw",
+                maxWidth: dialog ? "90vw" : "92vw",
                 maxHeight: "85vh",
                 overflowY: "auto",
               }
         }
-        onClick={isMob ? undefined : (e) => e.stopPropagation()}
+        onClick={asSheet || dialog ? undefined : (e) => e.stopPropagation()}
       >
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 18 }}>{title}</div>
+        {title !== undefined && <div style={{ fontSize: F.lg, fontWeight: 700, marginBottom: 18 }}>{title}</div>}
         {children}
       </div>
     </div>
@@ -423,32 +438,18 @@ export function ModalWrap({ title, onClose, children, width = 440 }) {
 // custom primary-button label (e.g. "Delete", "Deactivate"). The primary
 // action uses the red Btn; cancel is a ghost Btn.
 export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel }) {
-  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
+  // v28.286 — renders through the one shell (dialog variant, global tier).
   return (
-    <div
-      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}
-    >
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.red}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 460,
-          maxWidth: "90vw",
-        }}
-      >
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>{title}</div>
-        <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn onClick={onYes}>{yesLabel}</Btn>
-          <Btn variant="ghost" onClick={onCancel}>
-            Cancel
-          </Btn>
-        </div>
+    <ModalWrap variant="dialog" z={Z_INDEX.global} width={460} accent={C.red}>
+      <div style={{ fontSize: F.xl, fontWeight: 800, color: C.text, marginBottom: 12 }}>{title}</div>
+      <div style={{ fontSize: F.body, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
+      <div style={{ display: "flex", gap: SP.lg }}>
+        <Btn onClick={onYes}>{yesLabel}</Btn>
+        <Btn variant="ghost" onClick={onCancel}>
+          Cancel
+        </Btn>
       </div>
-    </div>
+    </ModalWrap>
   );
 }
 
@@ -457,31 +458,17 @@ export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCa
 // dismiss with OK, so they don't miss the message. `variant` picks the accent
 // color (green = success, red = error).
 export function NoticeModal({ title, message, variant = "ok", onClose }) {
-  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
+  // v28.286 — renders through the one shell (dialog variant, global tier).
   const accent = variant === "error" ? C.red : C.green;
   return (
-    <div
-      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: Z_INDEX.global }}
-    >
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${accent}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 460,
-          maxWidth: "90vw",
-        }}
-      >
-        <div style={{ fontSize: 16, fontWeight: 800, color: accent, marginBottom: 12 }}>{title}</div>
-        <div style={{ fontSize: 13, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn variant="blue" onClick={onClose}>
-            OK
-          </Btn>
-        </div>
+    <ModalWrap variant="dialog" z={Z_INDEX.global} width={460} accent={accent}>
+      <div style={{ fontSize: F.xl, fontWeight: 800, color: accent, marginBottom: 12 }}>{title}</div>
+      <div style={{ fontSize: F.body, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
+      <div style={{ display: "flex", gap: SP.lg }}>
+        <Btn variant="blue" onClick={onClose}>
+          OK
+        </Btn>
       </div>
-    </div>
+    </ModalWrap>
   );
 }
