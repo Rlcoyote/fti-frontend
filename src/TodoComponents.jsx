@@ -3,7 +3,7 @@ import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
 import { Btn, PriorityBadge, inputStyle, labelStyle } from "./SharedUI.jsx";
 
-function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [], initial = null }) {
+function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [], initial = null, onReactivate = null }) {
   // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
   const [form, setForm] = useState({
     title: initial?.title || "",
@@ -22,6 +22,27 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [],
 
   return (
     <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginBottom: 12 }}>
+      {/* v28.284 — a completed task opened for edit says so, and offers the way back */}
+      {initial?.completed && onReactivate && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            background: `${C.green}18`,
+            border: `1px solid ${C.green}55`,
+            borderRadius: 5,
+            padding: "8px 12px",
+            marginBottom: 12,
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 700, color: C.green }}>✓ This task is marked COMPLETED.</span>
+          <Btn small onClick={onReactivate}>
+            REACTIVATE TASK
+          </Btn>
+        </div>
+      )}
       <div style={{ marginBottom: 10 }}>
         <label style={labelStyle}>TITLE *</label>
         <input style={inputStyle} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="Task title..." />
@@ -186,6 +207,31 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
           )}
         </div>
       </div>
+      {/* v28.284 — completed rows carry the way back, spelled out */}
+      {todo.completed && (
+        <button
+          title="Put this task back on the active list"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(todo.id);
+          }}
+          style={{
+            background: "transparent",
+            border: `1px solid ${C.green}55`,
+            color: C.green,
+            padding: "3px 9px",
+            borderRadius: 4,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.06em",
+            cursor: "pointer",
+            flexShrink: 0,
+            marginTop: 1,
+          }}
+        >
+          REACTIVATE
+        </button>
+      )}
       {/* v28.283 — EDIT button retired: the whole row opens the editor. DELETE stays explicit. */}
       {onDelete && (
         <button

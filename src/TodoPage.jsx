@@ -90,6 +90,14 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
               await updateTodo(editing.id, form);
               setEditing(null);
             }}
+            onReactivate={
+              editing.completed
+                ? async () => {
+                    await toggleTodo(editing.id);
+                    setEditing(null);
+                  }
+                : null
+            }
             onCancel={() => setEditing(null)}
             jobs={jobs}
             userNames={userNames}
@@ -197,6 +205,14 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
               await updateTodo(editing.id, form);
               setEditing(null);
             }}
+            onReactivate={
+              editing.completed
+                ? async () => {
+                    await toggleTodo(editing.id);
+                    setEditing(null);
+                  }
+                : null
+            }
             onCancel={() => setEditing(null)}
             jobs={jobs}
             userNames={userNames}
