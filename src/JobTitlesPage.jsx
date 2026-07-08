@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { C } from "./config.js";
 import { api } from "./api.js";
-import { Btn, inputStyle, labelStyle, ConfirmModal } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, ConfirmModal, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── Job Titles admin (v27.57; v28.14 — drag-to-reorder) ───────────────────
@@ -300,51 +300,40 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}>
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.blue}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 440,
-          maxWidth: "95vw",
-        }}
-      >
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>{mode === "new" ? "Add Job Title" : `Edit "${initial.name}"`}</div>
-        <div style={{ display: "grid", gap: 14 }}>
-          <div>
-            <div style={labelStyle}>Name *</div>
-            <input
-              autoFocus
-              style={inputStyle}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Flowback Supervisor"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !submitting) submit();
-              }}
-            />
-          </div>
-        </div>
-
-        {formError && (
-          <div style={{ marginTop: 16, padding: "10px 14px", background: "#fdecea", color: C.red, borderRadius: 6, fontSize: 13, fontWeight: 700 }}>
-            {formError}
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-          <Btn variant="blue" onClick={submit} disabled={submitting}>
-            {submitting ? "Saving…" : mode === "new" ? "Add Title" : "Save Changes"}
-          </Btn>
-          <Btn variant="ghost" onClick={onClose}>
-            Cancel
-          </Btn>
+    // v28.288 (theme arc) — renders through the one shell.
+    <ModalWrap variant="dialog" z={Z_INDEX.nested} width={440} accent={C.blue}>
+      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>{mode === "new" ? "Add Job Title" : `Edit "${initial.name}"`}</div>
+      <div style={{ display: "grid", gap: 14 }}>
+        <div>
+          <div style={labelStyle}>Name *</div>
+          <input
+            autoFocus
+            style={inputStyle}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Flowback Supervisor"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !submitting) submit();
+            }}
+          />
         </div>
       </div>
-    </div>
+
+      {formError && (
+        <div style={{ marginTop: 16, padding: "10px 14px", background: "#fdecea", color: C.red, borderRadius: 6, fontSize: 13, fontWeight: 700 }}>
+          {formError}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+        <Btn variant="blue" onClick={submit} disabled={submitting}>
+          {submitting ? "Saving…" : mode === "new" ? "Add Title" : "Save Changes"}
+        </Btn>
+        <Btn variant="ghost" onClick={onClose}>
+          Cancel
+        </Btn>
+      </div>
+    </ModalWrap>
   );
 }
 

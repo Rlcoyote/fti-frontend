@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
+import { Btn, ConfirmModal, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import { ticketSaveErrorMessage } from "./utils.js";
 
@@ -493,35 +493,19 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
 
       {/* Batch confirm dialog */}
       {showBatchConfirm && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setShowBatchConfirm(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.red}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 440,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Confirm Batch Approval</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+        // v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal
+        <ConfirmModal
+          title="Confirm Batch Approval"
+          message={
+            <>
               You are about to approve and send <strong>{selected.size} tickets</strong> to accounting. This cannot be undone. Each ticket will be locked from
               further editing.
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={handleBatchApprove}>YES, APPROVE & SEND ALL ({selected.size})</Btn>
-              <Btn variant="ghost" onClick={() => setShowBatchConfirm(false)}>
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          yesLabel={`YES, APPROVE & SEND ALL (${selected.size})`}
+          onYes={handleBatchApprove}
+          onCancel={() => setShowBatchConfirm(false)}
+        />
       )}
     </div>
   );

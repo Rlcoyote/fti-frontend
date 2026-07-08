@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { C } from "./config.js";
 import { formatDate } from "./utils.js";
-import { Btn, TICKET_TYPES } from "./SharedUI.jsx";
+import { Btn, ConfirmModal, TICKET_TYPES } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── Deleted Items page ──────────────────────────────────────────────────────
@@ -309,48 +309,30 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
 
       {/* Confirm batch archive */}
       {confirmOpen && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-          onClick={() => setConfirmOpen(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.red}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 460,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 12 }}>
-              Archive {selectedCount} Selected Item{selectedCount !== 1 ? "s" : ""}?
-            </div>
-            <ul style={{ fontSize: 13, color: C.text, marginTop: 0, marginBottom: 16, paddingLeft: 20, lineHeight: 1.6 }}>
-              {selectedJobs.size > 0 && (
-                <li>
-                  <strong>{selectedJobs.size}</strong> work order{selectedJobs.size !== 1 ? "s" : ""}
-                </li>
-              )}
-              {selectedTickets.size > 0 && (
-                <li>
-                  <strong>{selectedTickets.size}</strong> ticket{selectedTickets.size !== 1 ? "s" : ""}
-                </li>
-              )}
-            </ul>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
-              Archived items move to the Archive page and cannot be restored.
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={archiveSelected}>Confirm — Archive {selectedCount}</Btn>
-              <Btn variant="ghost" onClick={() => setConfirmOpen(false)}>
-                Cancel
-              </Btn>
-            </div>
-          </div>
-        </div>
+        // v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal
+        <ConfirmModal
+          title={`Archive ${selectedCount} Selected Item${selectedCount !== 1 ? "s" : ""}?`}
+          message={
+            <>
+              <ul style={{ marginTop: 0, marginBottom: 16, paddingLeft: 20 }}>
+                {selectedJobs.size > 0 && (
+                  <li>
+                    <strong>{selectedJobs.size}</strong> work order{selectedJobs.size !== 1 ? "s" : ""}
+                  </li>
+                )}
+                {selectedTickets.size > 0 && (
+                  <li>
+                    <strong>{selectedTickets.size}</strong> ticket{selectedTickets.size !== 1 ? "s" : ""}
+                  </li>
+                )}
+              </ul>
+              <span style={{ fontSize: 12, color: C.muted }}>Archived items move to the Archive page and cannot be restored.</span>
+            </>
+          }
+          yesLabel={`Confirm — Archive ${selectedCount}`}
+          onYes={archiveSelected}
+          onCancel={() => setConfirmOpen(false)}
+        />
       )}
     </div>
   );

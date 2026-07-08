@@ -543,53 +543,33 @@ function JobCard({
           onCancel={() => setShowCompleteConfirm(false)}
         />
       )}
+      {/* v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal */}
       {showDeleteConfirm && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }}
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.red}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 420,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.red, marginBottom: 12 }}>
-              {can("delete_jobs") ? "Delete Work Order?" : "Flag for Cancellation?"}
-            </div>
-            <div style={{ fontSize: 13, color: C.text, marginBottom: 8 }}>
-              <strong>Work Order #{job.id}</strong> — {job.customer}
-            </div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20 }}>
-              {can("delete_jobs")
-                ? "This work order will be moved to the Deleted Items page. It can be restored later."
-                : "This work order will be flagged for review. A manager or admin will need to approve the cancellation."}
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn
-                onClick={() => {
-                  if (can("delete_jobs")) {
-                    onDeleteJob(job.id);
-                  } else {
-                    onFlagCancel(job.id);
-                  }
-                  setShowDeleteConfirm(false);
-                }}
-              >
-                {can("delete_jobs") ? "YES, DELETE" : "YES, FLAG IT"}
-              </Btn>
-              <Btn onClick={() => setShowDeleteConfirm(false)} variant="ghost">
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title={can("delete_jobs") ? "Delete Work Order?" : "Flag for Cancellation?"}
+          message={
+            <>
+              <div style={{ marginBottom: 8 }}>
+                <strong>Work Order #{job.id}</strong> — {job.customer}
+              </div>
+              <span style={{ fontSize: 12, color: C.muted }}>
+                {can("delete_jobs")
+                  ? "This work order will be moved to the Deleted Items page. It can be restored later."
+                  : "This work order will be flagged for review. A manager or admin will need to approve the cancellation."}
+              </span>
+            </>
+          }
+          yesLabel={can("delete_jobs") ? "YES, DELETE" : "YES, FLAG IT"}
+          onYes={() => {
+            if (can("delete_jobs")) {
+              onDeleteJob(job.id);
+            } else {
+              onFlagCancel(job.id);
+            }
+            setShowDeleteConfirm(false);
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal } from "./utils.js";
-import { Btn, inputStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { Btn, ConfirmModal, inputStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 import { isVisitType } from "./ticketFamilies.js";
 import { useApp } from "./AppContext.jsx";
 import CopyLineItemsModal from "./CopyLineItemsModal.jsx";
@@ -495,45 +495,29 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
 
       {/* Rig Down validation warning — item not on Rig Up or Rental */}
       {warnItem && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}
-          onClick={() => setWarnItem(null)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid #8a6500`,
-              borderRadius: 8,
-              padding: 24,
-              width: 440,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 14, fontWeight: 800, color: "#8a6500", marginBottom: 10 }}>Item Not on Rig Up or Rental</div>
-            <div style={{ fontSize: 13, color: C.text, marginBottom: 8, lineHeight: 1.6 }}>
-              <strong>{warnItem.qbCode}</strong> — {warnItem.desc}
-            </div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
-              This item does not appear on any Rig Up or Rental ticket for this work order. Adding it may indicate an error. Do you want to add it anyway?
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn
-                onClick={() => {
-                  setLineItems((prev) => [...prev, warnItem]);
-                  onSigWipe?.();
-                  setWarnItem(null);
-                }}
-              >
-                YES, ADD ITEM
-              </Btn>
-              <Btn variant="ghost" onClick={() => setWarnItem(null)}>
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
+        // v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal; the
+        // hardcoded #8a6500 accent becomes C.yellow (dark mode never got it)
+        <ConfirmModal
+          accent={C.yellow}
+          title="Item Not on Rig Up or Rental"
+          message={
+            <>
+              <div style={{ marginBottom: 8 }}>
+                <strong>{warnItem.qbCode}</strong> — {warnItem.desc}
+              </div>
+              <span style={{ fontSize: 12, color: C.muted }}>
+                This item does not appear on any Rig Up or Rental ticket for this work order. Adding it may indicate an error. Do you want to add it anyway?
+              </span>
+            </>
+          }
+          yesLabel="YES, ADD ITEM"
+          onYes={() => {
+            setLineItems((prev) => [...prev, warnItem]);
+            onSigWipe?.();
+            setWarnItem(null);
+          }}
+          onCancel={() => setWarnItem(null)}
+        />
       )}
     </div>
   );

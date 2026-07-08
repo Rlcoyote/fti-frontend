@@ -5,7 +5,7 @@ import { APP_VERSION } from "./version.js";
 import { useApp } from "./AppContext.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { todoVisible } from "./utils.js";
-import { Btn } from "./SharedUI.jsx";
+import { Btn, ConfirmModal } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
 import DashboardHome from "./DashboardHome.jsx";
 import NewJobModal from "./NewJobModal.jsx";
@@ -443,33 +443,15 @@ function FTIDashboard() {
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
       {showCompanyDocs && <CompanyDocumentsModal onClose={() => setShowCompanyDocs(false)} />}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      {/* v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal */}
       {showLogoutConfirm && (
-        <div
-          style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 300 }}
-          onClick={() => setShowLogoutConfirm(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.red}`,
-              borderRadius: 8,
-              padding: 28,
-              width: 380,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 10 }}>Sign Out?</div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 24, lineHeight: 1.6 }}>You will be signed out and returned to the login screen.</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={logout}>SIGN OUT</Btn>
-              <Btn variant="ghost" onClick={() => setShowLogoutConfirm(false)}>
-                CANCEL
-              </Btn>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Sign Out?"
+          message="You will be signed out and returned to the login screen."
+          yesLabel="SIGN OUT"
+          onYes={logout}
+          onCancel={() => setShowLogoutConfirm(false)}
+        />
       )}
     </div>
   );

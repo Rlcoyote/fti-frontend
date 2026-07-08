@@ -438,10 +438,11 @@ export function ModalWrap({ title, onClose, children, width = 440, accent = C.re
 // Use in place of window.confirm() — styled to match the app, supports a
 // custom primary-button label (e.g. "Delete", "Deactivate"). The primary
 // action uses the red Btn; cancel is a ghost Btn.
-export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel }) {
+export function ConfirmModal({ title, message, yesLabel = "Confirm", onYes, onCancel, accent = C.red }) {
   // v28.286 — renders through the one shell (dialog variant, global tier).
+  // v28.288 — optional accent for non-destructive confirms (e.g. yellow warns).
   return (
-    <ModalWrap variant="dialog" z={Z_INDEX.global} width={460} accent={C.red}>
+    <ModalWrap variant="dialog" z={Z_INDEX.global} width={460} accent={accent}>
       <div style={{ fontSize: F.xl, fontWeight: 800, color: C.text, marginBottom: 12 }}>{title}</div>
       <div style={{ fontSize: F.body, color: C.text, marginBottom: 22, lineHeight: 1.6 }}>{message}</div>
       <div style={{ display: "flex", gap: SP.lg }}>
