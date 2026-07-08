@@ -56,6 +56,8 @@ const LIGHT = {
   headerBg: "#002060",
   headerText: "#FFFFFF",
   headerMuted: "#a0aec8",
+  // Modal/overlay scrim (v28.285) — the dimmed backdrop behind every modal.
+  scrim: "#00000088",
 };
 
 const DARK = {
@@ -82,6 +84,57 @@ const DARK = {
   headerBg: "#4a8be2",
   headerText: "#0a1430",
   headerMuted: "#1a2340",
+  scrim: "#00000088",
+};
+
+// ─── NON-COLOR DESIGN TOKENS (v28.285, theme arc) ─────────────────────────────
+// The de-facto scales already in the codebase (fontSize: 11 ×349, 12 ×324,
+// 10 ×199, 13 ×188, …) given NAMES, so "make every label bigger" becomes a
+// one-line change instead of a 1,300-site sweep. Theme-independent (colors
+// live in the palettes above; a white-label rebrand touches palettes + these
+// scales and nothing else). New code uses the names; existing sites migrate
+// with the ModalWrap arc, then page-by-page.
+
+// Type scale.
+export const F = {
+  tiny: 8, //     smallest captions (e.g. the DONE caption on todo rows)
+  micro: 9, //    dense table meta
+  badge: 10, //   badges, pill buttons, uppercase micro-labels
+  label: 11, //   form labels, filter buttons, table headers
+  meta: 12, //    secondary text, descriptions, chips
+  body: 13, //    primary body text, inputs, buttons
+  md: 14, //      emphasized body, section labels
+  lg: 15, //      modal titles (ModalWrap)
+  xl: 16, //      dialog titles (ConfirmModal), stat values
+  h3: 18, //      sub-page headings
+  h2: 20, //      section headings
+  h1: 22, //      page titles
+  display: 24, // hero numbers (dashboard / ledger stats)
+};
+
+// Spacing scale — gaps and paddings (gap: 8 ×141, 10 ×115, 6 ×45, 12 ×43).
+export const SP = {
+  xxs: 2,
+  xs: 4,
+  sm: 6,
+  md: 8,
+  lg: 10,
+  xl: 12,
+  xxl: 16,
+  gutter: 20,
+  card: 24,
+  page: 28,
+};
+
+// Corner radius (4 ×189, 6 ×110, 3 ×75, 8 ×55).
+export const R = {
+  xs: 2,
+  sm: 3,
+  md: 4,
+  lg: 5,
+  xl: 6,
+  card: 8,
+  pill: 999,
 };
 
 const PALETTES = { light: LIGHT, dark: DARK };
