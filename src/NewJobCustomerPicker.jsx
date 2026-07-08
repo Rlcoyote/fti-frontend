@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, Z_INDEX, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, Z_INDEX, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx";
 
 // ─── NewJobCustomerPicker (v28.103 — ship 10 of NewJobModal split) ─────────
 // Customer search + dropdown + "Add New Customer" inline sub-modal. On
@@ -169,53 +169,29 @@ export default function NewJobCustomerPicker({
         </div>
       )}
       {showAddCust && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: C.scrim,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: Z_INDEX.overlay,
-          }}
-          onClick={() => setShowAddCust(false)}
-        >
-          <div
-            style={{
-              background: C.cardBg,
-              border: `1px solid ${C.border}`,
-              borderTop: `4px solid ${C.blue}`,
-              borderRadius: 8,
-              padding: 24,
-              width: 420,
-              maxWidth: "90vw",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>ADD NEW CUSTOMER</div>
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 16 }}>This customer will be created in FTI and flagged for QuickBooks sync.</div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>CUSTOMER NAME *</label>
-              <input style={inputStyle} value={newCustName} onChange={(e) => setNewCustName(e.target.value)} placeholder="Company name" autoFocus />
-            </div>
-            {newCustMsg && (
-              <div style={{ fontSize: 11, color: newCustMsg.includes("fail") ? C.red : C.green, marginBottom: 8, fontWeight: 700 }}>{newCustMsg}</div>
-            )}
-            <div style={{ display: "flex", gap: 8 }}>
-              <Btn onClick={submitNewCustomer}>CREATE CUSTOMER</Btn>
-              <Btn
-                variant="ghost"
-                onClick={() => {
-                  setShowAddCust(false);
-                  setNewCustMsg("");
-                }}
-              >
-                CANCEL
-              </Btn>
-            </div>
+        <ModalWrap variant="dialog" z={Z_INDEX.overlay} width={420} accent={C.blue} onClose={() => setShowAddCust(false)}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 12 }}>ADD NEW CUSTOMER</div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 16 }}>This customer will be created in FTI and flagged for QuickBooks sync.</div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>CUSTOMER NAME *</label>
+            <input style={inputStyle} value={newCustName} onChange={(e) => setNewCustName(e.target.value)} placeholder="Company name" autoFocus />
           </div>
-        </div>
+          {newCustMsg && (
+            <div style={{ fontSize: 11, color: newCustMsg.includes("fail") ? C.red : C.green, marginBottom: 8, fontWeight: 700 }}>{newCustMsg}</div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn onClick={submitNewCustomer}>CREATE CUSTOMER</Btn>
+            <Btn
+              variant="ghost"
+              onClick={() => {
+                setShowAddCust(false);
+                setNewCustMsg("");
+              }}
+            >
+              CANCEL
+            </Btn>
+          </div>
+        </ModalWrap>
       )}
     </div>
   );

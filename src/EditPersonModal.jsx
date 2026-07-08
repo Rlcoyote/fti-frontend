@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
 
 // ─── EditPersonModal (v28.17) ──────────────────────────────────────────────
 // Unified add/edit modal for the People page. Replaces:
@@ -190,194 +190,168 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: C.scrim,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 300,
-      }}
-    >
-      {/* Modal shell — backdrop click intentionally does NOT close (CAM
-          Article X). Click Cancel to dismiss. */}
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.blue}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 600,
-          maxWidth: "95vw",
-          maxHeight: "90vh",
-          overflowY: "auto",
-        }}
-      >
-        <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>
-          {mode === "new" ? "Add Person" : `Edit ${initial.first_name || ""} ${initial.last_name || ""}`.trim()}
-        </div>
+    <ModalWrap variant="dialog" z={Z_INDEX.nested} width={600} accent={C.blue}>
+      <div style={{ fontSize: 17, fontWeight: 800, color: C.text, marginBottom: 18 }}>
+        {mode === "new" ? "Add Person" : `Edit ${initial.first_name || ""} ${initial.last_name || ""}`.trim()}
+      </div>
 
-        {/* PROFILE section */}
-        <div style={sectionHeader}>Profile</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <div>
-            <label style={labelStyle}>First Name *</label>
-            <input style={inputStyle} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-          </div>
-          <div>
-            <label style={labelStyle}>Last Name *</label>
-            <input style={inputStyle} value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          </div>
-          <div>
-            <label style={labelStyle}>Email *</label>
-            <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div>
-            <label style={labelStyle}>Phone *</label>
-            <input
-              type="tel"
-              inputMode="numeric"
-              style={inputStyle}
-              value={phone}
-              onChange={(e) => setPhone(formatPhone(e.target.value))}
-              placeholder="(XXX) XXX-XXXX"
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>QB Employee ID *</label>
-            <input style={inputStyle} value={qbId} onChange={(e) => setQbId(e.target.value)} placeholder="e.g. E-001" />
-          </div>
-          <div>
-            <label style={labelStyle}>Job Title *</label>
-            <select style={inputStyle} value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}>
-              <option value="">— Select —</option>
-              {titleNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            {titleNames.length === 0 && (
-              <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 600 }}>
-                No active titles. Ask an owner/admin to add one on the Job Titles page.
-              </div>
-            )}
-            {mode === "edit" && initial.job_title && !initialTitleKnown && (
-              <div style={{ fontSize: 11, color: "#8a6500", marginTop: 4, fontWeight: 600 }}>
-                Stored title "{initial.job_title}" is now inactive — pick a current option to save changes.
-              </div>
-            )}
-          </div>
-          <div>
-            <label style={labelStyle}>Hire Date *</label>
-            <input type="date" style={inputStyle} value={hireDate} max={todayYmd()} onChange={(e) => setHireDate(e.target.value)} />
-          </div>
-          <div>
-            <label style={labelStyle}>Hourly Rate (optional, max ${MAX_HOURLY_RATE})</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              max={MAX_HOURLY_RATE}
-              style={inputStyle}
-              value={hourlyRate}
-              onChange={(e) => setHourlyRate(e.target.value)}
-              placeholder="(optional)"
-            />
-          </div>
+      {/* PROFILE section */}
+      <div style={sectionHeader}>Profile</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <div>
+          <label style={labelStyle}>First Name *</label>
+          <input style={inputStyle} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
         </div>
-
-        {/* ACCESS section */}
-        <div style={sectionHeader}>Access</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <div>
-            <label style={labelStyle}>Role *</label>
-            {isOwnerLocked ? (
-              <div
-                style={{
-                  ...inputStyle,
-                  background: C.steel,
-                  color: C.muted,
-                  fontStyle: "italic",
-                  padding: "8px 10px",
-                }}
-              >
-                owner (locked — change via scripts/change-owner-role.js)
-              </div>
-            ) : (
-              <select style={inputStyle} value={role} onChange={(e) => setRole(e.target.value)}>
-                {roleOptions.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          {mode === "edit" && (
-            <div>
-              <label style={labelStyle}>Session Timeout</label>
-              <select style={inputStyle} value={sessionTimeout} onChange={(e) => setSessionTimeout(parseInt(e.target.value))}>
-                {SESSION_TIMEOUT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+        <div>
+          <label style={labelStyle}>Last Name *</label>
+          <input style={inputStyle} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle}>Email *</label>
+          <input type="email" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle}>Phone *</label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            style={inputStyle}
+            value={phone}
+            onChange={(e) => setPhone(formatPhone(e.target.value))}
+            placeholder="(XXX) XXX-XXXX"
+          />
+        </div>
+        <div>
+          <label style={labelStyle}>QB Employee ID *</label>
+          <input style={inputStyle} value={qbId} onChange={(e) => setQbId(e.target.value)} placeholder="e.g. E-001" />
+        </div>
+        <div>
+          <label style={labelStyle}>Job Title *</label>
+          <select style={inputStyle} value={jobTitle} onChange={(e) => setJobTitle(e.target.value)}>
+            <option value="">— Select —</option>
+            {titleNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+          {titleNames.length === 0 && (
+            <div style={{ fontSize: 11, color: C.red, marginTop: 4, fontWeight: 600 }}>
+              No active titles. Ask an owner/admin to add one on the Job Titles page.
+            </div>
+          )}
+          {mode === "edit" && initial.job_title && !initialTitleKnown && (
+            <div style={{ fontSize: 11, color: "#8a6500", marginTop: 4, fontWeight: 600 }}>
+              Stored title "{initial.job_title}" is now inactive — pick a current option to save changes.
             </div>
           )}
         </div>
-
-        {/* New-mode-only: PIN setup SMS checkbox (v28.22 — SMS, not email) */}
-        {mode === "new" && (
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              background: "#e8f0fb",
-              padding: "10px 14px",
-              borderRadius: 6,
-              fontSize: 12,
-              color: C.text,
-              cursor: "pointer",
-              marginBottom: 14,
-            }}
-          >
-            <input type="checkbox" checked={sendPinAfterCreate} onChange={(e) => setSendPinAfterCreate(e.target.checked)} style={{ accentColor: C.blue }} />
-            Text PIN setup link to their phone immediately after creating the person
-          </label>
-        )}
-
-        {formError && (
-          <div
-            style={{
-              marginTop: 8,
-              padding: "10px 14px",
-              background: "#fdecea",
-              color: C.red,
-              borderRadius: 6,
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            {formError}
-          </div>
-        )}
-
-        <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-          <Btn variant="blue" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Saving…" : mode === "new" ? "Create Person" : "Save Changes"}
-          </Btn>
-          <Btn variant="ghost" onClick={onClose}>
-            Cancel
-          </Btn>
+        <div>
+          <label style={labelStyle}>Hire Date *</label>
+          <input type="date" style={inputStyle} value={hireDate} max={todayYmd()} onChange={(e) => setHireDate(e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle}>Hourly Rate (optional, max ${MAX_HOURLY_RATE})</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            max={MAX_HOURLY_RATE}
+            style={inputStyle}
+            value={hourlyRate}
+            onChange={(e) => setHourlyRate(e.target.value)}
+            placeholder="(optional)"
+          />
         </div>
       </div>
-    </div>
+
+      {/* ACCESS section */}
+      <div style={sectionHeader}>Access</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        <div>
+          <label style={labelStyle}>Role *</label>
+          {isOwnerLocked ? (
+            <div
+              style={{
+                ...inputStyle,
+                background: C.steel,
+                color: C.muted,
+                fontStyle: "italic",
+                padding: "8px 10px",
+              }}
+            >
+              owner (locked — change via scripts/change-owner-role.js)
+            </div>
+          ) : (
+            <select style={inputStyle} value={role} onChange={(e) => setRole(e.target.value)}>
+              {roleOptions.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        {mode === "edit" && (
+          <div>
+            <label style={labelStyle}>Session Timeout</label>
+            <select style={inputStyle} value={sessionTimeout} onChange={(e) => setSessionTimeout(parseInt(e.target.value))}>
+              {SESSION_TIMEOUT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* New-mode-only: PIN setup SMS checkbox (v28.22 — SMS, not email) */}
+      {mode === "new" && (
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            background: "#e8f0fb",
+            padding: "10px 14px",
+            borderRadius: 6,
+            fontSize: 12,
+            color: C.text,
+            cursor: "pointer",
+            marginBottom: 14,
+          }}
+        >
+          <input type="checkbox" checked={sendPinAfterCreate} onChange={(e) => setSendPinAfterCreate(e.target.checked)} style={{ accentColor: C.blue }} />
+          Text PIN setup link to their phone immediately after creating the person
+        </label>
+      )}
+
+      {formError && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: "10px 14px",
+            background: "#fdecea",
+            color: C.red,
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 700,
+          }}
+        >
+          {formError}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
+        <Btn variant="blue" onClick={handleSubmit} disabled={submitting}>
+          {submitting ? "Saving…" : mode === "new" ? "Create Person" : "Save Changes"}
+        </Btn>
+        <Btn variant="ghost" onClick={onClose}>
+          Cancel
+        </Btn>
+      </div>
+    </ModalWrap>
   );
 }
 

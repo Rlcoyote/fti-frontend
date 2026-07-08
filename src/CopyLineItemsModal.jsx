@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C, API_URL } from "./config.js";
-import { Btn, Z_INDEX } from "./SharedUI.jsx";
+import { Btn, Z_INDEX, ModalWrap } from "./SharedUI.jsx";
 import { calcLineTotal } from "./utils.js";
 
 // ─── CopyLineItemsModal (v28.11) ───────────────────────────────────────────
@@ -77,189 +77,163 @@ function CopyLineItemsModal({ jobId, excludeTicketId, onClose, onCopy }) {
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: C.scrim,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: Z_INDEX.nested,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.blue}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 500,
-          maxWidth: "95vw",
-          maxHeight: "85vh",
-          overflowY: "auto",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 14 }}>Copy Line Items from Rig Up</div>
+    <ModalWrap variant="dialog" z={Z_INDEX.nested} width={500} accent={C.blue} onClose={onClose}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 14 }}>Copy Line Items from Rig Up</div>
 
-        {loading && <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Loading Rig Up tickets...</div>}
+      {loading && <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Loading Rig Up tickets...</div>}
 
-        {!loading && rigUps.length === 0 && (
-          <div
-            style={{
-              fontSize: 12,
-              color: C.muted,
-              fontStyle: "italic",
-              padding: "10px 12px",
-              background: C.steel,
-              border: `1px solid ${C.border}`,
-              borderRadius: 4,
-            }}
-          >
-            No Rig Up tickets exist on this Work Order yet.
-          </div>
-        )}
+      {!loading && rigUps.length === 0 && (
+        <div
+          style={{
+            fontSize: 12,
+            color: C.muted,
+            fontStyle: "italic",
+            padding: "10px 12px",
+            background: C.steel,
+            border: `1px solid ${C.border}`,
+            borderRadius: 4,
+          }}
+        >
+          No Rig Up tickets exist on this Work Order yet.
+        </div>
+      )}
 
-        {!loading && rigUps.length > 0 && source && (
-          <>
-            {/* Source — progressive disclosure (mirrors TicketDuplicateModal +
+      {!loading && rigUps.length > 0 && source && (
+        <>
+          {/* Source — progressive disclosure (mirrors TicketDuplicateModal +
                 CopyCrewModal). */}
-            <div style={{ marginBottom: 16, padding: "10px 12px", background: C.steel, borderRadius: 6 }}>
-              {!pickerOpen ? (
-                <div style={{ fontSize: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>COPYING FROM:</span>
-                  <span style={{ color: C.text, fontWeight: 600 }}>
-                    Rig Up #{source.jobId}
-                    {source.ticketNumber ? `-${source.ticketNumber}` : ""}
-                  </span>
-                  {source.date && <span style={{ color: C.muted }}>· {String(source.date).slice(0, 10)}</span>}
-                  {rigUps.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => setPickerOpen(true)}
-                      style={{
-                        marginLeft: "auto",
-                        background: "transparent",
-                        border: "none",
-                        color: C.blue,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                        padding: 0,
-                        textDecoration: "underline",
-                      }}
-                    >
-                      (change)
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>COPYING FROM</div>
-                  <select
-                    value={sourceId}
-                    onChange={(e) => setSourceId(Number(e.target.value))}
-                    style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
-                  >
-                    {rigUps.map((t) => {
-                      const itemCount = (t.lineItems || t.line_items || []).length;
-                      return (
-                        <option key={t.id} value={t.id}>
-                          Rig Up #{t.jobId}
-                          {t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)} · {itemCount} item{itemCount !== 1 ? "s" : ""}
-                        </option>
-                      );
-                    })}
-                  </select>
+          <div style={{ marginBottom: 16, padding: "10px 12px", background: C.steel, borderRadius: 6 }}>
+            {!pickerOpen ? (
+              <div style={{ fontSize: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>COPYING FROM:</span>
+                <span style={{ color: C.text, fontWeight: 600 }}>
+                  Rig Up #{source.jobId}
+                  {source.ticketNumber ? `-${source.ticketNumber}` : ""}
+                </span>
+                {source.date && <span style={{ color: C.muted }}>· {String(source.date).slice(0, 10)}</span>}
+                {rigUps.length > 1 && (
                   <button
                     type="button"
-                    onClick={() => setPickerOpen(false)}
+                    onClick={() => setPickerOpen(true)}
                     style={{
+                      marginLeft: "auto",
                       background: "transparent",
                       border: "none",
                       color: C.blue,
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: "pointer",
-                      padding: "8px 0 0",
+                      padding: 0,
                       textDecoration: "underline",
                     }}
                   >
-                    done
+                    (change)
                   </button>
-                </div>
-              )}
-            </div>
-
-            {/* Source items preview */}
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>
-              ITEMS ON SOURCE TICKET ({sourceItems.length})
-            </div>
-            {sourceItems.length === 0 && (
-              <div
-                style={{
-                  fontSize: 12,
-                  color: C.muted,
-                  fontStyle: "italic",
-                  padding: "10px 12px",
-                  background: C.steel,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 4,
-                  marginBottom: 16,
-                }}
-              >
-                Source Rig Up has no line items. Pick a different source or add items directly.
+                )}
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 4 }}>COPYING FROM</div>
+                <select
+                  value={sourceId}
+                  onChange={(e) => setSourceId(Number(e.target.value))}
+                  style={{ width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13 }}
+                >
+                  {rigUps.map((t) => {
+                    const itemCount = (t.lineItems || t.line_items || []).length;
+                    return (
+                      <option key={t.id} value={t.id}>
+                        Rig Up #{t.jobId}
+                        {t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)} · {itemCount} item{itemCount !== 1 ? "s" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(false)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: C.blue,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    padding: "8px 0 0",
+                    textDecoration: "underline",
+                  }}
+                >
+                  done
+                </button>
               </div>
             )}
-            {sourceItems.length > 0 && (
-              <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, overflow: "hidden", marginBottom: 16 }}>
-                {sourceItems.map((li, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 12px",
-                      borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                      background: C.cardBg,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-                        {li.qbCode || "—"}
-                        <span style={{ marginLeft: 8, fontWeight: 400, color: C.muted }}>{li.desc}</span>
-                      </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                        ${Number(li.rate).toLocaleString()} × {li.qty} {li.um}
-                        {li.days > 1 ? ` × ${li.days}d` : ""}
-                      </div>
+          </div>
+
+          {/* Source items preview */}
+          <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>
+            ITEMS ON SOURCE TICKET ({sourceItems.length})
+          </div>
+          {sourceItems.length === 0 && (
+            <div
+              style={{
+                fontSize: 12,
+                color: C.muted,
+                fontStyle: "italic",
+                padding: "10px 12px",
+                background: C.steel,
+                border: `1px solid ${C.border}`,
+                borderRadius: 4,
+                marginBottom: 16,
+              }}
+            >
+              Source Rig Up has no line items. Pick a different source or add items directly.
+            </div>
+          )}
+          {sourceItems.length > 0 && (
+            <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, overflow: "hidden", marginBottom: 16 }}>
+              {sourceItems.map((li, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "8px 12px",
+                    borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+                    background: C.cardBg,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                      {li.qbCode || "—"}
+                      <span style={{ marginLeft: 8, fontWeight: 400, color: C.muted }}>{li.desc}</span>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                      ${calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                      ${Number(li.rate).toLocaleString()} × {li.qty} {li.um}
+                      {li.days > 1 ? ` × ${li.days}d` : ""}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                    ${calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
-        {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 14 }}>{error}</div>}
+      {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 14 }}>{error}</div>}
 
-        <div style={{ display: "flex", gap: 10 }}>
-          <Btn variant="blue" onClick={handleSubmit} disabled={submitting || sourceItems.length === 0}>
-            {submitting ? "COPYING..." : `COPY ${sourceItems.length} ITEM${sourceItems.length !== 1 ? "S" : ""}`}
-          </Btn>
-          <Btn variant="ghost" onClick={onClose} disabled={submitting}>
-            CANCEL
-          </Btn>
-        </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <Btn variant="blue" onClick={handleSubmit} disabled={submitting || sourceItems.length === 0}>
+          {submitting ? "COPYING..." : `COPY ${sourceItems.length} ITEM${sourceItems.length !== 1 ? "S" : ""}`}
+        </Btn>
+        <Btn variant="ghost" onClick={onClose} disabled={submitting}>
+          CANCEL
+        </Btn>
       </div>
-    </div>
+    </ModalWrap>
   );
 }
 
