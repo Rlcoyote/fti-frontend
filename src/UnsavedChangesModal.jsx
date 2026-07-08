@@ -1,6 +1,5 @@
 import { C } from "./config.js";
-import useBodyScrollLock from "./useBodyScrollLock.js";
-import { Btn } from "./SharedUI.jsx";
+import { Btn, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
 
 // ─── UnsavedChangesModal (v28.165 — dedup of EditJobUnsavedModal + the ──────
 // JSAModal inline "Unsaved Changes" block) ─────────────────────────────────
@@ -10,34 +9,18 @@ import { Btn } from "./SharedUI.jsx";
 // the showUnsaved flag and renders this conditionally.
 
 function UnsavedChangesModal({ message, onDiscard, onClose }) {
-  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
+  // v28.287 (theme arc) — renders through the one shell.
   return (
-    <div
-      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.red}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 400,
-          maxWidth: "90vw",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
-        <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>{message}</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Btn onClick={onDiscard}>YES, DISCARD</Btn>
-          <Btn variant="ghost" onClick={onClose}>
-            KEEP EDITING
-          </Btn>
-        </div>
+    <ModalWrap variant="dialog" z={Z_INDEX.overlay} width={400} accent={C.red} onClose={onClose}>
+      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Unsaved Changes</div>
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 20 }}>{message}</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn onClick={onDiscard}>YES, DISCARD</Btn>
+        <Btn variant="ghost" onClick={onClose}>
+          KEEP EDITING
+        </Btn>
       </div>
-    </div>
+    </ModalWrap>
   );
 }
 

@@ -388,8 +388,9 @@ export function TicketStatusBadge({ status }) {
 //     a full-screen page with native scroll; on desktop a centered overlay
 //     with max-height scroll. Desktop overlay click closes (onClose).
 //   variant="dialog" — confirms / notices / small pickers. Centered on EVERY
-//     screen size, heavier 4px accent, no overlay-click dismiss (a stray
-//     click must never answer a destructive question).
+//     screen size, heavier 4px accent. Overlay click closes only when an
+//     onClose is passed — ConfirmModal/NoticeModal deliberately pass none,
+//     so a stray click can never answer a destructive question.
 //
 // `accent` colors the top border (default C.red; ticket modals pass their
 // type color). `z` stacks per the Z_INDEX tiers above. Page scroll behind
@@ -406,7 +407,7 @@ export function ModalWrap({ title, onClose, children, width = 440, accent = C.re
           ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: z, overflowY: "auto", WebkitOverflowScrolling: "touch" }
           : { position: "fixed", inset: 0, background: C.scrim, display: "flex", alignItems: "center", justifyContent: "center", zIndex: z }
       }
-      onClick={asSheet || dialog ? undefined : onClose}
+      onClick={asSheet ? undefined : onClose}
     >
       <div
         style={
@@ -424,7 +425,7 @@ export function ModalWrap({ title, onClose, children, width = 440, accent = C.re
                 overflowY: "auto",
               }
         }
-        onClick={asSheet || dialog ? undefined : (e) => e.stopPropagation()}
+        onClick={asSheet ? undefined : (e) => e.stopPropagation()}
       >
         {title !== undefined && <div style={{ fontSize: F.lg, fontWeight: 700, marginBottom: 18 }}>{title}</div>}
         {children}

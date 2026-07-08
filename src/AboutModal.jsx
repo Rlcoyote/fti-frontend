@@ -1,6 +1,5 @@
 import { C } from "./config.js";
-import useBodyScrollLock from "./useBodyScrollLock.js";
-import { Btn } from "./SharedUI.jsx";
+import { Btn, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
 import { APP_VERSION } from "./version.js";
 
 // ─── AboutModal ─────────────────────────────────────────────────────────────
@@ -14,25 +13,10 @@ import { APP_VERSION } from "./version.js";
 const LINK_STYLE = { color: C.blue, textDecoration: "underline" };
 
 function AboutModal({ onClose }) {
-  useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
+  // v28.287 (theme arc) — renders through the one shell.
   return (
-    <div
-      style={{ position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200 }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.red}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 360,
-          maxWidth: "95vw",
-          textAlign: "center",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <ModalWrap variant="dialog" z={Z_INDEX.overlay} width={360} accent={C.red} onClose={onClose}>
+      <div style={{ textAlign: "center" }}>
         <div
           style={{
             width: 52,
@@ -74,7 +58,7 @@ function AboutModal({ onClose }) {
           </Btn>
         </div>
       </div>
-    </div>
+    </ModalWrap>
   );
 }
 
