@@ -13,23 +13,35 @@ async function compressPhoto(file) {
         // Resize to max 1200px
         const MAX = 1200;
         const THUMB = 200;
-        let w = img.width, h = img.height;
+        let w = img.width,
+          h = img.height;
         if (w > MAX || h > MAX) {
-          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-          else { w = Math.round(w * MAX / h); h = MAX; }
+          if (w > h) {
+            h = Math.round((h * MAX) / w);
+            w = MAX;
+          } else {
+            w = Math.round((w * MAX) / h);
+            h = MAX;
+          }
         }
         // Full image
         const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, w, h);
         const imageData = canvas.toDataURL("image/jpeg", 0.8);
         // Thumbnail
-        let tw = THUMB, th = THUMB;
-        if (img.width > img.height) { th = Math.round(THUMB * img.height / img.width); }
-        else { tw = Math.round(THUMB * img.width / img.height); }
+        let tw = THUMB,
+          th = THUMB;
+        if (img.width > img.height) {
+          th = Math.round((THUMB * img.height) / img.width);
+        } else {
+          tw = Math.round((THUMB * img.width) / img.height);
+        }
         const tc = document.createElement("canvas");
-        tc.width = tw; tc.height = th;
+        tc.width = tw;
+        tc.height = th;
         tc.getContext("2d").drawImage(img, 0, 0, tw, th);
         const thumbnail = tc.toDataURL("image/jpeg", 0.7);
         resolve({ imageData, thumbnail, filename: file.name.replace(/\.heic$/i, ".jpg") });
@@ -49,7 +61,7 @@ function PhotoStrip({ ticketId, isLocked }) {
   useEffect(() => {
     if (!ticketId) return;
     fetch(`${API_URL}/tickets/${ticketId}/photos`)
-      .then(r => r.ok ? r.json() : [])
+      .then((r) => (r.ok ? r.json() : []))
       .then(setPhotos)
       .catch(() => {});
   }, [ticketId]);
@@ -57,19 +69,25 @@ function PhotoStrip({ ticketId, isLocked }) {
   const handleUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    if (photos.length + files.length > 10) { showNotice("Photo Limit Reached", `Maximum 10 photos per ticket. You currently have ${photos.length}.`, "error"); return; }
+    if (photos.length + files.length > 10) {
+      showNotice("Photo Limit Reached", `Maximum 10 photos per ticket. You currently have ${photos.length}.`, "error");
+      return;
+    }
     setUploading(true);
     try {
-      const compressed = await Promise.all(files.map(f => compressPhoto(f)));
+      const compressed = await Promise.all(files.map((f) => compressPhoto(f)));
       const r = await fetch(`${API_URL}/tickets/${ticketId}/photos`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photos: compressed.map(p => ({ filename: p.filename, image_data: p.imageData, thumbnail: p.thumbnail })) }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos: compressed.map((p) => ({ filename: p.filename, image_data: p.imageData, thumbnail: p.thumbnail })) }),
       });
       if (r.ok) {
         const saved = await r.json();
-        setPhotos(prev => [...prev, ...saved]);
+        setPhotos((prev) => [...prev, ...saved]);
       }
-    } catch (err) { console.error("Photo upload failed:", err); }
+    } catch (err) {
+      console.error("Photo upload failed:", err);
+    }
     setUploading(false);
     e.target.value = "";
   };
@@ -77,8 +95,10 @@ function PhotoStrip({ ticketId, isLocked }) {
   const handleDelete = async (photoId) => {
     try {
       await fetch(`${API_URL}/tickets/photos/${photoId}`, { method: "DELETE" });
-      setPhotos(prev => prev.filter(p => p.id !== photoId));
-    } catch (err) { console.error("Photo delete failed:", err); }
+      setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+    } catch (err) {
+      console.error("Photo delete failed:", err);
+    }
   };
 
   const viewFull = async (photoId) => {
@@ -87,9 +107,13 @@ function PhotoStrip({ ticketId, isLocked }) {
       if (!r.ok) return;
       const data = await r.json();
       const win = window.open("", "_blank");
-      win.document.write(`<html><head><title>${data.filename}</title></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${data.image_data}" style="max-width:100%;max-height:100vh;object-fit:contain" /></body></html>`);
+      win.document.write(
+        `<html><head><title>${data.filename}</title></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${data.image_data}" style="max-width:100%;max-height:100vh;object-fit:contain" /></body></html>`,
+      );
       win.document.close();
-    } catch (err) { console.error("View photo failed:", err); }
+    } catch (err) {
+      console.error("View photo failed:", err);
+    }
   };
 
   return (
@@ -105,16 +129,51 @@ function PhotoStrip({ ticketId, isLocked }) {
       </div>
       {photos.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {photos.map(p => (
+          {photos.map((p) => (
             <div key={p.id} style={{ position: "relative", borderRadius: 6, overflow: "hidden", border: `1px solid ${C.border}`, background: "#f8f9fa" }}>
-              <img src={p.thumbnail} alt={p.filename}
+              <img
+                src={p.thumbnail}
+                alt={p.filename}
                 onClick={() => viewFull(p.id)}
-                style={{ width: 80, height: 80, objectFit: "cover", cursor: "pointer", display: "block" }} />
+                style={{ width: 80, height: 80, objectFit: "cover", cursor: "pointer", display: "block" }}
+              />
               {!isLocked && (
-                <button onClick={() => handleDelete(p.id)}
-                  style={{ position: "absolute", top: 2, right: 2, background: "#00000088", color: "#fff", border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>✕</button>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    right: 2,
+                    background: C.scrim,
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: 18,
+                    height: 18,
+                    fontSize: 11,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    lineHeight: 1,
+                  }}
+                >
+                  ✕
+                </button>
               )}
-              <div style={{ fontSize: 9, color: PANEL_MUTED, padding: "2px 4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 80 }}>{p.filename}</div>
+              <div
+                style={{
+                  fontSize: 9,
+                  color: PANEL_MUTED,
+                  padding: "2px 4px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: 80,
+                }}
+              >
+                {p.filename}
+              </div>
             </div>
           ))}
         </div>
@@ -129,7 +188,7 @@ function PublicPhotoStrip({ ticketId }) {
   useEffect(() => {
     if (!ticketId) return;
     fetch(`${API_URL}/tickets/${ticketId}/photos`)
-      .then(r => r.ok ? r.json() : [])
+      .then((r) => (r.ok ? r.json() : []))
       .then(setPhotos)
       .catch(() => {});
   }, [ticketId]);
@@ -140,9 +199,13 @@ function PublicPhotoStrip({ ticketId }) {
       if (!r.ok) return;
       const data = await r.json();
       const win = window.open("", "_blank");
-      win.document.write(`<html><head><title>${data.filename}</title></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${data.image_data}" style="max-width:100%;max-height:100vh;object-fit:contain" /></body></html>`);
+      win.document.write(
+        `<html><head><title>${data.filename}</title></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${data.image_data}" style="max-width:100%;max-height:100vh;object-fit:contain" /></body></html>`,
+      );
       win.document.close();
-    } catch (err) { console.error("View photo failed:", err); }
+    } catch (err) {
+      console.error("View photo failed:", err);
+    }
   };
 
   if (photos.length === 0) return null;
@@ -150,15 +213,18 @@ function PublicPhotoStrip({ ticketId }) {
     <div style={{ marginTop: 20, borderTop: "2px solid #d0d8e8", paddingTop: 16 }}>
       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Photos ({photos.length})</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {photos.map(p => (
-          <img key={p.id} src={p.thumbnail} alt={p.filename}
+        {photos.map((p) => (
+          <img
+            key={p.id}
+            src={p.thumbnail}
+            alt={p.filename}
             onClick={() => viewFull(p.id)}
-            style={{ width: 80, height: 80, objectFit: "cover", cursor: "pointer", borderRadius: 6, border: "1px solid #d0d8e8" }} />
+            style={{ width: 80, height: 80, objectFit: "cover", cursor: "pointer", borderRadius: 6, border: "1px solid #d0d8e8" }}
+          />
         ))}
       </div>
     </div>
   );
 }
-
 
 export { PhotoStrip, PublicPhotoStrip };

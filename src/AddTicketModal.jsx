@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
-import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED, Z_INDEX } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
@@ -475,12 +475,12 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
               position: "fixed",
               inset: 0,
               background: (type && TICKET_TYPES[type]?.bg) || C.cardBg,
-              zIndex: 100,
+              zIndex: Z_INDEX.modal,
               overflowY: "auto",
               overscrollBehavior: "contain",
               WebkitOverflowScrolling: "touch",
             }
-          : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+          : { position: "fixed", inset: 0, background: C.scrim, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
       }
       onClick={isMobile ? undefined : handleClose}
     >

@@ -1,6 +1,6 @@
 import { C, API_URL } from "./config.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
-import { Btn, Z_INDEX } from "./SharedUI.jsx";
+import { ConfirmModal } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── TicketDeleteModal (v27.70) ─────────────────────────────────────────────
@@ -36,48 +36,24 @@ function TicketDeleteModal({ ticket, onClose, onDeleted }) {
     }
   };
 
+  // v28.289 (theme arc) — was a hand-rolled copy of ConfirmModal
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "#00000088",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: Z_INDEX.overlay,
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          background: C.cardBg,
-          border: `1px solid ${C.border}`,
-          borderTop: `4px solid ${C.red}`,
-          borderRadius: 8,
-          padding: 28,
-          width: 420,
-          maxWidth: "90vw",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginBottom: 10 }}>Delete Ticket?</div>
-        <div style={{ fontSize: 13, color: C.muted, marginBottom: 20, lineHeight: 1.6 }}>
+    <ConfirmModal
+      title="Delete Ticket?"
+      message={
+        <>
           This will remove ticket{" "}
           <strong>
             #{ticket.jobId}
             {ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}
           </strong>{" "}
           ({ticket.type}). The ticket can be recovered by an admin.
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Btn onClick={handleDelete}>YES, DELETE</Btn>
-          <Btn variant="ghost" onClick={onClose}>
-            CANCEL
-          </Btn>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+      yesLabel="YES, DELETE"
+      onYes={handleDelete}
+      onCancel={onClose}
+    />
   );
 }
 

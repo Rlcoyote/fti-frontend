@@ -22,7 +22,7 @@ import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import TicketJobInfo from "./TicketJobInfo.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
-import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, ConfirmModal } from "./SharedUI.jsx";
+import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, ConfirmModal, Z_INDEX } from "./SharedUI.jsx";
 import { toMinutes } from "./ticketTimeValidation.js";
 import useEditLock from "./useEditLock.js";
 import useTicketState from "./useTicketState.js";
@@ -379,7 +379,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       style={
         isPageMode
           ? { background: tcfg.bg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100vh" }
-          : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+          : { position: "fixed", inset: 0, background: C.scrim, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
       }
       onClick={isPageMode ? undefined : handleClose}
     >

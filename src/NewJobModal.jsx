@@ -27,7 +27,7 @@
 import useIsMobile from "./useIsMobile.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C } from "./config.js";
-import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, Z_INDEX } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import useNewJobMobileBack from "./useNewJobMobileBack.js";
 import useNewJobForm from "./useNewJobForm.js";
@@ -52,8 +52,8 @@ function NewJobModal({ onClose, onCreateJob }) {
     <div
       style={
         isMobile
-          ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }
-          : { position: "fixed", inset: 0, background: "#00000088", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
+          ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: Z_INDEX.modal, overflowY: "auto", WebkitOverflowScrolling: "touch" }
+          : { position: "fixed", inset: 0, background: C.scrim, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
       }
       onClick={isMobile ? undefined : f.handleClose}
     >

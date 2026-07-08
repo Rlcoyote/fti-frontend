@@ -194,7 +194,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
       style={{
         position: "fixed",
         inset: 0,
-        background: "#00000088",
+        background: C.scrim,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
