@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { C } from "./config.js";
-import { inputStyle, labelStyle, PANEL_MUTED } from "./SharedUI.jsx";
+import { inputStyle, labelStyle, PANEL_MUTED, TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── AddTicketGpsVehicle (v28.183) ──────────────────────────────────────────
@@ -94,7 +94,9 @@ export default function AddTicketGpsVehicle({ trailerId, setTrailerId, gpsVehicl
         Auto-fills to the lead crew member&rsquo;s assigned vehicle when a lead is selected. Override anytime.
       </div>
       {gpsVehicleId && !(vehicles || []).find((v) => v.id === gpsVehicleId && v.gps_vehicle_id) && (
-        <div style={{ fontSize: 11, color: C.amber || "#8a6500", marginTop: 4 }}>
+        // v28.292 — C.amber never existed (the || always fired); this sits on
+        // the always-light ticket panel → TINT.yellowText per doctrine
+        <div style={{ fontSize: 11, color: TINT.yellowText, marginTop: 4 }}>
           Heads up: this vehicle isn&rsquo;t GPS-provisioned. The ticket will save fine, but PULL FROM GPS won&rsquo;t return data until the vehicle is linked
           in the Vehicles admin page.
         </div>

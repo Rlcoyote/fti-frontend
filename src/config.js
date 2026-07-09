@@ -58,6 +58,15 @@ const LIGHT = {
   headerMuted: "#a0aec8",
   // Modal/overlay scrim (v28.285) — the dimmed backdrop behind every modal.
   scrim: "#00000088",
+  // THEME-AWARE tint backgrounds (v28.292, color pass) — pale status washes
+  // that FLIP with the theme. For chips/banners on theme-aware surfaces
+  // (cards, tables, modals). NOT for the always-light pastel panels — those
+  // use TINT.* from SharedUI per the v28.53 doctrine.
+  redB: "#fdecea",
+  greenB: "#e6f5ec",
+  blueB: "#e8f0fb",
+  yellowB: "#fdf5d8",
+  orangeB: "#fdf0e6",
 };
 
 const DARK = {
@@ -85,6 +94,11 @@ const DARK = {
   headerText: "#0a1430",
   headerMuted: "#1a2340",
   scrim: "#00000088",
+  redB: "#3b1f24",
+  greenB: "#173427",
+  blueB: "#1a2a44",
+  yellowB: "#33290f",
+  orangeB: "#33230f",
 };
 
 // ─── NON-COLOR DESIGN TOKENS (v28.285, theme arc) ─────────────────────────────

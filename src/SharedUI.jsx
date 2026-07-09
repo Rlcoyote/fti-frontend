@@ -22,15 +22,50 @@ export const Z_INDEX = {
   global: 400,
 };
 
+// ─── ALWAYS-LIGHT TINT PAIRS ──────────────────────────────────────────────────
+// v28.292 (color pass) — the other half of the PANEL_TEXT doctrine below.
+// These are the pastel washes + their paired text colors for surfaces that
+// deliberately do NOT theme-flip (ticket-type panels, status chips, lead
+// rows). They are NOT in the palettes because they must not change in dark
+// mode — pairing an always-light bg with a theme-flipping text color (or
+// vice versa) is the bug class the doctrine exists to kill.
+//
+//   Always-light surface → TINT.xBg + TINT.xText (or PANEL_*)
+//   Theme-aware surface  → C.x + C.xB (config.js palettes)
+//
+// If you are about to type a raw hex in a component: one of these two
+// families already has a name for it.
+export const TINT = {
+  redBg: "#fdecea",
+  redText: "#B01020",
+  greenBg: "#e6f5ec",
+  greenText: "#1a7a3c",
+  greenDeepBg: "#d4edda", // QB VERIFIED chip
+  blueBg: "#e8f0fb",
+  blueText: "#1a5fa8",
+  yellowBg: "#fdf5d8",
+  yellowText: "#8a6500",
+  orangeBg: "#fdf0e6",
+  orangeText: "#b85c00",
+  purpleBg: "#f3eafa",
+  purpleText: "#7a3ca0",
+  grayBg: "#f0f3f8",
+  grayText: "#6b7a99",
+  grayDeepBg: "#e8e8e8", // RIG DOWN panel
+  black: "#000000",
+};
+
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────
 export const TICKET_TYPES = {
   // v28.271 — desc lives here (ONE home): the ADD TICKET type menu and the
   // in-modal fallback grid both read it.
-  "Rig Up": { color: "#B01020", bg: "#fdecea", label: "RIG UP", abbr: "RU", desc: "Crew mobilization, equipment, Day 1 rental" },
-  "Rig Down": { color: "#000000", bg: "#e8e8e8", label: "RIG DOWN", abbr: "RD", desc: "Teardown, equipment return, DLR check" },
-  Tester: { color: "#1a7a3c", bg: "#e6f5ec", label: "TESTER", abbr: "TST", desc: "Flo-back testing, weekly hours + well log" },
-  Pumper: { color: "#1a5fa8", bg: "#e8f0fb", label: "PUMPER", abbr: "PMP", desc: "Field specialist, weekly hours + well log" },
-  Rental: { color: "#8a6500", bg: "#fdf5d8", label: "RENTAL", abbr: "RNT", desc: "Ongoing equipment rental (Day 2+)" },
+  // v28.292 — colors move onto the named TINT pairs (identical values;
+  // always-light by doctrine).
+  "Rig Up": { color: TINT.redText, bg: TINT.redBg, label: "RIG UP", abbr: "RU", desc: "Crew mobilization, equipment, Day 1 rental" },
+  "Rig Down": { color: TINT.black, bg: TINT.grayDeepBg, label: "RIG DOWN", abbr: "RD", desc: "Teardown, equipment return, DLR check" },
+  Tester: { color: TINT.greenText, bg: TINT.greenBg, label: "TESTER", abbr: "TST", desc: "Flo-back testing, weekly hours + well log" },
+  Pumper: { color: TINT.blueText, bg: TINT.blueBg, label: "PUMPER", abbr: "PMP", desc: "Field specialist, weekly hours + well log" },
+  Rental: { color: TINT.yellowText, bg: TINT.yellowBg, label: "RENTAL", abbr: "RNT", desc: "Ongoing equipment rental (Day 2+)" },
 };
 
 // v28.40 — inField removed. Functionally identical to incomplete (both meant
@@ -41,15 +76,17 @@ export const TICKET_TYPES = {
 // draft is also retained but has no current setter — kept to avoid breaking
 // any historical row that may have it.
 export const TICKET_STATUSES = {
-  incomplete: { color: "#6b7a99", bg: "#f0f3f8", label: "INCOMPLETE" },
-  draft: { color: "#6b7a99", bg: "#f0f3f8", label: "DRAFT" },
-  emailed: { color: "#7a3ca0", bg: "#f3eafa", label: "EMAIL FOR SIGNATURE" },
-  signed: { color: "#1a7a3c", bg: "#e6f5ec", label: "SIGNED" },
-  sigNotReq: { color: "#1a5fa8", bg: "#e8f0fb", label: "SIG NOT REQ" },
-  approved: { color: "#b85c00", bg: "#fdf0e6", label: "APPROVED" },
-  sentToQB: { color: "#7a3ca0", bg: "#f3eafa", label: "SENT TO ACCOUNTING" },
-  qbVerified: { color: "#1a7a3c", bg: "#d4edda", label: "QB VERIFIED" },
-  voided: { color: "#B01020", bg: "#fdecea", label: "VOIDED" },
+  // v28.292 — onto the named TINT pairs (identical values; status chips stay
+  // light in both themes per the v28.53 doctrine).
+  incomplete: { color: TINT.grayText, bg: TINT.grayBg, label: "INCOMPLETE" },
+  draft: { color: TINT.grayText, bg: TINT.grayBg, label: "DRAFT" },
+  emailed: { color: TINT.purpleText, bg: TINT.purpleBg, label: "EMAIL FOR SIGNATURE" },
+  signed: { color: TINT.greenText, bg: TINT.greenBg, label: "SIGNED" },
+  sigNotReq: { color: TINT.blueText, bg: TINT.blueBg, label: "SIG NOT REQ" },
+  approved: { color: TINT.orangeText, bg: TINT.orangeBg, label: "APPROVED" },
+  sentToQB: { color: TINT.purpleText, bg: TINT.purpleBg, label: "SENT TO ACCOUNTING" },
+  qbVerified: { color: TINT.greenText, bg: TINT.greenDeepBg, label: "QB VERIFIED" },
+  voided: { color: TINT.redText, bg: TINT.redBg, label: "VOIDED" },
 };
 
 // ─── ALWAYS-LIGHT PANEL TEXT TOKENS ───────────────────────────────────────────
