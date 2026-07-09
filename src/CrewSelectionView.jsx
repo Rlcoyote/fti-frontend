@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { Btn, inputStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
 
 // ─── CrewSelectionView (v28.13) ────────────────────────────────────────────
 // Pure presentational component for the Crew Selection section.
@@ -160,7 +160,7 @@ function CrewSelectionView({
                 justifyContent: "space-between",
                 padding: "10px 14px",
                 borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                background: c.is_lead ? "#fdf5d8" : C.cardBg,
+                background: c.is_lead ? TINT.yellowBg : C.cardBg,
               }}
             >
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -177,7 +177,7 @@ function CrewSelectionView({
                   style={{
                     fontSize: 13,
                     fontWeight: 600,
-                    color: c.user_is_active === false ? C.muted : c.is_lead ? "#1a2340" : C.text,
+                    color: c.user_is_active === false ? C.muted : c.is_lead ? PANEL_TEXT : C.text,
                     textDecoration: c.user_is_active === false ? "line-through" : "none",
                     opacity: c.user_is_active === false ? 0.75 : 1,
                   }}
@@ -189,9 +189,9 @@ function CrewSelectionView({
                         marginLeft: 8,
                         fontSize: 10,
                         fontWeight: 800,
-                        color: "#8a6500",
+                        color: TINT.yellowText,
                         background: "#ffffffaa",
-                        border: `1px solid #8a650044`,
+                        border: `1px solid ${TINT.yellowText}44`,
                         padding: "1px 6px",
                         borderRadius: 3,
                         letterSpacing: "0.08em",
@@ -207,7 +207,7 @@ function CrewSelectionView({
                         fontSize: 10,
                         fontWeight: 800,
                         color: C.red,
-                        background: "#fdecec",
+                        background: TINT.redBg,
                         border: `1px solid ${C.red}44`,
                         padding: "1px 6px",
                         borderRadius: 3,
@@ -220,7 +220,7 @@ function CrewSelectionView({
                   )}
                 </div>
                 {(c.user_role || c.user_job_title) && (
-                  <div style={{ fontSize: 11, color: c.is_lead ? "#4a5570" : C.muted }}>
+                  <div style={{ fontSize: 11, color: c.is_lead ? PANEL_MUTED : C.muted }}>
                     {c.user_role}
                     {c.user_job_title ? ` · ${c.user_job_title}` : ""}
                   </div>

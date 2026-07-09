@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { C, API_URL } from "./config.js";
+import { PANEL_TEXT, TINT } from "./SharedUI.jsx";
 
 // ─── Public PIN setup page (v27.56) ──────────────────────────────────────────
 // Accessed via email/SMS link: /set-pin?token=xxx
@@ -196,7 +197,7 @@ function PinSetupPage() {
                 enables. Backend records consent + PIN in a single
                 transaction. */}
             <div style={{ marginBottom: 16, marginTop: 4 }}>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: "#1a2340", marginBottom: 6 }}>SMS CONSENT</div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: PANEL_TEXT, marginBottom: 6 }}>SMS CONSENT</div>
               <label
                 style={{
                   display: "flex",
@@ -215,9 +216,9 @@ function PinSetupPage() {
                   onChange={(e) => setSmsConsent(e.target.checked)}
                   style={{ width: 18, height: 18, marginTop: 2, cursor: "pointer", flexShrink: 0 }}
                 />
-                <div style={{ flex: 1, fontSize: 12, lineHeight: 1.55, color: "#1a2340" }}>{consentScript || fallbackScript}</div>
+                <div style={{ flex: 1, fontSize: 12, lineHeight: 1.55, color: PANEL_TEXT }}>{consentScript || fallbackScript}</div>
               </label>
-              <div style={{ fontSize: 10, color: "#6b7a99", marginTop: 6, textAlign: "center" }}>
+              <div style={{ fontSize: 10, color: TINT.grayText, marginTop: 6, textAlign: "center" }}>
                 Required to receive operational text messages. View our{" "}
                 <a href="https://www.flotest.com/sms-terms/" target="_blank" rel="noopener noreferrer" style={{ color: C.blue, textDecoration: "underline" }}>
                   SMS Terms
@@ -235,7 +236,9 @@ function PinSetupPage() {
             </div>
 
             {errorMessage && (
-              <div style={{ background: "#fdecea", color: C.red, padding: "10px 14px", borderRadius: 4, fontSize: 12, fontWeight: 700, marginBottom: 16 }}>
+              <div
+                style={{ background: TINT.redBg, color: TINT.redText, padding: "10px 14px", borderRadius: 4, fontSize: 12, fontWeight: 700, marginBottom: 16 }}
+              >
                 {errorMessage}
               </div>
             )}

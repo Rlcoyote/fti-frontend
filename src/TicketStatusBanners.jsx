@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { TINT } from "./SharedUI.jsx";
 
 // ─── TicketStatusBanners (v27.85) ───────────────────────────────────────────
 // Extracted from TicketDetail.jsx. Display-only status strips that render at
@@ -28,26 +29,73 @@ function TicketStatusBanners({ ticket, status, signedBy, isEditing, sigWiped }) 
   return (
     <>
       {ticket.voidedAt && (
-        <div style={{ background: "#fdecea", border: `1px solid ${C.red}44`, borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: C.red }}>
+        <div
+          style={{
+            background: TINT.redBg,
+            border: `1px solid ${TINT.redText}44`,
+            borderRadius: 4,
+            padding: "10px 14px",
+            marginBottom: 12,
+            fontSize: 13,
+            fontWeight: 700,
+            color: TINT.redText,
+          }}
+        >
           VOIDED{ticket._replacedByLabel ? ` — Replaced by #${ticket._replacedByLabel}` : ""}
         </div>
       )}
 
       {ticket.revisionOf && (
-        <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: C.blue }}>
+        <div
+          style={{
+            background: TINT.blueBg,
+            border: `1px solid ${TINT.blueText}44`,
+            borderRadius: 4,
+            padding: "10px 14px",
+            marginBottom: 12,
+            fontSize: 13,
+            fontWeight: 700,
+            color: TINT.blueText,
+          }}
+        >
           Revision of #{ticket._revisionOfLabel || "previous ticket"}
         </div>
       )}
 
       {ticket._duplicateReminder && (
-        <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.blue }}>
+        <div
+          style={{
+            background: TINT.blueBg,
+            border: `1px solid ${TINT.blueText}44`,
+            borderRadius: 4,
+            padding: "8px 12px",
+            marginBottom: 12,
+            fontSize: 12,
+            fontWeight: 700,
+            color: TINT.blueText,
+          }}
+        >
           This ticket was duplicated. Please update the date and review before saving.
         </div>
       )}
 
       {status === "emailed" && !signedBy && (
-        <div style={{ background: "#f3eafa", border: "1px solid #7a3ca044", borderRadius: 4, padding: "10px 14px", marginBottom: 12, fontSize: 13, fontWeight: 700, color: "#7a3ca0", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#7a3ca0", animation: "pulse 2s infinite" }} />
+        <div
+          style={{
+            background: TINT.purpleBg,
+            border: `1px solid ${TINT.purpleText}44`,
+            borderRadius: 4,
+            padding: "10px 14px",
+            marginBottom: 12,
+            fontSize: 13,
+            fontWeight: 700,
+            color: TINT.purpleText,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: TINT.purpleText, animation: "pulse 2s infinite" }} />
           Emailed for signature — awaiting response
           {ticket.emailedAt && (
             <span style={{ fontWeight: 400, fontSize: 12, marginLeft: "auto" }}>
@@ -58,13 +106,35 @@ function TicketStatusBanners({ ticket, status, signedBy, isEditing, sigWiped }) 
       )}
 
       {isEditing && !sigWiped && signedBy && (
-        <div style={{ background: "#fdf5d8", border: "1px solid #e6c200", borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+        <div
+          style={{
+            background: TINT.yellowBg,
+            border: `1px solid ${TINT.yellowBorder}`,
+            borderRadius: 4,
+            padding: "8px 12px",
+            marginBottom: 12,
+            fontSize: 12,
+            fontWeight: 700,
+            color: TINT.yellowText,
+          }}
+        >
           ⚠ Editing signed ticket — changing line items, rate, or qty will require a new signature.
         </div>
       )}
 
       {sigWiped && (
-        <div style={{ background: "#fdecea", border: `1px solid ${C.red}44`, borderRadius: 4, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.red }}>
+        <div
+          style={{
+            background: TINT.redBg,
+            border: `1px solid ${TINT.redText}44`,
+            borderRadius: 4,
+            padding: "8px 12px",
+            marginBottom: 12,
+            fontSize: 12,
+            fontWeight: 700,
+            color: TINT.redText,
+          }}
+        >
           ⚠ Line items changed — signature cleared. Customer must re-sign before saving.
         </div>
       )}

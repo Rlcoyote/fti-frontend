@@ -53,6 +53,13 @@ export const TINT = {
   grayText: "#6b7a99",
   grayDeepBg: "#e8e8e8", // RIG DOWN panel
   black: "#000000",
+  // v28.295 — the remaining always-light one-off washes, named.
+  yellowBorder: "#e6c200", //  golden border on draft/warn chips
+  gray50: "#f5f5f5", //        sent-to-QB ticket card (doctrine-listed)
+  gray100: "#f0f0f0", //       pending GPS chip
+  coolGray: "#eef1f4", //      manual-entry chip
+  cream: "#f8f4e8", //         rental-cycle strip
+  faintText: "#a0aec8", //     faint stamps on always-light rows
 };
 
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────

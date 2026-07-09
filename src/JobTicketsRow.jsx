@@ -1,7 +1,7 @@
 import { C } from "./config.js";
 import { typeCaps } from "./ticketFamilies.js";
 import { formatDate, calcTicketTotal } from "./utils.js";
-import { TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketRentalCycle.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -74,15 +74,15 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
   const needsJSA = !t.jsaCompleted && !t.voidedAt && !typeCaps(t.type).jsaOptional; // v28.274 — one home for the rule
   // Three badge states: completed (green ✓), draft (amber pill), none (gray).
   const jsaBadge = t.jsaCompleted
-    ? { bg: "#e6f5ec", color: C.green, border: C.green + "44", label: "✓ JSA" }
+    ? { bg: TINT.greenBg, color: TINT.greenText, border: TINT.greenText + "44", label: "✓ JSA" }
     : t.hasJSA
-      ? { bg: "#fdf5d8", color: "#8a6500", border: "#e6c20044", label: "JSA — DRAFT" }
+      ? { bg: TINT.yellowBg, color: TINT.yellowText, border: TINT.yellowBorder + "44", label: "JSA — DRAFT" }
       : { bg: C.steel, color: C.muted, border: C.border, label: "JSA" };
 
-  const btnAction = { ...BTN_BASE, background: "#fdf5d8", color: "#8a6500", border: "1px solid #e6c20044" };
-  const btnDone = { ...BTN_BASE, background: "#e6f5ec", color: C.green, border: `1px solid ${C.green}44`, cursor: "default" };
+  const btnAction = { ...BTN_BASE, background: TINT.yellowBg, color: TINT.yellowText, border: `1px solid ${TINT.yellowBorder}44` };
+  const btnDone = { ...BTN_BASE, background: TINT.greenBg, color: TINT.greenText, border: `1px solid ${TINT.greenText}44`, cursor: "default" };
   const btnDisabled = { ...BTN_BASE, background: C.steel, color: C.muted, border: `1px solid ${C.border}`, cursor: "not-allowed", opacity: 0.6 };
-  const btnBlue = { ...BTN_BASE, background: "#e8f0fb", color: C.blue, border: `1px solid ${C.blue}44` };
+  const btnBlue = { ...BTN_BASE, background: TINT.blueBg, color: TINT.blueText, border: `1px solid ${TINT.blueText}44` };
 
   const isSent = ["sentToQB", "qbVerified"].includes(t.status);
   const cardIsLight = isActiveTicket || isSent;
@@ -92,7 +92,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
   return (
     <div
       style={{
-        background: isActiveTicket ? "#e8f0fb" : isSent ? "#f5f5f5" : C.cardBg,
+        background: isActiveTicket ? TINT.blueBg : isSent ? TINT.gray50 : C.cardBg,
         border: isActiveTicket ? `2px solid ${C.blue}` : `1px solid ${C.border}`,
         borderLeft: `3px solid ${isSent ? "#ccc" : tcfg.color}`,
         borderRadius: 5,
@@ -133,7 +133,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                     </div>
                     <div style={{ fontSize: 10, color: cardText, fontWeight: 600 }}>{t.createdBy}</div>
                     {t.createdAt && (
-                      <div style={{ fontSize: 9, color: "#a0aec8" }}>
+                      <div style={{ fontSize: 9, color: TINT.faintText }}>
                         {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
                         {" · "}
                         {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
@@ -147,18 +147,18 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 3,
-                      background: "#fdecea",
-                      color: "#B01020",
+                      background: TINT.redBg,
+                      color: TINT.redText,
                       borderRadius: 4,
                       padding: "1px 6px",
                       fontSize: 9,
                       fontWeight: 800,
                       letterSpacing: "0.04em",
-                      border: "1px solid #B0102044",
+                      border: `1px solid ${TINT.redText}44`,
                       marginTop: 4,
                     }}
                   >
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: TINT.redText, display: "inline-block" }} />
                     COMMENT PENDING
                   </span>
                 )}
@@ -173,13 +173,13 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
             {t.voidedAt ? (
               <span
                 style={{
-                  background: "#fdecea",
+                  background: TINT.redBg,
                   color: C.red,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
-                  border: "1px solid #B0102044",
+                  border: `1px solid ${TINT.redText}44`,
                 }}
               >
                 VOIDED
@@ -189,13 +189,13 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {cycleEnded && (
                   <span
                     style={{
-                      background: "#fdf5d8",
-                      color: "#8a6500",
+                      background: TINT.yellowBg,
+                      color: TINT.yellowText,
                       borderRadius: 4,
                       padding: "2px 8px",
                       fontSize: 10,
                       fontWeight: 800,
-                      border: "1px solid #e6c20044",
+                      border: `1px solid ${TINT.yellowBorder}44`,
                     }}
                   >
                     CYCLE ENDED
@@ -333,7 +333,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 </span>
                 <span style={{ fontSize: 11, color: cardText, fontWeight: 600, whiteSpace: "nowrap" }}>{t.createdBy}</span>
                 {t.createdAt && (
-                  <span style={{ fontSize: 9, color: "#a0aec8", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 9, color: TINT.faintText, whiteSpace: "nowrap" }}>
                     {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
                     {" · "}
                     {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
@@ -347,31 +347,31 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  background: "#fdecea",
-                  color: "#B01020",
+                  background: TINT.redBg,
+                  color: TINT.redText,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
                   letterSpacing: "0.04em",
-                  border: "1px solid #B0102044",
+                  border: `1px solid ${TINT.redText}44`,
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: TINT.redText, display: "inline-block" }} />
                 COMMENT PENDING
               </span>
             )}
             {t.voidedAt && (
               <span
                 style={{
-                  background: "#fdecea",
+                  background: TINT.redBg,
                   color: C.red,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
                   letterSpacing: "0.04em",
-                  border: "1px solid #B0102044",
+                  border: `1px solid ${TINT.redText}44`,
                 }}
               >
                 VOIDED
@@ -380,14 +380,14 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
             {cycleEnded && !t.voidedAt && (
               <span
                 style={{
-                  background: "#fdf5d8",
-                  color: "#8a6500",
+                  background: TINT.yellowBg,
+                  color: TINT.yellowText,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
                   letterSpacing: "0.04em",
-                  border: "1px solid #e6c20044",
+                  border: `1px solid ${TINT.yellowBorder}44`,
                 }}
               >
                 CYCLE ENDED
@@ -457,7 +457,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 )}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
                 {t.status === "sigNotReq" && (
-                  <span style={{ ...btnDone, background: "#e8f0fb", color: C.blue, border: `1px solid ${C.blue}44` }}>SIG NOT REQ</span>
+                  <span style={{ ...btnDone, background: TINT.blueBg, color: TINT.blueText, border: `1px solid ${TINT.blueText}44` }}>SIG NOT REQ</span>
                 )}
                 {(t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified") && <span style={btnDone}>✓ SIGNED</span>}
 

@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { TINT } from "./SharedUI.jsx";
 import { formatDate } from "./utils.js";
 
 // ─── RentalCountdown (v27.79 — moved from TicketDetail.jsx) ─────────────────
@@ -18,9 +19,9 @@ export function RentalCountdown({ ticket }) {
   const diffMs = end - now;
   const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
   if (daysLeft < 0 || isNaN(daysLeft)) return null;
-  const color = daysLeft <= 1 ? "#B01020" : daysLeft <= 7 ? "#8a6500" : "#1a7a3c";
-  const bg = daysLeft <= 1 ? "#fdecea" : daysLeft <= 7 ? "#fdf5d8" : "#e6f5ec";
-  const border = daysLeft <= 1 ? "#B0102044" : daysLeft <= 7 ? "#e6c20044" : "#1a7a3c44";
+  const color = daysLeft <= 1 ? TINT.redText : daysLeft <= 7 ? TINT.yellowText : TINT.greenText;
+  const bg = daysLeft <= 1 ? TINT.redBg : daysLeft <= 7 ? TINT.yellowBg : TINT.greenBg;
+  const border = daysLeft <= 1 ? TINT.redText + "44" : daysLeft <= 7 ? TINT.yellowBorder + "44" : TINT.greenText + "44";
   const label = daysLeft === 0 ? "Last day" : daysLeft === 1 ? "1 day left" : `${daysLeft} days left`;
   return (
     <span
@@ -67,7 +68,7 @@ function TicketRentalCycle({ ticket, readOnly, values, onChange }) {
     if (readOnly && !startDate) return null;
     const winStyle = { border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", fontSize: 12, color: C.text, background: C.cardBg };
     return (
-      <div style={{ background: "#f8f4e8", borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
+      <div style={{ background: TINT.cream, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
           <span style={{ fontWeight: 800, letterSpacing: "0.06em", color: C.muted }}>RENTAL WINDOW</span>
           {readOnly ? (
@@ -103,7 +104,7 @@ function TicketRentalCycle({ ticket, readOnly, values, onChange }) {
 
   if (readOnly) {
     return (
-      <div style={{ background: "#f8f4e8", borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
+      <div style={{ background: TINT.cream, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
           <span>
             <span style={{ color: C.muted }}>Start: </span>
@@ -121,13 +122,13 @@ function TicketRentalCycle({ ticket, readOnly, values, onChange }) {
           {(ticket.cycleEnded || ticket.cycle_ended) && (
             <span
               style={{
-                background: "#fdf5d8",
-                color: "#8a6500",
+                background: TINT.yellowBg,
+                color: TINT.yellowText,
                 borderRadius: 4,
                 padding: "2px 8px",
                 fontSize: 10,
                 fontWeight: 800,
-                border: "1px solid #e6c20044",
+                border: `1px solid ${TINT.yellowBorder}44`,
               }}
             >
               CYCLE ENDED
@@ -143,7 +144,7 @@ function TicketRentalCycle({ ticket, readOnly, values, onChange }) {
   const lblStyle = { color: C.muted, fontWeight: 600, fontSize: 10, letterSpacing: "0.06em" };
 
   return (
-    <div style={{ background: "#f8f4e8", borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
+    <div style={{ background: TINT.cream, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center", fontSize: 12, color: C.text }}>
         <div>
           <span style={lblStyle}>START </span>

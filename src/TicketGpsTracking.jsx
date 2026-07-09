@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, inputStyle, labelStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import WellPinPaste from "./WellPinPaste.jsx";
 
@@ -60,10 +60,15 @@ function localInputToIso(s) {
 
 function StatusBadge({ status, pulledAt }) {
   const map = {
-    pending: { bg: "#f0f0f0", text: C.muted, border: C.border, label: "—" },
-    pulled: { bg: "#e6f5ec", text: C.green, border: `${C.green}55`, label: pulledAt ? `✓ Pulled ${new Date(pulledAt).toLocaleString()}` : "✓ Pulled" },
-    gps_down: { bg: "#fdecec", text: C.red, border: `${C.red}55`, label: "GPS unavailable" },
-    manual_override: { bg: "#fdf5d8", text: "#8a6500", border: "#e6c20055", label: "Edited manually" },
+    pending: { bg: TINT.gray100, text: TINT.grayText, border: C.border, label: "—" },
+    pulled: {
+      bg: TINT.greenBg,
+      text: TINT.greenText,
+      border: `${TINT.greenText}55`,
+      label: pulledAt ? `✓ Pulled ${new Date(pulledAt).toLocaleString()}` : "✓ Pulled",
+    },
+    gps_down: { bg: TINT.redBg, text: TINT.redText, border: `${TINT.redText}55`, label: "GPS unavailable" },
+    manual_override: { bg: TINT.yellowBg, text: TINT.yellowText, border: TINT.yellowBorder + "55", label: "Edited manually" },
   };
   const m = map[status] || map.pending;
   return (
@@ -105,9 +110,9 @@ function TimeRow({ label, value, onChange, editable, source }) {
 function SourcePill({ source }) {
   if (!source) return <span />;
   const map = {
-    gps: { bg: "#e6f5ec", color: C.green, label: "GPS" },
-    manual: { bg: "#eef1f4", color: C.muted, label: "MANUAL" },
-    override: { bg: "#fdf5d8", color: "#8a6500", label: "EDITED" },
+    gps: { bg: TINT.greenBg, color: TINT.greenText, label: "GPS" },
+    manual: { bg: TINT.coolGray, color: TINT.grayText, label: "MANUAL" },
+    override: { bg: TINT.yellowBg, color: TINT.yellowText, label: "EDITED" },
   };
   const m = map[source] || map.manual;
   return (
@@ -301,7 +306,7 @@ export default function TicketGpsTracking({
           )}
         </select>
         {gpsVehicleId && selectedVehicle && !selectedVehicle.gps_vehicle_id && (
-          <div style={{ fontSize: 11, color: "#8a6500", marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: TINT.yellowText, marginTop: 4 }}>
             Heads up: this vehicle isn&rsquo;t GPS-provisioned. Link it on the Vehicles page before PULL FROM GPS will return data.
           </div>
         )}
