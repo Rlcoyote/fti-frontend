@@ -183,7 +183,7 @@ export default function MyHoursPage() {
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            background: "#fdecec",
+            background: C.redB,
             color: C.red,
             border: `1px solid ${C.red}44`,
           }}
@@ -200,7 +200,7 @@ export default function MyHoursPage() {
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            background: msg.kind === "error" ? "#fdecec" : "#e6f5ec",
+            background: msg.kind === "error" ? C.redB : C.greenB,
             color: msg.kind === "error" ? C.red : C.green,
             border: `1px solid ${msg.kind === "error" ? C.red : C.green}44`,
           }}
@@ -268,9 +268,9 @@ export default function MyHoursPage() {
                           <span style={{ color: C.text, fontWeight: 700 }}>{r.ticket_number ? `#${r.ticket_number}` : "Shop/Yard"}</span>{" "}
                           <span style={{ color: C.muted }}>· {r.category}</span>
                           {pending ? (
-                            <span style={{ color: "#8a6500", fontWeight: 700 }}> · ✎ fix requested</span>
+                            <span style={{ color: C.yellow, fontWeight: 700 }}> · ✎ fix requested</span>
                           ) : (
-                            r.flagged && <span style={{ color: "#8a6500", fontWeight: 700 }}> · ⚑ under review</span>
+                            r.flagged && <span style={{ color: C.yellow, fontWeight: 700 }}> · ⚑ under review</span>
                           )}
                           <div style={{ color: C.muted, fontSize: 12, marginTop: 1 }}>
                             {fmtClock(r.start_at)} → {r.end_at ? fmtClock(r.end_at) : <span style={{ color: C.green, fontWeight: 700 }}>open</span>}

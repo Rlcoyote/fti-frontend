@@ -20,9 +20,9 @@ const formatPhoneDisplay = (raw) => {
 };
 
 const roleBg = (r) =>
-  r === "owner" ? "#fdecea" : r === "admin" ? "#e8f0fb" : r === "manager" ? "#e6f5ec" : r === "lead" ? "#fdf5d8" : r === "salesman" ? "#f3eafa" : "#f0f3f8";
+  r === "owner" ? C.redB : r === "admin" ? C.blueB : r === "manager" ? C.greenB : r === "lead" ? C.yellowB : r === "salesman" ? C.purpleB : C.steel;
 const roleColor = (r) =>
-  r === "owner" ? C.red : r === "admin" ? C.blue : r === "manager" ? C.green : r === "lead" ? "#8a6500" : r === "salesman" ? "#7a3ca0" : C.muted;
+  r === "owner" ? C.red : r === "admin" ? C.blue : r === "manager" ? C.green : r === "lead" ? C.yellow : r === "salesman" ? C.purple : C.muted;
 
 // v28.43 — getter pattern so color follows theme without a refresh.
 const thStyle = {
@@ -57,7 +57,7 @@ function PeopleRosterTable({ loading, filtered, people, isMobile, renderActions 
           <div
             key={p.id}
             style={{
-              background: p.is_active ? C.cardBg : "#f6f6f8",
+              background: p.is_active ? C.cardBg : C.steel,
               border: `1px solid ${C.border}`,
               borderRadius: 6,
               padding: 12,
@@ -116,7 +116,7 @@ function PeopleRosterTable({ loading, filtered, people, isMobile, renderActions 
         </thead>
         <tbody>
           {filtered.map((p) => (
-            <tr key={p.id} style={{ borderBottom: `1px solid ${C.border}`, background: p.is_active ? "transparent" : "#f6f6f8" }}>
+            <tr key={p.id} style={{ borderBottom: `1px solid ${C.border}`, background: p.is_active ? "transparent" : C.steel }}>
               <td style={tdStyle}>
                 <strong>
                   {p.first_name} {p.last_name}

@@ -93,7 +93,7 @@ function ArchivePage() {
                   fontWeight: 800,
                   padding: "2px 6px",
                   borderRadius: 3,
-                  background: item.entity_type === "ticket" ? "#fdecea" : "#e8f0fb",
+                  background: item.entity_type === "ticket" ? C.redB : C.blueB,
                   color: item.entity_type === "ticket" ? C.red : C.blue,
                   letterSpacing: "0.06em",
                 }}
@@ -101,7 +101,7 @@ function ArchivePage() {
                 {item.entity_type.toUpperCase()}
               </span>
               {item.entity_type === "ticket" && (
-                <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: typeCfg.bg || "#f0f3f8", color: typeCfg.color }}>
+                <span style={{ fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 3, background: typeCfg.bg || C.steel, color: typeCfg.color }}>
                   {typeCfg.label}
                 </span>
               )}
@@ -110,7 +110,7 @@ function ArchivePage() {
                 {snap.ticket_number ? `-${snap.ticket_number}` : ""}
               </span>
               <span style={{ fontSize: 11, color: C.muted }}>{snap.customer || ""}</span>
-              <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: "#fdf5d8", color: "#8a6500" }}>
+              <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: C.yellowB, color: C.yellow }}>
                 {(item.archive_reason || "").toUpperCase()}
               </span>
               <span style={{ fontSize: 10, color: C.muted, marginLeft: "auto" }}>{new Date(item.archived_at).toLocaleDateString("en-US")}</span>
@@ -177,7 +177,7 @@ function ArchivePage() {
 
                 {/* Signature */}
                 {sigSnap && sigSnap.signed_by && (
-                  <div style={{ marginTop: 10, background: "#e6f5ec", border: `1px solid ${C.green}44`, borderRadius: 6, padding: 10 }}>
+                  <div style={{ marginTop: 10, background: C.greenB, border: `1px solid ${C.green}44`, borderRadius: 6, padding: 10 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.green }}>✓ SIGNED — {sigSnap.signed_by}</div>
                     {sigSnap.signed_at && (
                       <div style={{ fontSize: 10, color: C.muted }}>

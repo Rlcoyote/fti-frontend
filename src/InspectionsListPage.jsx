@@ -110,7 +110,7 @@ function InspectionsListPage() {
                 padding: "10px 14px",
                 background: C.cardBg,
                 border: `1px solid ${C.border}`,
-                borderLeft: `4px solid ${hasRedTag ? C.red : isPass ? C.green : "#8a6500"}`,
+                borderLeft: `4px solid ${hasRedTag ? C.red : isPass ? C.green : C.yellow}`,
                 borderRadius: 5,
               }}
             >
@@ -125,8 +125,8 @@ function InspectionsListPage() {
               <div>
                 <span
                   style={{
-                    background: isPass ? "#e6f5ec" : "#fdf5d8",
-                    color: isPass ? C.green : "#8a6500",
+                    background: isPass ? C.greenB : C.yellowB,
+                    color: isPass ? C.green : C.yellow,
                     borderRadius: 3,
                     padding: "2px 8px",
                     fontSize: 10,
@@ -141,7 +141,7 @@ function InspectionsListPage() {
                 {hasRedTag ? (
                   <span
                     style={{
-                      background: "#fdecea",
+                      background: C.redB,
                       color: C.red,
                       borderRadius: 3,
                       padding: "2px 8px",

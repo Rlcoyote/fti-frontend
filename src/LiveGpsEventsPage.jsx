@@ -32,19 +32,19 @@ const EVENT_TYPE_LABELS = {
 };
 
 function eventColor(type) {
-  if (type === "geofence_enter") return { color: C.green, bg: "#e6f5ec" };
-  if (type === "geofence_exit") return { color: C.blue, bg: "#e8f0fb" };
-  if (type === "ignition_on") return { color: "#8a6500", bg: "#fdf5d8" };
+  if (type === "geofence_enter") return { color: C.green, bg: C.greenB };
+  if (type === "geofence_exit") return { color: C.blue, bg: C.blueB };
+  if (type === "ignition_on") return { color: C.yellow, bg: C.yellowB };
   if (type === "ignition_off") return { color: C.muted, bg: C.steel };
-  if (type === "speed_violation" || type === "harsh_event") return { color: C.red, bg: "#fdecea" };
+  if (type === "speed_violation" || type === "harsh_event") return { color: C.red, bg: C.redB };
   return { color: C.muted, bg: C.steel };
 }
 
 function kindBadge(kind) {
   if (kind === "yard") return { color: C.muted, bg: C.steel, label: "YARD" };
-  if (kind === "job") return { color: C.blue, bg: "#e8f0fb", label: "WO" };
-  if (kind === "well") return { color: C.green, bg: "#e6f5ec", label: "WELL" };
-  if (kind === "unknown") return { color: "#8a6500", bg: "#fdf5d8", label: "UNLINKED" };
+  if (kind === "job") return { color: C.blue, bg: C.blueB, label: "WO" };
+  if (kind === "well") return { color: C.green, bg: C.greenB, label: "WELL" };
+  if (kind === "unknown") return { color: C.yellow, bg: C.yellowB, label: "UNLINKED" };
   return null;
 }
 

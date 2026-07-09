@@ -108,7 +108,7 @@ export default function TimeReviewPage() {
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            background: msg.kind === "error" ? "#fdecec" : "#e6f5ec",
+            background: msg.kind === "error" ? C.redB : C.greenB,
             color: msg.kind === "error" ? C.red : C.green,
             border: `1px solid ${msg.kind === "error" ? C.red : C.green}44`,
           }}
@@ -151,10 +151,10 @@ export default function TimeReviewPage() {
                   {fmtDur(r.elapsed_seconds)} · {r.category}
                 </div>
                 {r.flag_reason && !pending && (
-                  <div style={{ fontSize: 12.5, color: resolved ? C.muted : "#8a6500", marginTop: 4, fontWeight: 600 }}>⚑ {r.flag_reason}</div>
+                  <div style={{ fontSize: 12.5, color: resolved ? C.muted : C.yellow, marginTop: 4, fontWeight: 600 }}>⚑ {r.flag_reason}</div>
                 )}
                 {pending && (
-                  <div style={{ fontSize: 12.5, color: "#8a6500", marginTop: 4, fontWeight: 600 }}>
+                  <div style={{ fontSize: 12.5, color: C.yellow, marginTop: 4, fontWeight: 600 }}>
                     ✎ requested: {r.requested_start_at ? `start → ${fmtWhen(r.requested_start_at)}` : ""}
                     {r.requested_start_at && r.requested_end_at ? ", " : ""}
                     {r.requested_end_at ? `end → ${fmtWhen(r.requested_end_at)}` : ""}

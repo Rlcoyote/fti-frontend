@@ -6,9 +6,9 @@ import { useApp } from "./AppContext.jsx";
 
 const ASSET_TYPES = ["Truck", "Trailer", "Separator", "Tank", "Generator", "Pump Unit", "Other"];
 const STATUS_COLORS = {
-  available: { color: C.green, bg: "#e6f5ec", label: "AVAILABLE" },
-  deployed: { color: "#8a6500", bg: "#fdf5d8", label: "DEPLOYED" },
-  maintenance: { color: C.red, bg: "#fdecea", label: "MAINTENANCE" },
+  available: { color: C.green, bg: C.greenB, label: "AVAILABLE" },
+  deployed: { color: C.yellow, bg: C.yellowB, label: "DEPLOYED" },
+  maintenance: { color: C.red, bg: C.redB, label: "MAINTENANCE" },
 };
 
 function AssetsPage({ jobs }) {
@@ -209,7 +209,7 @@ function AssetsPage({ jobs }) {
         <div
           style={{
             padding: "8px 14px",
-            background: msg.includes("fail") || msg.includes("Error") || msg.includes("required") ? "#fdecea" : "#e6f5ec",
+            background: msg.includes("fail") || msg.includes("Error") || msg.includes("required") ? C.redB : C.greenB,
             borderRadius: 4,
             fontSize: 12,
             fontWeight: 700,

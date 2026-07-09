@@ -10,9 +10,9 @@ import { inputStyle, labelStyle } from "./SharedUI.jsx";
 // (closed-out), flaggedCancel, Deleted (excluded everywhere). This dropdown
 // reflects those raw values for history filtering.
 const JOB_STATUS_FILTERS = [
-  { value: "Scheduled", label: "ACTIVE", color: "#1a5fa8", bg: "#e8f0fb" },
-  { value: "Completed", label: "COMPLETED", color: "#1a7a3c", bg: "#e6f5ec" },
-  { value: "flaggedCancel", label: "FLAGGED", color: "#b85c00", bg: "#fdf0e6" },
+  { value: "Scheduled", label: "ACTIVE", color: C.priLow, bg: C.blueB },
+  { value: "Completed", label: "COMPLETED", color: C.green, bg: C.greenB },
+  { value: "flaggedCancel", label: "FLAGGED", color: C.orange, bg: C.orangeB },
 ];
 
 function JobHistoryPage({ jobs, onNavigateJob }) {
@@ -123,7 +123,7 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
                     background: i % 2 === 0 ? C.cardBg : C.steel,
                     cursor: "pointer",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#e8f0fb")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = C.blueB)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? C.cardBg : C.steel)}
                 >
                   <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{j.id}</div>

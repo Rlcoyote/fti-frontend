@@ -72,11 +72,11 @@ function ActivityLogPage() {
   const uniqueActions = [...new Set(activity.map((a) => a.action))].sort();
 
   const actionColor = (action) => {
-    if (action === "login") return { color: C.green, bg: "#e6f5ec" };
+    if (action === "login") return { color: C.green, bg: C.greenB };
     if (action === "logout") return { color: C.muted, bg: C.steel };
-    if (action.includes("delete") || action.includes("archive")) return { color: C.red, bg: "#fdecea" };
-    if (action.includes("create") || action.includes("add")) return { color: C.blue, bg: "#e8f0fb" };
-    if (action.includes("edit") || action.includes("update") || action.includes("save")) return { color: "#8a6500", bg: "#fdf5d8" };
+    if (action.includes("delete") || action.includes("archive")) return { color: C.red, bg: C.redB };
+    if (action.includes("create") || action.includes("add")) return { color: C.blue, bg: C.blueB };
+    if (action.includes("edit") || action.includes("update") || action.includes("save")) return { color: C.yellow, bg: C.yellowB };
     return { color: C.muted, bg: C.steel };
   };
 
@@ -191,17 +191,17 @@ function ActivityLogPage() {
           flip with theme), so text colors inside it are also hardcoded to
           dark navy for legibility on the green. Reggie's call: "make the
           wording below it dark blue." */}
-      <div style={{ background: "#e6f5ec", border: `1px solid #00633a44`, borderRadius: 6, padding: "12px 16px", marginBottom: 20 }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#00633a", letterSpacing: "0.08em", marginBottom: 6 }}>ONLINE NOW ({online.length})</div>
+      <div style={{ background: C.greenB, border: `1px solid ${C.green}44`, borderRadius: 6, padding: "12px 16px", marginBottom: 20 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: C.green, letterSpacing: "0.08em", marginBottom: 6 }}>ONLINE NOW ({online.length})</div>
         {online.length === 0 ? (
-          <div style={{ fontSize: 12, color: "#4a5570" }}>No active users in the last 15 minutes</div>
+          <div style={{ fontSize: 12, color: C.muted }}>No active users in the last 15 minutes</div>
         ) : (
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {online.map((u) => (
               <div key={u.user_id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00633a" }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#002060" }}>{u.user_name}</span>
-                <span style={{ fontSize: 10, color: "#4a5570" }}>{formatIP(u.ip_address)}</span>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: C.darkBlue }}>{u.user_name}</span>
+                <span style={{ fontSize: 10, color: C.muted }}>{formatIP(u.ip_address)}</span>
               </div>
             ))}
           </div>
@@ -311,7 +311,7 @@ function ActivityLogPage() {
                       <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 6 }}>
                         {/* v28.45 — after-hours glyph (event outside 5am–10pm local). */}
                         {afterHrs && (
-                          <span title="After-hours activity (outside 5am–10pm)" style={{ color: "#b85c00", fontSize: 11 }}>
+                          <span title="After-hours activity (outside 5am–10pm)" style={{ color: C.orange, fontSize: 11 }}>
                             🌙
                           </span>
                         )}
@@ -403,7 +403,7 @@ function ActivityLogPage() {
                           padding: "2px 6px",
                           borderRadius: 3,
                           letterSpacing: "0.06em",
-                          background: s.status === "open" ? "#e6f5ec" : s.status === "abandoned" ? "#fdf5d8" : C.steel,
+                          background: s.status === "open" ? C.greenB : s.status === "abandoned" ? C.yellowB : C.steel,
                           color: s.status === "open" ? C.green : s.status === "abandoned" ? C.orange : C.muted,
                           alignSelf: "flex-start",
                         }}
@@ -422,7 +422,7 @@ function ActivityLogPage() {
                             padding: "1px 5px",
                             borderRadius: 3,
                             letterSpacing: "0.06em",
-                            background: "#fdecea",
+                            background: C.redB,
                             color: C.red,
                             border: `1px solid ${C.red}44`,
                             alignSelf: "flex-start",

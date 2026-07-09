@@ -67,6 +67,10 @@ const LIGHT = {
   blueB: "#e8f0fb",
   yellowB: "#fdf5d8",
   orangeB: "#fdf0e6",
+  purple: "#7a3ca0",
+  purpleB: "#f3eafa",
+  // Tertiary text — timestamps, faint stamps (v28.293).
+  faint: "#a0aec8",
 };
 
 const DARK = {
@@ -99,6 +103,9 @@ const DARK = {
   blueB: "#1a2a44",
   yellowB: "#33290f",
   orangeB: "#33230f",
+  purple: "#c084fc",
+  purpleB: "#2b1f3b",
+  faint: "#64748b",
 };
 
 // ─── NON-COLOR DESIGN TOKENS (v28.285, theme arc) ─────────────────────────────

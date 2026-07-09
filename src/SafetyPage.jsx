@@ -181,13 +181,13 @@ function SafetyPage() {
   };
 
   const certStatus = (c) => {
-    if (!c.expiration_date) return { label: "NO EXPIRY", color: C.blue, bg: "#e8f0fb" };
+    if (!c.expiration_date) return { label: "NO EXPIRY", color: C.blue, bg: C.blueB };
     const exp = new Date(c.expiration_date);
     const now = new Date();
     const days = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-    if (days < 0) return { label: "EXPIRED", color: C.red, bg: "#fdecea" };
-    if (days <= 30) return { label: `${days}d LEFT`, color: "#8a6500", bg: "#fdf5d8" };
-    return { label: "CURRENT", color: C.green, bg: "#e6f5ec" };
+    if (days < 0) return { label: "EXPIRED", color: C.red, bg: C.redB };
+    if (days <= 30) return { label: `${days}d LEFT`, color: C.yellow, bg: C.yellowB };
+    return { label: "CURRENT", color: C.green, bg: C.greenB };
   };
 
   const activeUsers = (users || []).filter((u) => u.is_active !== false);
@@ -201,7 +201,7 @@ function SafetyPage() {
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
             {certs.length} certification{certs.length !== 1 ? "s" : ""} on file
             {expiringSoon.length > 0 && (
-              <span style={{ color: "#8a6500", fontWeight: 700, marginLeft: 12 }}>⚠ {expiringSoon.length} expiring within 30 days</span>
+              <span style={{ color: C.yellow, fontWeight: 700, marginLeft: 12 }}>⚠ {expiringSoon.length} expiring within 30 days</span>
             )}
             {expired.length > 0 && <span style={{ color: C.red, fontWeight: 700, marginLeft: 12 }}>✕ {expired.length} expired</span>}
           </div>
@@ -284,7 +284,7 @@ function SafetyPage() {
                         }}
                         onClick={() => isAdmin && openEdit(c)}
                         onMouseEnter={(e) => {
-                          if (isAdmin) e.currentTarget.style.background = "#e8f0fb";
+                          if (isAdmin) e.currentTarget.style.background = C.blueB;
                         }}
                         onMouseLeave={(e) => {
                           e.currentTarget.style.background = i % 2 === 0 ? C.cardBg : C.steel;
@@ -566,7 +566,7 @@ function SafetyPage() {
               {importPreview.error_details?.length > 0 && (
                 <div
                   style={{
-                    background: "#fdf0f0",
+                    background: C.overdueB,
                     border: `1px solid ${C.red}33`,
                     borderRadius: 6,
                     padding: 12,
