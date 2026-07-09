@@ -24,7 +24,7 @@ function CrewPage({ jobs }) {
     : crewData;
 
   const statusColor = { "On Job": C.green, Available: C.blue };
-  const statusBg = { "On Job": "#e6f5ec", Available: "#e8f0fb" };
+  const statusBg = { "On Job": C.greenB, Available: C.blueB };
 
   const roleLabel = (r) => {
     const map = { owner: "Owner", admin: "Admin", manager: "Manager", lead: "Lead", salesman: "Salesman", field: "Field" };

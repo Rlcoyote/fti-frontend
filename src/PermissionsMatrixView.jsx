@@ -193,7 +193,7 @@ function PermissionsMatrixView() {
   const stickyLeftCell = { position: "sticky", left: 0, zIndex: 1, background: C.cardBg, boxShadow: `2px 0 0 ${C.border}` };
 
   const roleBg = (r) =>
-    r === "owner" ? "#fdecea" : r === "admin" ? "#e8f0fb" : r === "manager" ? "#e6f5ec" : r === "lead" ? "#fdf5d8" : r === "salesman" ? "#f3eafa" : "#f0f3f8";
+    r === "owner" ? C.redB : r === "admin" ? C.blueB : r === "manager" ? C.greenB : r === "lead" ? C.yellowB : r === "salesman" ? C.purpleB : C.steel;
 
   return (
     <div style={{ overflowX: "auto", overflowY: "auto", padding: "0 0 16px" }}>
@@ -294,7 +294,7 @@ function PermissionsMatrixView() {
                   {templateSaving ? "SAVING..." : "SAVE TEMPLATES"}
                 </button>
                 {!templatesDirty && <span style={{ fontSize: 10, color: C.muted }}>No unsaved changes</span>}
-                {templatesDirty && <span style={{ fontSize: 10, color: "#8a6500", fontWeight: 600 }}>Unsaved changes</span>}
+                {templatesDirty && <span style={{ fontSize: 10, color: C.yellow, fontWeight: 600 }}>Unsaved changes</span>}
               </div>
             </div>
           )}
@@ -324,9 +324,9 @@ function PermissionsMatrixView() {
                 const isOwner = u.role === "owner";
                 const canModify = canModifyUser(currentUser?.role, u.role);
                 const customized = isCustomized(u.permissions, templates[u.role]);
-                const stickyBg = isOwner ? "#f0f3f8" : C.cardBg;
+                const stickyBg = isOwner ? C.steel : C.cardBg;
                 return (
-                  <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: isOwner ? "#f0f3f8" : "transparent" }}>
+                  <tr key={u.id} style={{ borderBottom: `1px solid ${C.border}`, background: isOwner ? C.steel : "transparent" }}>
                     <td style={{ ...stickyLeftCell, background: stickyBg, padding: "8px 12px", fontWeight: 700, color: C.text }}>
                       {u.name}
                       {saving[u.id] && <span style={{ fontSize: 9, color: C.blue, marginLeft: 6 }}>saving...</span>}
@@ -370,7 +370,7 @@ function PermissionsMatrixView() {
                           {u.role}
                         </span>
                       )}
-                      {customized && <div style={{ fontSize: 9, color: "#8a6500", fontWeight: 700, marginTop: 3, letterSpacing: "0.04em" }}>● CUSTOMIZED</div>}
+                      {customized && <div style={{ fontSize: 9, color: C.yellow, fontWeight: 700, marginTop: 3, letterSpacing: "0.04em" }}>● CUSTOMIZED</div>}
                     </td>
                     {PERMISSION_CATEGORIES.map((p) => {
                       const checked = u.permissions?.[p.key] ?? false;

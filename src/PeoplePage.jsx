@@ -205,7 +205,7 @@ function PeoplePage() {
           style={{
             padding: "8px 14px",
             marginBottom: 14,
-            background: msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") ? "#fdecea" : "#e6f5ec",
+            background: msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") ? C.redB : C.greenB,
             color: msg.toLowerCase().includes("fail") || msg.toLowerCase().includes("error") ? C.red : C.green,
             borderRadius: 4,
             fontSize: 12,

@@ -87,7 +87,7 @@ function ClockPage() {
             borderRadius: 6,
             fontSize: 13,
             fontWeight: 600,
-            background: msg.kind === "error" ? "#fdecec" : "#e6f5ec",
+            background: msg.kind === "error" ? C.redB : C.greenB,
             color: msg.kind === "error" ? C.red : C.green,
             border: `1px solid ${msg.kind === "error" ? C.red : C.green}44`,
           }}
@@ -150,8 +150,8 @@ function ClockPage() {
             borderRadius: 8,
             fontSize: 13,
             fontWeight: 600,
-            background: "#fff8e1",
-            color: "#8a6500",
+            background: C.yellowB,
+            color: C.yellow,
             border: `1px solid ${C.yellow}55`,
           }}
         >

@@ -59,7 +59,7 @@ function ContactsTable({ loading, filtered, merged, selectMode, isAdmin, isOwner
                   gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px" : "1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px",
                   padding: "8px 14px",
                   borderBottom: `1px solid ${C.border}22`,
-                  background: sel ? "#e8f0fb" : i % 2 === 0 ? C.cardBg : C.steel,
+                  background: sel ? C.blueB : i % 2 === 0 ? C.cardBg : C.steel,
                   cursor: isAdmin ? "pointer" : "default",
                   alignItems: "center",
                   opacity: inactive ? 0.55 : 1,
@@ -79,7 +79,7 @@ function ContactsTable({ loading, filtered, merged, selectMode, isAdmin, isOwner
                 )}
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
                   {firstName}
-                  {inactive && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: "#8a6500", letterSpacing: "0.06em" }}>(INACTIVE)</span>}
+                  {inactive && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 800, color: C.yellow, letterSpacing: "0.06em" }}>(INACTIVE)</span>}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{lastName}</div>
                 <div style={{ fontSize: 12, color: C.muted }}>{c.customer_name}</div>
@@ -114,7 +114,7 @@ function ContactsTable({ loading, filtered, merged, selectMode, isAdmin, isOwner
                       title="Mark inactive (reversible)"
                       style={{ background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 14 }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "#8a6500";
+                        e.currentTarget.style.color = C.yellow;
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.color = "#ccc";

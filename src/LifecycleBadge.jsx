@@ -6,8 +6,8 @@ import { C } from "./config.js";
 // so every fleet entity renders the same badge from one source (Article XVII).
 
 export const LIFECYCLE_COLORS = {
-  active: { color: C.green, bg: "#e6f5ec", label: "ACTIVE" },
-  retired: { color: C.muted, bg: "#eeeeee", label: "RETIRED" },
+  active: { color: C.green, bg: C.greenB, label: "ACTIVE" },
+  retired: { color: C.muted, bg: C.lightSteel, label: "RETIRED" },
 };
 
 export default function LifecycleBadge({ status }) {

@@ -182,7 +182,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
               onDragEnd={handleDragEnd}
               onDrop={() => handleDrop(idx)}
               style={{
-                background: isDragging ? "#e8f0fb" : C.cardBg,
+                background: isDragging ? C.blueB : C.cardBg,
                 border: `1px solid ${isDragging ? C.blue : C.border}`,
                 borderLeft: `3px solid ${tcfg.color}`,
                 borderRadius: 5,

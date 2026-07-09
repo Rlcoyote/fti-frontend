@@ -334,7 +334,7 @@ function ContactsPage() {
                   disabled={selected.size === 0}
                   onClick={() => setConfirmSoftDelete(true)}
                   style={{
-                    background: selected.size === 0 ? C.steel : "#8a6500",
+                    background: selected.size === 0 ? C.steel : C.yellow,
                     color: selected.size === 0 ? C.muted : C.white,
                     border: "none",
                     borderRadius: 4,

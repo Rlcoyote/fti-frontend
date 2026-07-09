@@ -193,10 +193,10 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
     if (fb) {
       const palette =
         fb.kind === "success"
-          ? { bg: "#e6f5ec", color: C.green, border: C.green + "44" }
+          ? { bg: C.greenB, color: C.green, border: C.green + "44" }
           : fb.kind === "error"
-            ? { bg: "#fdecea", color: C.red, border: C.red + "44" }
-            : { bg: "#e8f0fb", color: C.blue, border: C.blue + "44" };
+            ? { bg: C.redB, color: C.red, border: C.red + "44" }
+            : { bg: C.blueB, color: C.blue, border: C.blue + "44" };
       buttons.push(
         <span
           key="row-feedback"
