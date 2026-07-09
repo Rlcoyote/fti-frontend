@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { TINT } from "./SharedUI.jsx";
 
 // ─── LoginJsaSignStep (v28.163 — ship 6 of the LoginScreen split) ─────────
 // The JSA sign-link landing. A crew member opened a sign-link from email
@@ -17,13 +18,13 @@ function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign 
       <div
         style={{
           padding: "14px 16px",
-          background: "#e6f5ec",
-          border: `1px solid #00633a44`,
+          background: TINT.greenBg,
+          border: `1px solid ${TINT.jsaGreenText}44`,
           borderRadius: 4,
           marginBottom: 16,
           fontSize: 14,
           fontWeight: 700,
-          color: "#00633a",
+          color: TINT.jsaGreenText,
           textAlign: "center",
         }}
       >

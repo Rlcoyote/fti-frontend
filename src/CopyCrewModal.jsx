@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C, API_URL } from "./config.js";
-import { Btn, Z_INDEX, PANEL_TEXT, PANEL_MUTED, ModalWrap } from "./SharedUI.jsx";
+import { Btn, Z_INDEX, PANEL_TEXT, PANEL_MUTED, ModalWrap, TINT } from "./SharedUI.jsx";
 
 // ─── CopyCrewModal (v28.09) ────────────────────────────────────────────────
 // Copy crew (with lead designation preserved) from a sibling Rig Up ticket
@@ -212,7 +212,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
                       justifyContent: "space-between",
                       padding: "8px 12px",
                       borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                      background: c.is_lead ? "#fdf5d8" : C.cardBg,
+                      background: c.is_lead ? TINT.yellowBg : C.cardBg,
                       opacity: dup ? 0.5 : 1,
                     }}
                   >
@@ -230,9 +230,9 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
                             marginLeft: 8,
                             fontSize: 9,
                             fontWeight: 800,
-                            color: "#8a6500",
+                            color: TINT.yellowText,
                             background: "#ffffffaa",
-                            border: `1px solid #8a650044`,
+                            border: `1px solid ${TINT.yellowText}44`,
                             padding: "1px 6px",
                             borderRadius: 3,
                             letterSpacing: "0.08em",
@@ -255,11 +255,11 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
               style={{
                 marginBottom: 14,
                 padding: "8px 10px",
-                background: "#fdf5d8",
-                border: `1px solid #8a650044`,
+                background: C.yellowB,
+                border: `1px solid ${C.yellow}44`,
                 borderRadius: 4,
                 fontSize: 11,
-                color: "#8a6500",
+                color: C.yellow,
                 fontWeight: 700,
               }}
             >

@@ -262,8 +262,8 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
         flex: 1,
         padding: "6px 10px",
         textAlign: "center",
-        background: step === s ? C.blue : stepIndex(step) > idx ? "#e6f5ec" : C.steel,
-        color: step === s ? C.white : stepIndex(step) > idx ? "#00633a" : C.muted,
+        background: step === s ? C.blue : stepIndex(step) > idx ? C.greenB : C.steel,
+        color: step === s ? C.white : stepIndex(step) > idx ? C.green : C.muted,
         fontSize: 11,
         fontWeight: 800,
         letterSpacing: "0.06em",
@@ -307,7 +307,7 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
             style={{ ...inputStyle, fontSize: 24, letterSpacing: "0.5em", textAlign: "center", marginBottom: 14 }}
           />
           {pinAttempts > 0 && remainingAttempts > 0 && (
-            <div style={{ fontSize: 11, color: "#8a6500", fontWeight: 600, marginBottom: 10 }}>
+            <div style={{ fontSize: 11, color: C.yellow, fontWeight: 600, marginBottom: 10 }}>
               {remainingAttempts} attempt{remainingAttempts === 1 ? "" : "s"} remaining before lead-override fallback.
             </div>
           )}

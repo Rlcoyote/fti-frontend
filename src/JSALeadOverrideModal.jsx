@@ -131,13 +131,13 @@ function JSALeadOverrideModal({ jsaId, target, jsaContext: _jsaContext, fallback
           style={{
             marginBottom: 14,
             padding: "10px 14px",
-            background: "#fdf5d8",
-            border: "1px solid #e6c20044",
-            borderLeft: "3px solid #8a6500",
+            background: C.yellowB,
+            border: `1px solid ${C.yellow}44`,
+            borderLeft: `3px solid ${C.yellow}`,
             borderRadius: 4,
             fontSize: 12,
             fontWeight: 700,
-            color: "#8a6500",
+            color: C.yellow,
           }}
         >
           ⚠ {fallbackReason}

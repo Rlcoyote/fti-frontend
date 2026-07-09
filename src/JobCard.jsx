@@ -2,7 +2,7 @@ import { useState } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, TERMINAL_TICKET_STATUSES, WO_TICKET_STATUSES, FINAL_REVIEW_TICKET_STATUSES } from "./config.js";
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
-import { Btn, TicketDot, TodoBadge, ConfirmModal, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { Btn, TicketDot, TodoBadge, ConfirmModal, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
 import { JobTodoTab } from "./TodoPage.jsx";
 import JobTicketsTab from "./JobTicketsTab.jsx";
 import EditJobModal from "./EditJobModal.jsx";
@@ -54,11 +54,11 @@ function JobCard({
   if (jobTickets.length === 0) {
     completion = { label: "ADD TICKETS", color: C.muted, bg: C.steel, ready: false };
   } else if (inLeadDomain.length > 0) {
-    completion = { label: `${inLeadDomain.length} TICKET${inLeadDomain.length !== 1 ? "S" : ""} PENDING`, color: "#8a6500", bg: "#fdf5d8", ready: false };
+    completion = { label: `${inLeadDomain.length} TICKET${inLeadDomain.length !== 1 ? "S" : ""} PENDING`, color: C.yellow, bg: C.yellowB, ready: false };
   } else if (inFinalReview.length > 0) {
-    completion = { label: "PENDING ACCOUNTING", color: C.blue, bg: "#e8f0fb", ready: false };
+    completion = { label: "PENDING ACCOUNTING", color: C.blue, bg: C.blueB, ready: false };
   } else if (inTerminal.length === jobTickets.length) {
-    completion = { label: "MARK FOR COMPLETION", color: C.green, bg: "#e6f5ec", ready: true };
+    completion = { label: "MARK FOR COMPLETION", color: C.green, bg: C.greenB, ready: true };
   } else {
     completion = { label: "PENDING", color: C.muted, bg: C.steel, ready: false };
   }
@@ -83,13 +83,13 @@ function JobCard({
   // v28.40 — left border accent: brand red for active WOs, orange when flagged.
   // Old code used the computed status color; with the 3-tier taxonomy gone,
   // the accent now communicates flagged/normal only.
-  const accentColor = isFlagged ? "#b85c00" : C.red;
+  const accentColor = isFlagged ? C.orange : C.red;
 
   return (
     <div
       style={{
-        background: isFlagged ? "#fdf0e6" : C.cardBg,
-        border: `1px solid ${isFlagged ? "#b85c00" : C.border}`,
+        background: isFlagged ? C.orangeB : C.cardBg,
+        border: `1px solid ${isFlagged ? C.orange : C.border}`,
         borderLeft: `3px solid ${accentColor}`,
         borderRadius: 6,
         marginBottom: 8,
@@ -117,7 +117,7 @@ function JobCard({
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{job.customer}</div>
               <div style={{ fontSize: 11, color: C.muted }}>{job.location}</div>
               {job.createdBy && (
-                <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 1 }}>
+                <div style={{ fontSize: 9, color: C.faint, marginTop: 1 }}>
                   {shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}
                 </div>
               )}
@@ -153,17 +153,17 @@ function JobCard({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 3,
-                  background: "#fdecea",
-                  color: "#B01020",
+                  background: C.redB,
+                  color: C.red,
                   borderRadius: 4,
                   padding: "1px 6px",
                   fontSize: 9,
                   fontWeight: 800,
                   letterSpacing: "0.04em",
-                  border: "1px solid #B0102044",
+                  border: `1px solid ${C.red}44`,
                 }}
               >
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.red, display: "inline-block" }} />
                 COMMENT
               </span>
             )}
@@ -192,7 +192,7 @@ function JobCard({
             <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #</div>
             <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{job.id}</div>
             {job.createdBy && (
-              <div style={{ fontSize: 9, color: "#a0aec8", marginTop: 2 }}>
+              <div style={{ fontSize: 9, color: C.faint, marginTop: 2 }}>
                 {shortName(job.createdBy)} · {formatShortStamp(job.createdAt)}
               </div>
             )}
@@ -262,17 +262,17 @@ function JobCard({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  background: "#fdecea",
-                  color: "#B01020",
+                  background: C.redB,
+                  color: C.red,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
                   letterSpacing: "0.04em",
-                  border: "1px solid #B0102044",
+                  border: `1px solid ${C.red}44`,
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.red, display: "inline-block" }} />
                 COMMENT
               </span>
             )}
@@ -333,7 +333,7 @@ function JobCard({
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr 1fr 1fr",
                 gap: 24,
-                background: "#f7f9fc",
+                background: TINT.expandBg,
               }}
             >
               <div>
@@ -387,7 +387,7 @@ function JobCard({
                       {afe && (
                         <div style={kvRowStyle}>
                           <span style={keyStyle}>AFE:</span>
-                          <span style={{ fontSize: 11, color: "#1a5fa8", fontWeight: 700 }}>{afe}</span>
+                          <span style={{ fontSize: 11, color: TINT.blueText, fontWeight: 700 }}>{afe}</span>
                         </div>
                       )}
                     </div>
@@ -419,7 +419,7 @@ function JobCard({
                   .filter((a) => a.assigned_job_id === job.id)
                   .map((a) => (
                     <div key={a.id} style={{ fontSize: 12, color: PANEL_TEXT, marginBottom: 5, display: "flex", gap: 6 }}>
-                      <span style={{ color: "#8a6500", fontSize: 8, marginTop: 4 }}>◆</span>
+                      <span style={{ color: TINT.yellowText, fontSize: 8, marginTop: 4 }}>◆</span>
                       <span>
                         {a.name}
                         {a.unit_number ? ` (${a.unit_number})` : ""}
@@ -458,9 +458,9 @@ function JobCard({
                     style={{
                       display: "block",
                       width: "100%",
-                      background: btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : btn.success ? "#e6f5ec" : "transparent",
-                      border: `1px solid ${btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : C.border}`,
-                      color: btn.danger ? C.red : btn.warn ? "#8a6500" : btn.success ? C.green : btn.action ? PANEL_TEXT : PANEL_MUTED,
+                      background: btn.danger ? TINT.redBg : btn.warn ? TINT.yellowBg : btn.success ? TINT.greenBg : "transparent",
+                      border: `1px solid ${btn.danger ? TINT.redText : btn.warn ? TINT.yellowText : btn.success ? TINT.greenText : C.border}`,
+                      color: btn.danger ? TINT.redText : btn.warn ? TINT.yellowText : btn.success ? TINT.greenText : btn.action ? PANEL_TEXT : PANEL_MUTED,
                       padding: "7px 12px",
                       borderRadius: 4,
                       fontSize: 12,
@@ -474,12 +474,12 @@ function JobCard({
                     onMouseEnter={(e) => {
                       if (btn.action) {
                         e.target.style.borderColor = C.red;
-                        e.target.style.background = btn.danger ? "#f5c6cb" : "#fbeaec";
+                        e.target.style.background = btn.danger ? TINT.redHover : TINT.redHoverSoft;
                       }
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = btn.danger ? C.red : btn.warn ? "#8a6500" : C.border;
-                      e.target.style.background = btn.danger ? "#fdecea" : btn.warn ? "#fdf5d8" : "transparent";
+                      e.target.style.borderColor = btn.danger ? TINT.redText : btn.warn ? TINT.yellowText : C.border;
+                      e.target.style.background = btn.danger ? TINT.redBg : btn.warn ? TINT.yellowBg : "transparent";
                     }}
                   >
                     {btn.label}
@@ -490,7 +490,7 @@ function JobCard({
             </div>
           )}
           {job.notes && (
-            <div style={{ padding: "0 18px 14px", background: "#f7f9fc" }}>
+            <div style={{ padding: "0 18px 14px", background: TINT.expandBg }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
               <div
                 style={{
@@ -509,13 +509,13 @@ function JobCard({
           )}
 
           {activeTab === "tickets" && (
-            <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
+            <div style={{ padding: "0 18px 18px", background: TINT.expandBg }}>
               <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} onTicketDeleted={onTicketDeleted} />
             </div>
           )}
 
           {activeTab === "todos" && (
-            <div style={{ padding: "0 18px 18px", background: "#f7f9fc" }}>
+            <div style={{ padding: "0 18px 18px", background: TINT.expandBg }}>
               <JobTodoTab jobId={job.id} todos={todos} setTodos={setTodos} jobs={jobs} userNames={userNames} userIdByName={userIdByName} />
             </div>
           )}

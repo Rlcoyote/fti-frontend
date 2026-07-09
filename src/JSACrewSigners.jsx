@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, labelStyle } from "./SharedUI.jsx";
+import { Btn, labelStyle, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import JSASignSubmitModal from "./JSASignSubmitModal.jsx";
 import JSALeadOverrideModal from "./JSALeadOverrideModal.jsx";
@@ -33,9 +33,9 @@ function StatusBadge({ method, witnessName }) {
         style={{
           fontSize: 10,
           fontWeight: 800,
-          color: "#00633a",
-          background: "#d8f0e2",
-          border: `1px solid #00633a44`,
+          color: TINT.jsaGreenText,
+          background: TINT.jsaGreenBg,
+          border: `1px solid ${TINT.jsaGreenText}44`,
           padding: "2px 8px",
           borderRadius: 3,
           letterSpacing: "0.06em",
@@ -51,9 +51,9 @@ function StatusBadge({ method, witnessName }) {
         style={{
           fontSize: 10,
           fontWeight: 800,
-          color: "#8a6500",
-          background: "#fdf5d8",
-          border: `1px solid #8a650044`,
+          color: TINT.yellowText,
+          background: TINT.yellowBg,
+          border: `1px solid ${TINT.yellowText}44`,
           padding: "2px 8px",
           borderRadius: 3,
           letterSpacing: "0.06em",
@@ -70,9 +70,9 @@ function StatusBadge({ method, witnessName }) {
         style={{
           fontSize: 10,
           fontWeight: 800,
-          color: "#3a3a3a",
-          background: "#e8e8e8",
-          border: `1px solid #3a3a3a44`,
+          color: TINT.grayDeepText,
+          background: TINT.grayDeepBg,
+          border: `1px solid ${TINT.grayDeepText}44`,
           padding: "2px 8px",
           borderRadius: 3,
           letterSpacing: "0.06em",
@@ -198,8 +198,8 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
         style={{
           marginBottom: 14,
           padding: 14,
-          background: data.all_signed ? "#e6f5ec" : C.cardBg,
-          border: `1px solid ${data.all_signed ? "#00633a44" : C.border}`,
+          background: data.all_signed ? TINT.greenBg : C.cardBg,
+          border: `1px solid ${data.all_signed ? TINT.jsaGreenText + "44" : C.border}`,
           borderRadius: 6,
         }}
       >
@@ -211,11 +211,11 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
           <div
             style={{
               padding: "10px 12px",
-              background: "#fdf5d8",
-              border: `1px solid #8a650044`,
+              background: TINT.yellowBg,
+              border: `1px solid ${TINT.yellowText}44`,
               borderRadius: 4,
               fontSize: 12,
-              color: "#8a6500",
+              color: TINT.yellowText,
               lineHeight: 1.5,
             }}
           >
@@ -240,7 +240,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                     justifyContent: "space-between",
                     padding: "10px 12px",
                     borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                    background: isSigned ? "#f8fbf9" : C.cardBg,
+                    background: isSigned ? TINT.jsaSignedBg : C.cardBg,
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -249,12 +249,12 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                         so we override with explicit dark colors on signed
                         rows. Unsigned rows keep theme colors (dark cardBg
                         background, light text, contrast already correct). */}
-                    <div style={{ fontSize: 13, fontWeight: 600, color: isSigned ? "#1a2340" : C.text }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: isSigned ? PANEL_TEXT : C.text }}>
                       {c.user_name}
-                      {c.is_lead && <span style={{ marginLeft: 8, fontSize: 9, fontWeight: 800, color: "#8a6500" }}>· LEAD</span>}
-                      {isSelf && <span style={{ marginLeft: 8, fontSize: 9, color: isSigned ? "#4a5570" : C.muted, fontStyle: "italic" }}>· You</span>}
+                      {c.is_lead && <span style={{ marginLeft: 8, fontSize: 9, fontWeight: 800, color: TINT.yellowText }}>· LEAD</span>}
+                      {isSelf && <span style={{ marginLeft: 8, fontSize: 9, color: isSigned ? PANEL_MUTED : C.muted, fontStyle: "italic" }}>· You</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: isSigned ? "#4a5570" : C.muted, marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: isSigned ? PANEL_MUTED : C.muted, marginTop: 2 }}>
                       <StatusBadge method={c.sign_method} witnessName={c.witness_name} />
                       {c.signed_at && (
                         <span style={{ marginLeft: 8 }}>
@@ -351,7 +351,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
             style={{
               marginTop: 12,
               padding: "8px 12px",
-              background: "#00633a",
+              background: TINT.jsaGreenText,
               color: C.white,
               fontSize: 12,
               fontWeight: 700,
@@ -369,8 +369,8 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
             style={{
               marginTop: 10,
               padding: "6px 10px",
-              background: "#e6f5ec",
-              color: "#00633a",
+              background: TINT.greenBg,
+              color: TINT.jsaGreenText,
               fontSize: 11,
               fontWeight: 700,
               borderRadius: 3,

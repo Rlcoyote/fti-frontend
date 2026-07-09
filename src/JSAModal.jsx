@@ -3,7 +3,7 @@ import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
-import { Btn, inputStyle, labelStyle, Z_INDEX } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, Z_INDEX, TINT } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { useApp } from "./AppContext.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
@@ -425,7 +425,7 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targe
               style={{
                 marginBottom: 14,
                 padding: "12px 14px",
-                background: "#e8f0fb",
+                background: TINT.blueBg,
                 border: `1px solid ${C.blue}33`,
                 borderRadius: 6,
                 fontSize: 12,
@@ -523,11 +523,11 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targe
               style={{
                 margin: "0 24px",
                 padding: "10px 14px",
-                background: "#fdf5d8",
-                border: `1px solid #8a650044`,
+                background: TINT.yellowBg,
+                border: `1px solid ${TINT.yellowText}44`,
                 borderRadius: 6,
                 fontSize: 12,
-                color: "#8a6500",
+                color: TINT.yellowText,
               }}
             >
               <strong>Incomplete:</strong> {missing.join(" · ")} — JSA can still be saved as a draft.
