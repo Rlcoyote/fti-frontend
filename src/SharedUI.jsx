@@ -60,6 +60,9 @@ export const TINT = {
   coolGray: "#eef1f4", //      manual-entry chip
   cream: "#f8f4e8", //         rental-cycle strip
   faintText: "#a0aec8", //     faint stamps on always-light rows
+  noteYellow: "#fef9e7", //    customer comment bubble
+  blueGray50: "#eef3fb", //    ticket-form section wash
+  yellowHover: "#fbeaa0", //   hover state on yellow chips
 };
 
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────

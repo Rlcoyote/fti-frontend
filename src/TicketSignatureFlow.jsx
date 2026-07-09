@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { Btn, inputStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, TINT } from "./SharedUI.jsx";
 import SignaturePad from "./SignaturePad.jsx";
 
 // ─── TicketSignatureFlow (v27.84) ───────────────────────────────────────────
@@ -37,11 +37,19 @@ import SignaturePad from "./SignaturePad.jsx";
 
 function TicketSignatureFlow({
   status,
-  signedBy, signedAt, signatureImage,
-  sigNotReqReason, sigNotReqNote,
-  showSigOptions, setSigNotReqReason, setSigNotReqNote,
-  onConfirmSigNotRequired, onCancelSigOptions,
-  showSigPad, onSign, onCancelSigPad,
+  signedBy,
+  signedAt,
+  signatureImage,
+  sigNotReqReason,
+  sigNotReqNote,
+  showSigOptions,
+  setSigNotReqReason,
+  setSigNotReqNote,
+  onConfirmSigNotRequired,
+  onCancelSigOptions,
+  showSigPad,
+  onSign,
+  onCancelSigPad,
 }) {
   const isSigned = ["signed", "approved", "sentToQB", "qbVerified", "voided"].includes(status) && signedBy;
 
@@ -49,13 +57,27 @@ function TicketSignatureFlow({
     <>
       {/* Signature display */}
       {isSigned && (
-        <div style={{ background: status === "voided" ? "#fdecea" : "#e6f5ec", border: `1px solid ${status === "voided" ? C.red : C.green}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: status === "voided" ? C.red : C.green, marginBottom: 6 }}>
-            ✓ SIGNED &nbsp; {signedBy}
-          </div>
+        <div
+          style={{
+            background: status === "voided" ? TINT.redBg : TINT.greenBg,
+            border: `1px solid ${status === "voided" ? TINT.redText : TINT.greenText}44`,
+            borderRadius: 6,
+            padding: 14,
+            marginTop: 16,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 800, color: status === "voided" ? C.red : C.green, marginBottom: 6 }}>✓ SIGNED &nbsp; {signedBy}</div>
           {signedAt && (
             <div style={{ fontSize: 10, color: C.muted, marginBottom: 6 }}>
-              Signed: {new Date(signedAt).toLocaleString("en-US", { year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true })}
+              Signed:{" "}
+              {new Date(signedAt).toLocaleString("en-US", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}
             </div>
           )}
           {signatureImage && (
@@ -70,7 +92,7 @@ function TicketSignatureFlow({
 
       {/* Sig-not-required display */}
       {status === "sigNotReq" && (
-        <div style={{ background: "#e8f0fb", border: `1px solid ${C.blue}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
+        <div style={{ background: TINT.blueBg, border: `1px solid ${TINT.blueText}44`, borderRadius: 6, padding: 14, marginTop: 16 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: C.blue }}>SIGNATURE NOT REQUIRED</div>
           <div style={{ fontSize: 11, color: C.text, marginTop: 4 }}>{sigNotReqReason}</div>
           {sigNotReqNote && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{sigNotReqNote}</div>}
@@ -81,30 +103,41 @@ function TicketSignatureFlow({
       {showSigOptions && (
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, marginTop: 12 }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginBottom: 10 }}>REASON SIGNATURE NOT REQUIRED</div>
-          {[["not_required", "Customer does not require field signature"], ["other", "Other"]].map(([val, lbl]) => (
+          {[
+            ["not_required", "Customer does not require field signature"],
+            ["other", "Other"],
+          ].map(([val, lbl]) => (
             <div
               key={val}
               style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer" }}
               onClick={() => setSigNotReqReason(sigNotReqReason === val ? null : val)}
             >
-              <div style={{ width: 14, height: 14, borderRadius: "50%", border: `2px solid ${sigNotReqReason === val ? C.blue : C.border}`, background: sigNotReqReason === val ? C.blue : "transparent" }} />
+              <div
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  border: `2px solid ${sigNotReqReason === val ? C.blue : C.border}`,
+                  background: sigNotReqReason === val ? C.blue : "transparent",
+                }}
+              />
               <span style={{ fontSize: 12, fontWeight: 700 }}>{lbl}</span>
             </div>
           ))}
           {sigNotReqReason === "other" && (
-            <input style={inputStyle} value={sigNotReqNote} onChange={e => setSigNotReqNote(e.target.value)} placeholder="Reason..." />
+            <input style={inputStyle} value={sigNotReqNote} onChange={(e) => setSigNotReqNote(e.target.value)} placeholder="Reason..." />
           )}
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
             <Btn onClick={onConfirmSigNotRequired}>CONFIRM</Btn>
-            <Btn variant="ghost" onClick={onCancelSigOptions}>CANCEL</Btn>
+            <Btn variant="ghost" onClick={onCancelSigOptions}>
+              CANCEL
+            </Btn>
           </div>
         </div>
       )}
 
       {/* Signature pad */}
-      {showSigPad && (
-        <SignaturePad onSign={onSign} onCancel={onCancelSigPad} />
-      )}
+      {showSigPad && <SignaturePad onSign={onSign} onCancel={onCancelSigPad} />}
     </>
   );
 }

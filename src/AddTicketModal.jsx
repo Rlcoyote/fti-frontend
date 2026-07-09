@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
-import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED, Z_INDEX } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED, Z_INDEX, TINT } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
@@ -525,7 +525,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
               onClick={softSaveForJsa}
               disabled={isSubmitting}
               style={{
-                background: "#eef3fb",
+                background: TINT.blueGray50,
                 color: C.blue,
                 border: `1px solid ${C.blue}44`,
                 borderRadius: 4,
@@ -556,8 +556,8 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
             {(() => {
               const isComplete = !!existingJSA.completed_at;
               const colors = isComplete
-                ? { bg: "#e6f5ec", text: C.green, border: `${C.green}44`, hover: "#d4edda" }
-                : { bg: "#fdf5d8", text: "#8a6500", border: "#e6c20044", hover: "#fbeaa0" };
+                ? { bg: TINT.greenBg, text: TINT.greenText, border: `${TINT.greenText}44`, hover: TINT.greenDeepBg }
+                : { bg: TINT.yellowBg, text: TINT.yellowText, border: TINT.yellowBorder + "44", hover: TINT.yellowHover };
               return (
                 <button
                   type="button"

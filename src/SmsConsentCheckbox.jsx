@@ -88,22 +88,22 @@ export default function SmsConsentCheckbox({ phone, recipientType: _recipientTyp
 
   // Revoked (STOP) — wins regardless of method.
   if (consent && consent.revoked_at) {
-    return <Pill bg="#fdecec" border={`${C.red}55`} iconColor={C.red} icon="✗" label="Opted out (STOP)" detail="will not receive SMS" />;
+    return <Pill bg={C.redB} border={`${C.red}55`} iconColor={C.red} icon="✗" label="Opted out (STOP)" detail="will not receive SMS" />;
   }
 
   // Confirmed via double opt-in (the only state that authorizes sends).
   if (consent && consent.consent_method === "confirmed_sms") {
     const when = consent.consent_given_at ? new Date(consent.consent_given_at).toLocaleDateString() : null;
-    return <Pill bg="#e6f5ec" border={`${C.green}44`} iconColor={C.green} icon="✓" label="SMS confirmed" detail={when ? `${when}` : null} />;
+    return <Pill bg={C.greenB} border={`${C.green}44`} iconColor={C.green} icon="✓" label="SMS confirmed" detail={when ? `${when}` : null} />;
   }
 
   // Legacy consent on file (verbal / biometric_inapp / retroactive_assumed) —
   // does NOT authorize sends post-v28.193. Next save fires startOptIn, which
   // texts a confirmation; recipient replies YES to activate.
   if (consent && !consent.revoked_at) {
-    return <Pill bg="#fff8e1" border={`${C.yellow}55`} iconColor={C.yellow} icon="⟳" label="Will reconfirm by SMS" detail="legacy consent on file" />;
+    return <Pill bg={C.yellowB} border={`${C.yellow}55`} iconColor={C.yellow} icon="⟳" label="Will reconfirm by SMS" detail="legacy consent on file" />;
   }
 
   // No consent row at all.
-  return <Pill bg={C.steel || "#f0f3f8"} border={C.border} iconColor={C.muted} icon="○" label="No consent yet" detail="confirmation text sends on save" />;
+  return <Pill bg={C.steel} border={C.border} iconColor={C.muted} icon="○" label="No consent yet" detail="confirmation text sends on save" />;
 }

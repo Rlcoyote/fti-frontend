@@ -19,8 +19,8 @@ function EditJobLockBanner({ editLock }) {
       {editLock.isLocked && !editLock.hasLock && (
         <div
           style={{
-            background: "#fdf5d8",
-            borderBottom: `1px solid #e6c20044`,
+            background: C.yellowB,
+            borderBottom: `1px solid ${C.yellow}44`,
             padding: "10px 16px",
             marginBottom: 8,
             borderRadius: 4,
@@ -31,7 +31,7 @@ function EditJobLockBanner({ editLock }) {
             gap: 8,
           }}
         >
-          <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.yellow }}>
             This job is being edited by <strong>{editLock.lockedByName}</strong>. As soon as they are done, you may edit.
           </div>
           <button
@@ -54,7 +54,7 @@ function EditJobLockBanner({ editLock }) {
       {editLock.hasLock && editLock.requestedByName && (
         <div
           style={{
-            background: "#e8f0fb",
+            background: C.blueB,
             borderBottom: `1px solid ${C.blue}33`,
             padding: "10px 16px",
             marginBottom: 8,

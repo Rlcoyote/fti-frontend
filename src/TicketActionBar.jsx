@@ -1,6 +1,6 @@
 import { C } from "./config.js";
 import { typeCaps } from "./ticketFamilies.js";
-import { Btn } from "./SharedUI.jsx";
+import { Btn, TINT } from "./SharedUI.jsx";
 
 // ─── TicketActionBar (v27.80) ───────────────────────────────────────────────
 // Extracted footer action bar from TicketDetail.jsx. Pure presentational —
@@ -70,7 +70,9 @@ function TicketActionBar({
     <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
       {/* QB Verified — fully locked */}
       {status === "qbVerified" && (
-        <span style={{ fontSize: 12, fontWeight: 800, color: C.green, background: "#d4edda", padding: "6px 14px", borderRadius: 4 }}>✓ QB VERIFIED</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: TINT.greenText, background: TINT.greenDeepBg, padding: "6px 14px", borderRadius: 4 }}>
+          ✓ QB VERIFIED
+        </span>
       )}
 
       {status === "sentToQB" && (
@@ -142,7 +144,7 @@ function TicketActionBar({
 
       {/* Voided — no actions */}
       {status === "voided" && (
-        <span style={{ fontSize: 12, fontWeight: 800, color: C.red, background: "#fdecea", padding: "6px 14px", borderRadius: 4 }}>VOIDED</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: TINT.redText, background: TINT.redBg, padding: "6px 14px", borderRadius: 4 }}>VOIDED</span>
       )}
 
       {/* Close/cancel */}

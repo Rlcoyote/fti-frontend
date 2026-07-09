@@ -108,7 +108,7 @@ function TimePicker({ value, onChange, startHour = 6, startPeriod = "AM" }) {
           fontWeight: 800,
           letterSpacing: "0.04em",
           color: period === "AM" ? C.blue : C.red,
-          background: period === "AM" ? "#e8f0fb" : "#fdecea",
+          background: period === "AM" ? C.blueB : C.redB,
           border: `1px solid ${period === "AM" ? C.blue + "44" : C.red + "44"}`,
           borderRadius: 4,
           cursor: "pointer",

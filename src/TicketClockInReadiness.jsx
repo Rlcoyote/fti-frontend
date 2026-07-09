@@ -38,7 +38,7 @@ export default function TicketClockInReadiness({ dueOnLoc, yardName, pinLat, pin
       style={{
         margin: "0 24px 12px",
         border: `1px solid ${ready ? C.green : C.yellow}66`,
-        background: ready ? "#0f3d2214" : "#fff8e1",
+        background: ready ? `${C.green}22` : C.yellowB,
         borderRadius: 10,
         padding: "12px 14px",
       }}
@@ -54,7 +54,7 @@ export default function TicketClockInReadiness({ dueOnLoc, yardName, pinLat, pin
           borderTop: `1px solid ${C.border}`,
           fontSize: 12.5,
           fontWeight: 700,
-          color: ready ? C.green : "#8a6500",
+          color: ready ? C.green : C.yellow,
         }}
       >
         {ready

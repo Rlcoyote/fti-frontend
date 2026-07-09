@@ -36,8 +36,8 @@ function TicketEditLockBanner({ editLock }) {
     return (
       <div
         style={{
-          background: "#fdf5d8",
-          borderBottom: `1px solid #e6c20044`,
+          background: C.yellowB,
+          borderBottom: `1px solid ${C.yellow}44`,
           padding: "10px 24px",
           display: "flex",
           alignItems: "center",
@@ -46,12 +46,12 @@ function TicketEditLockBanner({ editLock }) {
           gap: 8,
         }}
       >
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#8a6500" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.yellow }}>
           This ticket is being edited by <strong>{editLock.lockedByName}</strong>.
           {lockedAtStr && <span style={{ fontWeight: 500, marginLeft: 6 }}>Locked at {lockedAtStr}.</span>}
           {!nameUnknown && <span style={{ marginLeft: 6, fontWeight: 500 }}>As soon as they are done, you may edit.</span>}
           {nameUnknown && isOwnerOrAdmin && (
-            <span style={{ display: "block", fontSize: 11, fontWeight: 500, marginTop: 4, color: "#8a6500" }}>
+            <span style={{ display: "block", fontSize: 11, fontWeight: 500, marginTop: 4, color: C.yellow }}>
               Holder not in user records (orphan / stale lock). Auto-expires after 5 minutes — or force-unlock now.
             </span>
           )}
@@ -88,7 +88,7 @@ function TicketEditLockBanner({ editLock }) {
                 fontFamily: "'Arial', sans-serif",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#fdecea";
+                e.currentTarget.style.background = C.redB;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
@@ -107,7 +107,7 @@ function TicketEditLockBanner({ editLock }) {
     return (
       <div
         style={{
-          background: "#e8f0fb",
+          background: C.blueB,
           borderBottom: `1px solid ${C.blue}33`,
           padding: "10px 24px",
           display: "flex",

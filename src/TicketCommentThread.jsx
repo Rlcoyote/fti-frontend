@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { C, API_URL } from "./config.js";
+import { TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── TicketCommentThread (v27.75) ───────────────────────────────────────────
@@ -108,17 +109,17 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
               display: "inline-flex",
               alignItems: "center",
               gap: 4,
-              background: "#fdecea",
-              color: "#B01020",
+              background: TINT.redBg,
+              color: TINT.redText,
               borderRadius: 4,
               padding: "2px 8px",
               fontSize: 10,
               fontWeight: 800,
               letterSpacing: "0.04em",
-              border: "1px solid #B0102044",
+              border: `1px solid ${TINT.redText}44`,
             }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#B01020", display: "inline-block" }} />
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: TINT.redText, display: "inline-block" }} />
             COMMENT PENDING
           </span>
         )}
@@ -127,7 +128,7 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
       {!loading && comments.length === 0 && <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>No comments yet.</div>}
       {comments.map((c, i) => {
         const who = c.author_type === "fti" ? `Flo-Test (${c.author})` : `${c.author} (Site)`;
-        const bg = c.author_type === "fti" ? "#e8f0fb" : "#fef9e7";
+        const bg = c.author_type === "fti" ? TINT.blueBg : TINT.noteYellow;
         const time = new Date(c.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
         return (
           <div key={i} style={{ background: bg, borderRadius: 6, padding: "8px 12px", marginBottom: 6 }}>

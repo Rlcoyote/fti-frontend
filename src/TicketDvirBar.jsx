@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { TINT } from "./SharedUI.jsx";
 import { useNavigate } from "react-router-dom";
 
 // ─── TicketDvirBar (v28.190) ─────────────────────────────────────────────────
@@ -26,9 +27,9 @@ function TicketDvirBar({ ticket, dvirState }) {
       <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
         <span
           style={{
-            background: "#fdf5d8",
-            color: "#8a6500",
-            border: `1px solid #8a650044`,
+            background: TINT.yellowBg,
+            color: TINT.yellowText,
+            border: `1px solid ${TINT.yellowText}44`,
             borderRadius: 4,
             padding: "5px 14px",
             fontSize: 11,
@@ -58,7 +59,7 @@ function TicketDvirBar({ ticket, dvirState }) {
           onClick={launchInspection}
           title={`Pre-trip signed ${dvir?.signed_at ? new Date(dvir.signed_at).toLocaleString() : "today"}`}
           style={{
-            background: "#e6f5ec",
+            background: TINT.greenBg,
             color: C.green,
             border: `1px solid ${C.green}44`,
             borderRadius: 4,
@@ -69,10 +70,10 @@ function TicketDvirBar({ ticket, dvirState }) {
             letterSpacing: "0.04em",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#d4edda";
+            e.currentTarget.style.background = TINT.greenDeepBg;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#e6f5ec";
+            e.currentTarget.style.background = TINT.greenBg;
           }}
         >
           ✓ DVIR DONE
@@ -113,7 +114,7 @@ function TicketDvirBar({ ticket, dvirState }) {
             letterSpacing: "0.04em",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#fdecea";
+            e.currentTarget.style.background = TINT.redBg;
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.background = "#fff";

@@ -1,4 +1,5 @@
 import { C } from "./config.js";
+import { TINT } from "./SharedUI.jsx";
 import { typeCaps } from "./ticketFamilies.js";
 
 // ─── TicketJsaBar (v27.82) ──────────────────────────────────────────────────
@@ -33,7 +34,7 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
           type="button"
           onClick={onOpen}
           style={{
-            background: "#e6f5ec",
+            background: TINT.greenBg,
             color: C.green,
             border: `1px solid ${C.green}44`,
             borderRadius: 4,
@@ -44,10 +45,10 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
             letterSpacing: "0.04em",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#d4edda";
+            e.currentTarget.style.background = TINT.greenDeepBg;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#e6f5ec";
+            e.currentTarget.style.background = TINT.greenBg;
           }}
         >
           ✓ VIEW / EDIT JSA
@@ -61,7 +62,7 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
   const hintColor = jsaOptional ? C.muted : C.red;
   const hintStyle = { fontSize: 10, color: hintColor, fontWeight: 600, fontStyle: "italic" };
   const hint = jsaOptional ? "Optional for rentals" : "Required before signing";
-  const hoverBg = jsaOptional ? "#e8f0fb" : "#fdecea";
+  const hoverBg = jsaOptional ? TINT.blueBg : TINT.redBg;
   const borderWidth = jsaOptional ? "1px" : "2px";
 
   return (

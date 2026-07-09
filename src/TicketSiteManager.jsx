@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { C } from "./config.js";
-import { inputStyle, labelStyle } from "./SharedUI.jsx";
+import { inputStyle, labelStyle, TINT } from "./SharedUI.jsx";
 
 // ─── TicketSiteManager (v28.81 — category-filtered picker) ──────────────────
 // Was: extracted from TicketDetail.jsx in v27.76, with an anonymous "Copy
@@ -98,7 +98,7 @@ function TicketSiteManager({ editable, values, onChange, job: _job, knownContact
               fontWeight: 700,
               padding: "2px 8px",
               borderRadius: 3,
-              background: "#e6f5ec",
+              background: TINT.greenBg,
               border: `1px solid ${C.green}44`,
             }}
           >

@@ -1,5 +1,5 @@
 import { C, API_URL } from "./config.js";
-import { inputStyle } from "./SharedUI.jsx";
+import { inputStyle, TINT } from "./SharedUI.jsx";
 
 // ─── AddTicketGooglePin (v28.68 — extracted from AddTicketModal) ──────────────
 // Google Pin input + resolver + lat/lng display. Lets the lead paste a
@@ -61,9 +61,9 @@ export default function AddTicketGooglePin({
             style={{
               fontSize: 10,
               fontWeight: 800,
-              color: "#8a6500",
-              background: "#fdf5d8",
-              border: "1px solid #e6c20044",
+              color: TINT.yellowText,
+              background: TINT.yellowBg,
+              border: `1px solid ${TINT.yellowBorder}44`,
               borderRadius: 3,
               padding: "2px 8px",
               letterSpacing: "0.04em",
@@ -112,7 +112,7 @@ export default function AddTicketGooglePin({
           and the clock-in window depend on the coords; saving will auto-resolve,
           but flag it here so it's never silent. */}
       {ticketPin.trim() && (!ticketPinLat || !ticketPinLng) && !ticketPinResolving && !ticketPinError && (
-        <div style={{ fontSize: 11, color: "#8a6500", marginTop: 4, fontWeight: 700 }}>
+        <div style={{ fontSize: 11, color: TINT.yellowText, marginTop: 4, fontWeight: 700 }}>
           ⚠ Pin not resolved to coordinates — tap RESOLVE (needed for drive time &amp; clock-in). Saving will try automatically.
         </div>
       )}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { inputStyle, labelStyle } from "./SharedUI.jsx";
+import { inputStyle, labelStyle, TINT } from "./SharedUI.jsx";
 import { formatPhone } from "./utils.js";
 
 // ─── AddTicketSiteManager (v28.80 — dropdown picker for known contacts) ────
@@ -109,7 +109,7 @@ export default function AddTicketSiteManager({ job, smFirst, smLast, smPhone, sm
               fontWeight: 700,
               padding: "2px 8px",
               borderRadius: 3,
-              background: "#e6f5ec",
+              background: TINT.greenBg,
               border: `1px solid ${C.green}44`,
             }}
           >

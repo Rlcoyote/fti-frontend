@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { C, API_URL } from "./config.js";
-import { inputStyle } from "./SharedUI.jsx";
+import { inputStyle, TINT } from "./SharedUI.jsx";
 
 // ─── TicketGooglePin (v27.77) ───────────────────────────────────────────────
 // Extracted from TicketDetail.jsx. Google Pin input + resolver + drive-time
@@ -62,13 +62,22 @@ function TicketGooglePin({ editable, values, onChange, job, driveInfo, driveLoad
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
         <div style={lblStyle}>GOOGLE PIN</div>
         {pinMismatch && (
-          <span style={{ fontSize: 10, fontWeight: 800, color: "#8a6500", background: "#fdf5d8", border: "1px solid #e6c20044", borderRadius: 3, padding: "2px 8px", letterSpacing: "0.04em" }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              color: TINT.yellowText,
+              background: TINT.yellowBg,
+              border: `1px solid ${TINT.yellowBorder}44`,
+              borderRadius: 3,
+              padding: "2px 8px",
+              letterSpacing: "0.04em",
+            }}
+          >
             ALT PIN — differs from Work Order
           </span>
         )}
-        {jobPin && !pin && (
-          <span style={{ fontSize: 10, color: C.muted }}>Work Order: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>
-        )}
+        {jobPin && !pin && <span style={{ fontSize: 10, color: C.muted }}>Work Order: {jobPin.length > 40 ? jobPin.slice(0, 40) + "…" : jobPin}</span>}
       </div>
 
       {editable ? (
@@ -76,7 +85,7 @@ function TicketGooglePin({ editable, values, onChange, job, driveInfo, driveLoad
           <input
             style={{ ...inputStyle, flex: 1, fontFamily: "monospace", fontSize: 11 }}
             value={pin}
-            onChange={e => {
+            onChange={(e) => {
               onChange({ pin: e.target.value, lat: null, lng: null });
               setResolveError("");
             }}
@@ -87,7 +96,17 @@ function TicketGooglePin({ editable, values, onChange, job, driveInfo, driveLoad
               type="button"
               onClick={resolvePin}
               disabled={resolving}
-              style={{ background: C.blue, color: C.white, border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0 }}
+              style={{
+                background: C.blue,
+                color: C.white,
+                border: "none",
+                borderRadius: 4,
+                padding: "6px 12px",
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: "pointer",
+                flexShrink: 0,
+              }}
             >
               {resolving ? "..." : "RESOLVE"}
             </button>
@@ -101,21 +120,36 @@ function TicketGooglePin({ editable, values, onChange, job, driveInfo, driveLoad
 
       {(lat || lng) && (
         <div style={{ fontSize: 11, color: C.muted, fontFamily: "monospace", marginTop: 4, display: "flex", gap: 12, alignItems: "center" }}>
-          <span>{parseFloat(lat).toFixed(6)}, {parseFloat(lng).toFixed(6)}</span>
-          <a href={`https://www.google.com/maps?q=${lat},${lng}`} target="_blank" rel="noopener noreferrer"
-            style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", fontFamily: "'Arial', sans-serif" }}>
+          <span>
+            {parseFloat(lat).toFixed(6)}, {parseFloat(lng).toFixed(6)}
+          </span>
+          <a
+            href={`https://www.google.com/maps?q=${lat},${lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: 10, color: C.blue, fontWeight: 600, textDecoration: "none", fontFamily: "'Arial', sans-serif" }}
+          >
             View on Google Maps ↗
           </a>
         </div>
       )}
 
-      {(lat && lng) && (
+      {lat && lng && (
         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
           {!driveInfo && !driveLoading && (
             <button
               type="button"
               onClick={onCalcDrive}
-              style={{ background: "transparent", border: `1px solid ${C.border}`, borderRadius: 3, padding: "3px 10px", fontSize: 10, fontWeight: 700, color: C.text, cursor: "pointer" }}
+              style={{
+                background: "transparent",
+                border: `1px solid ${C.border}`,
+                borderRadius: 3,
+                padding: "3px 10px",
+                fontSize: 10,
+                fontWeight: 700,
+                color: C.text,
+                cursor: "pointer",
+              }}
             >
               CALC DRIVE
             </button>

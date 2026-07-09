@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal } from "./utils.js";
-import { Btn, ConfirmModal, inputStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { Btn, ConfirmModal, inputStyle, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
 import { isVisitType } from "./ticketFamilies.js";
 import { useApp } from "./AppContext.jsx";
 import CopyLineItemsModal from "./CopyLineItemsModal.jsx";
@@ -151,7 +151,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                       <span style={{ fontSize: 10, color: C.muted, fontWeight: 700 }}>{idx + 1}</span>
                       <span style={{ fontSize: 12, fontWeight: 700, color: C.blue }}>{li.qbCode || "—"}</span>
                       <span style={{ fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{li.desc || ""}</span>
-                      {hasWarning && <span style={{ color: "#8a6500", fontSize: 10 }}>⚠</span>}
+                      {hasWarning && <span style={{ color: TINT.yellowText, fontSize: 10 }}>⚠</span>}
                     </div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
                       ${Number(li.rate || 0).toLocaleString()} × {li.qty || 0} {li.um || ""}
@@ -297,7 +297,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                     // v27.69: inline warning text instead of title= tooltip (which
                     // has ~1.5s browser delay and is invisible on mobile).
                     <span
-                      style={{ color: "#8a6500", fontSize: 9, display: "block", lineHeight: 1.2, fontWeight: 700 }}
+                      style={{ color: TINT.yellowText, fontSize: 9, display: "block", lineHeight: 1.2, fontWeight: 700 }}
                       aria-label="Not on Rig Up or Rental ticket"
                     >
                       ⚠ Not on RU/RNT
