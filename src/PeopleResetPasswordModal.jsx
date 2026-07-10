@@ -71,7 +71,7 @@ function PeopleResetPasswordModal({ user, requesterRole, onClose, onDone }) {
         />
       </div>
       {msg && (
-        <div style={{ padding: "8px 12px", background: "#fdecea", color: C.red, fontSize: 12, fontWeight: 700, borderRadius: 4, marginBottom: 12 }}>{msg}</div>
+        <div style={{ padding: "8px 12px", background: C.redB, color: C.red, fontSize: 12, fontWeight: 700, borderRadius: 4, marginBottom: 12 }}>{msg}</div>
       )}
       <div style={{ display: "flex", gap: 10 }}>
         <Btn variant="blue" onClick={handleReset}>

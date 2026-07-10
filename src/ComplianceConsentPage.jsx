@@ -90,7 +90,7 @@ function ComplianceConsentPage() {
       </div>
 
       {loadError && (
-        <div style={{ background: "#fdecea", color: C.red, padding: "10px 14px", borderRadius: 4, fontSize: 12, fontWeight: 600, marginTop: 16 }}>
+        <div style={{ background: C.redB, color: C.red, padding: "10px 14px", borderRadius: 4, fontSize: 12, fontWeight: 600, marginTop: 16 }}>
           ⚠ {loadError}
         </div>
       )}
@@ -103,7 +103,7 @@ function ComplianceConsentPage() {
         </div>
 
         {scriptError && (
-          <div style={{ background: "#fdecea", color: C.red, padding: "8px 12px", borderRadius: 4, fontSize: 11, fontWeight: 700, marginBottom: 14 }}>
+          <div style={{ background: C.redB, color: C.red, padding: "8px 12px", borderRadius: 4, fontSize: 11, fontWeight: 700, marginBottom: 14 }}>
             ⚠ {scriptError}
           </div>
         )}

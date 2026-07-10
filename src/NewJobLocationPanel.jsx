@@ -52,7 +52,7 @@ export default function NewJobLocationPanel({
           style={{
             fontSize: 11,
             color: C.blue,
-            background: "#e8f0fb",
+            background: C.blueB,
             border: `1px solid ${C.blue}22`,
             borderRadius: 4,
             padding: "6px 10px",

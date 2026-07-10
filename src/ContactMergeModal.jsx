@@ -31,7 +31,7 @@ function ContactMergeModal({ pair, onConfirm, onClose }) {
             padding: 12,
             marginBottom: 10,
             cursor: "pointer",
-            background: keeperId === c.id ? "#e8f0fb" : C.cardBg,
+            background: keeperId === c.id ? C.blueB : C.cardBg,
           }}
         >
           <input type="radio" name="keeper" checked={keeperId === c.id} onChange={() => setKeeperId(c.id)} style={{ marginRight: 10, accentColor: C.blue }} />

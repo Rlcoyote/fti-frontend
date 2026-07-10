@@ -194,7 +194,7 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
                     fontWeight: 800,
                     letterSpacing: "0.08em",
                     color: C.red,
-                    background: "#fdecea",
+                    background: C.redB,
                     border: `1px solid ${C.red}44`,
                     borderRadius: 3,
                     padding: "2px 7px",

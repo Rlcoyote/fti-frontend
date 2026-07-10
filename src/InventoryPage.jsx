@@ -248,7 +248,7 @@ function InventoryPage({ inventory, setInventory, jobs }) {
                 <tr
                   key={item.id}
                   style={{
-                    background: isEmpty ? "#fdf0f0" : isLow ? "#fdf8e8" : idx % 2 === 0 ? C.cardBg : C.steel,
+                    background: isEmpty ? C.overdueB : isLow ? C.yellowB : idx % 2 === 0 ? C.cardBg : C.steel,
                     borderBottom: `1px solid ${C.border}`,
                   }}
                 >

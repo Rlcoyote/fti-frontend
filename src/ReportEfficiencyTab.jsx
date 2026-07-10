@@ -43,7 +43,7 @@ export default function ReportEfficiencyTab({ filteredTickets, visibleJobs, rptG
     if (onLoc !== null) avgByType[t.type].onLocTotal += onLoc;
   });
 
-  const pctColor = parseFloat(onTimePct) >= 90 ? C.green : parseFloat(onTimePct) >= 70 ? "#b85c00" : C.red;
+  const pctColor = parseFloat(onTimePct) >= 90 ? C.green : parseFloat(onTimePct) >= 70 ? C.orange : C.red;
   const stat = { fontSize: 10, fontWeight: 700, color: C.muted };
 
   return (

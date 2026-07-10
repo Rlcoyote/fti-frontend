@@ -1,6 +1,6 @@
 import { C } from "./config.js";
 import { typeCaps, isLogType } from "./ticketFamilies.js";
-import { inputStyle, labelStyle, PANEL_TEXT } from "./SharedUI.jsx";
+import { inputStyle, labelStyle, PANEL_TEXT, TINT } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 
 // ─── AddTicketDateTimeFields (v28.66 — extracted from AddTicketModal) ─────────
@@ -58,7 +58,7 @@ export default function AddTicketDateTimeFields({
           </div>
           <div>
             <label style={labelStyle}>END DATE</label>
-            <input type="date" style={{ ...inputStyle, width: 160, background: "#f0f3f8", color: PANEL_TEXT }} value={endDate} readOnly />
+            <input type="date" style={{ ...inputStyle, width: 160, background: TINT.grayBg, color: PANEL_TEXT }} value={endDate} readOnly />
           </div>
         </div>
         <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: PANEL_TEXT, cursor: "pointer" }}>

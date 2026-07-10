@@ -33,7 +33,7 @@ function LoginBiometricStep({ error, linkSentMsg, loading, authFailedShowLinkOpt
       {linkSentMsg && (
         <div
           style={{
-            background: "#e6f5ec",
+            background: C.greenB,
             border: `1px solid ${C.green}33`,
             color: C.green,
             padding: "10px 14px",

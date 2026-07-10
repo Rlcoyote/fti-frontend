@@ -61,7 +61,7 @@ export function YardLinkModal({ loading, result, geofences, picked, setPicked, y
                         setPicked(g);
                         setYardName(g.name || "");
                       }}
-                      style={{ padding: 10, cursor: "pointer", background: selected ? "#e6f5ec" : "transparent", borderBottom: `1px solid ${C.border}22` }}
+                      style={{ padding: 10, cursor: "pointer", background: selected ? C.greenB : "transparent", borderBottom: `1px solid ${C.border}22` }}
                     >
                       <div style={{ fontSize: 13, fontWeight: selected ? 700 : 500, color: C.text }}>{g.name || "(unnamed)"}</div>
                       {g.formattedAddress && <div style={{ fontSize: 11, color: C.muted }}>{g.formattedAddress}</div>}

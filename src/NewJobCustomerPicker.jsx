@@ -161,7 +161,7 @@ export default function NewJobCustomerPicker({
               alignItems: "center",
               gap: 6,
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#e8f0fb")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = C.blueB)}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
             + Add New Customer

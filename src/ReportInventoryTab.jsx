@@ -30,11 +30,11 @@ export default function ReportInventoryTab({ inventory, rptGrid }) {
         <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>Items with fewer than 4 in yard</div>
         {lowStock.length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No low stock items</div>}
         {lowStock.map((i) => (
-          <div key={i.id} style={{ ...rowStyle, background: "#fdf5d8", borderRadius: 3, padding: "6px 8px", marginBottom: 2 }}>
+          <div key={i.id} style={{ ...rowStyle, background: C.yellowB, borderRadius: 3, padding: "6px 8px", marginBottom: 2 }}>
             <span style={{ fontSize: 12, color: C.text }}>
               {i.size} {i.item}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 800, color: "#8a6500" }}>{i.inYard} in yard</span>
+            <span style={{ fontSize: 12, fontWeight: 800, color: C.yellow }}>{i.inYard} in yard</span>
           </div>
         ))}
       </div>

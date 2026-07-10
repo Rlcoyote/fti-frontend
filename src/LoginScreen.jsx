@@ -573,7 +573,7 @@ function LoginScreen() {
         {!webauthnSupported && (
           <div
             style={{
-              background: "#fdecea",
+              background: C.redB,
               border: `1px solid ${C.red}33`,
               color: C.red,
               padding: "10px 14px",
@@ -592,7 +592,7 @@ function LoginScreen() {
         {showLoginForm && sessionExpiredNote && (
           <div
             style={{
-              background: "#eef5ff",
+              background: C.blueB,
               border: `1px solid ${C.darkBlue}33`,
               color: C.darkBlue,
               padding: "10px 14px",
