@@ -5,9 +5,9 @@ import { Btn, ModalWrap } from "./SharedUI.jsx";
 
 function Stat({ label, value, tone }) {
   const colors = {
-    ok: { fg: C.green, bg: "#e6f5ec" },
-    warn: { fg: "#8a6500", bg: "#fff2cc" },
-    error: { fg: C.red, bg: "#fdecea" },
+    ok: { fg: C.green, bg: C.greenB },
+    warn: { fg: C.yellow, bg: C.yellowB },
+    error: { fg: C.red, bg: C.redB },
   };
   const c = colors[tone] || { fg: C.text, bg: C.steel };
   return (
@@ -38,7 +38,7 @@ export function ImportResultModal({ result, onClose }) {
           <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>NOTES</div>
           <div style={{ maxHeight: 200, overflow: "auto", border: `1px solid ${C.border}`, borderRadius: 4, padding: 8, background: C.steel }}>
             {result.errors.map((err, i) => (
-              <div key={i} style={{ fontSize: 11, color: err.level === "error" ? C.red : err.level === "warn" ? "#8a6500" : C.muted, marginBottom: 4 }}>
+              <div key={i} style={{ fontSize: 11, color: err.level === "error" ? C.red : err.level === "warn" ? C.yellow : C.muted, marginBottom: 4 }}>
                 Row {err.row}: {err.message}
               </div>
             ))}
@@ -76,7 +76,7 @@ export function GpsSyncResultModal({ result, onClose }) {
           <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginBottom: 6 }}>NOTES</div>
           <div style={{ maxHeight: 200, overflow: "auto", border: `1px solid ${C.border}`, borderRadius: 4, padding: 8, background: C.steel }}>
             {result.errors.map((err, i) => (
-              <div key={i} style={{ fontSize: 11, color: err.level === "error" ? C.red : err.level === "warn" ? "#8a6500" : C.muted, marginBottom: 4 }}>
+              <div key={i} style={{ fontSize: 11, color: err.level === "error" ? C.red : err.level === "warn" ? C.yellow : C.muted, marginBottom: 4 }}>
                 {err.vehicle_number ? `#${err.vehicle_number}` : `Vehicle ${err.vehicle_id}`} (VIN {err.vin}): {err.message}
               </div>
             ))}

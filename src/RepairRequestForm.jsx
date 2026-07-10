@@ -260,7 +260,7 @@ function RepairRequestForm() {
               onClick={() => setSeverity(sv)}
               style={{
                 padding: "6px 18px",
-                background: severity === sv ? (sv === "major" ? C.red : "#8a6500") : "transparent",
+                background: severity === sv ? (sv === "major" ? C.red : C.yellow) : "transparent",
                 color: severity === sv ? C.white : C.text,
                 border: `1px solid ${severity === sv ? "transparent" : C.border}`,
                 borderRadius: 4,
@@ -283,7 +283,7 @@ function RepairRequestForm() {
           style={{
             marginBottom: 14,
             padding: 12,
-            background: redTag ? "#fdecea" : "transparent",
+            background: redTag ? C.redB : "transparent",
             border: `1px solid ${redTag ? C.red : C.border}`,
             borderRadius: 4,
           }}
@@ -318,9 +318,7 @@ function RepairRequestForm() {
       </div>
 
       {/* ERROR */}
-      {error && (
-        <div style={{ padding: 10, background: "#fdecea", color: C.red, fontSize: 13, fontWeight: 600, borderRadius: 4, marginBottom: 12 }}>{error}</div>
-      )}
+      {error && <div style={{ padding: 10, background: C.redB, color: C.red, fontSize: 13, fontWeight: 600, borderRadius: 4, marginBottom: 12 }}>{error}</div>}
 
       {/* SUBMIT */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

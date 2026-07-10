@@ -43,8 +43,8 @@ export default function ReportOperationsTab({ filteredTickets, visibleJobs, rptG
         })}
         {flagged > 0 && (
           <div style={rowStyle}>
-            <span style={{ color: "#b85c00" }}>FLAGGED FOR CANCEL</span>
-            <span style={{ fontSize: 16, fontWeight: 800, color: "#b85c00" }}>{flagged}</span>
+            <span style={{ color: C.orange }}>FLAGGED FOR CANCEL</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: C.orange }}>{flagged}</span>
           </div>
         )}
       </div>
@@ -83,7 +83,7 @@ export default function ReportOperationsTab({ filteredTickets, visibleJobs, rptG
             <span style={{ fontWeight: 600 }}>#{t.ticketNumber || t.id}</span>
             <span style={{ color: C.muted }}>{t.customer}</span>
             <span style={{ color: C.muted }}>{t.type}</span>
-            <span style={{ fontWeight: 700, color: t.age > 14 ? C.red : t.age > 7 ? "#b85c00" : C.text }}>{t.age} days</span>
+            <span style={{ fontWeight: 700, color: t.age > 14 ? C.red : t.age > 7 ? C.orange : C.text }}>{t.age} days</span>
           </div>
         ))}
       </div>

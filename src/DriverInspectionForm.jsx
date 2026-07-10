@@ -127,7 +127,7 @@ function ChecklistSection({ title, subtitle, items, unitKey, setItem, canRedTag 
                         onClick={() => setItem(unitKey, idx, { severity: sv })}
                         style={{
                           padding: "4px 10px",
-                          background: item.severity === sv ? (sv === "major" ? C.red : "#8a6500") : "transparent",
+                          background: item.severity === sv ? (sv === "major" ? C.red : C.yellow) : "transparent",
                           color: item.severity === sv ? C.white : C.text,
                           border: `1px solid ${item.severity === sv ? "transparent" : C.border}`,
                           borderRadius: 3,
@@ -504,7 +504,7 @@ function DriverInspectionForm() {
           gap: 10,
           marginBottom: 16,
           padding: 10,
-          background: acknowledged ? "#e6f5ec" : "transparent",
+          background: acknowledged ? C.greenB : "transparent",
           border: `1px solid ${acknowledged ? C.green : C.border}`,
           borderRadius: 4,
           cursor: "pointer",
@@ -522,9 +522,7 @@ function DriverInspectionForm() {
       </label>
 
       {/* ERROR */}
-      {error && (
-        <div style={{ padding: 10, background: "#fdecea", color: C.red, fontSize: 13, fontWeight: 600, borderRadius: 4, marginBottom: 12 }}>{error}</div>
-      )}
+      {error && <div style={{ padding: 10, background: C.redB, color: C.red, fontSize: 13, fontWeight: 600, borderRadius: 4, marginBottom: 12 }}>{error}</div>}
 
       {/* SUBMIT */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

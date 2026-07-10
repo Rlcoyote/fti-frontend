@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { C } from "./config.js";
 import { api } from "./api.js";
-import { Btn, inputStyle } from "./SharedUI.jsx";
+import { Btn, inputStyle, TINT } from "./SharedUI.jsx";
 
 // ─── TicketWeekDays (v28.267, master-ticket Phase 4) ────────────────────────
 // The paper Tester ticket's DAYS / HOURS block, live: a Mon–Sun week of day
@@ -140,7 +140,6 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
         setJsaIndex(map);
       })
       .catch(() => {});
-     
   }, [ticket.id, jsaBump]);
 
   useEffect(() => {
@@ -298,9 +297,9 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
                   padding: "3px 8px",
                   borderRadius: 6,
                   cursor: readOnly ? "default" : "pointer",
-                  border: `1px solid ${jsaIndex[date]?.complete ? accent : jsaIndex[date] ? "#c99700" : C.border}`,
-                  background: jsaIndex[date]?.complete ? `${accent}22` : jsaIndex[date] ? "#c9970022" : "transparent",
-                  color: jsaIndex[date]?.complete ? accent : jsaIndex[date] ? "#c99700" : C.text,
+                  border: `1px solid ${jsaIndex[date]?.complete ? accent : jsaIndex[date] ? TINT.goldDraft : C.border}`,
+                  background: jsaIndex[date]?.complete ? `${accent}22` : jsaIndex[date] ? `${TINT.goldDraft}22` : "transparent",
+                  color: jsaIndex[date]?.complete ? accent : jsaIndex[date] ? TINT.goldDraft : C.text,
                   opacity: jsaIndex[date] ? 1 : 0.55,
                   whiteSpace: "nowrap",
                   transition: "all 0.15s",

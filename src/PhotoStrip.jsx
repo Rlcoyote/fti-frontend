@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { PANEL_MUTED } from "./SharedUI.jsx";
+import { PANEL_MUTED, TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── PHOTO UTILITIES ──────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ function PhotoStrip({ ticketId, isLocked }) {
       {photos.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {photos.map((p) => (
-            <div key={p.id} style={{ position: "relative", borderRadius: 6, overflow: "hidden", border: `1px solid ${C.border}`, background: "#f8f9fa" }}>
+            <div key={p.id} style={{ position: "relative", borderRadius: 6, overflow: "hidden", border: `1px solid ${C.border}`, background: TINT.photoBg }}>
               <img
                 src={p.thumbnail}
                 alt={p.filename}
@@ -210,7 +210,7 @@ function PublicPhotoStrip({ ticketId }) {
 
   if (photos.length === 0) return null;
   return (
-    <div style={{ marginTop: 20, borderTop: "2px solid #d0d8e8", paddingTop: 16 }}>
+    <div style={{ marginTop: 20, borderTop: `2px solid ${TINT.border}`, paddingTop: 16 }}>
       <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Photos ({photos.length})</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {photos.map((p) => (
@@ -219,7 +219,7 @@ function PublicPhotoStrip({ ticketId }) {
             src={p.thumbnail}
             alt={p.filename}
             onClick={() => viewFull(p.id)}
-            style={{ width: 80, height: 80, objectFit: "cover", cursor: "pointer", borderRadius: 6, border: "1px solid #d0d8e8" }}
+            style={{ width: 80, height: 80, objectFit: "cover", cursor: "pointer", borderRadius: 6, border: `1px solid ${TINT.border}` }}
           />
         ))}
       </div>

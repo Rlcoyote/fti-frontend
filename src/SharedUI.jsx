@@ -70,6 +70,9 @@ export const TINT = {
   jsaGreenBg: "#d8f0e2", //    JSA signed chip
   jsaSignedBg: "#f8fbf9", //   JSA signed row wash
   grayDeepText: "#3a3a3a", //  RIG DOWN-family chip text
+  goldDraft: "#c99700", //     JSA-draft gold on week-day cards
+  photoBg: "#f8f9fa", //       photo tile backdrop (doctrine-listed)
+  border: "#d0d8e8", //        border on always-light surfaces
 };
 
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────

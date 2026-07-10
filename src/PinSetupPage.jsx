@@ -204,9 +204,9 @@ function PinSetupPage() {
                   alignItems: "flex-start",
                   gap: 10,
                   padding: "10px 12px",
-                  border: "1px solid #d0d8e8",
+                  border: `1px solid ${TINT.border}`,
                   borderRadius: 6,
-                  background: "#f7f9fc",
+                  background: TINT.expandBg,
                   cursor: "pointer",
                 }}
               >

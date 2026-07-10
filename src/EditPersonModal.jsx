@@ -241,7 +241,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
             </div>
           )}
           {mode === "edit" && initial.job_title && !initialTitleKnown && (
-            <div style={{ fontSize: 11, color: "#8a6500", marginTop: 4, fontWeight: 600 }}>
+            <div style={{ fontSize: 11, color: C.yellow, marginTop: 4, fontWeight: 600 }}>
               Stored title "{initial.job_title}" is now inactive — pick a current option to save changes.
             </div>
           )}
@@ -313,7 +313,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
             display: "flex",
             alignItems: "center",
             gap: 10,
-            background: "#e8f0fb",
+            background: C.blueB,
             padding: "10px 14px",
             borderRadius: 6,
             fontSize: 12,
@@ -332,7 +332,7 @@ function EditPersonModal({ mode, initial = {}, jobTitles = [], roleOptions = [],
           style={{
             marginTop: 8,
             padding: "10px 14px",
-            background: "#fdecea",
+            background: C.redB,
             color: C.red,
             borderRadius: 6,
             fontSize: 13,

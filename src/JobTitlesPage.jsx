@@ -175,7 +175,7 @@ function JobTitlesPage() {
                   onDrop={onDrop(t.id)}
                   style={{
                     borderBottom: `1px solid ${C.border}`,
-                    background: !t.is_active ? "#f6f6f8" : isDropTarget ? "#e8f0fb" : "transparent",
+                    background: !t.is_active ? C.steel : isDropTarget ? C.blueB : "transparent",
                     opacity: isDragging ? 0.4 : 1,
                     cursor: canEdit && t.is_active ? "grab" : "default",
                     transition: "background 80ms ease",
@@ -320,9 +320,7 @@ function TitleModal({ mode, initial, onClose, onSaved }) {
       </div>
 
       {formError && (
-        <div style={{ marginTop: 16, padding: "10px 14px", background: "#fdecea", color: C.red, borderRadius: 6, fontSize: 13, fontWeight: 700 }}>
-          {formError}
-        </div>
+        <div style={{ marginTop: 16, padding: "10px 14px", background: C.redB, color: C.red, borderRadius: 6, fontSize: 13, fontWeight: 700 }}>{formError}</div>
       )}
 
       <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
