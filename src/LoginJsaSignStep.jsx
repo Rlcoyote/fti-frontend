@@ -74,6 +74,26 @@ function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign 
         <div style={{ fontSize: 12, fontWeight: 400, color: TINT.grayText, marginTop: 8, textAlign: "center" }}>
           Your signature has been recorded. You can close this window.
         </div>
+        <div style={{ textAlign: "center", marginTop: 12 }}>
+          <button
+            onClick={() => {
+              window.location.href = "/";
+            }}
+            style={{
+              background: "transparent",
+              border: `1px solid ${TINT.jsaGreenText}55`,
+              color: TINT.jsaGreenText,
+              padding: "8px 18px",
+              borderRadius: 4,
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: "0.06em",
+              cursor: "pointer",
+            }}
+          >
+            OPEN THE APP
+          </button>
+        </div>
       </div>
     );
   }

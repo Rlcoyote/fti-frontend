@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { useApp } from "./AppContext.jsx";
 import LoginScreen from "./LoginScreen.jsx";
@@ -8,6 +9,15 @@ import UpdateBanner from "./UpdateBanner.jsx";
 
 function AppWrapper() {
   const { currentUser } = useApp();
+
+  // v28.311 — JSA sign-link params LATCHED at mount. The sign flow must win
+  // regardless of session state: a logged-in phone previously rendered the
+  // dashboard and silently ignored ?jsa_sign= (the "clicked the text and
+  // nothing happened" field failure), and a user who logged in mid-flow had
+  // the sign panel swapped out from under them. LoginScreen strips the query
+  // once it reads it, so the latch (not the live URL) keeps this branch
+  // stable for the whole visit; DONE offers OPEN THE APP to exit.
+  const [jsaSignFlow] = useState(() => new URLSearchParams(window.location.search).has("jsa_sign"));
 
   // Public sign page bypasses auth — handle it before router for backward compat
   const signMatch = window.location.pathname.match(/^\/sign\/(.+)$/);
@@ -28,6 +38,14 @@ function AppWrapper() {
     window.location.replace("https://www.flotest.com/privacy-policy/");
     return null;
   }
+
+  if (jsaSignFlow)
+    return (
+      <>
+        <UpdateBanner />
+        <LoginScreen />
+      </>
+    );
 
   if (!currentUser)
     return (
