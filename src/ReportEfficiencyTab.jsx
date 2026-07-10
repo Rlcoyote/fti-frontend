@@ -1,10 +1,16 @@
 import { C } from "./config.js";
+import { useApp } from "./AppContext.jsx";
 import { TICKET_TYPES } from "./SharedUI.jsx";
 import { parseTime, getField, diffMinutes, fmtHrs, cardStyle, headerStyle, rowStyle } from "./reportHelpers.js";
 
 // ─── Efficiency tab (extracted from ReportsPage v28.237) ─────────────────────
 
 export default function ReportEfficiencyTab({ filteredTickets, visibleJobs, rptGrid }) {
+  // v28.312 — BILLED vs WORKED is approval-side eyes ONLY (Reggie 2026-07-10:
+  // crews are paid worked hours, not billed hours — the gap must not be a
+  // field-visible number). view_reports alone (leads have it) is not enough.
+  const { can } = useApp();
+  const showBilledVsWorked = can("approve_tickets");
   let onTimeCount = 0;
   let lateCount = 0;
   let earlyCount = 0;
@@ -136,50 +142,52 @@ export default function ReportEfficiencyTab({ filteredTickets, visibleJobs, rptG
         {Object.keys(avgByType).length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No time data</div>}
       </div>
 
-      <div style={cardStyle}>
-        <div style={headerStyle}>BILLED vs WORKED (HOURLY LINES)</div>
-        <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
-          Hourly line items as entered vs actual on-location time (arrival → job end). Internal metric — invoices always show exactly what was entered.
-        </div>
-        {bwCount === 0 ? (
-          <div style={{ fontSize: 12, color: C.muted }}>No tickets with hourly lines + time stamps in this range.</div>
-        ) : (
-          <>
-            <div style={{ display: "flex", gap: 24, marginBottom: 14, flexWrap: "wrap" }}>
-              <div>
-                <div style={stat}>BILLED</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{fmtHrs(bwBilledMin)}</div>
+      {showBilledVsWorked && (
+        <div style={cardStyle}>
+          <div style={headerStyle}>BILLED vs WORKED (HOURLY LINES)</div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
+            Hourly line items as entered vs actual on-location time (arrival → job end). Internal metric — invoices always show exactly what was entered.
+          </div>
+          {bwCount === 0 ? (
+            <div style={{ fontSize: 12, color: C.muted }}>No tickets with hourly lines + time stamps in this range.</div>
+          ) : (
+            <>
+              <div style={{ display: "flex", gap: 24, marginBottom: 14, flexWrap: "wrap" }}>
+                <div>
+                  <div style={stat}>BILLED</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{fmtHrs(bwBilledMin)}</div>
+                </div>
+                <div>
+                  <div style={stat}>WORKED</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.blue }}>{fmtHrs(bwWorkedMin)}</div>
+                </div>
+                <div>
+                  <div style={stat}>WORKED / BILLED</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.green }}>{bwUtil}%</div>
+                </div>
+                <div>
+                  <div style={stat}>TICKETS</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: C.muted }}>{bwCount}</div>
+                </div>
               </div>
-              <div>
-                <div style={stat}>WORKED</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: C.blue }}>{fmtHrs(bwWorkedMin)}</div>
-              </div>
-              <div>
-                <div style={stat}>WORKED / BILLED</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: C.green }}>{bwUtil}%</div>
-              </div>
-              <div>
-                <div style={stat}>TICKETS</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: C.muted }}>{bwCount}</div>
-              </div>
-            </div>
-            {bwRows.slice(0, 8).map((r) => (
-              <div key={`${r.ticket}-${r.date}`} style={rowStyle}>
-                <span style={{ fontSize: 11 }}>
-                  <strong>#{r.ticket}</strong> · {r.customer} · {r.date}
-                </span>
-                <span style={{ fontSize: 11, fontWeight: 700 }}>
-                  {fmtHrs(r.billedMin)} billed / {fmtHrs(r.workedMin)} worked
-                  <span style={{ color: r.gap >= 0 ? C.green : C.red, marginLeft: 6 }}>
-                    {r.gap >= 0 ? "+" : ""}
-                    {fmtHrs(Math.abs(r.gap))}
+              {bwRows.slice(0, 8).map((r) => (
+                <div key={`${r.ticket}-${r.date}`} style={rowStyle}>
+                  <span style={{ fontSize: 11 }}>
+                    <strong>#{r.ticket}</strong> · {r.customer} · {r.date}
                   </span>
-                </span>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
+                  <span style={{ fontSize: 11, fontWeight: 700 }}>
+                    {fmtHrs(r.billedMin)} billed / {fmtHrs(r.workedMin)} worked
+                    <span style={{ color: r.gap >= 0 ? C.green : C.red, marginLeft: 6 }}>
+                      {r.gap >= 0 ? "+" : ""}
+                      {fmtHrs(Math.abs(r.gap))}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
