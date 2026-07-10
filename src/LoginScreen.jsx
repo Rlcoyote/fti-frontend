@@ -295,23 +295,52 @@ function LoginScreen() {
     setError("");
     setLoading(true);
     try {
+      // v28.303 — fetch a FRESH challenge + pending token at click time.
+      // The options fetched at page load die two ways in the field: a
+      // biometric LOGIN on this same screen overwrites the stored challenge
+      // (in-memory store is keyed user+flow), and the 5-min TTLs run from
+      // page open — reading the JSA summary card burns the window.
+      let session;
+      try {
+        const rr = await fetch(`${API_URL}/jsas/sign-options-refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pending_token: jsaSignLanding.pending_token }),
+        });
+        const rd = await rr.json();
+        if (!rr.ok) {
+          setError(rd.error || "Sign session expired — ask the lead to send a new link");
+          return;
+        }
+        session = rd;
+      } catch {
+        setError("Connection error — could not start signing. Check signal and tap CONFIRM again.");
+        return;
+      }
       let assertion;
       try {
-        assertion = await startAuthentication({ optionsJSON: jsaSignLanding.authentication_options });
+        assertion = await startAuthentication({ optionsJSON: session.authentication_options });
       } catch (browserErr) {
         const msg = browserErr?.name === "NotAllowedError" ? "Biometric did not complete. Tap CONFIRM again." : browserErr?.message || "Biometric cancelled";
         setError(msg);
         return;
       }
+      // v28.303 — GPS is best-effort metadata and must NEVER hold the
+      // signature hostage. On iOS an undecided location-permission prompt
+      // can leave getCurrentPosition unsettled FOREVER (the "tap and
+      // nothing happens" field failure) — the race guarantees resolution.
       const captureGps = () =>
-        new Promise((resolve) => {
-          if (!navigator.geolocation) return resolve({ lat: null, lng: null });
-          navigator.geolocation.getCurrentPosition(
-            (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-            () => resolve({ lat: null, lng: null }),
-            { timeout: 4000, enableHighAccuracy: false },
-          );
-        });
+        Promise.race([
+          new Promise((resolve) => {
+            if (!navigator.geolocation) return resolve({ lat: null, lng: null });
+            navigator.geolocation.getCurrentPosition(
+              (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+              () => resolve({ lat: null, lng: null }),
+              { timeout: 4000, enableHighAccuracy: false },
+            );
+          }),
+          new Promise((resolve) => setTimeout(() => resolve({ lat: null, lng: null }), 6000)),
+        ]);
       const gps = await captureGps();
       const r = await fetch(`${API_URL}/jsas/${jsaSignLanding.jsa_id}/sign`, {
         method: "POST",
@@ -319,7 +348,7 @@ function LoginScreen() {
         body: JSON.stringify({
           method: "biometric",
           webauthn_response: assertion,
-          pending_token: jsaSignLanding.pending_token,
+          pending_token: session.pending_token,
           gps_lat: gps.lat,
           gps_lng: gps.lng,
         }),
