@@ -43,6 +43,31 @@ export default function ReportEfficiencyTab({ filteredTickets, visibleJobs, rptG
     if (onLoc !== null) avgByType[t.type].onLocTotal += onLoc;
   });
 
+  // v28.310 — BILLED vs WORKED (Reggie 2026-07-10, the 4-hr-minimum metric).
+  // Billed = hourly line items exactly as entered (never altered; the
+  // customer's invoice is untouchable). Worked = the on-location span the
+  // stamps already record. The gap IS the minimum-billing margin — internal
+  // eyes only. Only tickets carrying at least one hour-U/M line count.
+  const isHourUm = (um) => /^h(r|rs|our|ours)?\.?$/i.test((um || "").trim());
+  let bwBilledMin = 0;
+  let bwWorkedMin = 0;
+  let bwCount = 0;
+  const bwRows = [];
+  filteredTickets.forEach((t) => {
+    const hourlyQty = (t.lineItems || []).filter((li) => isHourUm(li.um)).reduce((sum, li) => sum + (Number(li.qty) || 0) * (Number(li.days) || 1), 0);
+    if (hourlyQty <= 0) return;
+    const onLoc = diffMinutes(getField(t, "arrivalTime", "arrival_time"), getField(t, "jobEndTime", "job_end_time"));
+    if (onLoc === null) return;
+    const billedMin = Math.round(hourlyQty * 60);
+    bwBilledMin += billedMin;
+    bwWorkedMin += onLoc;
+    bwCount++;
+    const job = visibleJobs.find((j) => j.id === t.jobId);
+    bwRows.push({ ticket: t.ticketNumber || t.id, customer: job?.customer || "Unknown", date: t.date, billedMin, workedMin: onLoc, gap: billedMin - onLoc });
+  });
+  bwRows.sort((a, b) => b.gap - a.gap);
+  const bwUtil = bwBilledMin > 0 ? ((bwWorkedMin / bwBilledMin) * 100).toFixed(0) : null;
+
   const pctColor = parseFloat(onTimePct) >= 90 ? C.green : parseFloat(onTimePct) >= 70 ? C.orange : C.red;
   const stat = { fontSize: 10, fontWeight: 700, color: C.muted };
 
@@ -109,6 +134,51 @@ export default function ReportEfficiencyTab({ filteredTickets, visibleJobs, rptG
           );
         })}
         {Object.keys(avgByType).length === 0 && <div style={{ fontSize: 12, color: C.muted }}>No time data</div>}
+      </div>
+
+      <div style={cardStyle}>
+        <div style={headerStyle}>BILLED vs WORKED (HOURLY LINES)</div>
+        <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
+          Hourly line items as entered vs actual on-location time (arrival → job end). Internal metric — invoices always show exactly what was entered.
+        </div>
+        {bwCount === 0 ? (
+          <div style={{ fontSize: 12, color: C.muted }}>No tickets with hourly lines + time stamps in this range.</div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 24, marginBottom: 14, flexWrap: "wrap" }}>
+              <div>
+                <div style={stat}>BILLED</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>{fmtHrs(bwBilledMin)}</div>
+              </div>
+              <div>
+                <div style={stat}>WORKED</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.blue }}>{fmtHrs(bwWorkedMin)}</div>
+              </div>
+              <div>
+                <div style={stat}>WORKED / BILLED</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.green }}>{bwUtil}%</div>
+              </div>
+              <div>
+                <div style={stat}>TICKETS</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.muted }}>{bwCount}</div>
+              </div>
+            </div>
+            {bwRows.slice(0, 8).map((r) => (
+              <div key={`${r.ticket}-${r.date}`} style={rowStyle}>
+                <span style={{ fontSize: 11 }}>
+                  <strong>#{r.ticket}</strong> · {r.customer} · {r.date}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700 }}>
+                  {fmtHrs(r.billedMin)} billed / {fmtHrs(r.workedMin)} worked
+                  <span style={{ color: r.gap >= 0 ? C.green : C.red, marginLeft: 6 }}>
+                    {r.gap >= 0 ? "+" : ""}
+                    {fmtHrs(Math.abs(r.gap))}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
