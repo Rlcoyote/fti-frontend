@@ -26,7 +26,7 @@ import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, ConfirmModal, Z_INDE
 import { toMinutes } from "./ticketTimeValidation.js";
 import useEditLock from "./useEditLock.js";
 import useTicketState from "./useTicketState.js";
-import useTicketJSA from "./useTicketJSA.js";
+import useTicketJSA, { normalizeJsaRow } from "./useTicketJSA.js";
 import useTicketDvir from "./useTicketDvir.js";
 import useSignaturePolling from "./useSignaturePolling.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
@@ -138,7 +138,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const openDayJsa = async (jsaDate) => {
     try {
       const existing = await api.get(`/jsas/ticket/${ticket.id}?date=${jsaDate}`);
-      setDayJsa({ date: jsaDate, existing: existing || null });
+      // v28.313 — normalize the raw row; the modal reads camelCase (the raw
+      // pass-through opened every per-day JSA with all PPE boxes false).
+      setDayJsa({ date: jsaDate, existing: existing ? normalizeJsaRow(existing) : null });
     } catch {
       setDayJsa({ date: jsaDate, existing: null });
     }
@@ -454,7 +456,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         <TicketEditLockBanner editLock={editLock} />
         {/* JSA bar — extracted to TicketJsaBar (v27.82). Single component handles
             both non-Rental (required) and Rental (optional) variants via ticket.type. */}
-        <TicketJsaBar ticket={ticket} jsaLoaded={jsa.jsaLoaded} existingJSA={jsa.existingJSA} onOpen={() => jsa.setShowJSA(true)} />
+        <TicketJsaBar ticket={ticket} jsaLoaded={jsa.jsaLoaded} existingJSA={jsa.existingJSA} onOpen={() => jsa.openJSA()} />
         {/* v28.190 — DVIR bar. Same row treatment as JSA. Tap opens the
             inspection page with vehicleId pre-filled. */}
         <TicketDvirBar ticket={ticket} dvirState={dvir} />
@@ -797,7 +799,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           setIsEditing={s.setIsEditing}
           setShowSigPad={setShowSigPad}
           setShowSigOptions={setShowSigOptions}
-          setShowJSA={jsa.setShowJSA}
+          setShowJSA={jsa.openJSA}
           setShowVoidConfirm={setShowVoidConfirm}
           setShowDupModal={setShowDupModal}
           setShowDeleteConfirm={setShowDeleteConfirm}

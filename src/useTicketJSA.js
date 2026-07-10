@@ -25,42 +25,74 @@ import { useApp } from "./AppContext.jsx";
 //   onUpdate(ticketId, partial) — parent callback to reflect hasJSA:true
 //     on the ticket row without a full refetch
 
+// v28.313 — ONE home for raw-jsa-row → JSAModal shape. The modal reads
+// camelCase (ppe.frClothing, presenterReview, signatures as name strings);
+// the API returns the raw row (ppe_fr_clothing, presenter_review, signature
+// objects). The per-day open path (TicketDetail.openDayJsa) previously
+// passed the RAW row straight in — every per-day JSA opened with ALL PPE
+// boxes false regardless of what was saved ("the checkmarks are different
+// for each user", field report 2026-07-10, same jsa row: the lead saw his
+// in-memory checked state; everyone else saw the un-normalized defaults).
+export const normalizeJsaRow = (data) => ({
+  ...data,
+  wellName: data.well_name,
+  designatedDriver: data.designated_driver,
+  presenterReview: data.presenter_review,
+  lat: data.latitude,
+  lng: data.longitude,
+  ppe: {
+    frClothing: data.ppe_fr_clothing,
+    toolsTrained: data.ppe_tools_trained,
+    confinedSpace: data.ppe_confined_space,
+  },
+  signatures: (data.signatures || []).map((s) => s.name || s),
+  additionalSteps: (data.additional_steps || []).map((s) => ({
+    step: s.step,
+    hazard: s.hazard,
+    procedure: s.procedure,
+  })),
+});
+
 export default function useTicketJSA(ticket, job, onUpdate) {
   const { showNotice } = useApp();
   const [existingJSA, setExistingJSA] = useState(null);
   const [jsaLoaded, setJsaLoaded] = useState(false);
   const [showJSA, setShowJSA] = useState(false);
 
-  // Load JSA for this ticket on mount.
-  useEffect(() => {
-    if (!ticket.id) return;
-    fetch(`${API_URL}/jsas/ticket/${ticket.id}`)
+  // v28.313 — loadJsa is callable, not just a mount effect: the JSA MODAL
+  // refetches at open. The mount-only fetch left each phone holding the
+  // snapshot from when the TICKET was opened — the lead edits PPE/weather,
+  // and every phone with the ticket already open seeds the modal from its
+  // own stale copy ("the checkmarks are different for each user", field
+  // report 2026-07-10, SAME jsa row). Worse, a stale save would write the
+  // old flags back over the lead's edits.
+  const loadJsa = () => {
+    if (!ticket.id) return Promise.resolve(null);
+    return fetch(`${API_URL}/jsas/ticket/${ticket.id}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data) {
-          setExistingJSA({
-            ...data,
-            wellName: data.well_name,
-            designatedDriver: data.designated_driver,
-            lat: data.latitude,
-            lng: data.longitude,
-            ppe: {
-              frClothing: data.ppe_fr_clothing,
-              toolsTrained: data.ppe_tools_trained,
-              confinedSpace: data.ppe_confined_space,
-            },
-            signatures: (data.signatures || []).map((s) => s.name || s),
-            additionalSteps: (data.additional_steps || []).map((s) => ({
-              step: s.step,
-              hazard: s.hazard,
-              procedure: s.procedure,
-            })),
-          });
-        }
+        if (data) setExistingJSA(normalizeJsaRow(data));
         setJsaLoaded(true);
+        return data;
       })
-      .catch(() => setJsaLoaded(true));
+      .catch(() => {
+        setJsaLoaded(true);
+        return null;
+      });
+  };
+
+  // Load on mount (badge state needs it before any modal opens).
+  useEffect(() => {
+    loadJsa();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket.id]);
+
+  // Open the JSA modal AFTER a fresh fetch, so the form's initializers seed
+  // from the server's current row — never the mount-time snapshot.
+  const openJSA = async () => {
+    await loadJsa();
+    setShowJSA(true);
+  };
 
   // Save handler. Endpoint picks itself based on whether the ticket has an
   // ID yet (ticket-scoped) or we're saving pre-creation (job-scoped).
@@ -139,6 +171,7 @@ export default function useTicketJSA(ticket, job, onUpdate) {
     jsaLoaded,
     showJSA,
     setShowJSA,
+    openJSA,
     handleJsaSave,
     handleJsaCompleted,
   };
