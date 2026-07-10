@@ -372,3 +372,21 @@ export const reviseTicketRequest = async ({ ticket, reason, alsoCreateNew = fals
     return { success: false };
   }
 };
+
+// v28.307 — best-effort GPS capture that can NEVER hang. On iOS an undecided
+// location-permission prompt can leave getCurrentPosition unsettled forever;
+// the race guarantees resolution (nulls) in ≤6s. GPS is signature METADATA —
+// it must never hold a ceremony hostage. One home; the JSA sign paths and
+// modals all import this.
+export const captureGps = () =>
+  Promise.race([
+    new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve({ lat: null, lng: null });
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve({ lat: null, lng: null }),
+        { timeout: 4000, enableHighAccuracy: false },
+      );
+    }),
+    new Promise((resolve) => setTimeout(() => resolve({ lat: null, lng: null }), 6000)),
+  ]);

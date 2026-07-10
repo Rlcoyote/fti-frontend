@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
+import { captureGps } from "./utils.js";
 import { Btn, ModalWrap } from "./SharedUI.jsx";
 
 // ─── JSASignSubmitModal (v28.07) ────────────────────────────────────────────
@@ -30,25 +31,23 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
   // doesn't fire again.
   const [cachedGps, setCachedGps] = useState({ lat: null, lng: null });
 
-  const captureGps = () =>
-    new Promise(resolve => {
-      if (!navigator.geolocation) return resolve({ lat: null, lng: null });
-      navigator.geolocation.getCurrentPosition(
-        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => resolve({ lat: null, lng: null }),
-        { timeout: 4000, enableHighAccuracy: false }
-      );
-    });
-
   useEffect(() => {
     let cancelled = false;
-    captureGps().then(g => { if (!cancelled) setCachedGps(g); });
-    return () => { cancelled = true; };
+    captureGps().then((g) => {
+      if (!cancelled) setCachedGps(g);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fireSign = async () => {
-    if (!acknowledged) { setError("You must acknowledge the attestation to sign"); return; }
-    setBusy(true); setError("");
+    if (!acknowledged) {
+      setError("You must acknowledge the attestation to sign");
+      return;
+    }
+    setBusy(true);
+    setError("");
     try {
       // 1. Fetch authentication options. /webauthn/auth-options style isn't
       // exposed for an in-app session; we hit /jsas/:id/sign directly which
@@ -73,7 +72,8 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
       // endpoint server-side — added in jsas.js below.
 
       const optsRes = await fetch(`${API_URL}/jsas/${jsaId}/auth-options-self`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
       const optsData = await optsRes.json();
@@ -99,7 +99,8 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
       // browser couldn't get a fix, gps is { lat: null, lng: null }
       // and we sign without coordinates rather than blocking the flow.
       const signRes = await fetch(`${API_URL}/jsas/${jsaId}/sign`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           method: "biometric",
           webauthn_response: assertion,
@@ -123,32 +124,45 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
   return (
     <ModalWrap title="Sign the JSA" onClose={onClose} width={520}>
       <div style={{ marginBottom: 14, fontSize: 13, color: C.text, lineHeight: 1.5 }}>
-        You're signing the JSA for <strong>{jsaContext.customer_name || 'this ticket'}</strong>
-        {jsaContext.ticket_date ? <> on <strong>{new Date(jsaContext.ticket_date).toLocaleDateString()}</strong></> : null}
+        You're signing the JSA for <strong>{jsaContext.customer_name || "this ticket"}</strong>
+        {jsaContext.ticket_date ? (
+          <>
+            {" "}
+            on <strong>{new Date(jsaContext.ticket_date).toLocaleDateString()}</strong>
+          </>
+        ) : null}
         {jsaContext.ticket_number ? <> — Ticket #{jsaContext.ticket_number}</> : null}.
       </div>
 
-      <div style={{
-        background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
-        padding: 14, marginBottom: 14, fontSize: 12, color: C.text, lineHeight: 1.55,
-      }}>
+      <div
+        style={{
+          background: C.steel,
+          border: `1px solid ${C.border}`,
+          borderRadius: 4,
+          padding: 14,
+          marginBottom: 14,
+          fontSize: 12,
+          color: C.text,
+          lineHeight: 1.55,
+        }}
+      >
         {PERJURY_DISPLAY}
       </div>
 
-      <label style={{
-        display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12,
-        fontSize: 12, color: C.text, cursor: "pointer", lineHeight: 1.45,
-      }}>
-        <input
-          type="checkbox"
-          checked={acknowledged}
-          onChange={e => setAcknowledged(e.target.checked)}
-          style={{ marginTop: 2 }}
-        />
-        <span>
-          I have read and understand the attestation above. By tapping CONFIRM WITH BIOMETRIC,
-          I am signing the JSA under penalty of perjury.
-        </span>
+      <label
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 10,
+          marginBottom: 12,
+          fontSize: 12,
+          color: C.text,
+          cursor: "pointer",
+          lineHeight: 1.45,
+        }}
+      >
+        <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} style={{ marginTop: 2 }} />
+        <span>I have read and understand the attestation above. By tapping CONFIRM WITH BIOMETRIC, I am signing the JSA under penalty of perjury.</span>
       </label>
 
       {/* v28.38 — explain why the browser will ask for location. The native
@@ -156,26 +170,29 @@ function JSASignSubmitModal({ jsaId, jsaContext, onClose, onSigned }) {
           the user sees this disclaimer in the same view as the prompt. After
           the first allow, the browser caches the decision and doesn't ask
           again on this device. */}
-      <div style={{
-        fontSize: 11, color: C.muted, lineHeight: 1.45, marginBottom: 16,
-        paddingLeft: 24, fontStyle: "italic",
-      }}>
-        Your browser may ask for location access. Flo-Test records GPS coordinates
-        at sign time as part of the signature audit trail. If you decline, the
+      <div
+        style={{
+          fontSize: 11,
+          color: C.muted,
+          lineHeight: 1.45,
+          marginBottom: 16,
+          paddingLeft: 24,
+          fontStyle: "italic",
+        }}
+      >
+        Your browser may ask for location access. Flo-Test records GPS coordinates at sign time as part of the signature audit trail. If you decline, the
         signature still records — just without coordinates.
       </div>
 
-      {error && (
-        <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>
-          {error}
-        </div>
-      )}
+      {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12 }}>{error}</div>}
 
       <div style={{ display: "flex", gap: 8 }}>
         <Btn onClick={fireSign} disabled={!acknowledged || busy}>
           {busy ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}
         </Btn>
-        <Btn variant="ghost" onClick={onClose}>CANCEL</Btn>
+        <Btn variant="ghost" onClick={onClose}>
+          CANCEL
+        </Btn>
       </div>
     </ModalWrap>
   );

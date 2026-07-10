@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
+import { captureGps } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 import LoginCardHeader from "./LoginCardHeader.jsx";
 import LoginPasswordForm from "./LoginPasswordForm.jsx";
@@ -325,22 +326,6 @@ function LoginScreen() {
         setError(msg);
         return;
       }
-      // v28.303 — GPS is best-effort metadata and must NEVER hold the
-      // signature hostage. On iOS an undecided location-permission prompt
-      // can leave getCurrentPosition unsettled FOREVER (the "tap and
-      // nothing happens" field failure) — the race guarantees resolution.
-      const captureGps = () =>
-        Promise.race([
-          new Promise((resolve) => {
-            if (!navigator.geolocation) return resolve({ lat: null, lng: null });
-            navigator.geolocation.getCurrentPosition(
-              (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-              () => resolve({ lat: null, lng: null }),
-              { timeout: 4000, enableHighAccuracy: false },
-            );
-          }),
-          new Promise((resolve) => setTimeout(() => resolve({ lat: null, lng: null }), 6000)),
-        ]);
       const gps = await captureGps();
       const r = await fetch(`${API_URL}/jsas/${jsaSignLanding.jsa_id}/sign`, {
         method: "POST",

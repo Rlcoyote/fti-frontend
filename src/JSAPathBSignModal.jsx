@@ -3,6 +3,7 @@ import { startAuthentication } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import { captureGps } from "./utils.js";
 
 // ─── JSAPathBSignModal (v28.19) ─────────────────────────────────────────────
 // Path B — PIN + photo + lead's biometric witness, the deferred path from
@@ -182,16 +183,6 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
     setPhotoDataUrl("");
     startCamera();
   };
-
-  const captureGps = () =>
-    new Promise((resolve) => {
-      if (!navigator.geolocation) return resolve({ lat: null, lng: null });
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => resolve({ lat: null, lng: null }),
-        { timeout: 4000, enableHighAccuracy: false },
-      );
-    });
 
   // Step 3 — lead bio + atomic submit
   const finalize = async () => {

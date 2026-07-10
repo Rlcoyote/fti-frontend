@@ -3,6 +3,8 @@ import { startAuthentication } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import { captureGps } from "./utils.js";
+import JsaSummaryCard from "./JsaSummaryCard.jsx";
 
 // ─── JSALeadOverrideModal (v28.07) ──────────────────────────────────────────
 // Path C — lead/manager+ overrides JSA acknowledgment for a crew member
@@ -29,7 +31,7 @@ const REASON_OPTIONS = [
   { code: "other", label: "Other (describe in detail)" },
 ];
 
-function JSALeadOverrideModal({ jsaId, target, jsaContext: _jsaContext, fallbackReason, onClose, onOverridden }) {
+function JSALeadOverrideModal({ jsaId, target, jsaContext, fallbackReason, onClose, onOverridden }) {
   const { currentUser } = useApp();
   const [reasonCode, setReasonCode] = useState("");
   const [reasonText, setReasonText] = useState("");
@@ -41,16 +43,6 @@ function JSALeadOverrideModal({ jsaId, target, jsaContext: _jsaContext, fallback
   const targetName = target?.user_name || "Crew Member";
 
   const attestationDisplay = `I, ${leadName}, serving as crew lead, attest under penalty of perjury that ${targetName} was assigned to this ticket but was unable to acknowledge the Job Safety Analysis through personal biometric or witnessed PIN. The reason for unavailability is: ${reasonCode || "[reason code]"} — ${reasonText || "[reason detail]"}. I understand that submitting this override falsely, or to circumvent legitimate JSA acknowledgment requirements, constitutes fraud, may result in immediate termination, may expose Flo-Test Inc. to OSHA citation, and that I may be referred for criminal prosecution.`;
-
-  const captureGps = () =>
-    new Promise((resolve) => {
-      if (!navigator.geolocation) return resolve({ lat: null, lng: null });
-      navigator.geolocation.getCurrentPosition(
-        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => resolve({ lat: null, lng: null }),
-        { timeout: 4000, enableHighAccuracy: false },
-      );
-    });
 
   const submit = async () => {
     if (!reasonCode) {
@@ -126,6 +118,9 @@ function JSALeadOverrideModal({ jsaId, target, jsaContext: _jsaContext, fallback
           prominently at the top so the lead understands WHY they're in
           this flow. Prior behavior set the reason in a green pill in
           JSACrewSigners that the override modal immediately covered. */}
+      {/* v28.307 — the lead sees WHAT they are vouching for (same standard
+          as the sign-link's summary card; the attestation references it) */}
+      {jsaContext && <JsaSummaryCard jsa={jsaContext} heading={`THE JSA YOU ARE VOUCHING FOR — ${targetName.toUpperCase()}`} />}
       {fallbackReason && (
         <div
           style={{

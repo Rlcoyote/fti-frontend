@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { C } from "./config.js";
 import { TINT } from "./SharedUI.jsx";
+import JsaSummaryCard, { fmtDate } from "./JsaSummaryCard.jsx";
 
 // ─── LoginJsaSignStep (v28.163 — ship 6 of the LoginScreen split) ─────────
 // The JSA sign-link landing. A crew member opened a sign-link from email
@@ -17,65 +18,6 @@ import { TINT } from "./SharedUI.jsx";
 // Presentational — LoginScreen owns jsaSignLanding (fetched by the
 // URL-param effect) and the jsaSignDone flag; onSign runs the WebAuthn
 // ceremony + the /jsas/:id/sign POST from the button's user-activation.
-
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : null);
-
-function JsaSummaryCard({ jsa }) {
-  const rows = [
-    ["CUSTOMER", jsa.customer_name],
-    ["TICKET", jsa.ticket_number ? `#${jsa.ticket_number}${jsa.ticket_type ? ` (${jsa.ticket_type})` : ""}` : null],
-    ["JSA DATE", fmtDate(jsa.jsa_date || jsa.ticket_date) ? `${fmtDate(jsa.jsa_date || jsa.ticket_date)}${jsa.jsa_time ? ` · ${jsa.jsa_time}` : ""}` : null],
-    ["OPERATOR", jsa.operator],
-    ["WELL", jsa.well_name],
-    ["WEATHER", jsa.weather],
-    ["DESIGNATED DRIVER", jsa.designated_driver],
-  ].filter(([, v]) => v);
-
-  const ppe = [
-    ["FR clothing / PPE", jsa.ppe_fr_clothing],
-    ["Tools inspected / crew trained", jsa.ppe_tools_trained],
-    ["Confined space reviewed", jsa.ppe_confined_space],
-  ];
-
-  return (
-    <div
-      style={{
-        border: `1px solid ${C.border}`,
-        borderLeft: `3px solid ${C.red}`,
-        borderRadius: 6,
-        background: C.steel,
-        padding: "12px 14px",
-        marginBottom: 14,
-        maxHeight: "45vh",
-        overflowY: "auto",
-      }}
-    >
-      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", color: C.muted, marginBottom: 8 }}>THE JSA YOU ARE SIGNING</div>
-      {rows.map(([label, value]) => (
-        <div key={label} style={{ display: "flex", gap: 8, fontSize: 12, marginBottom: 4 }}>
-          <span style={{ color: C.muted, fontWeight: 700, minWidth: 130, flexShrink: 0 }}>{label}</span>
-          <span style={{ color: C.text, fontWeight: 600 }}>{value}</span>
-        </div>
-      ))}
-      <div style={{ borderTop: `1px solid ${C.border}`, margin: "8px 0" }} />
-      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.muted, marginBottom: 4 }}>SAFETY CHECKLIST</div>
-      {ppe.map(([label, ok]) => (
-        <div key={label} style={{ display: "flex", gap: 8, fontSize: 12, marginBottom: 3, alignItems: "center" }}>
-          <span style={{ color: ok ? C.green : C.red, fontWeight: 900, width: 14 }}>{ok ? "✓" : "✗"}</span>
-          <span style={{ color: C.text }}>{label}</span>
-          {!ok && <span style={{ color: C.red, fontSize: 10, fontWeight: 700 }}>NOT CONFIRMED</span>}
-        </div>
-      ))}
-      {jsa.presenter_review && (
-        <>
-          <div style={{ borderTop: `1px solid ${C.border}`, margin: "8px 0" }} />
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.06em", color: C.muted, marginBottom: 4 }}>PRESENTER REVIEW</div>
-          <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{jsa.presenter_review}</div>
-        </>
-      )}
-    </div>
-  );
-}
 
 function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign }) {
   // Stamped when the success panel first renders — display-only; the
