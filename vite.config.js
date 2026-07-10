@@ -78,6 +78,9 @@ export default defineConfig({
   plugins: [react(), deployVersionPlugin(APP_VERSION, COMMIT_SHA)],
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
+    // v28.305 — the RUNNING bundle's own commit, so UpdateBanner can compare
+    // itself against the served /version.json and detect version skew.
+    __COMMIT_SHA__: JSON.stringify(COMMIT_SHA),
   },
   // Vitest — scope the runner to our own suites under src/. Without an
   // explicit include, `vitest run` walks the whole working directory,

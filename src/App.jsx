@@ -4,6 +4,7 @@ import LoginScreen from "./LoginScreen.jsx";
 import PublicSignPage from "./PublicSignPage.jsx";
 import PinSetupPage from "./PinSetupPage.jsx";
 import FTIDashboard from "./FTIDashboard.jsx";
+import UpdateBanner from "./UpdateBanner.jsx";
 
 function AppWrapper() {
   const { currentUser } = useApp();
@@ -28,11 +29,18 @@ function AppWrapper() {
     return null;
   }
 
-  if (!currentUser) return <LoginScreen />;
+  if (!currentUser)
+    return (
+      <>
+        <UpdateBanner />
+        <LoginScreen />
+      </>
+    );
 
   // Authenticated — wrap dashboard in BrowserRouter so all internal navigation uses URLs.
   return (
     <BrowserRouter>
+      <UpdateBanner />
       <FTIDashboard />
     </BrowserRouter>
   );
