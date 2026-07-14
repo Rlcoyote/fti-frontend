@@ -16,12 +16,17 @@ import { C } from "./config.js";
 export const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : null);
 
 export default function JsaSummaryCard({ jsa, heading = "THE JSA YOU ARE SIGNING" }) {
+  // v28.318 — Reggie's ratified order: type, date, ticket #, customer,
+  // location, wells. The ticket number is the FULL house format (#WO-seq,
+  // e.g. #300033-14) — a bare per-job sequence ("#1") tells no one nothing.
+  const fullTicketNum = jsa.job_number ? `#${jsa.job_number}${jsa.ticket_number ? `-${jsa.ticket_number}` : ""}` : null;
   const rows = [
+    ["TYPE", jsa.ticket_type],
     ["DATE", fmtDate(jsa.jsa_date || jsa.ticket_date)],
+    ["TICKET #", fullTicketNum],
     ["CUSTOMER", jsa.customer_name],
     ["LOCATION", jsa.job_location],
-    ["WELL", jsa.well_name],
-    ["TICKET", jsa.ticket_number ? `#${jsa.ticket_number}${jsa.ticket_type ? ` (${jsa.ticket_type})` : ""}` : null],
+    ["WELLS", jsa.well_name],
   ].filter(([, v]) => v);
 
   return (

@@ -48,9 +48,13 @@ function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign,
               Customer: <strong>{jsa.customer_name}</strong>
             </div>
           )}
-          {jsa.ticket_number && (
+          {jsa.job_number && (
             <div>
-              Ticket: <strong>#{jsa.ticket_number}</strong>
+              Ticket:{" "}
+              <strong>
+                #{jsa.job_number}
+                {jsa.ticket_number ? `-${jsa.ticket_number}` : ""}
+              </strong>
               {jsa.ticket_type ? ` (${jsa.ticket_type})` : ""}
             </div>
           )}
