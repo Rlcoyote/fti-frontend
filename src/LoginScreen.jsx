@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { C, API_URL } from "./config.js";
+import { APP_COMMIT } from "./version.js";
 import { captureGps } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 import LoginCardHeader from "./LoginCardHeader.jsx";
@@ -291,10 +292,35 @@ function LoginScreen() {
   // URL-param effect, then posts the assertion to /jsas/:id/sign with the
   // pending_token. This flow does NOT log them into the dashboard — it
   // signs the JSA and shows a success state.
+  // v28.316 — sign-flow step trace. Every step beacons to /jsas/sign-step
+  // (with the RUNNING bundle commit, settling the stale-cache question per
+  // phone) AND renders on-screen so the phone itself shows where the flow
+  // stopped. Diagnostic for the 7/14 field failure; cheap enough to keep.
+  const [signTrace, setSignTrace] = useState("");
+  const reportSignStep = (step, detail = "") => {
+    setSignTrace(`${step}${detail ? ` — ${String(detail).slice(0, 80)}` : ""}`);
+    try {
+      fetch(`${API_URL}/jsas/sign-step`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step,
+          detail: String(detail).slice(0, 200),
+          commit: APP_COMMIT.slice(0, 12),
+          user_id: jsaSignLanding?.jsa_id ? `${jsaSignLanding.user_name}` : "?",
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {
+      /* diagnostics never block the flow */
+    }
+  };
+
   const completeJsaSign = async () => {
     if (!jsaSignLanding) return;
     setError("");
     setLoading(true);
+    reportSignStep("confirm-tapped");
     try {
       // v28.303 — fetch a FRESH challenge + pending token at click time.
       // The options fetched at page load die two ways in the field: a
@@ -310,23 +336,29 @@ function LoginScreen() {
         });
         const rd = await rr.json();
         if (!rr.ok) {
+          reportSignStep("refresh-rejected", `${rr.status} ${rd.error || ""}`);
           setError(rd.error || "Sign session expired — ask the lead to send a new link");
           return;
         }
         session = rd;
-      } catch {
+        reportSignStep("refresh-ok");
+      } catch (e) {
+        reportSignStep("refresh-network-fail", e?.message);
         setError("Connection error — could not start signing. Check signal and tap CONFIRM again.");
         return;
       }
       let assertion;
       try {
         assertion = await startAuthentication({ optionsJSON: session.authentication_options });
+        reportSignStep("ceremony-ok");
       } catch (browserErr) {
+        reportSignStep("ceremony-fail", `${browserErr?.name || "?"}: ${browserErr?.message || "?"}`);
         const msg = browserErr?.name === "NotAllowedError" ? "Biometric did not complete. Tap CONFIRM again." : browserErr?.message || "Biometric cancelled";
         setError(msg);
         return;
       }
       const gps = await captureGps();
+      reportSignStep("gps-done");
       const r = await fetch(`${API_URL}/jsas/${jsaSignLanding.jsa_id}/sign`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -340,11 +372,14 @@ function LoginScreen() {
       });
       const data = await r.json();
       if (!r.ok) {
+        reportSignStep("sign-rejected", `${r.status} ${data.error || ""}`);
         setError(data.error || "Sign verification failed");
         return;
       }
+      reportSignStep("sign-ok");
       setJsaSignDone(true);
-    } catch {
+    } catch (e) {
+      reportSignStep("sign-network-fail", e?.message);
       setError("Connection error during signing");
     } finally {
       setLoading(false);
@@ -647,7 +682,14 @@ function LoginScreen() {
             purpose JSA sign confirmation. */}
         {/* JSA sign-link landing — extracted to LoginJsaSignStep (v28.163) */}
         {showJsaSignStep && (
-          <LoginJsaSignStep jsaSignLanding={jsaSignLanding} jsaSignDone={jsaSignDone} error={error} loading={loading} onSign={completeJsaSign} />
+          <LoginJsaSignStep
+            jsaSignLanding={jsaSignLanding}
+            jsaSignDone={jsaSignDone}
+            error={error}
+            loading={loading}
+            onSign={completeJsaSign}
+            signTrace={signTrace}
+          />
         )}
 
         {jsaSignLoading && !jsaSignLanding && <div style={{ textAlign: "center", fontSize: 13, color: C.muted, padding: "20px 0" }}>Opening sign link...</div>}

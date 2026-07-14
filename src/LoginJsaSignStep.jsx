@@ -19,7 +19,7 @@ import JsaSummaryCard, { fmtDate } from "./JsaSummaryCard.jsx";
 // URL-param effect) and the jsaSignDone flag; onSign runs the WebAuthn
 // ceremony + the /jsas/:id/sign POST from the button's user-activation.
 
-function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign }) {
+function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign, signTrace }) {
   // Stamped when the success panel first renders — display-only; the
   // authoritative signature timestamp is recorded server-side by /sign.
   const signedStamp = useMemo(() => (jsaSignDone ? new Date().toLocaleString() : null), [jsaSignDone]);
@@ -140,6 +140,9 @@ function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign 
       >
         {loading ? "WAITING FOR BIOMETRIC..." : "CONFIRM WITH BIOMETRIC"}
       </button>
+      {/* v28.316 — on-screen step trace: the phone itself shows where the
+          flow stopped. Read this line off a crew screen when signing fails. */}
+      {signTrace && <div style={{ fontSize: 10, color: C.muted, textAlign: "center", marginBottom: 8 }}>step: {signTrace}</div>}
     </>
   );
 }
