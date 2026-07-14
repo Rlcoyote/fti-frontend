@@ -15,8 +15,8 @@ import { Btn, TICKET_TYPES } from "./SharedUI.jsx";
 // notes-and-wells for "Rig Down", seeds rental defaults for "Rental",
 // resets wellsConfirmed for multi-well jobs).
 //
-// If a new ticket type is added to TICKET_TYPES it appears here
-// automatically (label + desc come from the config).
+// v28.320 — names only (Reggie: "less is more... all the user needs to
+// see is the selection"). New TICKET_TYPES entries appear automatically.
 
 export default function AddTicketTypeSelector({ onSelect, onCancel }) {
   return (
@@ -43,8 +43,7 @@ export default function AddTicketTypeSelector({ onSelect, onCancel }) {
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = cfg.color)}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = cfg.color + "33")}
           >
-            <span style={{ fontSize: 14, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em", minWidth: 88, flexShrink: 0 }}>{cfg.label}</span>
-            <span style={{ fontSize: 11, color: C.muted }}>{cfg.desc || ""}</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</span>
           </button>
         ))}
       </div>

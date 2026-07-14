@@ -1,17 +1,24 @@
 import { useState } from "react";
 import { C } from "./config.js";
-import { Btn, TICKET_TYPES } from "./SharedUI.jsx";
+import { Btn, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
+import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 
 // ─── JobTicketsHeader (v28.84 split; v28.271 type menu) ─────────────────────
-// The top of the Tickets tab. v28.271 (Reggie, white-label direction): the
-// separate "Select Type" screen was a dead step once the ticket form owns a
-// live type dropdown — ADD TICKET now IS the type menu. One tap shows the
-// five types (color dot + plain-English line, the discovery surface for a
-// hand or a new tenant); picking one opens the form already typed and
-// colored. Parent receives onAdd(type).
+// The top of the Tickets tab. ADD TICKET opens the type picker; picking a
+// type opens the form already typed and colored. Parent receives onAdd(type).
+//
+// v28.320 — the hand-rolled dropdown is GONE. It rendered absolutely inside
+// JobCard, whose `overflow: hidden` CLIPPED it to the card's bounds — on a
+// short card only Rig Up + Rig Down were visible/clickable ("tester and
+// pumper no longer populate", field report 2026-07-14, with screenshot).
+// Worse, it was a second sibling surface for type picking next to
+// AddTicketTypeSelector (Anti-Pattern Entry 7). Now there is ONE picker —
+// AddTicketTypeSelector — rendered in a ModalWrap dialog, which is a fixed
+// overlay no ancestor overflow can clip. Structurally unclippable
+// (Article XVII).
 
 export default function JobTicketsHeader({ ticketCount, approvedCount, onAdd }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
       <div>
@@ -24,49 +31,20 @@ export default function JobTicketsHeader({ ticketCount, approvedCount, onAdd }) 
           </div>
         )}
       </div>
-      <div style={{ position: "relative" }}>
-        <Btn small onClick={() => setMenuOpen((o) => !o)}>
-          + ADD TICKET ▾
-        </Btn>
-        {menuOpen && (
-          <>
-            <div style={{ position: "fixed", inset: 0, zIndex: 120 }} onClick={() => setMenuOpen(false)} />
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                top: "calc(100% + 6px)",
-                zIndex: 121,
-                background: C.cardBg,
-                border: `1px solid ${C.border}`,
-                borderRadius: 10,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
-                minWidth: 260,
-                overflow: "hidden",
-              }}
-            >
-              {Object.entries(TICKET_TYPES).map(([key, cfg]) => (
-                <div
-                  key={key}
-                  onClick={() => {
-                    setMenuOpen(false);
-                    onAdd(key);
-                  }}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", transition: "background 0.12s" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = `${cfg.color}18`)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <span style={{ width: 12, height: 12, borderRadius: "50%", background: cfg.color, flexShrink: 0 }} />
-                  <span>
-                    <span style={{ display: "block", fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: "0.04em" }}>{key}</span>
-                    <span style={{ display: "block", fontSize: 11, color: C.muted }}>{cfg.desc}</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <Btn small onClick={() => setPickerOpen(true)}>
+        + ADD TICKET
+      </Btn>
+      {pickerOpen && (
+        <ModalWrap variant="dialog" z={Z_INDEX.overlay} width={340} accent={C.red} onClose={() => setPickerOpen(false)}>
+          <AddTicketTypeSelector
+            onSelect={(key) => {
+              setPickerOpen(false);
+              onAdd(key);
+            }}
+            onCancel={() => setPickerOpen(false)}
+          />
+        </ModalWrap>
+      )}
     </div>
   );
 }

@@ -77,15 +77,14 @@ export const TINT = {
 
 // ─── TICKET CONFIG ────────────────────────────────────────────────────────────
 export const TICKET_TYPES = {
-  // v28.271 — desc lives here (ONE home): the ADD TICKET type menu and the
-  // in-modal fallback grid both read it.
+  // v28.320 — desc retired with the dropdown (names only per Reggie).
   // v28.292 — colors move onto the named TINT pairs (identical values;
   // always-light by doctrine).
-  "Rig Up": { color: TINT.redText, bg: TINT.redBg, label: "RIG UP", abbr: "RU", desc: "Crew mobilization, equipment, Day 1 rental" },
-  "Rig Down": { color: TINT.black, bg: TINT.grayDeepBg, label: "RIG DOWN", abbr: "RD", desc: "Teardown, equipment return, DLR check" },
-  Tester: { color: TINT.greenText, bg: TINT.greenBg, label: "TESTER", abbr: "TST", desc: "Flo-back testing, weekly hours + well log" },
-  Pumper: { color: TINT.blueText, bg: TINT.blueBg, label: "PUMPER", abbr: "PMP", desc: "Field specialist, weekly hours + well log" },
-  Rental: { color: TINT.yellowText, bg: TINT.yellowBg, label: "RENTAL", abbr: "RNT", desc: "Ongoing equipment rental (Day 2+)" },
+  "Rig Up": { color: TINT.redText, bg: TINT.redBg, label: "RIG UP", abbr: "RU" },
+  "Rig Down": { color: TINT.black, bg: TINT.grayDeepBg, label: "RIG DOWN", abbr: "RD" },
+  Tester: { color: TINT.greenText, bg: TINT.greenBg, label: "TESTER", abbr: "TST" },
+  Pumper: { color: TINT.blueText, bg: TINT.blueBg, label: "PUMPER", abbr: "PMP" },
+  Rental: { color: TINT.yellowText, bg: TINT.yellowBg, label: "RENTAL", abbr: "RNT" },
 };
 
 // v28.40 — inField removed. Functionally identical to incomplete (both meant
