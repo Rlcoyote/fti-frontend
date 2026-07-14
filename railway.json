@@ -1,6 +1,6 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "deploy": {
-    "startCommand": "npx serve dist -s -l 3000"
+    "startCommand": "npx serve dist -l 3000"
   }
 }
