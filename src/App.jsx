@@ -1,23 +1,24 @@
-import { useState } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { useApp } from "./AppContext.jsx";
+import { JSA_SIGN_FLOW } from "./signFlow.js";
 import LoginScreen from "./LoginScreen.jsx";
 import PublicSignPage from "./PublicSignPage.jsx";
 import PinSetupPage from "./PinSetupPage.jsx";
 import FTIDashboard from "./FTIDashboard.jsx";
 import UpdateBanner from "./UpdateBanner.jsx";
 
+// v28.311 — JSA sign-link params LATCHED; v28.321 — latched at MODULE SCOPE.
+// The v28.311 useState latch died in the field: with a live session,
+// AppProvider swaps children for the boot splash (currentUser && loading),
+// UNMOUNTING AppWrapper after LoginScreen already stripped the query — the
+// remounted latch re-read an empty URL and the dashboard swallowed the link.
+// Caught by e2e/signlink.spec.js on the suite's FIRST run. Module scope
+// evaluates once at page load, before React exists — no strip, no remount,
+// no splash can un-latch it (Article XVII: structurally un-losable).
+
 function AppWrapper() {
   const { currentUser } = useApp();
-
-  // v28.311 — JSA sign-link params LATCHED at mount. The sign flow must win
-  // regardless of session state: a logged-in phone previously rendered the
-  // dashboard and silently ignored ?jsa_sign= (the "clicked the text and
-  // nothing happened" field failure), and a user who logged in mid-flow had
-  // the sign panel swapped out from under them. LoginScreen strips the query
-  // once it reads it, so the latch (not the live URL) keeps this branch
-  // stable for the whole visit; DONE offers OPEN THE APP to exit.
-  const [jsaSignFlow] = useState(() => new URLSearchParams(window.location.search).has("jsa_sign"));
+  const jsaSignFlow = JSA_SIGN_FLOW;
 
   // Public sign page bypasses auth — handle it before router for backward compat
   const signMatch = window.location.pathname.match(/^\/sign\/(.+)$/);

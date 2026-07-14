@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { API_URL, setCurrentUser as setGlobalUser, applyTheme, getTheme } from "./config.js";
 import BrandedSplash from "./BrandedSplash.jsx";
+import { JSA_SIGN_FLOW } from "./signFlow.js";
 import { NoticeModal } from "./SharedUI.jsx";
 import { makeCan } from "./permissions.js";
 import { api } from "./api.js";
@@ -502,7 +503,10 @@ export function AppProvider({ children }) {
   // Show splash while the initial fetch is in flight post-login. Pre-login
   // (currentUser === null) we render children immediately so LoginScreen
   // paints without a splash flash.
-  if (currentUser && loading) {
+  // v28.321 — never splash-swap during a sign-link flow: the swap unmounts
+  // children AFTER LoginScreen consumed the one-time URL params, killing the
+  // landing state (module-scope latch in signFlow.js; e2e-caught).
+  if (currentUser && loading && !JSA_SIGN_FLOW) {
     return (
       <AppContext.Provider value={value}>
         <BrandedSplash />
