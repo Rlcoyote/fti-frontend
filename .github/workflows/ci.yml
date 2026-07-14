@@ -1,8 +1,11 @@
-# v28.57 — CI gate per CAM Article XXXI.
+# v28.57 — CI gate per CAM Article XXXI (now XXI post-molt).
+# v28.322 — E2E arc: the lint-only gate grows unit tests + the Playwright
+# workflow suite. A workflow that breaks fails the build HERE — not in a
+# crew's hands. (Railway "Wait for CI" must be ON for a red run to block
+# the deploy — dashboard toggle.)
 #
-# Runs on every push to main and every pull request. Executes lint as a
-# blocking check. Failed CI blocks merge. Bypass requires explicit human
-# override with written justification.
+# Runs on every push to main and every pull request. Failed CI blocks merge.
+# Bypass requires explicit human override with written justification.
 #
 # Format check is intentionally NOT in this CI run — Prettier formatting
 # is enforced via pre-commit lint-staged on STAGED files only, so existing
@@ -19,14 +22,24 @@ on:
     branches: [main]
 
 jobs:
-  lint:
-    name: Lint
+  test:
+    name: Lint + Unit + E2E
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
-      - run: npm run lint
+      - run: npx eslint . --quiet
+      - run: npx vitest run
+      - run: npx playwright install chromium --with-deps
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7

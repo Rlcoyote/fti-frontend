@@ -28,3 +28,7 @@ dist-ssr
 # check on push-to-main and pull-requests. PAT workflow scope landed
 # 2026-05-15. (Pre-commit hooks via husky + lint-staged remain the
 # first-line enforcement on each commit.)
+
+# Playwright
+test-results/
+playwright-report/

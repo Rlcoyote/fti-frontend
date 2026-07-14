@@ -14,7 +14,8 @@
     "test:run": "vitest run",
     "ci": "npm run lint && npm run test:run",
     "preview": "vite preview",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "test:e2e": "playwright test"
   },
   "lint-staged": {
     "*.{js,jsx}": [
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",

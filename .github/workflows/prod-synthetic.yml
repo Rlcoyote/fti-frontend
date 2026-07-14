@@ -1,0 +1,40 @@
+# ─── Nightly synthetic against PRODUCTION (v28.322, E2E arc) ─────────────────
+# The night watchman: read-only checks of the live app, daily. Catches what
+# only shows in the real environment — a bad deploy, dropped cache headers,
+# a dead endpoint — before a crew does. No credentials, no mutations.
+name: Prod Synthetic
+on:
+  schedule:
+    - cron: "30 11 * * *" # 05:30 America/Chicago
+  workflow_dispatch:
+
+jobs:
+  synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: FE serves and carries a commit
+        run: |
+          set -e
+          V=$(curl -fsS https://app.flotest.com/version.json)
+          echo "$V"
+          echo "$V" | grep -q '"commit"'
+      - name: FE cache policy intact (the 7/14 stale-bundle fence)
+        run: |
+          set -e
+          curl -fsSI https://app.flotest.com/ | grep -i "cache-control" | grep -q "no-cache"
+          ASSET=$(curl -fsS https://app.flotest.com/ | grep -oE 'assets/index-[^"]+\.js' | head -1)
+          curl -fsSI "https://app.flotest.com/$ASSET" | grep -i "cache-control" | grep -q "immutable"
+      - name: BE healthy and versioned
+        run: |
+          set -e
+          curl -fsS https://fti-app-production.up.railway.app/api/health | grep -q '"ok"'
+          curl -fsS https://fti-app-production.up.railway.app/api/version | grep -q '"commit"'
+      - name: Sign-link landing rejects garbage with a proper error (not silence)
+        run: |
+          set -e
+          BODY=$(curl -fsS -X POST https://fti-app-production.up.railway.app/api/jsas/sign-options \
+            -H "Content-Type: application/json" \
+            -d '{"token":"synthetic","user_id":"00000000-0000-0000-0000-000000000000","jsa_id":"00000000-0000-0000-0000-000000000000"}' || true)
+          echo "$BODY"
+          echo "$BODY" | grep -q "Invalid or unknown sign link"
