@@ -341,6 +341,11 @@ function LoginScreen() {
           return;
         }
         session = rd;
+        // v28.319 — slide the session: store the fresh pending token back so
+        // every retry measures 5 min from the LAST attempt, not from page
+        // open. Without this, refresh returned fresh tokens the client threw
+        // away — retries died 5 min after landing regardless.
+        setJsaSignLanding((prev) => (prev ? { ...prev, pending_token: rd.pending_token } : prev));
         reportSignStep("refresh-ok");
       } catch (e) {
         reportSignStep("refresh-network-fail", e?.message);
