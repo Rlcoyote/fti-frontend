@@ -297,6 +297,14 @@ function LoginScreen() {
   // phone) AND renders on-screen so the phone itself shows where the flow
   // stopped. Diagnostic for the 7/14 field failure; cheap enough to keep.
   const [signTrace, setSignTrace] = useState("");
+  // v28.328 — iOS gesture-window fix. WebKit throws NotAllowedError when the
+  // passkey ceremony starts after a slow network await (the v28.303 refresh)
+  // consumed the tap's transient activation — latency-dependent, so it
+  // "sometimes works." When that happens we KEEP the fetched session and arm
+  // the button as SIGN NOW: the next tap fires startAuthentication with ZERO
+  // awaits in front of it, inside a fresh activation. Same lesson the login
+  // flow learned at v28.01 (see the comment above completeAuthentication).
+  const [readySignSession, setReadySignSession] = useState(null);
   const reportSignStep = (step, detail = "") => {
     setSignTrace(`${step}${detail ? ` — ${String(detail).slice(0, 80)}` : ""}`);
     try {
@@ -320,37 +328,46 @@ function LoginScreen() {
     if (!jsaSignLanding) return;
     setError("");
     setLoading(true);
-    reportSignStep("confirm-tapped");
     try {
-      // v28.303 — fetch a FRESH challenge + pending token at click time.
-      // The options fetched at page load die two ways in the field: a
-      // biometric LOGIN on this same screen overwrites the stored challenge
-      // (in-memory store is keyed user+flow), and the 5-min TTLs run from
-      // page open — reading the JSA summary card burns the window.
-      let session;
-      try {
-        const rr = await fetch(`${API_URL}/jsas/sign-options-refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pending_token: jsaSignLanding.pending_token }),
-        });
-        const rd = await rr.json();
-        if (!rr.ok) {
-          reportSignStep("refresh-rejected", `${rr.status} ${rd.error || ""}`);
-          setError(rd.error || "Sign session expired — ask the lead to send a new link");
+      // v28.328 — DIRECT PATH: a prior tap already fetched a fresh session
+      // but iOS refused the ceremony (gesture window expired during the
+      // network await). This tap fires the ceremony IMMEDIATELY — no fetch,
+      // no await, nothing between the tap and the passkey prompt.
+      let session = readySignSession;
+      if (session) {
+        setReadySignSession(null);
+        reportSignStep("signnow-tapped");
+      } else {
+        reportSignStep("confirm-tapped");
+        // v28.303 — fetch a FRESH challenge + pending token at click time.
+        // The options fetched at page load die two ways in the field: a
+        // biometric LOGIN on this same screen overwrites the stored challenge
+        // (in-memory store is keyed user+flow), and the 5-min TTLs run from
+        // page open — reading the JSA summary card burns the window.
+        try {
+          const rr = await fetch(`${API_URL}/jsas/sign-options-refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pending_token: jsaSignLanding.pending_token }),
+          });
+          const rd = await rr.json();
+          if (!rr.ok) {
+            reportSignStep("refresh-rejected", `${rr.status} ${rd.error || ""}`);
+            setError(rd.error || "Sign session expired — ask the lead to send a new link");
+            return;
+          }
+          session = rd;
+          // v28.319 — slide the session: store the fresh pending token back so
+          // every retry measures 5 min from the LAST attempt, not from page
+          // open. Without this, refresh returned fresh tokens the client threw
+          // away — retries died 5 min after landing regardless.
+          setJsaSignLanding((prev) => (prev ? { ...prev, pending_token: rd.pending_token } : prev));
+          reportSignStep("refresh-ok");
+        } catch (e) {
+          reportSignStep("refresh-network-fail", e?.message);
+          setError("Connection error — could not start signing. Check signal and tap CONFIRM again.");
           return;
         }
-        session = rd;
-        // v28.319 — slide the session: store the fresh pending token back so
-        // every retry measures 5 min from the LAST attempt, not from page
-        // open. Without this, refresh returned fresh tokens the client threw
-        // away — retries died 5 min after landing regardless.
-        setJsaSignLanding((prev) => (prev ? { ...prev, pending_token: rd.pending_token } : prev));
-        reportSignStep("refresh-ok");
-      } catch (e) {
-        reportSignStep("refresh-network-fail", e?.message);
-        setError("Connection error — could not start signing. Check signal and tap CONFIRM again.");
-        return;
       }
       let assertion;
       try {
@@ -358,8 +375,14 @@ function LoginScreen() {
         reportSignStep("ceremony-ok");
       } catch (browserErr) {
         reportSignStep("ceremony-fail", `${browserErr?.name || "?"}: ${browserErr?.message || "?"}`);
-        const msg = browserErr?.name === "NotAllowedError" ? "Biometric did not complete. Tap CONFIRM again." : browserErr?.message || "Biometric cancelled";
-        setError(msg);
+        if (browserErr?.name === "NotAllowedError") {
+          // Arm the direct path — the fetched session stays valid and the
+          // server-side challenge is untouched (the ceremony never reached it).
+          setReadySignSession(session);
+          setError("Your phone is ready — tap SIGN NOW to scan.");
+        } else {
+          setError(browserErr?.message || "Biometric cancelled");
+        }
         return;
       }
       const gps = await captureGps();
@@ -694,6 +717,7 @@ function LoginScreen() {
             loading={loading}
             onSign={completeJsaSign}
             signTrace={signTrace}
+            signReady={!!readySignSession}
           />
         )}
 
