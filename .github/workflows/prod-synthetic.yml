@@ -1,11 +1,11 @@
 # ─── Nightly synthetic against PRODUCTION (v28.322, E2E arc) ─────────────────
-# The night watchman: read-only checks of the live app, daily. Catches what
+# Read-only checks of the live app, ON CALL. Catches what
 # only shows in the real environment — a bad deploy, dropped cache headers,
 # a dead endpoint — before a crew does. No credentials, no mutations.
 name: Prod Synthetic
+# Manual-trigger ONLY (Reggie 2026-07-14: "I'll call for a run when needed.
+# It's not time for that yet."). Run: gh workflow run prod-synthetic.yml
 on:
-  schedule:
-    - cron: "30 11 * * *" # 05:30 America/Chicago
   workflow_dispatch:
 
 jobs:

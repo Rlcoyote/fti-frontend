@@ -124,6 +124,13 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
         return;
       }
       const json = await r.json();
+      // v28.323 — shape guard: a 200 with a non-shape body (proxy hiccup,
+      // future API drift) previously crashed the render (data.crew.find on
+      // undefined) and white-screened the app. Bad shape = error state.
+      if (!json || !Array.isArray(json.crew)) {
+        setError("Could not load signers (unexpected response)");
+        return;
+      }
       setData(json);
       if (json.all_signed && onAllSigned) onAllSigned();
     } catch {

@@ -85,6 +85,37 @@ export const SIGN_LANDING = {
   },
 };
 
+export const REQUIRED_SIGNERS = {
+  jsa_id: TEST_JSA_ROW.id,
+  ticket_id: 9001,
+  ticket_number: 1,
+  job_number: 300999,
+  ticket_type: "Rig Up",
+  ticket_date: "2026-07-14",
+  customer_name: "E2E OIL CO",
+  jsa_completed_at: null,
+  ticket_is_closed: false,
+  crew_count: 1,
+  all_signed: false,
+  crew: [
+    {
+      user_id: "e2e00000-0000-0000-0000-000000000001",
+      is_lead: true,
+      user_name: "E2E Tester",
+      user_email: "e2e@flotest.com",
+      user_phone: null,
+      user_role: "admin",
+      user_job_title: "Tester",
+      signature_id: null,
+      sign_method: null,
+      signed_at: null,
+      witnessed_by_user_id: null,
+      override_reason_code: null,
+      witness_name: null,
+    },
+  ],
+};
+
 // Baseline GET map — every endpoint the app boot + dashboard touches.
 const BASE_GETS = {
   "/api/settings": {},
