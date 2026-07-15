@@ -30,6 +30,15 @@ jobs:
           set -e
           curl -fsS https://fti-app-production.up.railway.app/api/health | grep -q '"ok"'
           curl -fsS https://fti-app-production.up.railway.app/api/version | grep -q '"commit"'
+      - name: Session-less sign REACHES the route (middleware-order fence, v28.327)
+        run: |
+          set -e
+          BODY=$(curl -fsS -X POST https://fti-app-production.up.railway.app/api/jsas/00000000-0000-0000-0000-000000000000/sign \
+            -H "Content-Type: application/json" \
+            -d '{"method":"biometric","webauthn_response":{},"pending_token":"synthetic"}' || true)
+          echo "$BODY"
+          echo "$BODY" | grep -q "Invalid sign session"
+          ! echo "$BODY" | grep -q "Authentication required"
       - name: Sign-link landing rejects garbage with a proper error (not silence)
         run: |
           set -e
