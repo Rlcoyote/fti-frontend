@@ -144,6 +144,34 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
     fetchSigners();
   }, [fetchSigners]);
 
+  // v28.330 — batch nudge: one tap sends a fresh link to every unsigned
+  // crew member except yourself (you sign in place). Sequential to respect
+  // the BE rate limiter; reports the count when done.
+  const [sendingAll, setSendingAll] = useState(false);
+  const sendAllLinks = async () => {
+    const targets = (data?.crew || []).filter((c) => !c.signature_id && c.user_id !== currentUser?.id);
+    if (targets.length === 0) return;
+    setSendingAll(true);
+    setError("");
+    let sent = 0;
+    for (const t of targets) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await fetch(`${API_URL}/jsas/${jsaId}/send-sign-link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: t.user_id }),
+        });
+        if (r.ok) sent++;
+      } catch {
+        /* count only successes; the summary line reports the total */
+      }
+    }
+    setSendingAll(false);
+    setLinkSentMsg(`Sign links sent to ${sent} of ${targets.length} unsigned crew.`);
+    setTimeout(() => setLinkSentMsg(""), 6000);
+  };
+
   const sendLink = async (userId) => {
     setBusyUserId(userId);
     setError("");
@@ -192,10 +220,16 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
   const userIsLead = !!(userOnCrew && userOnCrew.is_lead);
   const role = currentUser?.role || "";
   // v28.139 (permissions audit Phase 5.5) — intentionally NOT a can() matrix
-  // key: JSA sign-link / override authority is "lead of THIS ticket OR
-  // manager+", per-record context a flat key cannot express. The backend
+  // key: per-record context a flat key cannot express. The backend
   // (jsas.signing.js) is the enforced gate. Documented exception — keep.
-  const canSendLinkOrOverride = userIsLead || ["owner", "admin", "manager"].includes(role);
+  // v28.330 — SPLIT: sending a link is a NUDGE any crew member may make
+  // (the link only signs its named target's slot); the PIN-witness and
+  // OVERRIDE paths stay lead/manager+ (lead biometric anchor / perjury
+  // record). The 7/15 exercise: the JSA creator (field, not ticket lead)
+  // saw NO buttons and nothing said why.
+  const isManagerPlus = ["owner", "admin", "manager"].includes(role);
+  const canSendLink = !!userOnCrew || isManagerPlus;
+  const canWitnessOrOverride = userIsLead || isManagerPlus;
   const ticketIsClosed = data.ticket_is_closed;
   const jsaCompleted = !!data.jsa_completed_at;
 
@@ -213,6 +247,32 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
         <div style={{ ...labelStyle, marginBottom: 10 }}>
           FTI CREW BIOMETRIC SIGNATURES ({data.crew.filter((c) => c.signature_id).length}/{data.crew_count})
         </div>
+
+        {/* v28.330 — one tap texts every unsigned crew member their link */}
+        {canSendLink && !jsaCompleted && !ticketIsClosed && data.crew.some((c) => !c.signature_id && c.user_id !== currentUser?.id) && (
+          <button
+            onClick={sendAllLinks}
+            disabled={sendingAll}
+            style={{
+              background: C.blue,
+              border: "none",
+              color: C.white,
+              fontSize: 11,
+              fontWeight: 800,
+              padding: "7px 14px",
+              borderRadius: 4,
+              cursor: sendingAll ? "default" : "pointer",
+              letterSpacing: "0.06em",
+              marginBottom: 10,
+              opacity: sendingAll ? 0.6 : 1,
+            }}
+          >
+            {sendingAll ? "SENDING LINKS..." : "SEND SIGN LINK TO ALL UNSIGNED"}
+          </button>
+        )}
+        {!canSendLink && (
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 10 }}>Only crew members on this ticket (or managers) can send sign links.</div>
+        )}
 
         {data.crew.length === 0 && (
           <div
@@ -291,7 +351,26 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                           SIGN WITH BIOMETRIC
                         </button>
                       )}
-                      {canSendLinkOrOverride && !canSelfSign && (
+                      {canSendLink && !canSelfSign && (
+                        <button
+                          onClick={() => sendLink(c.user_id)}
+                          disabled={busyUserId === c.user_id}
+                          style={{
+                            background: "transparent",
+                            border: `1px solid ${C.blue}`,
+                            color: C.blue,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "4px 10px",
+                            borderRadius: 3,
+                            cursor: busyUserId === c.user_id ? "default" : "pointer",
+                            letterSpacing: "0.06em",
+                          }}
+                        >
+                          {busyUserId === c.user_id ? "SENDING..." : "SEND LINK"}
+                        </button>
+                      )}
+                      {canWitnessOrOverride && !canSelfSign && (
                         <>
                           <button
                             onClick={() => setPinWitnessTarget(c)}
@@ -309,23 +388,6 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                             title="Crew member signs by entering their PIN on this device, with a photo + your biometric witness."
                           >
                             SIGN W/ PIN
-                          </button>
-                          <button
-                            onClick={() => sendLink(c.user_id)}
-                            disabled={busyUserId === c.user_id}
-                            style={{
-                              background: "transparent",
-                              border: `1px solid ${C.blue}`,
-                              color: C.blue,
-                              fontSize: 10,
-                              fontWeight: 700,
-                              padding: "4px 10px",
-                              borderRadius: 3,
-                              cursor: busyUserId === c.user_id ? "default" : "pointer",
-                              letterSpacing: "0.06em",
-                            }}
-                          >
-                            {busyUserId === c.user_id ? "SENDING..." : "SEND LINK"}
                           </button>
                           <button
                             onClick={() => setOverrideTarget(c)}
