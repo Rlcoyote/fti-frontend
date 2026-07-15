@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { C } from "./config.js";
-import { todoVisible } from "./utils.js";
 import { Btn, SegmentedBtns, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
 import { TodoForm, TodoRow } from "./TodoComponents.jsx";
 import { makeTodoActions } from "./todoActions.js";
@@ -15,7 +14,8 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
 
   const { createTodo, updateTodo, toggleTodo, deleteTodo } = makeTodoActions({ todos, setTodos, userIdByName, onError: setNotice });
 
-  const myTodos = todos.filter(todoVisible);
+  // v28.325 — shared board: every user sees every action item.
+  const myTodos = todos;
 
   const filtered = myTodos.filter((t) => {
     if (filter === "active" && t.completed) return false;
@@ -145,7 +145,7 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
 
   const { createTodo, updateTodo, toggleTodo, deleteTodo } = makeTodoActions({ todos, setTodos, userIdByName, onError: setNotice });
 
-  const jobTodos = todos.filter((t) => t.jobId === jobId && todoVisible(t));
+  const jobTodos = todos.filter((t) => t.jobId === jobId);
   const visible = jobTodos.filter((t) => showCompleted || !t.completed);
 
   return (

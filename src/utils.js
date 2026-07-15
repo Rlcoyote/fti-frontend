@@ -1,4 +1,4 @@
-import { API_URL, getCurrentUser } from "./config.js";
+import { API_URL } from "./config.js";
 
 export const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD local time
 
@@ -169,7 +169,9 @@ export const shortName = (name) => {
 
 export const isOverdue = (t) => !t.completed && t.dueDate && t.dueDate < today();
 
-export const todoVisible = (t) => t.createdBy === getCurrentUser() || t.assignedTo === getCurrentUser();
+// v28.325 — todoVisible REMOVED (was creator/assignee-only). Reggie 2026-07-14:
+// "every user must be able to input a to do, and everyone else see it."
+// Action Items are a shared board, not a personal list.
 
 export const calcLineTotal = (li) => li.rate * li.qty * (li.days || 1);
 

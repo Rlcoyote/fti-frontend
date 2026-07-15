@@ -4,7 +4,6 @@ import { C } from "./config.js";
 import { APP_VERSION } from "./version.js";
 import { useApp } from "./AppContext.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
-import { todoVisible } from "./utils.js";
 import { Btn, ConfirmModal } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
 import DashboardHome from "./DashboardHome.jsx";
@@ -176,7 +175,8 @@ function FTIDashboard() {
   });
 
   // ── Derived state for dashboard list rendering + nav badges ──
-  const myActiveTodos = todos.filter((t) => todoVisible(t) && !t.completed);
+  // v28.325 — shared board: badges count ALL active action items.
+  const myActiveTodos = todos.filter((t) => !t.completed);
 
   // v28.188 — Final Review badge. A ticket lands on the Final Review page once
   // a lead approves it (status='approved'); it leaves once an owner sends it
@@ -198,7 +198,7 @@ function FTIDashboard() {
   const pendingByJob = useMemo(() => {
     const map = {};
     todos
-      .filter((t) => t.jobId && !t.completed && todoVisible(t))
+      .filter((t) => t.jobId && !t.completed)
       .forEach((t) => {
         map[t.jobId] = (map[t.jobId] || 0) + 1;
       });
