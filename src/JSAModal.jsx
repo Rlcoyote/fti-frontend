@@ -321,6 +321,7 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targe
 
   return (
     <div
+      className="fti-modal-selectable"
       style={
         isMobile
           ? { position: "fixed", inset: 0, background: C.cardBg, zIndex: Z_INDEX.modal, overflowY: "auto", WebkitOverflowScrolling: "touch" }

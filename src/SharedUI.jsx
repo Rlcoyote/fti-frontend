@@ -466,6 +466,7 @@ export function ModalWrap({ title, onClose, children, width = 440, accent = C.re
       onClick={asSheet ? undefined : onClose}
     >
       <div
+        className="fti-modal-selectable"
         style={
           asSheet
             ? { background: C.cardBg, borderTop: `3px solid ${accent}`, padding: SP.card, minHeight: "100%" }

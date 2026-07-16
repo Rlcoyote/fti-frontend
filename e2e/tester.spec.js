@@ -24,6 +24,15 @@ test("CREATE TICKET on a Tester posts the ticket", async ({ page }) => {
   await page.getByText("300999", { exact: true }).first().click();
   await page.getByRole("button", { name: "+ ADD TICKET" }).click();
   await page.getByRole("button", { name: "TESTER", exact: true }).click();
+  // v28.333 - selection containment: with the modal open, the page behind
+  // leaves the selection surface (Ctrl+A copies only the modal).
+  const sel = await page.evaluate(() => ({
+    body: getComputedStyle(document.body).userSelect,
+    modal: getComputedStyle(document.querySelector(".fti-modal-selectable")).userSelect,
+  }));
+  expect(sel.body).toBe("none");
+  expect(sel.modal).toBe("text");
+
   await page.getByRole("button", { name: "CREATE TICKET" }).click();
 
   await expect.poll(() => posts.length, { timeout: 8000 }).toBeGreaterThan(0);

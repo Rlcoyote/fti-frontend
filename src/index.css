@@ -89,3 +89,18 @@ body[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator:ho
     transition: none;
   }
 }
+
+/* ─── v28.333 — modal selection containment ──────────────────────────────────
+   While any modal is open (useBodyScrollLock adds .fti-modal-open), the page
+   behind it is excluded from text selection so Ctrl+A / long-press-copy grabs
+   ONLY the modal. ModalWrap and the four bespoke flagship cards carry
+   .fti-modal-selectable to re-enable selection inside themselves. */
+body.fti-modal-open {
+  user-select: none;
+  -webkit-user-select: none;
+}
+body.fti-modal-open .fti-modal-selectable,
+body.fti-modal-open .fti-modal-selectable * {
+  user-select: text;
+  -webkit-user-select: text;
+}

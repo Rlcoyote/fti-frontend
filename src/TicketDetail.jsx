@@ -378,6 +378,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   return (
     <div
+      className="fti-modal-selectable"
       style={
         isPageMode
           ? { background: tcfg.bg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100vh" }

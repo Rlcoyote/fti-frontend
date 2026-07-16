@@ -21,11 +21,19 @@ export default function useBodyScrollLock(active = true) {
     if (lockCount === 0) {
       savedOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
+      // v28.333 - while any modal is open, the page BEHIND it leaves the
+      // selection surface: Ctrl+A / long-press-select grabs only the modal
+      // (.fti-modal-selectable re-enables inside). Reggie 7/16: select-all
+      // in a ticket copied the whole dashboard behind it.
+      document.body.classList.add("fti-modal-open");
     }
     lockCount += 1;
     return () => {
       lockCount -= 1;
-      if (lockCount === 0) document.body.style.overflow = savedOverflow;
+      if (lockCount === 0) {
+        document.body.style.overflow = savedOverflow;
+        document.body.classList.remove("fti-modal-open");
+      }
     };
   }, [active]);
 }

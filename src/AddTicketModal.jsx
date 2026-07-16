@@ -469,6 +469,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
 
   return (
     <div
+      className="fti-modal-selectable"
       style={
         isMobile
           ? {
