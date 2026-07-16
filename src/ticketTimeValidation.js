@@ -75,7 +75,12 @@ export function validateTicketTimes({ lvYard, arrivalTime, jobStartTime, jobEndT
       const b2 = toMinutes(bv);
       if (a2 != null && b2 != null && b2 <= a2) legErrors.push(`${bk} (${bv}) must be after ${ak} (${av}) — travel takes time`);
     }
-    return legErrors;
+    // v28.331 - return the {ok, errors} contract this function declares. The
+    // v28.276 mirror copied the BE bare-array return, so every log-family
+    // caller destructured {ok, errors} into undefined: !ok always truthy,
+    // errors.map crashed, and CREATE TICKET died silently on every Tester
+    // and Pumper save since 7/05. Reproduced + fenced by e2e/tester.spec.js.
+    return { ok: legErrors.length === 0, errors: legErrors };
   }
   const errors = [];
   const stamps = [
