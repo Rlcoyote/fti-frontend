@@ -30,4 +30,8 @@ test("CREATE TICKET on a Tester posts the ticket", async ({ page }) => {
   expect(errs, "no page errors during save").toEqual([]);
   const sent = JSON.parse(posts[0]);
   expect(sent.type).toBe("Tester");
+
+  // v28.332 - the create OPENS the ticket so the week/day grid is right
+  // there (no save-hunt-reopen). The detail surface must appear.
+  await expect(page.getByText(/WEEK OF|TOTAL TEST HOURS/i).first()).toBeVisible({ timeout: 8000 });
 });

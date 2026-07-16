@@ -29,6 +29,7 @@ import { useApp } from "./AppContext.jsx";
 import useIsMobile from "./useIsMobile.js";
 import useJobTicketsView from "./useJobTicketsView.js";
 import JobTicketsHeader from "./JobTicketsHeader.jsx";
+import { isLogType } from "./ticketFamilies.js";
 import useTicketEmailRequest from "./useTicketEmailRequest.js";
 import EmailSignatureRequestModal from "./EmailSignatureRequestModal.jsx";
 import JobTicketsDeleteConfirm from "./JobTicketsDeleteConfirm.jsx";
@@ -140,7 +141,18 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
           jobId={jobId}
           job={job}
           initialType={initialType}
-          onSave={handleAdd}
+          onSave={async (ticketData, opts) => {
+            const saved = await handleAdd(ticketData, opts);
+            // v28.332 — a log-family create opens the ticket IMMEDIATELY: the
+            // day/hours grid lives on the saved ticket (day rows need a real
+            // ticket id), and the old flow made crews save, hunt the row,
+            // and reopen before they could enter their week ("this feature
+            // needs to be entered upon opening the ticket" — Reggie 7/16).
+            if (saved?.id && !opts?.keepOpen && isLogType(saved.type)) {
+              openTicket(saved, "edit");
+            }
+            return saved;
+          }}
           onClose={closeAdd}
           jobWells={(job?.wells || []).map((w) => w.well_name || w)}
         />
