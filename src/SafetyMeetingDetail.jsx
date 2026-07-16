@@ -5,6 +5,8 @@ import { useApp } from "./AppContext.jsx";
 import { Btn, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { AttendanceRow, MeetingStatusChip, fmtMeetingDate, fmtMeetingTime } from "./SafetyMeetingShared.jsx";
 import SafetyMeetingSignModal from "./SafetyMeetingSignModal.jsx";
+import SafetyMeetingPrintView from "./SafetyMeetingPrintView.jsx";
+import { API_URL } from "./config.js";
 
 // ─── SafetyMeetingDetail (v28.335) ───────────────────────────────────────────
 // One meeting: header + lock state, topics (random picker / bank / free-form),
@@ -158,6 +160,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
   const [err, setErr] = useState(null);
   const [bank, setBank] = useState([]);
   const [modal, setModal] = useState(null); // sign | override | edit | delete
+  const [printMode, setPrintMode] = useState(false); // v28.337 — EXPORT PDF view
   const [actionErr, setActionErr] = useState("");
 
   // topic add state
@@ -291,6 +294,8 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
     </div>
   );
 
+  if (printMode) return <SafetyMeetingPrintView meeting={meeting} onBack={() => setPrintMode(false)} />;
+
   return (
     <div>
       {/* HEADER */}
@@ -318,6 +323,9 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
         )}
         <Btn variant="ghost" small onClick={() => setModal("edit")}>
           EDIT MEETING
+        </Btn>
+        <Btn variant="ghost" small onClick={() => setPrintMode(true)}>
+          EXPORT PDF
         </Btn>
         {isOpen && canClose && (
           <Btn variant="ghost" small onClick={closeMeeting}>
@@ -552,6 +560,99 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
           <Btn small onClick={addEquipmentNeed} disabled={!needTitle.trim() || !needAssignee}>
             ADD
           </Btn>
+        </div>
+      </Section>
+
+      {/* ATTACHMENTS — scan of the paper sheet, handouts, whiteboard photos.
+          Multipart upload (10 MB cap + mime allowlist enforced server-side);
+          VIEW fetches the binary through the authed fetch wrapper and opens a
+          blob URL. Delete is admin-only (§8b.4 — a scan is a source record). */}
+      <Section title={`ATTACHMENTS (${meeting.attachments.length})`}>
+        {meeting.attachments.length === 0 && <div style={emptyNote}>No files attached. Add the paper sign-in sheet, handouts, or photos.</div>}
+        {meeting.attachments.map((a) => (
+          <div
+            key={a.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: SP.md,
+              padding: `${SP.md}px ${SP.xl}px`,
+              borderTop: `1px solid ${C.border}33`,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: F.body, color: C.text, flex: "1 1 180px" }}>
+              {a.filename} <span style={{ color: C.muted, fontSize: F.label }}>({Math.max(1, Math.round((a.bytes || 0) / 1024))} KB)</span>
+            </div>
+            <div style={{ display: "flex", gap: SP.md, alignItems: "center" }}>
+              <Btn
+                small
+                variant="ghost"
+                onClick={async () => {
+                  setActionErr("");
+                  try {
+                    const r = await fetch(`${API_URL}/safety-meetings/${meeting.id}/attachments/${a.id}`);
+                    if (!r.ok) throw new Error("Could not load the file");
+                    const blob = await r.blob();
+                    window.open(URL.createObjectURL(blob), "_blank");
+                  } catch (e) {
+                    setActionErr(e.message);
+                  }
+                }}
+              >
+                VIEW
+              </Btn>
+              {can("safety_meeting_delete") && (
+                <button
+                  onClick={() => act(async () => api.del(`/safety-meetings/${meeting.id}/attachments/${a.id}`))()}
+                  title="Delete attachment (admin — audit-logged)"
+                  style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: F.md }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        <div style={{ padding: `${SP.lg}px ${SP.xl}px`, borderTop: `1px solid ${C.border}` }}>
+          <label
+            style={{
+              display: "inline-block",
+              border: `1px dashed ${C.border}`,
+              borderRadius: R.xl,
+              padding: `${SP.md}px ${SP.xxl}px`,
+              fontSize: F.body,
+              fontWeight: 700,
+              color: C.muted,
+              cursor: "pointer",
+            }}
+          >
+            + ADD FILE (JPEG / PNG / WEBP / PDF, 10 MB MAX)
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              style={{ display: "none" }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (!file) return;
+                setActionErr("");
+                if (file.size > 10 * 1024 * 1024) {
+                  setActionErr("That file is over the 10 MB limit");
+                  return;
+                }
+                try {
+                  const fd = new FormData();
+                  fd.append("file", file);
+                  await api.post(`/safety-meetings/${meeting.id}/attachments`, fd);
+                  refresh();
+                } catch (e2) {
+                  setActionErr(e2.message);
+                }
+              }}
+            />
+          </label>
         </div>
       </Section>
 
