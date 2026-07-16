@@ -1,0 +1,117 @@
+import { C, F, SP, R } from "./config.js";
+
+// ─── SafetyMeetingShared (v28.335) ───────────────────────────────────────────
+// THE one home (Anti-Pattern Entry 7) for how safety-meeting attendance and
+// meeting status render. The attendance card, the meeting list chips, and the
+// slice-6 PDF export ALL consume these — the visual rule for "what kind of
+// attestation is this row" is never implemented twice.
+//
+// Doctrine: the four methods are structurally distinct and must LOOK distinct
+// (spec §2.11 — typed rows are never presented as biometric attestation).
+
+export const METHOD_META = {
+  biometric: { label: "BIOMETRIC", color: () => C.green, note: () => null },
+  manual_override: { label: "MANAGER OVERRIDE", color: () => C.orange, note: (row) => `by ${row.added_by_name || "manager"} — ${row.override_reason || ""}` },
+  recorded_from_paper: { label: "PAPER RECORD", color: () => C.muted, note: (row) => `entered by ${row.added_by_name || "office"}` },
+  external: { label: "VISITOR", color: () => C.blue, note: (row) => row.external_company || null },
+};
+
+// TZ-proof date formatter for DATE columns. The backend serializes DATE as
+// UTC-midnight ISO ("2026-07-14T00:00:00.000Z"); localizing that in Chicago
+// renders the PREVIOUS day. Slice the date part and format from parts.
+export function fmtMeetingDate(d) {
+  if (!d) return "";
+  const iso = String(d).slice(0, 10);
+  const [y, m, day] = iso.split("-");
+  if (!y || !m || !day) return iso;
+  return `${m}/${day}/${y.slice(2)}`;
+}
+
+// "10:00:00" → "10:00 AM"
+export function fmtMeetingTime(t) {
+  if (!t) return "";
+  const [hh, mm] = String(t).split(":");
+  const h = parseInt(hh, 10);
+  if (!Number.isFinite(h)) return t;
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${mm} ${ampm}`;
+}
+
+export function MeetingStatusChip({ meeting }) {
+  let label, color;
+  if (meeting.is_historical) {
+    label = "HISTORICAL — PAPER RECORD";
+    color = C.muted;
+  } else if (meeting.is_backfill) {
+    label = "BACKFILL — PAPER RECORD";
+    color = C.muted;
+  } else if (meeting.closed_at) {
+    label = meeting.close_method === "auto" ? "CLOSED (AUTOMATIC)" : "CLOSED";
+    color = C.red;
+  } else {
+    label = "OPEN FOR SIGN-IN";
+    color = C.green;
+  }
+  return (
+    <span
+      style={{
+        fontSize: F.badge,
+        fontWeight: 800,
+        color,
+        border: `1px solid ${color}66`,
+        background: `${color}18`,
+        borderRadius: R.xl,
+        padding: "3px 8px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// One attendance row — name, method chip, note, time. Used by the meeting
+// detail card today and the PDF export in a later slice.
+export function AttendanceRow({ row }) {
+  const meta = METHOD_META[row.method] || { label: row.method, color: () => C.muted, note: () => null };
+  const color = meta.color();
+  const note = meta.note(row);
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: SP.md,
+        padding: `${SP.md}px ${SP.xl}px`,
+        borderTop: `1px solid ${C.border}33`,
+        flexWrap: "wrap",
+      }}
+    >
+      <div style={{ flex: "1 1 180px" }}>
+        <div style={{ fontWeight: 700, fontSize: F.md, color: C.text }}>{row.user_name || row.external_name}</div>
+        {note && <div style={{ fontSize: F.label, color: C.muted, marginTop: 1 }}>{note}</div>}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: SP.md }}>
+        <span
+          style={{
+            fontSize: F.badge,
+            fontWeight: 800,
+            color,
+            border: `1px solid ${color}66`,
+            background: `${color}18`,
+            borderRadius: R.xl,
+            padding: "2px 7px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {meta.label}
+        </span>
+        <span style={{ fontSize: F.label, color: C.muted, whiteSpace: "nowrap" }}>
+          {row.signed_at ? new Date(row.signed_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}
+        </span>
+      </div>
+    </div>
+  );
+}

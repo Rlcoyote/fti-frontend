@@ -27,6 +27,7 @@ const NAV = [
   ["My Hours", "myHours", "/my-hours"],
   ["Crew", "crew", "/crew"],
   ["Safety", "safety", "/safety"],
+  ["Safety Meetings", "safetyMeetings", "/safety-meetings"],
   ["Training", "training", "/training"],
   ["Final Review", "finalReview", "/final-review"],
   ["Reports", "reports", "/reports"],

@@ -35,6 +35,7 @@ import DriverInspectionForm from "./DriverInspectionForm.jsx";
 import InspectionsListPage from "./InspectionsListPage.jsx";
 import RepairRequestForm from "./RepairRequestForm.jsx";
 import SafetyPage from "./SafetyPage.jsx";
+import SafetyMeetingsPage from "./SafetyMeetingsPage.jsx";
 import ClockPage from "./ClockPage.jsx";
 import TrainingPage from "./TrainingPage.jsx";
 import { pageFromPath } from "./navMap.js";
@@ -254,6 +255,7 @@ function FTIDashboard() {
     "Inventory",
     "Crew",
     "Safety",
+    "Safety Meetings",
     "Training",
     "Final Review",
     "Reports",
@@ -382,6 +384,8 @@ function FTIDashboard() {
         {can("view_jobs") && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
+        {/* v28.335 — Safety Meetings: open to everyone (spec §8b.7). */}
+        <Route path="/safety-meetings" element={<SafetyMeetingsPage />} />
         <Route path="/clock" element={<ClockPage />} />
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/my-hours" element={<MyHoursPage />} />

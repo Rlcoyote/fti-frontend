@@ -56,6 +56,7 @@ const NAV_ICONS = {
   Clock: "🕐",
   Crew: "👷",
   Safety: "🛡",
+  "Safety Meetings": "🦺",
   Training: "🎓",
   "Final Review": "✅",
   Reports: "📊",
