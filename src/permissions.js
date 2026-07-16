@@ -76,6 +76,12 @@ export const PERMISSION_CATEGORIES = [
   { key: "approve_time_corrections", label: "Approve Time Corrections", group: "Labor & Time" },
   // v28.251 — Training Tests addition:
   { key: "view_all_training", label: "View All Training Results", group: "Training" },
+  // v28.334 — Safety Meeting additions (spec §8b.5, ratified 2026-07-16).
+  // Create + view are deliberately keyless — open to every authenticated user.
+  { key: "safety_meeting_close", label: "Close/Reopen Safety Meetings", group: "Safety Meetings" },
+  { key: "safety_meeting_override_signin", label: "Override Sign-In With Reason", group: "Safety Meetings" },
+  { key: "safety_meeting_delete", label: "Delete Safety Meetings", group: "Safety Meetings" },
+  { key: "manage_safety_topics", label: "Manage Safety Topic Bank", group: "Safety Meetings" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -105,6 +111,10 @@ export const DEFAULT_PERMS = {
         "perform_repairs",
         "red_tag_vehicle",
         "manage_vehicles",
+        // v28.334: manager gets safety_meeting_close + override_signin
+        // (ratified mgr/admin/owner) but NOT delete (admin) or topics (office).
+        "safety_meeting_delete",
+        "manage_safety_topics",
       ].includes(p.key),
     ]),
   ),
@@ -134,6 +144,10 @@ export const DEFAULT_PERMS = {
     red_tag_vehicle: false,
     manage_vehicles: false,
     view_all_training: false,
+    safety_meeting_close: false,
+    safety_meeting_override_signin: false,
+    safety_meeting_delete: false,
+    manage_safety_topics: false,
   },
   salesman: {
     view_jobs: true,
@@ -161,6 +175,10 @@ export const DEFAULT_PERMS = {
     red_tag_vehicle: false,
     manage_vehicles: false,
     view_all_training: false,
+    safety_meeting_close: false,
+    safety_meeting_override_signin: false,
+    safety_meeting_delete: false,
+    manage_safety_topics: false,
   },
   field: {
     view_jobs: true,
@@ -188,6 +206,10 @@ export const DEFAULT_PERMS = {
     red_tag_vehicle: false,
     manage_vehicles: false,
     view_all_training: false,
+    safety_meeting_close: false,
+    safety_meeting_override_signin: false,
+    safety_meeting_delete: false,
+    manage_safety_topics: false,
   },
   // hse — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Cross-existing: view_jobs + view_reports + view_activity_log ON, other
@@ -218,6 +240,10 @@ export const DEFAULT_PERMS = {
     red_tag_vehicle: true,
     manage_vehicles: true,
     view_all_training: true,
+    safety_meeting_close: false,
+    safety_meeting_override_signin: false,
+    safety_meeting_delete: false,
+    manage_safety_topics: false,
   },
   // mechanic — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Tight boundary: every one of the 17 existing keys OFF. Only DVIR-side:
@@ -248,6 +274,10 @@ export const DEFAULT_PERMS = {
     red_tag_vehicle: true,
     manage_vehicles: true,
     view_all_training: false,
+    safety_meeting_close: false,
+    safety_meeting_override_signin: false,
+    safety_meeting_delete: false,
+    manage_safety_topics: false,
   },
   // dispatch — added v28.177. Operations / fleet dispatcher role. Defaults to
   // GPS-relevant permissions ON; DVIR keys OFF (dispatch isn't the inspection /
@@ -278,6 +308,10 @@ export const DEFAULT_PERMS = {
     red_tag_vehicle: false,
     manage_vehicles: false,
     view_all_training: false,
+    safety_meeting_close: false,
+    safety_meeting_override_signin: false,
+    safety_meeting_delete: false,
+    manage_safety_topics: false,
   },
 };
 
