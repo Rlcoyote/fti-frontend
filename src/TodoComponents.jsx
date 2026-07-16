@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
-import { Btn, PriorityBadge, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, PriorityBadge, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 
 function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [], initial = null, onReactivate = null }) {
   // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
@@ -11,6 +11,9 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [],
     jobId: initial ? initial.jobId : defaultJobId,
     assignedTo: initial?.assignedTo || getCurrentUser(),
     priority: initial?.priority || "normal",
+    // v28.336 — REQUIRED = a must-do future action; TO-DO = convenience/supply
+    // item (paper towels). Default TO-DO (ratified 2026-07-16).
+    category: initial?.category || "todo",
     dueDate: (initial?.dueDate || "").slice(0, 10), // date input needs YYYY-MM-DD
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -56,7 +59,14 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [],
           placeholder="Optional details..."
         />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 12 }}>
+        <div>
+          <label style={labelStyle}>CATEGORY</label>
+          <select style={inputStyle} value={form.category} onChange={(e) => set("category", e.target.value)}>
+            <option value="todo">To-Do</option>
+            <option value="required">Required</option>
+          </select>
+        </div>
         <div>
           <label style={labelStyle}>LINK TO WORK ORDER</label>
           <select style={inputStyle} value={form.jobId ?? ""} onChange={(e) => set("jobId", e.target.value || null)}>
@@ -159,6 +169,22 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
           >
             {todo.title}
           </span>
+          {/* v28.336 — REQUIRED items read as requirements; TO-DO stays quiet */}
+          {todo.category === "required" && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: C.red,
+                border: `1px solid ${C.red}55`,
+                padding: "2px 7px",
+                borderRadius: 3,
+                letterSpacing: "0.06em",
+              }}
+            >
+              REQUIRED
+            </span>
+          )}
           <PriorityBadge priority={todo.priority} />
           {overdue && (
             <span
@@ -206,6 +232,10 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
             </span>
           )}
         </div>
+        {/* v28.336 — the closure record rides the row (spec §2.12) */}
+        {todo.completed && todo.completionNotes && (
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 3, fontStyle: "italic" }}>Closed: {todo.completionNotes}</div>
+        )}
       </div>
       {/* v28.284 — completed rows carry the way back, spelled out */}
       {todo.completed && (
@@ -261,4 +291,43 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
   );
 }
 
-export { TodoForm, TodoRow };
+// ─── COMPLETION NOTES MODAL ──────────────────────────────────────────────────
+// v28.336 — DONE requires completion notes, board-wide (Safety Meeting spec
+// §2.12 — Reggie: "This gives closure"). The server enforces it; this modal is
+// how the notes get written. Used by TodoPage and JobTodoTab.
+function CompletionNotesModal({ todo, onComplete, onCancel }) {
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+  return (
+    <ModalWrap title="Close Out This Task" onClose={onCancel} width={440}>
+      <div style={{ fontSize: 13, color: C.text, marginBottom: 12, lineHeight: 1.5 }}>
+        Marking <strong>{todo.title}</strong> DONE. What closed it out?
+      </div>
+      <label style={labelStyle}>COMPLETION NOTES *</label>
+      <textarea
+        autoFocus
+        style={{ ...inputStyle, resize: "vertical", minHeight: 72, marginBottom: 14 }}
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        placeholder="e.g. Ordered from Odessa Supply, delivered to the Wickett yard 7/16"
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn
+          onClick={async () => {
+            if (!notes.trim()) return;
+            setBusy(true);
+            await onComplete(notes.trim());
+          }}
+          disabled={!notes.trim() || busy}
+        >
+          {busy ? "SAVING…" : "MARK DONE"}
+        </Btn>
+        <Btn variant="ghost" onClick={onCancel}>
+          CANCEL
+        </Btn>
+      </div>
+    </ModalWrap>
+  );
+}
+
+export { TodoForm, TodoRow, CompletionNotesModal };

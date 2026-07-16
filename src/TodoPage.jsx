@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C } from "./config.js";
 import { Btn, SegmentedBtns, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
-import { TodoForm, TodoRow } from "./TodoComponents.jsx";
+import { TodoForm, TodoRow, CompletionNotesModal } from "./TodoComponents.jsx";
 import { makeTodoActions } from "./todoActions.js";
 
 function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByName }) {
@@ -11,8 +11,15 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
   const [notice, setNotice] = useState(null);
   const [filter, setFilter] = useState("active");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [completing, setCompleting] = useState(null); // v28.336 — the todo awaiting completion notes
 
-  const { createTodo, updateTodo, toggleTodo, deleteTodo } = makeTodoActions({ todos, setTodos, userIdByName, onError: setNotice });
+  const { createTodo, updateTodo, toggleTodo, completeTodo, deleteTodo } = makeTodoActions({
+    todos,
+    setTodos,
+    userIdByName,
+    onError: setNotice,
+    onCompleteRequest: setCompleting,
+  });
 
   // v28.325 — shared board: every user sees every action item.
   const myTodos = todos;
@@ -130,6 +137,16 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
           onCancel={() => setConfirmDelete(null)}
         />
       )}
+      {completing && (
+        <CompletionNotesModal
+          todo={completing}
+          onComplete={async (notes) => {
+            await completeTodo(completing.id, notes);
+            setCompleting(null);
+          }}
+          onCancel={() => setCompleting(null)}
+        />
+      )}
       {notice && <NoticeModal title="Task error" message={notice} variant="error" onClose={() => setNotice(null)} />}
     </div>
   );
@@ -142,8 +159,15 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [notice, setNotice] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [completing, setCompleting] = useState(null); // v28.336 — the todo awaiting completion notes
 
-  const { createTodo, updateTodo, toggleTodo, deleteTodo } = makeTodoActions({ todos, setTodos, userIdByName, onError: setNotice });
+  const { createTodo, updateTodo, toggleTodo, completeTodo, deleteTodo } = makeTodoActions({
+    todos,
+    setTodos,
+    userIdByName,
+    onError: setNotice,
+    onCompleteRequest: setCompleting,
+  });
 
   const jobTodos = todos.filter((t) => t.jobId === jobId);
   const visible = jobTodos.filter((t) => showCompleted || !t.completed);
@@ -242,6 +266,16 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
             setConfirmDelete(null);
           }}
           onCancel={() => setConfirmDelete(null)}
+        />
+      )}
+      {completing && (
+        <CompletionNotesModal
+          todo={completing}
+          onComplete={async (notes) => {
+            await completeTodo(completing.id, notes);
+            setCompleting(null);
+          }}
+          onCancel={() => setCompleting(null)}
         />
       )}
       {notice && <NoticeModal title="Task error" message={notice} variant="error" onClose={() => setNotice(null)} />}

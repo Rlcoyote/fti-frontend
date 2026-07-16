@@ -4,7 +4,10 @@ import { api } from "./api.js";
 // v28.282 — one home for todo CRUD. TodoPage and JobTodoTab carried identical
 // copies of create/toggle before; edit + delete land here ONCE instead of
 // twice. `onError` surfaces failures (NoticeModal) — no silent fails.
-export function makeTodoActions({ todos, setTodos, userIdByName, onError }) {
+// v28.336 — completion requires notes (Safety Meeting spec §2.12, enforced
+// server-side): toggleTodo now only REACTIVATES; marking done routes through
+// onCompleteRequest (the page opens the notes modal) → completeTodo(id, notes).
+export function makeTodoActions({ todos, setTodos, userIdByName, onError, onCompleteRequest }) {
   const fail = (label, err) => {
     console.error(`Todo ${label} failed:`, err);
     onError?.(`Could not ${label} the task. Check your connection and try again.`);
@@ -17,6 +20,7 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError }) {
       job_id: form.jobId,
       priority: form.priority,
       due_date: form.dueDate,
+      category: form.category || "todo",
       created_by: userIdByName[getCurrentUser()],
       assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
     };
@@ -40,6 +44,7 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError }) {
       job_id: form.jobId,
       priority: form.priority,
       due_date: form.dueDate,
+      category: form.category || "todo",
       assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
     };
     try {
@@ -55,25 +60,34 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError }) {
   const toggleTodo = async (id) => {
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
-    const nowComplete = !todo.completed;
+    if (!todo.completed) {
+      // Completing needs notes — hand off to the page's modal.
+      onCompleteRequest?.(todo);
+      return;
+    }
+    // Reactivate — clears the completion record (notes included, server-side).
     try {
-      await api.put(`/todos/${id}`, { completed: nowComplete, completed_by: nowComplete ? userIdByName[getCurrentUser()] : null });
+      await api.put(`/todos/${id}`, { completed: false, completed_by: null });
     } catch (err) {
       fail("update", err);
       return;
     }
+    setTodos((prev) => prev.map((t) => (t.id !== id ? t : { ...t, completed: false, completedBy: null, completedAt: null, completionNotes: null })));
+  };
+
+  const completeTodo = async (id, notes) => {
+    try {
+      await api.put(`/todos/${id}`, { completed: true, completed_by: userIdByName[getCurrentUser()], completion_notes: notes });
+    } catch (err) {
+      fail("complete", err);
+      return false;
+    }
     setTodos((prev) =>
       prev.map((t) =>
-        t.id !== id
-          ? t
-          : {
-              ...t,
-              completed: nowComplete,
-              completedBy: nowComplete ? getCurrentUser() : null,
-              completedAt: nowComplete ? new Date().toISOString() : null,
-            },
+        t.id !== id ? t : { ...t, completed: true, completedBy: getCurrentUser(), completedAt: new Date().toISOString(), completionNotes: notes },
       ),
     );
+    return true;
   };
 
   const deleteTodo = async (id) => {
@@ -87,5 +101,5 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError }) {
     }
   };
 
-  return { createTodo, updateTodo, toggleTodo, deleteTodo };
+  return { createTodo, updateTodo, toggleTodo, completeTodo, deleteTodo };
 }

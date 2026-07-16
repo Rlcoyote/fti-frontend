@@ -99,6 +99,10 @@ export function usePageData() {
           completed: t.completed,
           completedBy: t.completed_by_name || t.completed_by,
           completedAt: t.completed_at,
+          // v28.336 — Safety Meeting spec §2.12-13
+          category: t.category || "todo",
+          completionNotes: t.completion_notes,
+          createdAt: t.created_at,
         }));
         // Transform inventory
         const invMapped = (invR || []).map((i) => ({
