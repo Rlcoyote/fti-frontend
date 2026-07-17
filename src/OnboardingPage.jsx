@@ -19,9 +19,12 @@ const kindChip = (doc) => {
   if (doc.kind === "office_record") {
     label = doc.complete ? "OFFICE RECORDED" : "OFFICE — PENDING";
     color = doc.complete ? C.green : C.muted;
-  } else if (doc.complete) {
-    label = "SIGNED";
+  } else if (doc.complete && doc.verified) {
+    label = "COMPLETE — VERIFIED";
     color = C.green;
+  } else if (doc.complete) {
+    label = "SIGNED — AWAITING MANAGER REVIEW";
+    color = C.blue;
   } else if (doc.needs_resign) {
     label = "RE-SIGN REQUIRED (UPDATED)";
     color = C.orange;
@@ -286,6 +289,17 @@ function OfficeRoster() {
                 {d.marked_by_name && <span style={{ fontSize: F.label, color: C.muted }}> — recorded by {d.marked_by_name}</span>}
               </div>
               <div style={{ display: "flex", gap: SP.md, alignItems: "center" }}>
+                {d.kind !== "office_record" && d.complete && !d.verified && (
+                  <Btn
+                    small
+                    onClick={async () => {
+                      await api.post(`/onboarding/users/${openUser.user_id}/verify/${d.id}`, {});
+                      openEmployee(openUser);
+                    }}
+                  >
+                    MARK VERIFIED
+                  </Btn>
+                )}
                 {d.kind === "office_record" && !d.complete && (
                   <Btn
                     small
@@ -337,8 +351,8 @@ function OfficeRoster() {
             {u.name} <span style={{ fontSize: F.label, color: C.muted, fontWeight: 400, textTransform: "uppercase" }}>{u.role}</span>
             {u.onboarding_gate && <span style={{ fontSize: F.badge, color: C.orange, fontWeight: 800, marginLeft: SP.md }}>GATED UNTIL COMPLETE</span>}
           </div>
-          <div style={{ fontSize: F.meta, color: u.signed === u.required ? C.green : C.text, fontWeight: 700 }}>
-            {u.signed}/{u.required} signed · {u.office_marked}/{u.office_total} office
+          <div style={{ fontSize: F.meta, color: u.verified === u.required ? C.green : C.text, fontWeight: 700 }}>
+            {u.signed}/{u.required} signed · {u.verified}/{u.required} verified · {u.office_marked}/{u.office_total} office
             {u.needs_resign ? " · RE-SIGN DUE" : ""}
           </div>
         </div>

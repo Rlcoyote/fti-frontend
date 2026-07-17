@@ -13,8 +13,10 @@ import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
 function OnboardingSignFlow({ doc, onSigned, onBack }) {
   const inputs = doc.fields?.inputs || [];
   const initials = doc.fields?.initials || [];
+  const checklist = doc.fields?.checklist || []; // v28.342 — received-items: each optional, employee attests what they got
   const [form, setForm] = useState({});
   const [checked, setChecked] = useState({});
+  const [items, setItems] = useState({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -41,9 +43,12 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
         return;
       }
       try {
+        const checklistData = checklist.length
+          ? Object.fromEntries(checklist.map((it) => [it.key, { received: !!items[it.key]?.received, detail: items[it.key]?.detail || "" }]))
+          : null;
         await api.post(`/onboarding/my/${doc.id}/sign`, {
           webauthn_response: assertion,
-          form_data: inputs.length ? form : undefined,
+          form_data: inputs.length || checklistData ? { ...form, ...(checklistData ? { items: checklistData } : {}) } : undefined,
           initials: initials.length ? initials : undefined,
         });
       } catch (e) {
@@ -100,6 +105,35 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
                 onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
                 style={{ ...inputStyle, marginBottom: 0 }}
               />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {checklist.length > 0 && (
+        <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: R.card, padding: SP.xxl, marginBottom: SP.xl }}>
+          <div style={{ fontSize: F.label, fontWeight: 800, color: C.muted, marginBottom: SP.lg }}>
+            CHECK EACH ITEM YOU RECEIVED — LEAVE UNCHECKED WHAT WAS NOT ISSUED
+          </div>
+          {checklist.map((it) => (
+            <div key={it.key} style={{ display: "flex", gap: SP.lg, alignItems: "center", marginBottom: SP.lg, flexWrap: "wrap" }}>
+              <label style={{ display: "flex", gap: SP.md, alignItems: "center", cursor: "pointer", flex: "1 1 180px" }}>
+                <input
+                  type="checkbox"
+                  checked={!!items[it.key]?.received}
+                  onChange={(e) => setItems((s2) => ({ ...s2, [it.key]: { ...s2[it.key], received: e.target.checked } }))}
+                  style={{ width: 18, height: 18, flexShrink: 0 }}
+                />
+                <span style={{ fontSize: F.body, color: C.text, fontWeight: 700 }}>{it.label}</span>
+              </label>
+              {it.detail && items[it.key]?.received && (
+                <input
+                  placeholder={it.detail}
+                  value={items[it.key]?.detail || ""}
+                  onChange={(e) => setItems((s2) => ({ ...s2, [it.key]: { ...s2[it.key], detail: e.target.value } }))}
+                  style={{ ...inputStyle, width: "auto", flex: "1 1 140px", marginBottom: 0 }}
+                />
+              )}
             </div>
           ))}
         </div>
