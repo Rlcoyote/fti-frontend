@@ -4,6 +4,7 @@ import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
 import { Btn, inputStyle } from "./SharedUI.jsx";
 import OnboardingSignFlow from "./OnboardingSignFlow.jsx";
+import OnboardingEditor from "./OnboardingEditor.jsx";
 
 // ─── OnboardingPage (v28.340) ────────────────────────────────────────────────
 // Spec: fti-docs references/FTI_Onboarding_Spec.md (ratified 2026-07-17).
@@ -433,8 +434,10 @@ function OfficeRoster() {
 function OnboardingPage() {
   const { currentUser } = useApp();
   // Hardcoded owner/admin — mirrors the backend's requireRole (spec §1.7);
-  // deliberately not a permission key.
+  // deliberately not a permission key. The EDITOR is tighter still: owner only
+  // (it rewrites what every employee signs; backend enforces the same).
   const isOffice = ["owner", "admin"].includes(currentUser.role);
+  const isOwner = currentUser.role === "owner";
   const [tab, setTab] = useState("mine");
 
   return (
@@ -446,10 +449,7 @@ function OnboardingPage() {
       </div>
       {isOffice && (
         <div style={{ display: "flex", gap: SP.md, marginBottom: SP.xxl }}>
-          {[
-            ["mine", "MY DOCUMENTS"],
-            ["office", "OFFICE — ROSTER"],
-          ].map(([k, label]) => (
+          {[["mine", "MY DOCUMENTS"], ["office", "OFFICE — ROSTER"], ...(isOwner ? [["editor", "DOCUMENT EDITOR"]] : [])].map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
@@ -469,7 +469,7 @@ function OnboardingPage() {
           ))}
         </div>
       )}
-      {tab === "mine" ? <MyPacket /> : <OfficeRoster />}
+      {tab === "mine" ? <MyPacket /> : tab === "editor" && isOwner ? <OnboardingEditor /> : <OfficeRoster />}
     </div>
   );
 }
