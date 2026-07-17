@@ -54,6 +54,10 @@ const kindChip = (doc) => {
 };
 
 function MyPacket() {
+  const { currentUser } = useApp();
+  // v28.346 — owner/admin self-verify shortcut (same hardcoded set + same
+  // endpoint as the OFFICE tab; this is a convenience surface, not a new rule).
+  const isOffice = ["owner", "admin"].includes(currentUser.role);
   const [docs, setDocs] = useState(null);
   const [err, setErr] = useState(null);
   const [openDoc, setOpenDoc] = useState(null); // full doc for sign flow
@@ -185,6 +189,18 @@ function MyPacket() {
         {d.title}
       </div>
       <div style={{ display: "flex", gap: SP.md, alignItems: "center" }}>
+        {isOffice && d.kind !== "office_record" && d.complete && !d.verified && (
+          <Btn
+            small
+            onClick={async (e) => {
+              e.stopPropagation();
+              await api.post("/onboarding/users/" + currentUser.id + "/verify/" + d.id, {});
+              refresh();
+            }}
+          >
+            MARK VERIFIED
+          </Btn>
+        )}
         {d.needs_receipt && (
           <Btn
             small
