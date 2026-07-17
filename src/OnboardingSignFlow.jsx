@@ -29,9 +29,23 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
     return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
   };
   const telOk = (v) => v.replace(/\D/g, "").length === 10;
-  const moneyOk = (v) => {
+  const moneyOk = (v, f) => {
     const n = Number(String(v).replace(/[$,\s]/g, ""));
-    return Number.isFinite(n) && n > 0;
+    if (!Number.isFinite(n) || n <= 0) return false;
+    if (f?.min != null && n < f.min) return false;
+    if (f?.max != null && n > f.max) return false;
+    return true;
+  };
+  const dateBounds = (f) => ({
+    min: f.minDate || undefined,
+    max: f.maxFutureDays != null ? new Date(Date.now() + f.maxFutureDays * 86400000).toISOString().slice(0, 10) : undefined,
+  });
+  const dateOk = (v, f) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+    const b = dateBounds(f);
+    if (b.min && v < b.min) return false;
+    if (b.max && v > b.max) return false;
+    return true;
   };
   const [busy, setBusy] = useState(false);
 
@@ -41,7 +55,8 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
     const v = String(form[f.key] || "").trim();
     if (!v) return !f.required;
     if (f.type === "tel") return telOk(v);
-    if (f.type === "money") return moneyOk(v);
+    if (f.type === "money") return moneyOk(v, f);
+    if (f.type === "date") return dateOk(v, f);
     return true;
   };
   const allRequired = inputs.every(fieldOk);
@@ -152,15 +167,17 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
               {!(f.sameAs && linked[f.key]) && (
                 <input
                   type={f.type === "date" ? "date" : "text"}
+                  min={f.type === "date" ? dateBounds(f).min : undefined}
+                  max={f.type === "date" ? dateBounds(f).max : undefined}
                   inputMode={f.type === "tel" ? "numeric" : f.type === "money" ? "decimal" : undefined}
-                  placeholder={f.type === "tel" ? "(432) 555-0100" : f.type === "money" ? "$0.00" : undefined}
+                  placeholder={f.type === "tel" ? "(432) 555-0100" : f.type === "money" ? "25.50" : undefined}
                   value={form[f.key] || ""}
                   onChange={(e) => {
                     const v = f.type === "tel" ? formatTel(e.target.value) : e.target.value;
                     setForm((s2) => ({ ...s2, [f.key]: v }));
                   }}
                   onBlur={(e) => {
-                    if (f.type === "money" && moneyOk(e.target.value)) {
+                    if (f.type === "money" && moneyOk(e.target.value, f)) {
                       const n = Number(String(e.target.value).replace(/[$,\s]/g, ""));
                       setForm((s2) => ({ ...s2, [f.key]: `$${n.toFixed(2)}` }));
                     }
@@ -168,12 +185,21 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
                   style={{
                     ...inputStyle,
                     marginBottom: 0,
-                    borderColor:
-                      String(form[f.key] || "").trim() && ((f.type === "tel" && !telOk(form[f.key])) || (f.type === "money" && !moneyOk(form[f.key])))
-                        ? C.red
-                        : undefined,
+                    borderColor: String(form[f.key] || "").trim() && !fieldOk(f) ? C.red : undefined,
                   }}
                 />
+              )}
+              {f.hint && <div style={{ fontSize: F.label, color: C.muted, marginTop: 2 }}>{f.hint}</div>}
+              {String(form[f.key] || "").trim() && !fieldOk(f) && (
+                <div style={{ fontSize: F.label, color: C.red, fontWeight: 700, marginTop: 2 }}>
+                  {f.type === "money"
+                    ? "Enter dollars AND cents, e.g. 25.50" + (f.min != null ? " (at least $" + Number(f.min).toFixed(2) + ")" : "")
+                    : f.type === "date"
+                      ? "Enter a real date in the allowed range"
+                      : f.type === "tel"
+                        ? "Enter a 10-digit phone number"
+                        : "Check this entry"}
+                </div>
               )}
               {f.sameAs && linked[f.key] === "same" && (
                 <div style={{ fontSize: F.meta, color: C.muted, fontStyle: "italic" }}>Will use your mailing address.</div>

@@ -103,14 +103,43 @@ function MyPacket() {
             {s.body_snapshot && (
               <div style={{ fontSize: F.body, color: C.text, lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: SP.lg }}>{s.body_snapshot}</div>
             )}
-            {s.form_data && (
-              <div style={{ fontSize: F.body, color: C.text }}>
-                {Object.entries(s.form_data).map(([k, v]) => (
-                  <div key={k} style={{ marginBottom: 2 }}>
-                    <span style={{ color: C.muted }}>{k.replace(/_/g, " ")}: </span>
-                    {String(v)}
+            {s.voided_at && (
+              <div style={{ fontSize: F.meta, color: C.red, fontWeight: 800, marginBottom: SP.md }}>
+                VOIDED {new Date(s.voided_at).toLocaleString()} — {s.void_reason}
+              </div>
+            )}
+            {s.form_data?.initialed_statements && (
+              <div style={{ marginBottom: SP.lg }}>
+                {s.form_data.initialed_statements.map((t, i) => (
+                  <div key={i} style={{ fontSize: F.meta, color: C.text, marginBottom: 4, display: "flex", gap: SP.md }}>
+                    <span style={{ color: C.green, fontWeight: 900 }}>✓</span>
+                    <span>{t}</span>
                   </div>
                 ))}
+              </div>
+            )}
+            {s.form_data?.items && (
+              <div style={{ marginBottom: SP.lg }}>
+                {Object.entries(s.form_data.items).map(([k, v]) => (
+                  <div key={k} style={{ fontSize: F.body, color: C.text, marginBottom: 2 }}>
+                    <span style={{ color: v.received ? C.green : C.muted, fontWeight: 900 }}>{v.received ? "✓" : "—"}</span>{" "}
+                    <span style={{ textTransform: "capitalize" }}>{k.replace(/_/g, " ")}</span>
+                    {v.received ? "" : " (not issued)"}
+                    {v.detail ? " — " + v.detail : ""}
+                  </div>
+                ))}
+              </div>
+            )}
+            {s.form_data && (
+              <div style={{ fontSize: F.body, color: C.text }}>
+                {Object.entries(s.form_data)
+                  .filter(([k]) => k !== "items" && k !== "initialed_statements")
+                  .map(([k, v]) => (
+                    <div key={k} style={{ marginBottom: 2 }}>
+                      <span style={{ color: C.muted, textTransform: "capitalize" }}>{k.replace(/_/g, " ")}: </span>
+                      {String(v)}
+                    </div>
+                  ))}
               </div>
             )}
             <div style={{ fontSize: F.label, color: C.muted, fontStyle: "italic", marginTop: SP.lg }}>{s.attestation_text}</div>
@@ -223,6 +252,10 @@ function MyPacket() {
       {officeItems.length > 0 && (
         <>
           <div style={{ fontSize: F.label, fontWeight: 800, color: C.muted, margin: `${SP.lg}px 0 ${SP.sm}px` }}>OFFICE-RECORDED ITEMS</div>
+          <div style={{ fontSize: F.meta, color: C.muted, marginBottom: SP.sm }}>
+            These are paper items completed WITH the office (applications, ID copies, benefits forms). The office checks each one off as it lands in your file —
+            OFFICE — PENDING flips to OFFICE RECORDED when they do. Nothing for you to sign here.
+          </div>
           {officeItems.map((d) => row(d, false))}
         </>
       )}
@@ -237,6 +270,7 @@ function OfficeRoster() {
   const [openUser, setOpenUser] = useState(null);
   const [userDocs, setUserDocs] = useState(null);
   const [comment, setComment] = useState("");
+  const [errMsg, setErrMsg] = useState("");
 
   const refresh = useCallback(() => {
     api
@@ -289,6 +323,24 @@ function OfficeRoster() {
                 {d.marked_by_name && <span style={{ fontSize: F.label, color: C.muted }}> — recorded by {d.marked_by_name}</span>}
               </div>
               <div style={{ display: "flex", gap: SP.md, alignItems: "center" }}>
+                {d.kind !== "office_record" && d.complete && (
+                  <Btn
+                    small
+                    variant="danger"
+                    onClick={async () => {
+                      if (!comment.trim()) {
+                        setErrMsg("Type the void reason in the note box below first");
+                        return;
+                      }
+                      setErrMsg("");
+                      await api.post("/onboarding/users/" + openUser.user_id + "/void/" + d.id, { reason: comment.trim() });
+                      setComment("");
+                      openEmployee(openUser);
+                    }}
+                  >
+                    VOID
+                  </Btn>
+                )}
                 {d.kind !== "office_record" && d.complete && !d.verified && (
                   <Btn
                     small
@@ -316,9 +368,10 @@ function OfficeRoster() {
               </div>
             </div>
           ))}
+        {errMsg && <div style={{ color: C.red, fontSize: F.meta, fontWeight: 700, marginTop: SP.md }}>{errMsg}</div>}
         <div style={{ marginTop: SP.lg }}>
           <input
-            placeholder="Optional note for the next MARK COMPLETE (e.g. items issued list)…"
+            placeholder="Note — used by MARK COMPLETE (items detail) and required by VOID (the reason)…"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             style={inputStyle}
