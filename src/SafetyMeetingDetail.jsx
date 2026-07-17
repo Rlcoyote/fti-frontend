@@ -521,6 +521,27 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
         )}
       </Section>
 
+      {/* POLICY & DOCUMENT UPDATES (v28.348) — auto-derived since the last
+          meeting: onboarding-document revisions + library uploads, for
+          read-out. Zero settings, zero drift. */}
+      {meeting.document_updates && (meeting.document_updates.policies.length > 0 || meeting.document_updates.library.length > 0) && (
+        <Section title="POLICY & DOCUMENT UPDATES SINCE LAST MEETING — READ OUT">
+          {meeting.document_updates.policies.map((p) => (
+            <div key={"p" + p.slug + p.version} style={{ padding: `${SP.sm}px ${SP.xl}px`, borderTop: `1px solid ${C.border}33` }}>
+              <span style={{ fontSize: F.body, fontWeight: 700, color: C.text }}>{p.title}</span>
+              <span style={{ fontSize: F.label, color: C.muted }}> — revised to version {p.version}</span>
+              {p.material && <span style={{ fontSize: F.badge, color: C.orange, fontWeight: 800 }}> (RE-SIGN REQUIRED)</span>}
+              {p.revision_synopsis && <div style={{ fontSize: F.meta, color: C.muted }}>{p.revision_synopsis}</div>}
+            </div>
+          ))}
+          {meeting.document_updates.library.map((l, i) => (
+            <div key={"l" + i} style={{ padding: `${SP.sm}px ${SP.xl}px`, borderTop: `1px solid ${C.border}33`, fontSize: F.body, color: C.text }}>
+              {l.name} <span style={{ fontSize: F.label, color: C.muted }}>— added to FIELD RESOURCES</span>
+            </div>
+          ))}
+        </Section>
+      )}
+
       {/* ROLL-FORWARD RECAP */}
       <Section title="OPEN ACTION ITEMS — READ OUT EVERY TUESDAY UNTIL CLOSED">
         {requiredItems.length === 0 && todoItems.length === 0 && <div style={emptyNote}>Nothing outstanding. Clean board.</div>}

@@ -27,10 +27,7 @@ const kindChip = (doc) => {
     label = "SIGNED — AWAITING MANAGER REVIEW";
     color = C.blue;
   } else if (doc.needs_resign) {
-    label = "RE-SIGN REQUIRED (UPDATED)";
-    color = C.orange;
-  } else if (doc.needs_receipt) {
-    label = "UPDATED — ACKNOWLEDGE";
+    label = "RE-SIGN REQUIRED (POLICY CHANGED)";
     color = C.orange;
   } else {
     label = doc.kind === "consent" ? "CONSENT — SIGN" : doc.kind === "form" ? "FILL & SIGN" : "READ & SIGN";
@@ -163,7 +160,6 @@ function MyPacket() {
     <div
       key={d.id}
       onClick={async () => {
-        if (actionable && d.needs_receipt) return; // handled by its button
         if (actionable) {
           const full = await api.get(`/onboarding/my/${d.id}`);
           setOpenDoc(full.document);
@@ -188,6 +184,11 @@ function MyPacket() {
       <div style={{ fontSize: F.body, fontWeight: 700, color: C.text, flex: "1 1 200px" }}>
         <span style={{ color: C.muted, fontWeight: 400 }}>{d.item_no}. </span>
         {d.title}
+        {d.updated_since_signed && (
+          <div style={{ fontSize: F.label, color: C.muted, fontWeight: 400, marginTop: 2, fontStyle: "italic" }}>
+            Updated to version {d.version} since you signed{d.revision_synopsis ? " — " + d.revision_synopsis : ""}. Your signature stands — no action needed.
+          </div>
+        )}
       </div>
       <div style={{ display: "flex", gap: SP.md, alignItems: "center" }}>
         {isOffice && d.kind !== "office_record" && d.complete && !d.verified && (
@@ -200,18 +201,6 @@ function MyPacket() {
             }}
           >
             MARK VERIFIED
-          </Btn>
-        )}
-        {d.needs_receipt && (
-          <Btn
-            small
-            onClick={async (e) => {
-              e.stopPropagation();
-              await api.post(`/onboarding/my/${d.id}/acknowledge`, {});
-              refresh();
-            }}
-          >
-            ACKNOWLEDGE UPDATE
           </Btn>
         )}
         {kindChip(d)}
@@ -288,6 +277,14 @@ function OfficeRoster() {
   const [userDocs, setUserDocs] = useState(null);
   const [comment, setComment] = useState("");
   const [errMsg, setErrMsg] = useState("");
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifySaved, setNotifySaved] = useState("");
+  useEffect(() => {
+    api
+      .get(`/onboarding/settings`)
+      .then((r) => setNotifyEmail(r.notify_email || ""))
+      .catch(() => {});
+  }, []);
 
   const refresh = useCallback(() => {
     api
@@ -399,6 +396,31 @@ function OfficeRoster() {
 
   return (
     <div>
+      <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: R.card, padding: SP.xl, marginBottom: SP.xl }}>
+        <div style={{ fontSize: F.label, fontWeight: 800, color: C.muted, marginBottom: SP.sm }}>WHERE DO ONBOARDING REQUEST EMAILS GO? (TYPICALLY HR)</div>
+        <div style={{ display: "flex", gap: SP.md, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            placeholder="hr@flotest.com — leave empty to send to the owner only"
+            value={notifyEmail}
+            onChange={(e) => setNotifyEmail(e.target.value)}
+            style={{ ...inputStyle, width: "auto", flex: "1 1 260px", marginBottom: 0 }}
+          />
+          <Btn
+            small
+            onClick={async () => {
+              try {
+                await api.put(`/onboarding/settings`, { notify_email: notifyEmail.trim() });
+                setNotifySaved("Saved — requests now go to " + (notifyEmail.trim() || "the owner only"));
+              } catch (e) {
+                setNotifySaved(e.message);
+              }
+            }}
+          >
+            SAVE
+          </Btn>
+        </div>
+        {notifySaved && <div style={{ fontSize: F.meta, color: C.green, fontWeight: 700, marginTop: SP.sm }}>{notifySaved}</div>}
+      </div>
       {roster.map((u) => (
         <div
           key={u.user_id}

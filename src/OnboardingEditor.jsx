@@ -98,7 +98,8 @@ function EditDoc({ doc, onSaved, onBack }) {
         <label style={{ display: "flex", gap: SP.md, alignItems: "flex-start", marginBottom: SP.md, cursor: "pointer", fontSize: F.body, color: C.text }}>
           <input type="radio" checked={!material} onChange={() => setMaterial(false)} style={{ marginTop: 3 }} />
           <span>
-            <strong>Notice.</strong> Wording cleanup or clarification — employees who already signed get a one-click acknowledgment with your synopsis.
+            <strong>Notice.</strong> Employees who signed STAY SIGNED — their attestation stands as of hire. The update becomes the current version new hires
+            sign; current employees see an informational note with your synopsis. No action required from anyone.
           </span>
         </label>
         <label style={{ display: "flex", gap: SP.md, alignItems: "flex-start", marginBottom: SP.md, cursor: "pointer", fontSize: F.body, color: C.text }}>
@@ -132,7 +133,7 @@ function EditDoc({ doc, onSaved, onBack }) {
           message={
             material
               ? "This is a MATERIAL change: every employee who signed the current version will be required to re-sign with their biometric. This document becomes customer-owned — the built-in starter version stops updating it."
-              : "Employees who signed the current version will see your synopsis and acknowledge with one click. This document becomes customer-owned — the built-in starter version stops updating it."
+              : "No action required from anyone: employees who signed stay signed, and your synopsis appears as an informational note. New hires sign the new version. This document becomes customer-owned — the built-in starter version stops updating it."
           }
           yesLabel="PUBLISH"
           onYes={save}
