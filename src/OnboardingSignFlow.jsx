@@ -17,11 +17,34 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
   const [form, setForm] = useState({});
   const [checked, setChecked] = useState({});
   const [items, setItems] = useState({});
+  const [linked, setLinked] = useState({}); // sameAs/N-A per field key: 'same' | 'na' | undefined
   const [error, setError] = useState("");
+
+  // v28.343 — FORCED formats, mirrored server-side: phones format themselves
+  // as (XXX) XXX-XXXX while typing; money normalizes to $0.00 on blur.
+  const formatTel = (v) => {
+    const d = v.replace(/\D/g, "").slice(0, 10);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+    return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+  };
+  const telOk = (v) => v.replace(/\D/g, "").length === 10;
+  const moneyOk = (v) => {
+    const n = Number(String(v).replace(/[$,\s]/g, ""));
+    return Number.isFinite(n) && n > 0;
+  };
   const [busy, setBusy] = useState(false);
 
   const allInitialed = initials.every((_, i) => checked[i]);
-  const allRequired = inputs.every((f) => !f.required || String(form[f.key] || "").trim());
+  const fieldOk = (f) => {
+    if (f.sameAs && linked[f.key]) return linked[f.key] === "na" || String(form[f.sameAs] || "").trim();
+    const v = String(form[f.key] || "").trim();
+    if (!v) return !f.required;
+    if (f.type === "tel") return telOk(v);
+    if (f.type === "money") return moneyOk(v);
+    return true;
+  };
+  const allRequired = inputs.every(fieldOk);
   const ready = allInitialed && allRequired;
 
   const fireSign = async () => {
@@ -43,12 +66,17 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
         return;
       }
       try {
+        const resolvedForm = { ...form };
+        for (const f of inputs) {
+          if (f.sameAs && linked[f.key] === "same") resolvedForm[f.key] = form[f.sameAs] || "";
+          if (f.allowNA && linked[f.key] === "na") resolvedForm[f.key] = "N/A";
+        }
         const checklistData = checklist.length
           ? Object.fromEntries(checklist.map((it) => [it.key, { received: !!items[it.key]?.received, detail: items[it.key]?.detail || "" }]))
           : null;
         await api.post(`/onboarding/my/${doc.id}/sign`, {
           webauthn_response: assertion,
-          form_data: inputs.length || checklistData ? { ...form, ...(checklistData ? { items: checklistData } : {}) } : undefined,
+          form_data: inputs.length || checklistData ? { ...resolvedForm, ...(checklistData ? { items: checklistData } : {}) } : undefined,
           initials: initials.length ? initials : undefined,
         });
       } catch (e) {
@@ -99,12 +127,57 @@ function OnboardingSignFlow({ doc, onSigned, onBack }) {
                 {f.label.toUpperCase()}
                 {f.required ? " *" : ""}
               </label>
-              <input
-                type={f.type === "date" ? "date" : "text"}
-                value={form[f.key] || ""}
-                onChange={(e) => setForm((s) => ({ ...s, [f.key]: e.target.value }))}
-                style={{ ...inputStyle, marginBottom: 0 }}
-              />
+              {f.sameAs && (
+                <div style={{ display: "flex", gap: SP.xxl, marginBottom: SP.sm }}>
+                  <label style={{ display: "flex", gap: SP.sm, alignItems: "center", fontSize: F.meta, color: C.text, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={linked[f.key] === "same"}
+                      onChange={(e) => setLinked((s2) => ({ ...s2, [f.key]: e.target.checked ? "same" : undefined }))}
+                    />
+                    Same as mailing address
+                  </label>
+                  {f.allowNA && (
+                    <label style={{ display: "flex", gap: SP.sm, alignItems: "center", fontSize: F.meta, color: C.text, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={linked[f.key] === "na"}
+                        onChange={(e) => setLinked((s2) => ({ ...s2, [f.key]: e.target.checked ? "na" : undefined }))}
+                      />
+                      N/A
+                    </label>
+                  )}
+                </div>
+              )}
+              {!(f.sameAs && linked[f.key]) && (
+                <input
+                  type={f.type === "date" ? "date" : "text"}
+                  inputMode={f.type === "tel" ? "numeric" : f.type === "money" ? "decimal" : undefined}
+                  placeholder={f.type === "tel" ? "(432) 555-0100" : f.type === "money" ? "$0.00" : undefined}
+                  value={form[f.key] || ""}
+                  onChange={(e) => {
+                    const v = f.type === "tel" ? formatTel(e.target.value) : e.target.value;
+                    setForm((s2) => ({ ...s2, [f.key]: v }));
+                  }}
+                  onBlur={(e) => {
+                    if (f.type === "money" && moneyOk(e.target.value)) {
+                      const n = Number(String(e.target.value).replace(/[$,\s]/g, ""));
+                      setForm((s2) => ({ ...s2, [f.key]: `$${n.toFixed(2)}` }));
+                    }
+                  }}
+                  style={{
+                    ...inputStyle,
+                    marginBottom: 0,
+                    borderColor:
+                      String(form[f.key] || "").trim() && ((f.type === "tel" && !telOk(form[f.key])) || (f.type === "money" && !moneyOk(form[f.key])))
+                        ? C.red
+                        : undefined,
+                  }}
+                />
+              )}
+              {f.sameAs && linked[f.key] === "same" && (
+                <div style={{ fontSize: F.meta, color: C.muted, fontStyle: "italic" }}>Will use your mailing address.</div>
+              )}
             </div>
           ))}
         </div>
