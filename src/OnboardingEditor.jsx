@@ -16,13 +16,29 @@ function EditDoc({ doc, onSaved, onBack }) {
   const [title, setTitle] = useState(doc.title);
   const [body, setBody] = useState(doc.body || "");
   const [initials, setInitials] = useState(doc.fields?.initials || []);
+  // v28.349 — phase two: form fields + checklist items are editable.
+  const [inputs, setInputs] = useState(doc.fields?.inputs || []);
+  const [checklist, setChecklist] = useState(doc.fields?.checklist || []);
+  const TYPE_OPTIONS = [
+    ["text", "Text"],
+    ["tel", "Phone number"],
+    ["money", "Dollar amount"],
+    ["date", "Date"],
+  ];
+  const setInput = (i, patch) => setInputs((arr) => arr.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const setCheck = (i, patch) => setChecklist((arr) => arr.map((x, j) => (j === i ? { ...x, ...patch } : x)));
   const [material, setMaterial] = useState(false);
   const [synopsis, setSynopsis] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const dirty = title !== doc.title || body !== (doc.body || "") || JSON.stringify(initials) !== JSON.stringify(doc.fields?.initials || []);
+  const dirty =
+    title !== doc.title ||
+    body !== (doc.body || "") ||
+    JSON.stringify(initials) !== JSON.stringify(doc.fields?.initials || []) ||
+    JSON.stringify(inputs) !== JSON.stringify(doc.fields?.inputs || []) ||
+    JSON.stringify(checklist) !== JSON.stringify(doc.fields?.checklist || []);
   const canSave = dirty && title.trim() && (material || synopsis.trim());
 
   const save = async () => {
@@ -33,6 +49,8 @@ function EditDoc({ doc, onSaved, onBack }) {
         title: title.trim(),
         body,
         initials: doc.fields?.initials || initials.length ? initials : undefined,
+        inputs,
+        checklist,
         material,
         synopsis: synopsis.trim(),
       });
@@ -87,11 +105,122 @@ function EditDoc({ doc, onSaved, onBack }) {
         </>
       )}
 
-      {(doc.fields?.inputs || doc.fields?.checklist) && (
-        <div style={{ fontSize: F.meta, color: C.muted, margin: `${SP.lg}px 0`, fontStyle: "italic" }}>
-          This document's form fields{doc.fields?.checklist ? " and item checklist" : ""} carry forward unchanged — field editing is a later phase.
-        </div>
-      )}
+      <div style={{ margin: `${SP.xl}px 0` }}>
+        <label style={labelStyle}>FORM FIELDS — WHAT THE EMPLOYEE FILLS IN (LEAVE EMPTY IF THIS DOCUMENT COLLECTS NOTHING)</label>
+        {inputs.map((f, i) => (
+          <div
+            key={i}
+            style={{
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderRadius: R.card,
+              padding: SP.lg,
+              marginBottom: SP.sm,
+              display: "flex",
+              gap: SP.md,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <input
+              placeholder="Field label (what the employee sees)"
+              value={f.label || ""}
+              onChange={(ev) => setInput(i, { label: ev.target.value })}
+              style={{ ...inputStyle, width: "auto", flex: "2 1 200px", marginBottom: 0 }}
+            />
+            <select
+              value={f.type || "text"}
+              onChange={(ev) => setInput(i, { type: ev.target.value })}
+              style={{ ...inputStyle, width: "auto", flex: "0 1 150px", marginBottom: 0 }}
+            >
+              {TYPE_OPTIONS.map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </select>
+            <label style={{ display: "flex", gap: SP.sm, alignItems: "center", fontSize: F.meta, color: C.text, cursor: "pointer" }}>
+              <input type="checkbox" checked={!!f.required} onChange={(ev) => setInput(i, { required: ev.target.checked })} />
+              Required
+            </label>
+            <input
+              placeholder="Hint shown under the field (optional)"
+              value={f.hint || ""}
+              onChange={(ev) => setInput(i, { hint: ev.target.value })}
+              style={{ ...inputStyle, width: "auto", flex: "1 1 160px", marginBottom: 0 }}
+            />
+            {(f.type || "text") === "money" && (
+              <>
+                <input
+                  placeholder="Min $"
+                  value={f.min ?? ""}
+                  onChange={(ev) => setInput(i, { min: ev.target.value })}
+                  style={{ ...inputStyle, width: 80, marginBottom: 0 }}
+                />
+                <input
+                  placeholder="Max $"
+                  value={f.max ?? ""}
+                  onChange={(ev) => setInput(i, { max: ev.target.value })}
+                  style={{ ...inputStyle, width: 80, marginBottom: 0 }}
+                />
+              </>
+            )}
+            <button
+              onClick={() => setInputs((arr) => arr.filter((_, j) => j !== i))}
+              title="Remove this field"
+              style={{ background: "none", border: `1px solid ${C.red}55`, color: C.red, borderRadius: R.md, padding: "4px 10px", cursor: "pointer" }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <Btn small variant="ghost" onClick={() => setInputs((arr) => [...arr, { label: "", type: "text", required: true }])}>
+          + ADD FORM FIELD
+        </Btn>
+      </div>
+
+      <div style={{ margin: `${SP.xl}px 0` }}>
+        <label style={labelStyle}>CHECKLIST ITEMS — THINGS THE EMPLOYEE CHECKS AS RECEIVED (LEAVE EMPTY IF NONE)</label>
+        {checklist.map((it, i) => (
+          <div
+            key={i}
+            style={{
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderRadius: R.card,
+              padding: SP.lg,
+              marginBottom: SP.sm,
+              display: "flex",
+              gap: SP.md,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <input
+              placeholder="Item name (e.g. Hard Hat)"
+              value={it.label || ""}
+              onChange={(ev) => setCheck(i, { label: ev.target.value })}
+              style={{ ...inputStyle, width: "auto", flex: "2 1 180px", marginBottom: 0 }}
+            />
+            <input
+              placeholder="Detail asked when checked (e.g. Serial #) — optional"
+              value={it.detail || ""}
+              onChange={(ev) => setCheck(i, { detail: ev.target.value })}
+              style={{ ...inputStyle, width: "auto", flex: "2 1 200px", marginBottom: 0 }}
+            />
+            <button
+              onClick={() => setChecklist((arr) => arr.filter((_, j) => j !== i))}
+              title="Remove this item"
+              style={{ background: "none", border: `1px solid ${C.red}55`, color: C.red, borderRadius: R.md, padding: "4px 10px", cursor: "pointer" }}
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        <Btn small variant="ghost" onClick={() => setChecklist((arr) => [...arr, { label: "" }])}>
+          + ADD CHECKLIST ITEM
+        </Btn>
+      </div>
 
       <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: R.card, padding: SP.xl, margin: `${SP.xl}px 0` }}>
         <div style={{ fontSize: F.label, fontWeight: 800, color: C.muted, marginBottom: SP.md }}>HOW BIG IS THIS CHANGE?</div>
