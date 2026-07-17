@@ -399,6 +399,13 @@ function DesktopNavBar({
                         setShowCompanyDocs(true);
                       }}
                     />
+                    <GearMenuItem
+                      label="Onboarding"
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        navigate("/onboarding");
+                      }}
+                    />
                     {can("view_activity_log") && (
                       <GearMenuItem
                         label="Activity Log"

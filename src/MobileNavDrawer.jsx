@@ -374,6 +374,14 @@ function MobileNavDrawer({
             setShowCompanyDocs(true);
           }}
         />
+        <DrawerItem
+          icon="📝"
+          label="Onboarding"
+          onClick={() => {
+            setDrawerOpen(false);
+            navigate("/onboarding");
+          }}
+        />
         {can("view_activity_log") && (
           <DrawerItem
             icon="📋"

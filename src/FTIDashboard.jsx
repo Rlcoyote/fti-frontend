@@ -36,6 +36,7 @@ import InspectionsListPage from "./InspectionsListPage.jsx";
 import RepairRequestForm from "./RepairRequestForm.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import SafetyMeetingsPage from "./SafetyMeetingsPage.jsx";
+import OnboardingPage from "./OnboardingPage.jsx";
 import ClockPage from "./ClockPage.jsx";
 import TrainingPage from "./TrainingPage.jsx";
 import { pageFromPath } from "./navMap.js";
@@ -386,6 +387,8 @@ function FTIDashboard() {
         <Route path="/safety" element={<SafetyPage />} />
         {/* v28.335 — Safety Meetings: open to everyone (spec §8b.7). */}
         <Route path="/safety-meetings" element={<SafetyMeetingsPage />} />
+        {/* v28.340 — Onboarding / New Hire Packet: every employee, self-serve. */}
+        <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/clock" element={<ClockPage />} />
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/my-hours" element={<MyHoursPage />} />

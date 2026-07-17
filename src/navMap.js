@@ -46,6 +46,7 @@ const EXTRA_PAGE_ROUTES = [
   ["/inspections", "inspections"],
   ["/repair-request", "repairRequest"],
   ["/compliance-consent", "compliance"],
+  ["/onboarding", "onboarding"], // v28.340 — New Hire Packet self-serve
   ["/activity", "activity"],
   ["/contacts", "contacts"],
   ["/people", "people"],
