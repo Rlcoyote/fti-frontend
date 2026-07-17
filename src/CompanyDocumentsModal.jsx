@@ -227,23 +227,28 @@ function CompanyDocumentsModal({ onClose }) {
               ×
             </button>
           </div>
+          {/* v28.341 — VIEW ONLY, ratified 2026-07-17 (Onboarding spec §3.1):
+              no download links in the library. Read all you want in-app; a
+              printed/emailed copy comes from the office on request. The
+              affordance removal + culture is the control — not DRM. */}
           {viewDoc.file_data && viewDoc.file_type?.includes("image") && (
             <img src={viewDoc.file_data} alt={viewDoc.name} style={{ maxWidth: "100%", borderRadius: 4 }} />
           )}
           {viewDoc.file_data && viewDoc.file_type?.includes("pdf") && (
-            <div style={{ fontSize: 12, color: C.muted }}>
-              <a href={viewDoc.file_data} download={viewDoc.name + ".pdf"} style={{ color: C.blue, fontWeight: 700 }}>
-                Download PDF
-              </a>
-            </div>
+            <object data={viewDoc.file_data} type="application/pdf" style={{ width: "100%", height: "70vh", border: "none", borderRadius: 4 }}>
+              <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>
+                This document can't be displayed on this device. Ask the office for a printed or emailed copy.
+              </div>
+            </object>
           )}
           {viewDoc.file_data && !viewDoc.file_type?.includes("image") && !viewDoc.file_type?.includes("pdf") && (
-            <div style={{ fontSize: 12, color: C.muted }}>
-              <a href={viewDoc.file_data} download={viewDoc.name} style={{ color: C.blue, fontWeight: 700 }}>
-                Download File
-              </a>
+            <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>
+              Viewing isn't available for this file type. Ask the office for a printed or emailed copy.
             </div>
           )}
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" }}>
+            View only — company documents are proprietary. For a printed or emailed copy, ask the office.
+          </div>
         </div>
       )}
 
