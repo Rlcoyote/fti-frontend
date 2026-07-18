@@ -71,20 +71,26 @@ const LIGHT = {
   purpleB: "#f3eafa",
   // Tertiary text — timestamps, faint stamps (v28.293).
   faint: "#a0aec8",
+  // v28.351 — page background glow (the graded backdrop; radial from top).
+  pageBgGlow: "#ffffff",
 };
 
 const DARK = {
-  red: "#FF4458",
+  // v28.351 — THE FTI LOOK (ratified: blend direction, charcoal base,
+  // red/white/blue as accents only). True charcoal replaces the old
+  // blue-gray navy; the American triad carries: red = primary action,
+  // blue = active/focus accents, white = text on dark.
+  red: "#ff4d5a",
   white: "#FFFFFF",
   blue: "#5b9bf2",
   darkBlue: "#4a8be2",
-  steel: "#1f2937",
-  lightSteel: "#2d3748",
-  muted: "#94a3b8",
-  border: "#374151",
-  cardBg: "#1f2937",
-  pageBg: "#111827",
-  text: "#e2e8f0",
+  steel: "#24282d",
+  lightSteel: "#2c3138",
+  muted: "#9aa3ad",
+  border: "#363b42",
+  cardBg: "#1d2024",
+  pageBg: "#131518",
+  text: "#e8eaed",
   green: "#34d399",
   orange: "#fbbf24",
   yellow: "#facc15",
@@ -105,7 +111,9 @@ const DARK = {
   orangeB: "#33230f",
   purple: "#c084fc",
   purpleB: "#2b1f3b",
-  faint: "#64748b",
+  faint: "#6b7480",
+  // v28.351 — faint blue-tinted top glow on charcoal (American blue, whispered).
+  pageBgGlow: "#1a2129",
 };
 
 // ─── NON-COLOR DESIGN TOKENS (v28.285, theme arc) ─────────────────────────────
@@ -156,6 +164,23 @@ export const R = {
   xl: 6,
   card: 8,
   pill: 999,
+};
+
+// v28.351 — ELEVATION tokens (THE FTI LOOK). Three tiers, no blur anywhere:
+// flat (none), raised (cards/rows that float), overlay (modals/menus).
+// Theme-aware via the same live-Proxy pattern as C — E.raised always resolves
+// against the active palette's shadow set.
+const SHADOWS = {
+  light: {
+    flat: "none",
+    raised: "0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.08)",
+    overlay: "0 12px 32px rgba(16, 24, 40, 0.16), 0 4px 10px rgba(16, 24, 40, 0.08)",
+  },
+  dark: {
+    flat: "none",
+    raised: "0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.28)",
+    overlay: "0 16px 40px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.4)",
+  },
 };
 
 const PALETTES = { light: LIGHT, dark: DARK };
@@ -247,6 +272,12 @@ applyTheme(getTheme());
 // "needs lead action" filter on the WO surface (incomplete + signed +
 // sigNotReq stay in the WO; approved+ ship to Final Review/Archive).
 // inField was merged into incomplete in v28.40 — see TICKET_STATUSES.
+export const E = new Proxy(Object.create(null), {
+  get: (_t, prop) => SHADOWS[activeTheme][prop],
+  ownKeys: () => Object.keys(SHADOWS.light),
+  getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+});
+
 export const TICKET_STATUS_ORDER = ["incomplete", "emailed", "signed", "sigNotReq", "approved", "sentToQB", "qbVerified", "voided"];
 
 // Tickets that belong on the WO surface (lead's domain — needs action).

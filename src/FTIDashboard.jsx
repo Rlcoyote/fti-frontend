@@ -102,6 +102,7 @@ function FTIDashboard() {
       }
       .fti-nav-bar {
         padding-top: max(8px, env(safe-area-inset-top));
+        box-shadow: 0 2px 14px rgba(0, 0, 0, 0.22);
       }
     `;
     document.head.appendChild(s);
@@ -276,7 +277,18 @@ function FTIDashboard() {
   if (loading) return <BrandedSplash />;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.pageBg, color: C.text, fontFamily: "'Arial', sans-serif" }}>
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: C.pageBg,
+        // v28.351 — THE FTI LOOK: the flat wash becomes a quiet top-lit grade
+        // (dark: charcoal with a whispered blue glow; light: white → cool gray).
+        backgroundImage: `radial-gradient(900px 480px at 50% -160px, ${C.pageBgGlow}, transparent)`,
+        backgroundRepeat: "no-repeat",
+        color: C.text,
+        fontFamily: "'Arial', sans-serif",
+      }}
+    >
       {/* MOBILE HAMBURGER (floating button bottom-right) */}
       <div
         className="fti-hamburger"

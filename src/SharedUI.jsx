@@ -1,4 +1,4 @@
-import { C, F, SP, R } from "./config.js";
+import { C, E, F, SP, R } from "./config.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
 
@@ -200,12 +200,21 @@ export const labelStyle = {
 
 // ─── SHARED BUTTONS ───────────────────────────────────────────────────────────
 export function Btn({ onClick, children, variant = "primary", small, disabled, style: extraStyle, title }) {
+  // v28.351 — THE FTI LOOK: filled variants get dimension — a top-lit
+  // gradient + inner highlight + grounding shadow (the "cool button").
+  // Ghost stays flat by design; .fti-btn (index.css) still owns motion.
+  const dimensional = (base) => ({
+    background: `linear-gradient(180deg, ${base}, color-mix(in srgb, ${base} 72%, #000))`,
+    color: C.white,
+    border: "none",
+    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 6px rgba(0, 0, 0, 0.3)",
+  });
   const styles = {
-    primary: { background: C.red, color: C.white, border: "none" },
+    primary: dimensional(C.red),
     ghost: { background: "transparent", color: C.muted, border: `1px solid ${C.border}` },
-    blue: { background: C.blue, color: C.white, border: "none" },
+    blue: dimensional(C.blue),
     // v27.98 — danger variant for destructive confirmations (disable 2FA, etc.)
-    danger: { background: "#8b1010", color: C.white, border: "none" },
+    danger: dimensional("#8b1010"),
   };
   // v28.266 — interaction states moved to .fti-btn (index.css): hover lift +
   // glow, press settle, keyboard focus ring, reduced-motion honored. The old
@@ -480,6 +489,8 @@ export function ModalWrap({ title, onClose, children, width = 440, accent = C.re
                 maxWidth: dialog ? "90vw" : "92vw",
                 maxHeight: "85vh",
                 overflowY: "auto",
+                // v28.351 — THE FTI LOOK: modals float on the overlay tier.
+                boxShadow: E.overlay,
               }
         }
         onClick={asSheet ? undefined : (e) => e.stopPropagation()}
