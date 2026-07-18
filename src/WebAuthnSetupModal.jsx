@@ -48,7 +48,8 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
   const [removingId, setRemovingId] = useState(null);
 
   const fetchDevices = useCallback(async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const r = await fetch(`${API_URL}/auth/webauthn/credentials`);
       if (!r.ok) {
@@ -67,14 +68,17 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
     }
   }, []);
 
-  useEffect(() => { fetchDevices(); }, [fetchDevices]);
+  useEffect(() => {
+    fetchDevices();
+  }, [fetchDevices]);
 
   const beginAddDevice = () => {
     if (devices.length >= MAX_DEVICES) {
       setError(`You've reached the limit of ${MAX_DEVICES} devices. Remove one first.`);
       return;
     }
-    setError(""); setInfo("");
+    setError("");
+    setInfo("");
     // Suggest a sensible default label based on user agent.
     const ua = (navigator.userAgent || "").toLowerCase();
     let suggested = "This device";
@@ -89,7 +93,9 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
 
   const confirmAddDevice = async () => {
     const label = (pendingLabel || "").trim() || "Unnamed device";
-    setAdding(true); setError(""); setInfo("");
+    setAdding(true);
+    setError("");
+    setInfo("");
     try {
       // 1. Get registration options from server.
       const optsRes = await fetch(`${API_URL}/auth/webauthn/register-options`, {
@@ -109,9 +115,8 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
         attResp = await startRegistration({ optionsJSON: optsData.registration_options });
       } catch (browserErr) {
         // User cancelled, no biometric on device, etc.
-        const msg = browserErr?.name === "InvalidStateError"
-          ? "This device is already registered."
-          : browserErr?.message || "Biometric registration cancelled or failed";
+        const msg =
+          browserErr?.name === "InvalidStateError" ? "This device is already registered." : browserErr?.message || "Biometric registration cancelled or failed";
         setError(msg);
         return;
       }
@@ -145,7 +150,9 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
       setError("You can't remove your last device — you'd be locked out on next login. Add another device first.");
       return;
     }
-    setRemovingId(id); setError(""); setInfo("");
+    setRemovingId(id);
+    setError("");
+    setInfo("");
     try {
       const r = await fetch(`${API_URL}/auth/webauthn/credentials/${id}`, { method: "DELETE" });
       if (!r.ok) {
@@ -168,32 +175,45 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
   return (
     <ModalWrap title="Manage Biometric Devices" onClose={onClose} width={500}>
       <div style={{ fontSize: 12, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>
-        Touch ID, Face ID, Windows Hello, or hardware security key — each device you register
-        can sign you in to <strong>{userName}</strong> after you enter your password. Up to {MAX_DEVICES} devices.
+        Touch ID, Face ID, Windows Hello, or hardware security key — each device you register can sign you in to <strong>{userName}</strong> after you enter
+        your password. Up to {MAX_DEVICES} devices.
       </div>
 
       {/* ── Existing devices ── */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ ...labelStyle, marginBottom: 6 }}>REGISTERED DEVICES ({devices.length}/{MAX_DEVICES})</div>
+        <div style={{ ...labelStyle, marginBottom: 6 }}>
+          REGISTERED DEVICES ({devices.length}/{MAX_DEVICES})
+        </div>
         {loading ? (
           <div style={{ fontSize: 12, color: C.muted, padding: "12px 0" }}>Loading...</div>
         ) : devices.length === 0 ? (
-          <div style={{
-            fontSize: 12, color: C.muted, padding: "12px 14px",
-            background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4,
-            fontStyle: "italic",
-          }}>
+          <div
+            style={{
+              fontSize: 12,
+              color: C.muted,
+              padding: "12px 14px",
+              background: C.steel,
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              fontStyle: "italic",
+            }}
+          >
             No devices registered yet. Add one below — your phone, laptop, or a hardware key.
           </div>
         ) : (
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 4, overflow: "hidden" }}>
             {devices.map((d, i) => (
-              <div key={d.id} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                padding: "10px 14px",
-                borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                background: C.cardBg,
-              }}>
+              <div
+                key={d.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "10px 14px",
+                  borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
+                  background: C.cardBg,
+                }}
+              >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{d.device_label}</div>
                   <div style={{ fontSize: 11, color: C.muted }}>
@@ -203,14 +223,19 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
                   </div>
                 </div>
                 <button
+                  className="fti-btn"
                   onClick={() => removeDevice(d.id)}
                   disabled={removingId === d.id || devices.length <= 1}
                   title={devices.length <= 1 ? "Can't remove your last device" : "Remove this device"}
                   style={{
-                    background: "transparent", border: `1px solid ${C.red}33`,
+                    background: "transparent",
+                    border: `1px solid ${C.red}33`,
                     color: devices.length <= 1 ? C.muted : C.red,
-                    fontSize: 10, fontWeight: 700, padding: "4px 10px",
-                    borderRadius: 3, cursor: devices.length <= 1 ? "not-allowed" : "pointer",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "4px 10px",
+                    borderRadius: 3,
+                    cursor: devices.length <= 1 ? "not-allowed" : "pointer",
                     letterSpacing: "0.06em",
                     opacity: removingId === d.id ? 0.5 : 1,
                   }}
@@ -233,49 +258,53 @@ function WebAuthnSetupModal({ userName, onClose, onStateChange }) {
       )}
 
       {showLabelInput && (
-        <div style={{
-          padding: 14, background: C.steel,
-          border: `1px solid ${C.border}`, borderRadius: 4, marginBottom: 12,
-        }}>
-          <div style={{ fontSize: 12, color: C.text, marginBottom: 10 }}>
-            Give this device a name so you'll recognize it later (e.g., "Reggie's iPhone").
-          </div>
+        <div
+          style={{
+            padding: 14,
+            background: C.steel,
+            border: `1px solid ${C.border}`,
+            borderRadius: 4,
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ fontSize: 12, color: C.text, marginBottom: 10 }}>Give this device a name so you'll recognize it later (e.g., "Reggie's iPhone").</div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>DEVICE NAME</label>
             <input
               style={inputStyle}
               value={pendingLabel}
-              onChange={e => setPendingLabel(e.target.value.slice(0, 60))}
+              onChange={(e) => setPendingLabel(e.target.value.slice(0, 60))}
               autoFocus
               maxLength={60}
               placeholder="iPhone, MacBook, YubiKey..."
-              onKeyDown={e => e.key === "Enter" && !adding && confirmAddDevice()}
+              onKeyDown={(e) => e.key === "Enter" && !adding && confirmAddDevice()}
             />
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={confirmAddDevice} disabled={adding}>
               {adding ? "WAITING FOR BIOMETRIC..." : "REGISTER THIS DEVICE"}
             </Btn>
-            <Btn onClick={() => { setShowLabelInput(false); setPendingLabel(""); setError(""); }} variant="ghost">
+            <Btn
+              onClick={() => {
+                setShowLabelInput(false);
+                setPendingLabel("");
+                setError("");
+              }}
+              variant="ghost"
+            >
               CANCEL
             </Btn>
           </div>
         </div>
       )}
 
-      {error && (
-        <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
-          {error}
-        </div>
-      )}
-      {info && (
-        <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
-          {info}
-        </div>
-      )}
+      {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{error}</div>}
+      {info && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>{info}</div>}
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-        <Btn onClick={onClose} variant="ghost">CLOSE</Btn>
+        <Btn onClick={onClose} variant="ghost">
+          CLOSE
+        </Btn>
       </div>
     </ModalWrap>
   );

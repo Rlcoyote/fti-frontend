@@ -25,6 +25,7 @@ export default function AddTicketTypeSelector({ onSelect, onCancel }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {Object.entries(TICKET_TYPES).map(([key, cfg]) => (
           <button
+            className="fti-btn"
             key={key}
             onClick={() => onSelect(key)}
             className="fti-btn"

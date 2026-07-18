@@ -110,6 +110,7 @@ function TakeTest({ testId, onDone, onCancel }) {
     const sel = answers[q.n] === value;
     return (
       <button
+        className="fti-btn"
         key={String(value)}
         onClick={() => setAnswers((a) => ({ ...a, [q.n]: value }))}
         className="fti-btn"

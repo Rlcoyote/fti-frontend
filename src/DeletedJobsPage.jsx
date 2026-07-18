@@ -271,6 +271,7 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
             ) : (
               <>
                 <button
+                  className="fti-btn"
                   type="button"
                   disabled={selectedCount === 0}
                   onClick={() => setConfirmOpen(true)}

@@ -217,6 +217,7 @@ function ActivityLogPage() {
           const active = tab === t.k;
           return (
             <button
+              className="fti-btn"
               key={t.k}
               onClick={() => setTab(t.k)}
               style={{

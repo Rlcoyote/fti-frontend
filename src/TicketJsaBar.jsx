@@ -31,6 +31,7 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
     return (
       <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
         <button
+          className="fti-btn"
           type="button"
           onClick={onOpen}
           style={{
@@ -69,10 +70,11 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
     <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <button
+          className="fti-btn"
           type="button"
           onClick={onOpen}
           style={{
-            background: "#fff",
+            background: C.white,
             color: accentColor,
             border: `${borderWidth} solid ${accentColor}`,
             borderRadius: 4,
@@ -86,7 +88,7 @@ function TicketJsaBar({ ticket, jsaLoaded, existingJSA, onOpen }) {
             e.currentTarget.style.background = hoverBg;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#fff";
+            e.currentTarget.style.background = C.white;
           }}
         >
           CREATE JSA

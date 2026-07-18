@@ -125,6 +125,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
                 {source.date && <span style={{ color: C.muted }}>· {String(source.date).slice(0, 10)}</span>}
                 {rigUps.length > 1 && (
                   <button
+                    className="fti-btn"
                     type="button"
                     onClick={() => setPickerOpen(true)}
                     style={{
@@ -159,6 +160,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
                   ))}
                 </select>
                 <button
+                  className="fti-btn"
                   type="button"
                   onClick={() => setPickerOpen(false)}
                   style={{

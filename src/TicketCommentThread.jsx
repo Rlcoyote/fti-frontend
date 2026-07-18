@@ -156,6 +156,7 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
           placeholder="Reply to site manager..."
         />
         <button
+          className="fti-btn"
           type="button"
           style={{
             background: C.blue,

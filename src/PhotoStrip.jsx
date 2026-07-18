@@ -121,7 +121,7 @@ function PhotoStrip({ ticketId, isLocked }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>PHOTOS ({photos.length}/10)</div>
         {!isLocked && photos.length < 10 && (
-          <label style={{ background: C.blue, color: "#fff", borderRadius: 4, padding: "4px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+          <label style={{ background: C.blue, color: C.white, borderRadius: 4, padding: "4px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
             {uploading ? "UPLOADING..." : "+ ADD PHOTO"}
             <input type="file" accept="image/*,.heic" multiple hidden onChange={handleUpload} disabled={uploading} />
           </label>
@@ -139,13 +139,14 @@ function PhotoStrip({ ticketId, isLocked }) {
               />
               {!isLocked && (
                 <button
+                  className="fti-btn"
                   onClick={() => handleDelete(p.id)}
                   style={{
                     position: "absolute",
                     top: 2,
                     right: 2,
                     background: C.scrim,
-                    color: "#fff",
+                    color: C.white,
                     border: "none",
                     borderRadius: "50%",
                     width: 18,

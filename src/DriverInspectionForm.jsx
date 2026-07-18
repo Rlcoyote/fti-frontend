@@ -97,6 +97,7 @@ function ChecklistSection({ title, subtitle, items, unitKey, setItem, canRedTag 
                 <div style={{ display: "flex", gap: 0, border: `1px solid ${C.border}`, borderRadius: 3, overflow: "hidden" }}>
                   {["pass", "defect"].map((s) => (
                     <button
+                      className="fti-btn"
                       key={s}
                       type="button"
                       onClick={() => setItem(unitKey, idx, { status: s })}
@@ -122,6 +123,7 @@ function ChecklistSection({ title, subtitle, items, unitKey, setItem, canRedTag 
                     <span style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>SEVERITY</span>
                     {["minor", "major"].map((sv) => (
                       <button
+                        className="fti-btn"
                         key={sv}
                         type="button"
                         onClick={() => setItem(unitKey, idx, { severity: sv })}
@@ -381,6 +383,7 @@ function DriverInspectionForm() {
       <div style={{ display: "flex", gap: 0, marginBottom: 16, border: `1px solid ${C.border}`, borderRadius: 4, overflow: "hidden" }}>
         {["pre_trip", "post_trip"].map((t) => (
           <button
+            className="fti-btn"
             key={t}
             type="button"
             onClick={() => setType(t)}

@@ -179,6 +179,7 @@ function TicketActionBar({
           deletable from here. */}
       {onDelete && !isFullyLocked && !signedBy && status !== "sigNotReq" && status !== "approved" && status !== "voided" && (
         <button
+          className="fti-btn"
           type="button"
           onClick={() => setShowDeleteConfirm(true)}
           style={{

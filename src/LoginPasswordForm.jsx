@@ -61,6 +61,7 @@ function LoginPasswordForm({ email, setEmail, password, setPassword, error, msg,
       {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
       {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
       <button
+        className="fti-btn"
         type="submit"
         disabled={loading || !webauthnSupported}
         style={{

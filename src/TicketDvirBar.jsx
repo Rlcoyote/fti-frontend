@@ -55,6 +55,7 @@ function TicketDvirBar({ ticket, dvirState }) {
     return (
       <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
         <button
+          className="fti-btn"
           type="button"
           onClick={launchInspection}
           title={`Pre-trip signed ${dvir?.signed_at ? new Date(dvir.signed_at).toLocaleString() : "today"}`}
@@ -100,10 +101,11 @@ function TicketDvirBar({ ticket, dvirState }) {
     <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <button
+          className="fti-btn"
           type="button"
           onClick={launchInspection}
           style={{
-            background: "#fff",
+            background: C.white,
             color: C.red,
             border: `2px solid ${C.red}`,
             borderRadius: 4,
@@ -117,7 +119,7 @@ function TicketDvirBar({ ticket, dvirState }) {
             e.currentTarget.style.background = TINT.redBg;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#fff";
+            e.currentTarget.style.background = C.white;
           }}
         >
           {label}

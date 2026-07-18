@@ -123,7 +123,7 @@ function PinSetupPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#0c1524", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div style={{ background: "#fff", borderRadius: 10, padding: "32px 36px", width: "100%", maxWidth: 440, boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
+      <div style={{ background: C.white, borderRadius: 10, padding: "32px 36px", width: "100%", maxWidth: 440, boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.14em", color: C.red }}>FLO-TEST INC.</div>
           <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, letterSpacing: "0.1em", marginTop: 4 }}>PIN SETUP</div>
@@ -244,12 +244,13 @@ function PinSetupPage() {
             )}
 
             <button
+              className="fti-btn"
               onClick={submit}
               disabled={submitting || pin.length !== 4 || pin2.length !== 4 || !smsConsent}
               style={{
                 width: "100%",
                 background: submitting ? C.muted : C.red,
-                color: "#fff",
+                color: C.white,
                 border: "none",
                 borderRadius: 4,
                 padding: "12px 20px",
@@ -276,13 +277,14 @@ function PinSetupPage() {
               You're all set. You can close this window — you'll use your PIN when you sign your first JSA on the job.
             </div>
             <button
+              className="fti-btn"
               onClick={() => {
                 window.location.href = "/";
               }}
               style={{
                 width: "100%",
                 background: C.blue,
-                color: "#fff",
+                color: C.white,
                 border: "none",
                 borderRadius: 4,
                 padding: "12px 20px",

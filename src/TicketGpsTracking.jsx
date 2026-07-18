@@ -346,6 +346,7 @@ export default function TicketGpsTracking({
                   <span style={{ fontSize: 12, fontWeight: 700, color: PANEL_TEXT }}>{heading}</span>
                   {editable && s.source !== "gps" && (
                     <button
+                      className="fti-btn"
                       type="button"
                       onClick={() => removeStop(idx)}
                       style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}
@@ -380,6 +381,7 @@ export default function TicketGpsTracking({
         <div style={{ marginBottom: 12 }}>
           {!addingStop ? (
             <button
+              className="fti-btn"
               type="button"
               onClick={() => setAddingStop(true)}
               style={{

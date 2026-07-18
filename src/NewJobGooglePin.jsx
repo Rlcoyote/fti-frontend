@@ -92,6 +92,7 @@ export default function NewJobGooglePin({ googlePin, setGooglePin, pinLat, setPi
           placeholder="Paste Google Maps link..."
         />
         <button
+          className="fti-btn"
           type="button"
           onClick={() => resolvePin(googlePin)}
           disabled={!googlePin.trim() || pinResolving}
@@ -127,6 +128,7 @@ export default function NewJobGooglePin({ googlePin, setGooglePin, pinLat, setPi
             View on Google Maps ↗
           </a>
           <button
+            className="fti-btn"
             type="button"
             onClick={() => {
               navigator.clipboard.writeText(googlePin || `${pinLat},${pinLng}`);

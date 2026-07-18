@@ -91,6 +91,7 @@ function EditDoc({ doc, onSaved, onBack }) {
                 style={{ ...inputStyle, resize: "vertical", marginBottom: 0, flex: 1 }}
               />
               <button
+                className="fti-btn"
                 onClick={() => setInitials((arr) => arr.filter((_, j) => j !== i))}
                 title="Remove this statement"
                 style={{ background: "none", border: `1px solid ${C.red}55`, color: C.red, borderRadius: R.md, padding: "4px 10px", cursor: "pointer" }}
@@ -166,6 +167,7 @@ function EditDoc({ doc, onSaved, onBack }) {
               </>
             )}
             <button
+              className="fti-btn"
               onClick={() => setInputs((arr) => arr.filter((_, j) => j !== i))}
               title="Remove this field"
               style={{ background: "none", border: `1px solid ${C.red}55`, color: C.red, borderRadius: R.md, padding: "4px 10px", cursor: "pointer" }}
@@ -209,6 +211,7 @@ function EditDoc({ doc, onSaved, onBack }) {
               style={{ ...inputStyle, width: "auto", flex: "2 1 200px", marginBottom: 0 }}
             />
             <button
+              className="fti-btn"
               onClick={() => setChecklist((arr) => arr.filter((_, j) => j !== i))}
               title="Remove this item"
               style={{ background: "none", border: `1px solid ${C.red}55`, color: C.red, borderRadius: R.md, padding: "4px 10px", cursor: "pointer" }}

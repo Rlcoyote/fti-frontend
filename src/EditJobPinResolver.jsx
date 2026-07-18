@@ -67,6 +67,7 @@ function EditJobPinResolver({ googlePin, setGooglePin, pinLat, setPinLat, pinLng
           placeholder="Paste Google Maps link..."
         />
         <button
+          className="fti-btn"
           type="button"
           onClick={resolve}
           disabled={!googlePin.trim() || resolving}
@@ -87,6 +88,7 @@ function EditJobPinResolver({ googlePin, setGooglePin, pinLat, setPinLat, pinLng
         </button>
         {googlePin && (
           <button
+            className="fti-btn"
             type="button"
             onClick={() => navigator.clipboard.writeText(googlePin)}
             style={{

@@ -94,6 +94,7 @@ function TicketPage({ jobs, tickets, setTickets }) {
       <div style={{ padding: "40px 20px", textAlign: "center", color: C.muted }}>
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Ticket not found</div>
         <button
+          className="fti-btn"
           onClick={() => navigate(-1)}
           style={{
             background: C.blue,

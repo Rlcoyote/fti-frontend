@@ -46,6 +46,7 @@ function LoginDeviceRegistration({ intro, infoText, deviceLabel, setDeviceLabel,
       </div>
       {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
       <button
+        className="fti-btn"
         onClick={onRegister}
         disabled={loading}
         style={{

@@ -68,6 +68,7 @@ export default function NewJobLocationPanel({
             <label style={labelStyle}>STATE *</label>
             {stateLockedByPin && (
               <button
+                className="fti-btn"
                 type="button"
                 onClick={() => setStateLockedByPin(false)}
                 style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}
@@ -95,6 +96,7 @@ export default function NewJobLocationPanel({
             <label style={labelStyle}>COUNTY *</label>
             {countyLockedByPin && (
               <button
+                className="fti-btn"
                 type="button"
                 onClick={() => setCountyLockedByPin(false)}
                 style={{ background: "transparent", border: "none", fontSize: 10, color: C.muted, cursor: "pointer", padding: 0 }}

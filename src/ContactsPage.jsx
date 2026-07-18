@@ -313,6 +313,7 @@ function ContactsPage() {
               <>
                 {eligibleForMerge && (
                   <button
+                    className="fti-btn"
                     type="button"
                     onClick={openMerge}
                     style={{
@@ -330,6 +331,7 @@ function ContactsPage() {
                   </button>
                 )}
                 <button
+                  className="fti-btn"
                   type="button"
                   disabled={selected.size === 0}
                   onClick={() => setConfirmSoftDelete(true)}

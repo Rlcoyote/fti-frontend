@@ -28,6 +28,7 @@ function LoginResetForm({ newPw, setNewPw, confirmPw, setConfirmPw, error, msg, 
       {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
       {msg && <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{msg}</div>}
       <button
+        className="fti-btn"
         onClick={onSubmit}
         disabled={loading}
         style={{

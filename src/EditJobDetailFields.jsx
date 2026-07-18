@@ -156,6 +156,7 @@ function EditJobDetailFields({
               <input style={{ ...inputStyle, flex: 1 }} value={w} onChange={(e) => updateWell(idx, e.target.value)} placeholder="Well or CTB name..." />
               {wellList.length > 1 && (
                 <button
+                  className="fti-btn"
                   type="button"
                   onClick={() => removeWell(idx)}
                   style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700 }}
@@ -204,6 +205,7 @@ function EditJobDetailFields({
       })}
       {wellList.length < 10 && (
         <button
+          className="fti-btn"
           type="button"
           onClick={addWell}
           style={{

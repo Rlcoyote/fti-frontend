@@ -408,7 +408,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         <div style={{ background: tcfg.color, padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
               {editable && (
                 <select
                   value={ticket.type}
@@ -418,7 +418,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                     background: "rgba(255,255,255,0.15)",
                     border: "1px solid rgba(255,255,255,0.4)",
                     borderRadius: 4,
-                    color: "#fff",
+                    color: C.white,
                     fontSize: 11,
                     fontWeight: 700,
                     padding: "3px 6px",
@@ -426,7 +426,15 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   }}
                 >
                   {Object.keys(TICKET_TYPES).map((t) => (
-                    <option key={t} value={t} style={{ color: "#222" }} disabled={TICKET_FAMILY[t] !== TICKET_FAMILY[ticket.type]}>
+                    <option
+                      key={t}
+                      value={t}
+                      style={{
+                        color:
+                          "#222" /* native <option> renders on white in most browsers regardless of theme — fixed dark text is the workaround, not drift */,
+                      }}
+                      disabled={TICKET_FAMILY[t] !== TICKET_FAMILY[ticket.type]}
+                    >
                       {t}
                     </option>
                   ))}
@@ -436,6 +444,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em" }}>TICKET DETAIL</div>
           </div>
           <button
+            className="fti-btn"
             onClick={onClose}
             style={{
               background: "rgba(255,255,255,0.15)",
@@ -444,7 +453,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               padding: "5px 14px",
               fontSize: 11,
               fontWeight: 700,
-              color: "#fff",
+              color: C.white,
               cursor: "pointer",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.25)")}

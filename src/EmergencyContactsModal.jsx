@@ -103,6 +103,7 @@ function EmergencyContactsModal({ onClose }) {
           </div>
           {isOwner && (
             <button
+              className="fti-btn"
               type="button"
               onClick={() => removeContact(i)}
               style={{
@@ -126,6 +127,7 @@ function EmergencyContactsModal({ onClose }) {
 
       {isOwner && contacts.length < 10 && (
         <button
+          className="fti-btn"
           type="button"
           onClick={addContact}
           style={{

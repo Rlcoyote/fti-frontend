@@ -117,6 +117,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
         </div>
         {dragOrder && (
           <button
+            className="fti-btn"
             onClick={resetOrder}
             style={{
               background: C.blue,

@@ -36,7 +36,7 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
     <div style={{ padding: "24px 28px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>To-Do / Tasks</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Action Items</h1>
           <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
             {myTodos.filter((t) => !t.completed).length} active · {myTodos.filter((t) => t.completed).length} completed
           </div>
@@ -180,6 +180,7 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
+            className="fti-btn"
             onClick={() => setShowCompleted((s) => !s)}
             style={{
               background: "transparent",

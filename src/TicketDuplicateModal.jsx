@@ -89,6 +89,7 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
             {dupSource.voidedAt && <span style={{ color: C.red, fontWeight: 700 }}>VOIDED</span>}
             {sourceOptions.length > 1 && (
               <button
+                className="fti-btn"
                 type="button"
                 onClick={() => setDupSourcePickerOpen(true)}
                 style={{
@@ -124,6 +125,7 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
               ))}
             </select>
             <button
+              className="fti-btn"
               type="button"
               onClick={() => setDupSourcePickerOpen(false)}
               style={{

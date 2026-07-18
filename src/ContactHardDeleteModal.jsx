@@ -31,6 +31,7 @@ function ContactHardDeleteModal({ contact, onConfirm, onClose }) {
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button
+          className="fti-btn"
           onClick={() => onConfirm(reason)}
           disabled={!reason.trim()}
           style={{

@@ -160,6 +160,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                     </div>
                   </div>
                   <button
+                    className="fti-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       removeItem(idx);
@@ -167,7 +168,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                     style={{
                       background: "transparent",
                       border: "none",
-                      color: "#ccc",
+                      color: C.muted,
                       cursor: "pointer",
                       fontSize: 16,
                       padding: "0 4px",
@@ -176,7 +177,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                       e.currentTarget.style.color = C.red;
                     }}
                     onTouchEnd={(e) => {
-                      e.currentTarget.style.color = "#ccc";
+                      e.currentTarget.style.color = C.muted;
                     }}
                   >
                     ×
@@ -349,6 +350,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                   {calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <button
+                  className="fti-btn"
                   onClick={() => removeItem(idx)}
                   style={{
                     background: "transparent",
@@ -408,7 +410,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
             style={{
               position: "fixed",
               inset: 0,
-              background: "#00000066",
+              background: C.scrim,
               zIndex: 200,
               display: "flex",
               alignItems: "center",
@@ -438,6 +440,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                   <div style={{ fontSize: 14, fontWeight: 800, color: C.text, letterSpacing: "0.06em" }}>RATE SHEET</div>
                   <button
+                    className="fti-btn"
                     onClick={() => {
                       setShowSearch(false);
                       setSearchTerm("");

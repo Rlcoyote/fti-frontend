@@ -58,6 +58,7 @@ function TicketEditLockBanner({ editLock }) {
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
+            className="fti-btn"
             onClick={editLock.requestEdit}
             style={{
               background: C.blue,
@@ -74,6 +75,7 @@ function TicketEditLockBanner({ editLock }) {
           </button>
           {isOwnerOrAdmin && (
             <button
+              className="fti-btn"
               onClick={editLock.forceUnlock}
               aria-label="Owner/admin override — clears the lock and gives you edit access"
               style={{
@@ -121,6 +123,7 @@ function TicketEditLockBanner({ editLock }) {
           <strong>{editLock.requestedByName}</strong> is requesting access to this ticket.
         </div>
         <button
+          className="fti-btn"
           onClick={editLock.dismissRequest}
           style={{
             background: "transparent",

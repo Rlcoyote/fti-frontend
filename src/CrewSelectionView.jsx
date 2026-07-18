@@ -230,6 +230,7 @@ function CrewSelectionView({
                 <div style={{ display: "flex", gap: 6 }}>
                   {!c.is_lead && (
                     <button
+                      className="fti-btn"
                       onClick={() => onSetLead(c.user_id)}
                       disabled={busy}
                       title="Designate as lead"
@@ -249,6 +250,7 @@ function CrewSelectionView({
                     </button>
                   )}
                   <button
+                    className="fti-btn"
                     onClick={() => onRemove(c.user_id, c.user_name)}
                     disabled={busy}
                     title="Remove from ticket"

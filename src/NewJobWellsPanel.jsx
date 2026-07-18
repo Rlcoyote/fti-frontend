@@ -102,6 +102,7 @@ export default function NewJobWellsPanel({
           )}
           {wellList.length < 10 && (
             <button
+              className="fti-btn"
               type="button"
               onClick={addWell}
               style={{
@@ -150,6 +151,7 @@ export default function NewJobWellsPanel({
                   />
                   {wellList.length > 1 && (
                     <button
+                      className="fti-btn"
                       type="button"
                       onClick={() => removeWell(idx)}
                       style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16, fontWeight: 700, padding: "0 4px" }}

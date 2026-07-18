@@ -123,6 +123,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{selected.size} selected</span>
             <button
+              className="fti-btn"
               onClick={() => {
                 if (selected.size >= 3) setShowBatchConfirm(true);
                 else handleBatchApprove();
@@ -224,6 +225,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
                   </div>
                   <div onClick={(e) => e.stopPropagation()} style={{ position: "relative" }}>
                     <button
+                      className="fti-btn"
                       onClick={() => setAccountingMenu(accountingMenu === t.id ? null : t.id)}
                       style={{
                         background: C.darkBlue,
@@ -403,6 +405,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 8, position: "relative" }}>
                   <button
+                    className="fti-btn"
                     onClick={() => setAccountingMenu(accountingMenu === t.id ? null : t.id)}
                     style={{
                       background: C.darkBlue,

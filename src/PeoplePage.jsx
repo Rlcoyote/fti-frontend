@@ -192,10 +192,10 @@ function PeoplePage() {
 
       {/* Tab bar */}
       <div style={{ display: "flex", gap: 0, marginBottom: 16, borderBottom: `1px solid ${C.border}` }}>
-        <button onClick={() => setActiveTab("roster")} style={tabBtnStyle(activeTab === "roster")}>
+        <button className="fti-btn" onClick={() => setActiveTab("roster")} style={tabBtnStyle(activeTab === "roster")}>
           ROSTER
         </button>
-        <button onClick={() => setActiveTab("permissions")} style={tabBtnStyle(activeTab === "permissions")}>
+        <button className="fti-btn" onClick={() => setActiveTab("permissions")} style={tabBtnStyle(activeTab === "permissions")}>
           PERMISSIONS MATRIX
         </button>
       </div>

@@ -48,6 +48,7 @@ function LoginBiometricStep({ error, linkSentMsg, loading, authFailedShowLinkOpt
         </div>
       )}
       <button
+        className="fti-btn"
         onClick={onConfirm}
         disabled={loading}
         style={{
@@ -85,6 +86,7 @@ function LoginBiometricStep({ error, linkSentMsg, loading, authFailedShowLinkOpt
             Is this a new device that hasn't been registered yet? We can email you a one-time link to register it.
           </div>
           <button
+            className="fti-btn"
             onClick={onRequestLink}
             disabled={loading}
             style={{

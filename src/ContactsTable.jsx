@@ -107,17 +107,18 @@ function ContactsTable({ loading, filtered, merged, selectMode, isAdmin, isOwner
                 <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
                   {isAdmin && !selectMode && !inactive && (
                     <button
+                      className="fti-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleRowSoftDelete(c);
                       }}
                       title="Mark inactive (reversible)"
-                      style={{ background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 14 }}
+                      style={{ background: "transparent", border: "none", color: C.muted, cursor: "pointer", fontSize: 14 }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.color = C.yellow;
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "#ccc";
+                        e.currentTarget.style.color = C.muted;
                       }}
                     >
                       🚫
@@ -125,17 +126,18 @@ function ContactsTable({ loading, filtered, merged, selectMode, isAdmin, isOwner
                   )}
                   {isOwner && !selectMode && (
                     <button
+                      className="fti-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         openHardDelete(c);
                       }}
                       title="Permanently delete (owner only)"
-                      style={{ background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 14 }}
+                      style={{ background: "transparent", border: "none", color: C.muted, cursor: "pointer", fontSize: 14 }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.color = C.red;
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "#ccc";
+                        e.currentTarget.style.color = C.muted;
                       }}
                     >
                       🗑

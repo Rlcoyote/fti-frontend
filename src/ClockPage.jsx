@@ -99,7 +99,7 @@ function ClockPage() {
       {/* BIG STATUS */}
       <div
         style={{
-          background: open ? "#0f3d22" : C.cardBg,
+          background: open ? C.greenB : C.cardBg,
           border: `2px solid ${open ? C.green : C.border}`,
           borderRadius: 12,
           padding: "20px 16px",
@@ -109,12 +109,13 @@ function ClockPage() {
       >
         {open ? (
           <>
-            <div style={{ color: "#9ff0bd", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em" }}>CLOCKED IN</div>
+            <div style={{ color: C.green, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em" }}>CLOCKED IN</div>
             <div style={{ color: "white", fontSize: 34, fontWeight: 800, margin: "6px 0" }}>{fmtDur(liveSeconds)}</div>
-            <div style={{ color: "#cfe9d8", fontSize: 13, marginBottom: 14 }}>
+            <div style={{ color: C.text, fontSize: 13, marginBottom: 14 }}>
               {open.ticket_number ? `Ticket #${open.ticket_number}${open.ticket_type ? ` · ${open.ticket_type}` : ""}` : "Shop / Yard"}
             </div>
             <button
+              className="fti-btn"
               onClick={doClockOut}
               disabled={busy}
               style={{
@@ -169,6 +170,7 @@ function ClockPage() {
           ) : (
             tickets.map((t) => (
               <button
+                className="fti-btn"
                 key={t.id}
                 onClick={() => doClockIn(t.id)}
                 disabled={busy}

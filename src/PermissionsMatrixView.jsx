@@ -210,6 +210,7 @@ function PermissionsMatrixView() {
               and a visible button-style affordance. State persists in
               localStorage so the user's last preference holds across navs. */}
           <button
+            className="fti-btn"
             type="button"
             onClick={() => setShowTemplates(!showTemplates)}
             style={{
@@ -278,6 +279,7 @@ function PermissionsMatrixView() {
               </table>
               <div style={{ padding: "10px 4px", display: "flex", gap: 10, alignItems: "center" }}>
                 <button
+                  className="fti-btn"
                   onClick={saveTemplates}
                   disabled={!templatesDirty || templateSaving}
                   style={{

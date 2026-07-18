@@ -80,6 +80,7 @@ function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign,
         </div>
         <div style={{ textAlign: "center", marginTop: 12 }}>
           <button
+            className="fti-btn"
             onClick={() => {
               window.location.href = "/";
             }}
@@ -125,6 +126,7 @@ function LoginJsaSignStep({ jsaSignLanding, jsaSignDone, error, loading, onSign,
       </div>
       {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
       <button
+        className="fti-btn"
         onClick={onSign}
         disabled={loading}
         style={{

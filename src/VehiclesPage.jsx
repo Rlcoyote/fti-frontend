@@ -390,6 +390,7 @@ function VehiclesPage() {
             </Btn>
             {canManage && editV.lifecycle_status === "active" && (
               <button
+                className="fti-btn"
                 onClick={() => setRetireConfirm(editV)}
                 style={{
                   marginLeft: "auto",

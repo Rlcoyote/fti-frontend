@@ -61,6 +61,7 @@ function JSAPpeWeather({ ppe, setPpe, weather, weatherData, weatherAutoTags, tog
             const isAuto = isSelected && weatherAutoTags.includes(w);
             return (
               <button
+                className="fti-btn"
                 key={w}
                 onClick={() => toggleWeather(w)}
                 style={{

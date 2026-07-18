@@ -44,6 +44,7 @@ class ErrorBoundary extends React.Component {
           </div>
           <div style={{ fontSize: 10, color: C.muted, marginBottom: 16, wordBreak: "break-word" }}>{String(this.state.error?.message || this.state.error)}</div>
           <button
+            className="fti-btn"
             onClick={() => window.location.reload()}
             style={{
               background: C.red,

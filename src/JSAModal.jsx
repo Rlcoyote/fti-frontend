@@ -468,6 +468,7 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targe
                 />
                 {signatures.length > 1 && (
                   <button
+                    className="fti-btn"
                     onClick={() => setSignatures((prev) => prev.filter((_, j) => j !== i))}
                     style={{ background: "transparent", border: "none", color: C.red, cursor: "pointer", fontSize: 16 }}
                   >

@@ -522,6 +522,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         {type && caps.jsaInCreate && !existingJSA && (
           <div style={{ padding: "8px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
             <button
+              className="fti-btn"
               type="button"
               onClick={softSaveForJsa}
               disabled={isSubmitting}
@@ -561,6 +562,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
                 : { bg: TINT.yellowBg, text: TINT.yellowText, border: TINT.yellowBorder + "44", hover: TINT.yellowHover };
               return (
                 <button
+                  className="fti-btn"
                   type="button"
                   onClick={() => setShowJSA(true)}
                   style={{

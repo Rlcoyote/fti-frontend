@@ -145,9 +145,9 @@ export default function LaborTimeRulesPage() {
 
       {/* Worked example so the numbers are concrete. */}
       {example && (
-        <div style={{ background: "#0f3d22", borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
-          <div style={{ color: "#9ff0bd", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 10 }}>HOW THIS PLAYS OUT</div>
-          <div style={{ color: "#cfe9d8", fontSize: 13, marginBottom: 12 }}>
+        <div style={{ background: C.greenB, borderRadius: 12, padding: "16px 18px", marginBottom: 18 }}>
+          <div style={{ color: C.green, fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 10 }}>HOW THIS PLAYS OUT</div>
+          <div style={{ color: C.text, fontSize: 13, marginBottom: 12 }}>
             Example — Location Time <strong style={{ color: "white" }}>7:00 AM</strong>, a <strong style={{ color: "white" }}>45-min</strong> drive ⟶ departure{" "}
             <strong style={{ color: "white" }}>{example.departure}</strong>:
           </div>
@@ -166,6 +166,7 @@ export default function LaborTimeRulesPage() {
       )}
 
       <button
+        className="fti-btn"
         onClick={save}
         disabled={saving || !valid}
         style={{

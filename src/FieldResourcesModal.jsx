@@ -205,6 +205,7 @@ function FieldResourcesModal({ onClose }) {
             </div>
             {isAdmin && (
               <button
+                className="fti-btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(doc.id);
@@ -228,7 +229,11 @@ function FieldResourcesModal({ onClose }) {
         <div style={{ marginTop: 16, background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{viewDoc.name}</div>
-            <button onClick={() => setViewDoc(null)} style={{ background: "transparent", border: "none", fontSize: 16, color: C.muted, cursor: "pointer" }}>
+            <button
+              className="fti-btn"
+              onClick={() => setViewDoc(null)}
+              style={{ background: "transparent", border: "none", fontSize: 16, color: C.muted, cursor: "pointer" }}
+            >
               ×
             </button>
           </div>

@@ -64,6 +64,7 @@ function ReportsPage({ jobs, tickets, inventory }) {
           </div>
           {(dateFrom || dateTo) && (
             <button
+              className="fti-btn"
               onClick={() => {
                 setDateFrom("");
                 setDateTo("");
@@ -90,6 +91,7 @@ function ReportsPage({ jobs, tickets, inventory }) {
         <div style={{ display: "flex", gap: 0, minWidth: "max-content" }}>
           {REPORT_TABS.map((t) => (
             <button
+              className="fti-btn"
               key={t.key}
               onClick={() => setTab(t.key)}
               style={{

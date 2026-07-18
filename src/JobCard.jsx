@@ -125,6 +125,7 @@ function JobCard({
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             <button
+              className="fti-btn"
               type="button"
               disabled={!completion.ready || !canManage}
               onClick={(e) => {
@@ -234,6 +235,7 @@ function JobCard({
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
             <button
+              className="fti-btn"
               type="button"
               disabled={!completion.ready || !canManage}
               onClick={(e) => {

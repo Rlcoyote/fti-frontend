@@ -355,6 +355,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
             </div>
             {can("safety_meeting_delete") && (
               <button
+                className="fti-btn"
                 onClick={() => removeAttendance(row.id)}
                 title="Remove row (admin — audit-logged)"
                 style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: F.md, padding: SP.md }}
@@ -435,6 +436,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
               {t.ppm_reference && <div style={{ fontSize: F.label, color: C.blue }}>{t.ppm_reference}</div>}
             </div>
             <button
+              className="fti-btn"
               onClick={() => removeTopic(t.id)}
               title="Remove topic (audit-logged)"
               style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: F.md }}
@@ -626,6 +628,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
               </Btn>
               {can("safety_meeting_delete") && (
                 <button
+                  className="fti-btn"
                   onClick={() => act(async () => api.del(`/safety-meetings/${meeting.id}/attachments/${a.id}`))()}
                   title="Delete attachment (admin — audit-logged)"
                   style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: F.md }}

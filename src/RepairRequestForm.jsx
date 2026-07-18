@@ -255,6 +255,7 @@ function RepairRequestForm() {
         <div style={{ display: "flex", gap: 8 }}>
           {["minor", "major"].map((sv) => (
             <button
+              className="fti-btn"
               key={sv}
               type="button"
               onClick={() => setSeverity(sv)}

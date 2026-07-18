@@ -171,6 +171,7 @@ function LiveGpsEventsPage() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <button
+            className="fti-btn"
             type="button"
             onClick={() => setPaused((p) => !p)}
             style={{
@@ -188,6 +189,7 @@ function LiveGpsEventsPage() {
             {paused ? "RESUME REFRESH" : "PAUSE REFRESH"}
           </button>
           <button
+            className="fti-btn"
             type="button"
             onClick={load}
             style={{

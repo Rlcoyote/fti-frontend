@@ -84,6 +84,7 @@ export function YardEditModal({ yard, e, setE, canManage, onSave, onClose, onRet
         </Btn>
         {canManage && yard.lifecycle_status === "active" && (
           <button
+            className="fti-btn"
             onClick={onRetire}
             style={{
               marginLeft: "auto",
@@ -119,6 +120,7 @@ export function YardRetireConfirm({ yard, deleteGeofence, setDeleteGeofence, onC
       )}
       <div style={{ display: "flex", gap: 8 }}>
         <button
+          className="fti-btn"
           onClick={onConfirm}
           style={{ background: C.red, color: C.white, fontSize: 12, fontWeight: 700, padding: "8px 16px", borderRadius: 4, border: "none", cursor: "pointer" }}
         >

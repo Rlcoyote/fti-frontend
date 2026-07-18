@@ -87,6 +87,7 @@ export default function AddTicketGooglePin({
         />
         {ticketPin && (
           <button
+            className="fti-btn"
             type="button"
             onClick={onResolve}
             disabled={ticketPinResolving}

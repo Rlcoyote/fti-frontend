@@ -82,6 +82,7 @@ export default function WellPinPaste({ pinLat, pinLng, setPinLat, setPinLng }) {
           placeholder="Paste Google Maps link…"
         />
         <button
+          className="fti-btn"
           type="button"
           onClick={resolve}
           disabled={!url.trim() || resolving}
@@ -116,6 +117,7 @@ export default function WellPinPaste({ pinLat, pinLng, setPinLat, setPinLng }) {
             VIEW ↗
           </a>
           <button
+            className="fti-btn"
             type="button"
             onClick={clear}
             style={{ background: "transparent", border: "none", color: C.muted, fontSize: 10, cursor: "pointer", fontWeight: 600 }}

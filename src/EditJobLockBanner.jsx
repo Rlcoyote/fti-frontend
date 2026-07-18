@@ -35,6 +35,7 @@ function EditJobLockBanner({ editLock }) {
             This job is being edited by <strong>{editLock.lockedByName}</strong>. As soon as they are done, you may edit.
           </div>
           <button
+            className="fti-btn"
             onClick={editLock.requestEdit}
             style={{
               background: C.blue,
@@ -70,6 +71,7 @@ function EditJobLockBanner({ editLock }) {
             <strong>{editLock.requestedByName}</strong> is requesting access to this job.
           </div>
           <button
+            className="fti-btn"
             onClick={editLock.dismissRequest}
             style={{
               background: "transparent",

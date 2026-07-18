@@ -12,14 +12,14 @@ export function YardAddPicker({ onLink, onCreate, onClose }) {
     <ModalWrap title="Add a Yard" onClose={onClose} width={480}>
       <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Choose how to add the yard:</div>
       <div style={{ display: "grid", gap: 10 }}>
-        <button onClick={onLink} style={card}>
+        <button className="fti-btn" onClick={onLink} style={card}>
           <div style={title}>Link an Existing Geofence</div>
           <div style={sub}>
             Use a geofence you've already created in the GPS provider's dashboard (e.g., "FT - Wickett Yard"). FTI stores the linkage; the geofence shape lives
             on the provider's side. Recommended when the yard already exists in the GPS account.
           </div>
         </button>
-        <button onClick={onCreate} style={card}>
+        <button className="fti-btn" onClick={onCreate} style={card}>
           <div style={title}>Create a New Yard</div>
           <div style={sub}>
             Enter the yard's name, address, coordinates, and radius. FTI creates a new circular geofence in the GPS provider for you. Use this when the yard

@@ -321,16 +321,17 @@ function SafetyPage() {
                         <div>
                           {isAdmin && (
                             <button
+                              className="fti-btn"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete(c.id);
                               }}
-                              style={{ background: "transparent", border: "none", color: "#ccc", cursor: "pointer", fontSize: 14 }}
+                              style={{ background: "transparent", border: "none", color: C.muted, cursor: "pointer", fontSize: 14 }}
                               onMouseEnter={(e) => {
                                 e.currentTarget.style.color = C.red;
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.color = "#ccc";
+                                e.currentTarget.style.color = C.muted;
                               }}
                             >
                               🗑
@@ -458,6 +459,7 @@ function SafetyPage() {
                 <div style={{ position: "relative" }}>
                   <img src={formPhoto} alt="Cert" style={{ width: 120, height: 90, objectFit: "cover", borderRadius: 4, border: `1px solid ${C.border}` }} />
                   <button
+                    className="fti-btn"
                     type="button"
                     onClick={() => setFormPhoto(null)}
                     style={{

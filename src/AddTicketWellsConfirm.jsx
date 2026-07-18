@@ -30,6 +30,7 @@ export default function AddTicketWellsConfirm({ type, jobWells, assignedWells, o
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <label style={{ fontSize: 11, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
           <button
+            className="fti-btn"
             type="button"
             onClick={onSelectAll}
             style={{

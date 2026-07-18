@@ -113,6 +113,7 @@ function CopyLineItemsModal({ jobId, excludeTicketId, onClose, onCopy }) {
                 {source.date && <span style={{ color: C.muted }}>· {String(source.date).slice(0, 10)}</span>}
                 {rigUps.length > 1 && (
                   <button
+                    className="fti-btn"
                     type="button"
                     onClick={() => setPickerOpen(true)}
                     style={{
@@ -150,6 +151,7 @@ function CopyLineItemsModal({ jobId, excludeTicketId, onClose, onCopy }) {
                   })}
                 </select>
                 <button
+                  className="fti-btn"
                   type="button"
                   onClick={() => setPickerOpen(false)}
                   style={{

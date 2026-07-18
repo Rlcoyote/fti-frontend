@@ -93,6 +93,7 @@ function TicketGooglePin({ editable, values, onChange, job, driveInfo, driveLoad
           />
           {pin && (
             <button
+              className="fti-btn"
               type="button"
               onClick={resolvePin}
               disabled={resolving}
@@ -138,6 +139,7 @@ function TicketGooglePin({ editable, values, onChange, job, driveInfo, driveLoad
         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 10 }}>
           {!driveInfo && !driveLoading && (
             <button
+              className="fti-btn"
               type="button"
               onClick={onCalcDrive}
               style={{

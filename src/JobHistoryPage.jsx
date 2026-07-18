@@ -75,6 +75,7 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
         </div>
         {(search || statusFilter !== "All" || dateFrom || dateTo) && (
           <button
+            className="fti-btn"
             onClick={() => {
               setSearch("");
               setStatusFilter("All");
