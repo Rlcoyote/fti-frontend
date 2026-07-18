@@ -53,9 +53,12 @@ const LIGHT = {
   priLowB: "#e8f0fb",
   // Header tokens (v28.26). Light-mode: dark-navy banner, white text.
   // Dark-mode: light-blue banner, dark-navy text.
-  headerBg: "#002060",
-  headerText: "#FFFFFF",
-  headerMuted: "#a0aec8",
+  // v28.356 — THE FTI LOOK header: surface-native. Light = crisp white with
+  // navy brand text; the red brand stripe carries the color. (Was a navy
+  // banner, v28.26.)
+  headerBg: "#ffffff",
+  headerText: "#002060",
+  headerMuted: "#4a5570",
   // Modal/overlay scrim (v28.285) — the dimmed backdrop behind every modal.
   scrim: "#00000088",
   // THEME-AWARE tint backgrounds (v28.292, color pass) — pale status washes
@@ -100,9 +103,11 @@ const DARK = {
   priHighB: "#3b1f24",
   priLow: "#5b9bf2",
   priLowB: "#1a2a44",
-  headerBg: "#4a8be2",
-  headerText: "#0a1430",
-  headerMuted: "#1a2340",
+  // v28.356 — dark header = elevated charcoal (the pastel-blue inverted
+  // banner from v28.26 predated the Look and never rode the theme order).
+  headerBg: "#1a1d21",
+  headerText: "#e8eaed",
+  headerMuted: "#9aa3ad",
   scrim: "#00000088",
   redB: "#3b1f24",
   greenB: "#173427",

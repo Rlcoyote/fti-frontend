@@ -152,33 +152,39 @@ function DesktopNavBar({
         </div>
       </div>
 
-      {/* RIGHT SIDE — nav + gear + sign-out */}
-      <div className="fti-desktop-nav" style={{ display: "flex", gap: 20, alignItems: "center" }}>
+      {/* CENTER — the nav, real buttons, center-justified (v28.356; was
+          right-strewn spans — Reggie: "just a bunch of words scattered") */}
+      <div
+        className="fti-desktop-nav"
+        style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", justifyContent: "center", flexWrap: "wrap", padding: "6px 12px" }}
+      >
         {navItems.map((item) => {
           const active = PAGE_MAP[item] === page;
           const clickable = !!PAGE_MAP[item];
           return (
-            <span
+            <button
               key={item}
+              className="fti-btn"
               onClick={() => {
                 if (clickable) navigate(ROUTE_MAP[item]);
               }}
               style={{
-                // v28.253 — active tab is DEFINITE: red pill + thicker underline,
-                // not just a color shift (Reggie: "no indication you are on any
-                // tab"; the mapping bug is fixed in navMap.js — this makes the
-                // state unmissable once it fires).
-                fontSize: 13,
-                color: active ? C.white : clickable ? C.headerMuted : "#6b7a99",
-                letterSpacing: "0.08em",
-                cursor: clickable ? "pointer" : "default",
-                borderBottom: active ? `3px solid ${C.red}` : "3px solid transparent",
-                background: active ? `${C.red}33` : "transparent",
-                borderRadius: active ? "6px 6px 0 0" : 0,
-                padding: active ? "4px 8px" : "4px 0",
+                // v28.356 — REAL buttons (were spans). Active = dimensional
+                // red pill; inactive = quiet pill that answers on hover via
+                // .fti-btn. One motion family with every button in the app.
+                fontSize: 12,
                 fontWeight: active ? 800 : 600,
+                letterSpacing: "0.06em",
+                color: active ? C.white : clickable ? C.headerMuted : C.faint,
+                cursor: clickable ? "pointer" : "default",
+                background: active ? `linear-gradient(180deg, ${C.red}, color-mix(in srgb, ${C.red} 72%, #000))` : "transparent",
+                boxShadow: active ? "inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25)" : "none",
+                border: "none",
+                borderRadius: 999,
+                padding: "7px 12px",
                 display: "flex",
                 alignItems: "center",
+                fontFamily: "'Arial', sans-serif",
               }}
             >
               {item}
@@ -189,7 +195,7 @@ function DesktopNavBar({
                   to be sent to QB. Origin: 2026-05-22, Reggie reported the
                   ticket landed in Final Review but the nav gave no signal. */}
               {item === "Final Review" && pendingFinalReviewCount > 0 && <NavBadge count={pendingFinalReviewCount} />}
-            </span>
+            </button>
           );
         })}
 
