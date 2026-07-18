@@ -1,7 +1,7 @@
 import { C } from "./config.js";
 import { typeCaps } from "./ticketFamilies.js";
 import { formatDate, calcTicketTotal } from "./utils.js";
-import { TicketTypeBadge, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
+import { TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketRentalCycle.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -38,7 +38,7 @@ import { useApp } from "./AppContext.jsx";
 //
 // Theme handling (preserved from v28.53):
 //   When the card bg is forced always-light (active highlight or
-//   sent-to-QB faded), bare text uses PANEL_TEXT/PANEL_MUTED so it
+//   sent-to-QB faded), bare text uses C.text/C.muted so it
 //   stays visible in dark mode. Without that swap, C.text theme-flips
 //   to white on a white card and disappears.
 //
@@ -50,7 +50,8 @@ import { useApp } from "./AppContext.jsx";
 //   too.
 
 const BTN_BASE = {
-  borderRadius: 4,
+  borderRadius: 6,
+  fontFamily: "'Arial', sans-serif",
   padding: "4px 10px",
   fontSize: 10,
   fontWeight: 800,
@@ -74,27 +75,29 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
   const needsJSA = !t.jsaCompleted && !t.voidedAt && !typeCaps(t.type).jsaOptional; // v28.274 — one home for the rule
   // Three badge states: completed (green ✓), draft (amber pill), none (gray).
   const jsaBadge = t.jsaCompleted
-    ? { bg: TINT.greenBg, color: TINT.greenText, border: TINT.greenText + "44", label: "✓ JSA" }
+    ? { bg: C.greenB, color: C.green, border: C.green + "44", label: "✓ JSA" }
     : t.hasJSA
-      ? { bg: TINT.yellowBg, color: TINT.yellowText, border: TINT.yellowBorder + "44", label: "JSA — DRAFT" }
+      ? { bg: C.yellowB, color: C.yellow, border: C.yellow + "44", label: "JSA — DRAFT" }
       : { bg: C.steel, color: C.muted, border: C.border, label: "JSA" };
 
-  const btnAction = { ...BTN_BASE, background: TINT.yellowBg, color: TINT.yellowText, border: `1px solid ${TINT.yellowBorder}44` };
-  const btnDone = { ...BTN_BASE, background: TINT.greenBg, color: TINT.greenText, border: `1px solid ${TINT.greenText}44`, cursor: "default" };
+  const btnAction = { ...BTN_BASE, background: C.yellowB, color: C.yellow, border: `1px solid ${C.yellow}44` };
+  const btnDone = { ...BTN_BASE, background: C.greenB, color: C.green, border: `1px solid ${C.green}44`, cursor: "default" };
   const btnDisabled = { ...BTN_BASE, background: C.steel, color: C.muted, border: `1px solid ${C.border}`, cursor: "not-allowed", opacity: 0.6 };
-  const btnBlue = { ...BTN_BASE, background: TINT.blueBg, color: TINT.blueText, border: `1px solid ${TINT.blueText}44` };
+  const btnBlue = { ...BTN_BASE, background: C.blueB, color: C.blue, border: `1px solid ${C.blue}44` };
 
   const isSent = ["sentToQB", "qbVerified"].includes(t.status);
-  const cardIsLight = isActiveTicket || isSent;
-  const cardText = cardIsLight ? PANEL_TEXT : C.text;
-  const cardMuted = cardIsLight ? PANEL_MUTED : C.muted;
+  // v28.357 — the cardIsLight always-light regime is retired (LOOK SWEEP):
+  // active/sent rows now highlight with THEME pairs, so the row follows the
+  // charcoal like everything else. Type identity stays on the badge.
+  const cardText = C.text;
+  const cardMuted = C.muted;
 
   return (
     <div
       style={{
-        background: isActiveTicket ? TINT.blueBg : isSent ? TINT.gray50 : C.cardBg,
+        background: isActiveTicket ? C.blueB : isSent ? C.steel : C.cardBg,
         border: isActiveTicket ? `2px solid ${C.blue}` : `1px solid ${C.border}`,
-        borderLeft: `3px solid ${isSent ? "#ccc" : tcfg.color}`,
+        borderLeft: `3px solid ${isSent ? C.border : tcfg.color}`,
         borderRadius: 5,
         marginBottom: 6,
         opacity: isSent && !isActiveTicket ? 0.6 : 1,
@@ -133,7 +136,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                     </div>
                     <div style={{ fontSize: 10, color: cardText, fontWeight: 600 }}>{t.createdBy}</div>
                     {t.createdAt && (
-                      <div style={{ fontSize: 9, color: TINT.faintText }}>
+                      <div style={{ fontSize: 9, color: C.faint }}>
                         {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
                         {" · "}
                         {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
@@ -147,18 +150,18 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                       display: "inline-flex",
                       alignItems: "center",
                       gap: 3,
-                      background: TINT.redBg,
-                      color: TINT.redText,
+                      background: C.redB,
+                      color: C.red,
                       borderRadius: 4,
                       padding: "1px 6px",
                       fontSize: 9,
                       fontWeight: 800,
                       letterSpacing: "0.04em",
-                      border: `1px solid ${TINT.redText}44`,
+                      border: `1px solid ${C.red}44`,
                       marginTop: 4,
                     }}
                   >
-                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: TINT.redText, display: "inline-block" }} />
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.red, display: "inline-block" }} />
                     COMMENT PENDING
                   </span>
                 )}
@@ -173,13 +176,13 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
             {t.voidedAt ? (
               <span
                 style={{
-                  background: TINT.redBg,
+                  background: C.redB,
                   color: C.red,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
-                  border: `1px solid ${TINT.redText}44`,
+                  border: `1px solid ${C.red}44`,
                 }}
               >
                 VOIDED
@@ -189,13 +192,13 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {cycleEnded && (
                   <span
                     style={{
-                      background: TINT.yellowBg,
-                      color: TINT.yellowText,
+                      background: C.yellowB,
+                      color: C.yellow,
                       borderRadius: 4,
                       padding: "2px 8px",
                       fontSize: 10,
                       fontWeight: 800,
-                      border: `1px solid ${TINT.yellowBorder}44`,
+                      border: `1px solid ${C.yellow}44`,
                     }}
                   >
                     CYCLE ENDED
@@ -222,6 +225,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
                   <button
                     type="button"
+                    className="fti-btn"
                     style={needsJSA ? btnDisabled : btnAction}
                     disabled={needsJSA}
                     onClick={() => {
@@ -240,6 +244,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                   <button
                     type="button"
+                    className="fti-btn"
                     style={needsJSA ? btnDisabled : isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
                     disabled={needsJSA}
                     title={needsJSA ? "Complete JSA before emailing" : ""}
@@ -255,6 +260,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {isSigned && !isApproved && (
                   <button
                     type="button"
+                    className="fti-btn"
                     style={needsJSA ? btnDisabled : btnAction}
                     disabled={needsJSA}
                     title={needsJSA ? "Complete JSA before approving" : ""}
@@ -333,7 +339,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 </span>
                 <span style={{ fontSize: 11, color: cardText, fontWeight: 600, whiteSpace: "nowrap" }}>{t.createdBy}</span>
                 {t.createdAt && (
-                  <span style={{ fontSize: 9, color: TINT.faintText, whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 9, color: C.faint, whiteSpace: "nowrap" }}>
                     {new Date(t.createdAt).toLocaleDateString("en-US", { month: "numeric", day: "numeric", year: "2-digit" })}
                     {" · "}
                     {new Date(t.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
@@ -347,31 +353,31 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 4,
-                  background: TINT.redBg,
-                  color: TINT.redText,
-                  borderRadius: 4,
-                  padding: "2px 8px",
-                  fontSize: 10,
-                  fontWeight: 800,
-                  letterSpacing: "0.04em",
-                  border: `1px solid ${TINT.redText}44`,
-                }}
-              >
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: TINT.redText, display: "inline-block" }} />
-                COMMENT PENDING
-              </span>
-            )}
-            {t.voidedAt && (
-              <span
-                style={{
-                  background: TINT.redBg,
+                  background: C.redB,
                   color: C.red,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
                   letterSpacing: "0.04em",
-                  border: `1px solid ${TINT.redText}44`,
+                  border: `1px solid ${C.red}44`,
+                }}
+              >
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.red, display: "inline-block" }} />
+                COMMENT PENDING
+              </span>
+            )}
+            {t.voidedAt && (
+              <span
+                style={{
+                  background: C.redB,
+                  color: C.red,
+                  borderRadius: 4,
+                  padding: "2px 8px",
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.04em",
+                  border: `1px solid ${C.red}44`,
                 }}
               >
                 VOIDED
@@ -380,14 +386,14 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
             {cycleEnded && !t.voidedAt && (
               <span
                 style={{
-                  background: TINT.yellowBg,
-                  color: TINT.yellowText,
+                  background: C.yellowB,
+                  color: C.yellow,
                   borderRadius: 4,
                   padding: "2px 8px",
                   fontSize: 10,
                   fontWeight: 800,
                   letterSpacing: "0.04em",
-                  border: `1px solid ${TINT.yellowBorder}44`,
+                  border: `1px solid ${C.yellow}44`,
                 }}
               >
                 CYCLE ENDED
@@ -420,6 +426,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {can("view_archive") && (
                   <button
                     type="button"
+                    className="fti-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       actions.archiveVoided();
@@ -445,6 +452,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {!isSigned && t.status !== "qbVerified" && t.status !== "sentToQB" && (
                   <button
                     type="button"
+                    className="fti-btn"
                     style={needsJSA ? btnDisabled : btnAction}
                     disabled={needsJSA}
                     onClick={() => {
@@ -457,7 +465,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 )}
                 {t.status === "signed" && <span style={btnDone}>✓ SIGNED</span>}
                 {t.status === "sigNotReq" && (
-                  <span style={{ ...btnDone, background: TINT.blueBg, color: TINT.blueText, border: `1px solid ${TINT.blueText}44` }}>SIG NOT REQ</span>
+                  <span style={{ ...btnDone, background: C.blueB, color: C.blue, border: `1px solid ${C.blue}44` }}>SIG NOT REQ</span>
                 )}
                 {(t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified") && <span style={btnDone}>✓ SIGNED</span>}
 
@@ -466,6 +474,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {custEmail && t.status !== "sentToQB" && t.status !== "qbVerified" && (
                   <button
                     type="button"
+                    className="fti-btn"
                     style={needsJSA ? btnDisabled : isEmailed ? { ...btnDone, cursor: "pointer" } : btnBlue}
                     disabled={needsJSA}
                     title={needsJSA ? "Complete JSA before emailing" : ""}
@@ -486,6 +495,7 @@ export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActive
                 {isSigned && !isApproved && (
                   <button
                     type="button"
+                    className="fti-btn"
                     style={needsJSA ? btnDisabled : btnAction}
                     disabled={needsJSA}
                     title={needsJSA ? "Complete JSA before approving" : ""}
