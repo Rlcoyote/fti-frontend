@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
-import { C } from "./config.js";
+import { C, NOISE } from "./config.js";
 import { APP_VERSION } from "./version.js";
 import { useApp } from "./AppContext.jsx";
 import BrandedSplash from "./BrandedSplash.jsx";
@@ -281,10 +281,12 @@ function FTIDashboard() {
       style={{
         minHeight: "100vh",
         backgroundColor: C.pageBg,
-        // v28.351 — THE FTI LOOK: the flat wash becomes a quiet top-lit grade
-        // (dark: charcoal with a whispered blue glow; light: white → cool gray).
-        backgroundImage: `radial-gradient(900px 480px at 50% -160px, ${C.pageBgGlow}, transparent)`,
-        backgroundRepeat: "no-repeat",
+        // v28.360 — DEPTH, not paint: grain (NOISE, repeats) + top-lit glow +
+        // a faint low-corner cast so the field runs warm-to-cool instead of
+        // solid. Layers cost nothing; blur stays banned.
+        backgroundImage: `${NOISE}, radial-gradient(1100px 560px at 50% -180px, ${C.pageBgGlow}, transparent 70%), radial-gradient(900px 700px at 108% 112%, ${C.pageBgCast}, transparent 62%)`,
+        backgroundRepeat: "repeat, no-repeat, no-repeat",
+        backgroundAttachment: "fixed",
         color: C.text,
         fontFamily: "'Arial', sans-serif",
       }}

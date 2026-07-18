@@ -53,12 +53,12 @@ const LIGHT = {
   priLowB: "#e8f0fb",
   // Header tokens (v28.26). Light-mode: dark-navy banner, white text.
   // Dark-mode: light-blue banner, dark-navy text.
-  // v28.356 — THE FTI LOOK header: surface-native. Light = crisp white with
-  // navy brand text; the red brand stripe carries the color. (Was a navy
-  // banner, v28.26.)
-  headerBg: "#ffffff",
-  headerText: "#002060",
-  headerMuted: "#4a5570",
+  // v28.360 — GUNMETAL header (Reggie: "gunmetal blue... rich with texture
+  // and depth"). Both modes wear the same navy-steel chrome — white brand
+  // text, red stripe, layered gradient + grain applied in DesktopNavBar.
+  headerBg: "#2b3644",
+  headerText: "#f2f5f9",
+  headerMuted: "#a7b4c4",
   // Modal/overlay scrim (v28.285) — the dimmed backdrop behind every modal.
   scrim: "#00000088",
   // THEME-AWARE tint backgrounds (v28.292, color pass) — pale status washes
@@ -74,8 +74,9 @@ const LIGHT = {
   purpleB: "#f3eafa",
   // Tertiary text — timestamps, faint stamps (v28.293).
   faint: "#a0aec8",
-  // v28.351 — page background glow (the graded backdrop; radial from top).
+  // v28.351/360 — page atmosphere (top glow + low corner cast).
   pageBgGlow: "#ffffff",
+  pageBgCast: "#dfe6f0",
 };
 
 const DARK = {
@@ -103,11 +104,10 @@ const DARK = {
   priHighB: "#3b1f24",
   priLow: "#5b9bf2",
   priLowB: "#1a2a44",
-  // v28.356 — dark header = elevated charcoal (the pastel-blue inverted
-  // banner from v28.26 predated the Look and never rode the theme order).
-  headerBg: "#1a1d21",
-  headerText: "#e8eaed",
-  headerMuted: "#9aa3ad",
+  // v28.360 — gunmetal header, dark variant (a step deeper than light's).
+  headerBg: "#202834",
+  headerText: "#e8ecf1",
+  headerMuted: "#93a1b2",
   scrim: "#00000088",
   redB: "#3b1f24",
   greenB: "#173427",
@@ -117,8 +117,9 @@ const DARK = {
   purple: "#c084fc",
   purpleB: "#2b1f3b",
   faint: "#6b7480",
-  // v28.351 — faint blue-tinted top glow on charcoal (American blue, whispered).
-  pageBgGlow: "#1a2129",
+  // v28.351/360 — atmosphere: blue-cast top glow + faint low red ember.
+  pageBgGlow: "#1c242e",
+  pageBgCast: "#1a1518",
 };
 
 // ─── NON-COLOR DESIGN TOKENS (v28.285, theme arc) ─────────────────────────────
@@ -187,6 +188,12 @@ const SHADOWS = {
     overlay: "0 16px 40px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.4)",
   },
 };
+
+// v28.360 — THE grain (one texture home). A tiny SVG turbulence tile layered
+// at low opacity gives every atmospheric surface (page, header, login) real
+// tooth instead of flat paint. No blur, no perf cost, prints ignore it.
+export const NOISE =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.055'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 const PALETTES = { light: LIGHT, dark: DARK };
 
