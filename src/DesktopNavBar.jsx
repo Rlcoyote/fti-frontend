@@ -1,5 +1,6 @@
-import { C, CARBON, CARBON_SIZE } from "./config.js";
-import { PAGE_MAP, ROUTE_MAP } from "./navMap.js";
+import { useState, useRef } from "react";
+import { C, E, CARBON, CARBON_SIZE } from "./config.js";
+import { PAGE_MAP, ROUTE_MAP, NAV_GROUPS, NAV_DISPLAY } from "./navMap.js";
 import { NavBadge } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -64,6 +65,54 @@ function GearMenuItem({ label, onClick, hasTopBorder }) {
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       {label}
+    </div>
+  );
+}
+
+// ─── NavGroupPill (v28.365) — umbrella nav pill with dropdown ───────────────
+// Hover opens (150ms grace on leave so the pointer can travel), click toggles
+// for touch. The menu is an overlay-tier card; the parent pill lights red
+// whenever any child route is active.
+function NavGroupPill({ label, active, badge, pillStyle, children }) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef(null);
+  const enter = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+  const leave = () => {
+    closeTimer.current = setTimeout(() => setOpen(false), 150);
+  };
+  return (
+    <div style={{ position: "relative" }} onMouseEnter={enter} onMouseLeave={leave}>
+      <button className="fti-btn" onClick={() => setOpen((v) => !v)} style={pillStyle(active)}>
+        {label}
+        {badge > 0 && <NavBadge count={badge} />}
+        <span style={{ marginLeft: 5, fontSize: 8, opacity: 0.8 }}>▼</span>
+      </button>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: C.cardBg,
+            border: `1px solid ${C.border}`,
+            borderTop: `3px solid ${C.red}`,
+            borderRadius: 10,
+            boxShadow: E.overlay,
+            padding: 6,
+            minWidth: 185,
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            zIndex: 60,
+          }}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -165,46 +214,75 @@ function DesktopNavBar({
         className="fti-desktop-nav"
         style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", justifyContent: "center", flexWrap: "wrap", padding: "6px 12px" }}
       >
-        {navItems.map((item) => {
-          const active = PAGE_MAP[item] === page;
-          const clickable = !!PAGE_MAP[item];
-          return (
-            <button
-              key={item}
-              className="fti-btn"
-              onClick={() => {
-                if (clickable) navigate(ROUTE_MAP[item]);
-              }}
-              style={{
-                // v28.356 — REAL buttons (were spans). Active = dimensional
-                // red pill; inactive = quiet pill that answers on hover via
-                // .fti-btn. One motion family with every button in the app.
-                fontSize: 12,
-                fontWeight: active ? 800 : 600,
-                letterSpacing: "0.06em",
-                color: active ? C.white : clickable ? C.headerMuted : C.faint,
-                cursor: clickable ? "pointer" : "default",
-                background: active ? `linear-gradient(180deg, ${C.red}, color-mix(in srgb, ${C.red} 72%, #000))` : "transparent",
-                boxShadow: active ? "inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25)" : "none",
-                border: "none",
-                borderRadius: 999,
-                padding: "7px 12px",
-                display: "flex",
-                alignItems: "center",
-                fontFamily: "'Arial', sans-serif",
-              }}
-            >
-              {item}
-              {item === "Action Items" && <NavBadge count={myActiveTodosCount} />}
-              {item === "Inventory" && totalInventoryOut > 0 && <NavBadge count={totalInventoryOut} />}
-              {item === "Deleted" && deletedTotalCount > 0 && <NavBadge count={deletedTotalCount} />}
-              {/* v28.188 — Final Review badge. Count = approved tickets waiting
-                  to be sent to QB. Origin: 2026-05-22, Reggie reported the
-                  ticket landed in Final Review but the nav gave no signal. */}
-              {item === "Final Review" && pendingFinalReviewCount > 0 && <NavBadge count={pendingFinalReviewCount} />}
-            </button>
-          );
-        })}
+        {(() => {
+          // v28.365 — grouped nav: umbrella pills with hover/click dropdowns.
+          // Groups come from navMap.NAV_GROUPS (one home); children keep their
+          // routes/badges; a group hides itself when permissions filtered out
+          // every child; singles render as before.
+          const badgeFor = (item) => {
+            if (item === "Action Items") return myActiveTodosCount;
+            if (item === "Inventory") return totalInventoryOut > 0 ? totalInventoryOut : 0;
+            if (item === "Deleted") return deletedTotalCount;
+            if (item === "Final Review") return pendingFinalReviewCount;
+            return 0;
+          };
+          const pillStyle = (active, clickable = true) => ({
+            fontSize: 12,
+            fontWeight: active ? 800 : 600,
+            letterSpacing: "0.06em",
+            color: active ? C.white : clickable ? C.headerMuted : C.faint,
+            cursor: clickable ? "pointer" : "default",
+            background: active ? `linear-gradient(180deg, ${C.red}, color-mix(in srgb, ${C.red} 72%, #000))` : "transparent",
+            boxShadow: active ? "inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 6px rgba(0, 0, 0, 0.25)" : "none",
+            border: "none",
+            borderRadius: 999,
+            padding: "7px 12px",
+            display: "flex",
+            alignItems: "center",
+            fontFamily: "'Arial', sans-serif",
+          });
+          const renderItem = (item, inMenu = false) => {
+            const active = PAGE_MAP[item] === page;
+            const clickable = !!PAGE_MAP[item];
+            const b = badgeFor(item);
+            return (
+              <button
+                key={item}
+                className="fti-btn"
+                onClick={() => {
+                  if (clickable) navigate(ROUTE_MAP[item]);
+                }}
+                style={{
+                  ...pillStyle(active, clickable),
+                  ...(inMenu ? { width: "100%", justifyContent: "flex-start", borderRadius: 8, color: active ? C.white : C.text } : {}),
+                }}
+              >
+                {NAV_DISPLAY[item] || item}
+                {b > 0 && <NavBadge count={b} />}
+              </button>
+            );
+          };
+          const nodes = [];
+          const used = new Set();
+          for (const item of navItems) {
+            if (used.has(item)) continue;
+            const group = NAV_GROUPS.find((g) => g.items.includes(item));
+            if (!group) {
+              nodes.push(renderItem(item));
+              continue;
+            }
+            const children = group.items.filter((i) => navItems.includes(i));
+            children.forEach((i) => used.add(i));
+            const anyActive = children.some((i) => PAGE_MAP[i] === page);
+            const groupBadge = children.reduce((sum, i) => sum + badgeFor(i), 0);
+            nodes.push(
+              <NavGroupPill key={group.label} label={group.label} active={anyActive} badge={groupBadge} pillStyle={pillStyle}>
+                {children.map((i) => renderItem(i, true))}
+              </NavGroupPill>,
+            );
+          }
+          return nodes;
+        })()}
 
         {/* GEAR DROPDOWN + THEME TOGGLE */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

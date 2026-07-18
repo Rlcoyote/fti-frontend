@@ -67,3 +67,15 @@ export function pageFromPath(pathname) {
   const hit = PREFIX_ROUTES.find(([path]) => p.startsWith(path));
   return hit ? hit[1] : "dashboard";
 }
+
+// ─── v28.365 — NAV GROUPS (header consolidation, ratified pattern: the parent
+// is an UMBRELLA word, never a duplicate of a child — Reggie: "you wouldn't
+// want it to say 'clock' and then hover and see clock again"). displayAs
+// renames a child INSIDE its group when the flat label would collide with or
+// blur the umbrella (Safety → Certifications under SAFETY).
+export const NAV_GROUPS = [
+  { label: "TIME", items: ["Clock", "My Hours"] },
+  { label: "SAFETY", items: ["Safety", "Safety Meetings", "Training"] },
+  { label: "HISTORY", items: ["Work Order History", "Deleted", "Archive"] },
+];
+export const NAV_DISPLAY = { Safety: "Certifications", "Work Order History": "Work Orders" };
