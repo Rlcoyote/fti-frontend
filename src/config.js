@@ -247,7 +247,11 @@ export function getTheme() {
   }
 }
 
-export function applyTheme(theme) {
+// v28.362 — presentTheme: sets the LOOK without persisting. The login page
+// stands alone (always the dark atmospheric moment, ratified 2026-07-17) —
+// it presents dark on mount and restores the user's saved preference on
+// unmount; only a real user choice (applyTheme) touches storage.
+export function presentTheme(theme) {
   activeTheme = theme === "dark" ? "dark" : "light";
   const palette = PALETTES[activeTheme];
   // Body background sits outside React inline styles — set it directly so
@@ -258,7 +262,15 @@ export function applyTheme(theme) {
     document.body.style.background = palette.pageBg;
     document.body.style.color = palette.text;
     document.body.dataset.theme = activeTheme;
+    // v28.362 — native color-scheme: Chrome/Safari render AUTOFILLED inputs,
+    // scrollbars, and form controls in the right scheme (kills the pale
+    // autofill slab on dark inputs — Reggie's login email finding).
+    document.documentElement.style.colorScheme = activeTheme;
   }
+}
+
+export function applyTheme(theme) {
+  presentTheme(theme);
   try {
     localStorage.setItem(THEME_KEY, activeTheme);
   } catch {

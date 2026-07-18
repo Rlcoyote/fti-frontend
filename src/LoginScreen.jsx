@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { C, API_URL } from "./config.js";
+import { C, API_URL, presentTheme, getTheme, NOISE, E } from "./config.js";
 import { APP_COMMIT } from "./version.js";
 import { captureGps } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
@@ -42,6 +42,15 @@ import LoginJsaSignStep from "./LoginJsaSignStep.jsx";
 //   letting the user hit a cryptic error.
 
 function LoginScreen() {
+  // v28.362 — THE LOGIN STANDS ALONE (ratified): always the dark atmospheric
+  // moment regardless of saved preference — the brand's first impression is
+  // art-directed, not variable. The user's saved theme returns on unmount
+  // (i.e., the moment they're in).
+  useEffect(() => {
+    presentTheme("dark");
+    return () => presentTheme(getTheme());
+  }, []);
+
   const { setCurrentUser } = useApp();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -641,9 +650,31 @@ function LoginScreen() {
 
   return (
     <div
-      style={{ minHeight: "100vh", background: C.darkBlue, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Arial', sans-serif" }}
+      style={{
+        minHeight: "100vh",
+        // v28.362 — the atmosphere moment: gunmetal-charcoal field with grain,
+        // top blue-cast glow, low red ember (the pastel C.darkBlue slab dies).
+        backgroundColor: C.pageBg,
+        backgroundImage: `${NOISE}, radial-gradient(1000px 520px at 50% -160px, ${C.pageBgGlow}, transparent 70%), radial-gradient(800px 640px at 108% 112%, ${C.pageBgCast}, transparent 62%)`,
+        backgroundRepeat: "repeat, no-repeat, no-repeat",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'Arial', sans-serif",
+      }}
     >
-      <div style={{ background: C.cardBg, borderRadius: 8, padding: 40, width: 380, maxWidth: "90vw", borderTop: `4px solid ${C.red}` }}>
+      <div
+        style={{
+          background: C.cardBg,
+          borderRadius: 10,
+          padding: 40,
+          width: 380,
+          maxWidth: "90vw",
+          borderTop: `4px solid ${C.red}`,
+          border: `1px solid ${C.border}`,
+          boxShadow: E.overlay,
+        }}
+      >
         {/* Card header — extracted to LoginCardHeader (v28.158) */}
         <LoginCardHeader subtitle={headerSubtitle} />
 
