@@ -87,7 +87,7 @@ function DesktopNavBar({
   // v28.180 — setShowSettings removed; SettingsModal retired. Yard Locations
   // → /yards top-level page; SMS Consent Scripts → /compliance-consent.
   setShowEmergencyContacts,
-  setShowCompanyDocs,
+  setShowFieldResources,
   setShowAbout,
   setShowLogoutConfirm,
   canViewContacts,
@@ -396,7 +396,7 @@ function DesktopNavBar({
                       hasTopBorder
                       onClick={() => {
                         setShowSettingsMenu(false);
-                        setShowCompanyDocs(true);
+                        setShowFieldResources(true);
                       }}
                     />
                     <GearMenuItem

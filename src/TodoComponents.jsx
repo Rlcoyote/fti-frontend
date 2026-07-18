@@ -239,53 +239,33 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
       </div>
       {/* v28.284 — completed rows carry the way back, spelled out */}
       {todo.completed && (
-        <button
+        <Btn
+          small
+          variant="ghost"
           title="Put this task back on the active list"
           onClick={(e) => {
             e.stopPropagation();
             onToggle(todo.id);
           }}
-          style={{
-            background: "transparent",
-            border: `1px solid ${C.green}55`,
-            color: C.green,
-            padding: "3px 9px",
-            borderRadius: 4,
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
-            cursor: "pointer",
-            flexShrink: 0,
-            marginTop: 1,
-          }}
+          style={{ color: C.green, borderColor: `${C.green}55`, flexShrink: 0, marginTop: 1 }}
         >
           REACTIVATE
-        </button>
+        </Btn>
       )}
       {/* v28.283 — EDIT button retired: the whole row opens the editor. DELETE stays explicit. */}
       {onDelete && (
-        <button
+        <Btn
+          small
+          variant="ghost"
           title="Delete this task"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(todo);
           }}
-          style={{
-            background: "transparent",
-            border: `1px solid ${C.red}55`,
-            color: C.red,
-            padding: "3px 9px",
-            borderRadius: 4,
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.06em",
-            cursor: "pointer",
-            flexShrink: 0,
-            marginTop: 1,
-          }}
+          style={{ color: C.red, borderColor: `${C.red}55`, flexShrink: 0, marginTop: 1 }}
         >
           DELETE
-        </button>
+        </Btn>
       )}
     </div>
   );

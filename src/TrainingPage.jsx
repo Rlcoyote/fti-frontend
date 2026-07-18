@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { C } from "./config.js";
+import { C, F, R } from "./config.js";
 import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
+import { Btn, Card, TabBtns } from "./SharedUI.jsx";
 
 // ─── TrainingPage (v28.251) ──────────────────────────────────────────────────
 // Policy knowledge tests — one per PPM policy/program (37 at launch). Backend
@@ -14,8 +15,6 @@ import { useApp } from "./AppContext.jsx";
 // can("view_all_training")) — per-employee pass/total with per-test drill-in.
 // Mobile-first stacked cards, big touch targets (Articles XIV + XV).
 
-const PASS_GREEN = "#0f3d22";
-const FAIL_RED = "#3d0f0f";
 const LETTERS = ["A", "B", "C", "D"];
 
 function fmtDate(d) {
@@ -113,18 +112,20 @@ function TakeTest({ testId, onDone, onCancel }) {
       <button
         key={String(value)}
         onClick={() => setAnswers((a) => ({ ...a, [q.n]: value }))}
+        className="fti-btn"
         style={{
           display: "block",
           width: "100%",
           textAlign: "left",
           padding: "10px 12px",
           marginTop: 6,
-          borderRadius: 8,
+          borderRadius: R.card,
           border: `2px solid ${sel ? C.blue : C.border}`,
-          background: sel ? `${C.blue}22` : C.cardBg,
+          background: sel ? `linear-gradient(180deg, ${C.blue}2e, ${C.blue}18)` : C.cardBg,
           color: C.text,
-          fontSize: 14,
+          fontSize: F.md,
           cursor: "pointer",
+          fontFamily: "'Arial', sans-serif",
         }}
       >
         {label}
@@ -136,12 +137,9 @@ function TakeTest({ testId, onDone, onCancel }) {
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <h2 style={{ margin: 0, fontSize: 18 }}>{test.title}</h2>
-        <button
-          onClick={onCancel}
-          style={{ background: "none", border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}
-        >
+        <Btn small variant="ghost" onClick={onCancel}>
           CANCEL
-        </button>
+        </Btn>
       </div>
       <div style={{ margin: "6px 0 14px", fontSize: 13, opacity: 0.7 }}>
         Passing score: {test.pass_pct}% · Answered {answered} of {total}
@@ -169,24 +167,9 @@ function TakeTest({ testId, onDone, onCancel }) {
           {submitErr}
         </div>
       )}
-      <button
-        onClick={submit}
-        disabled={!allAnswered || busy}
-        style={{
-          width: "100%",
-          padding: "14px 0",
-          fontSize: 16,
-          fontWeight: 800,
-          borderRadius: 10,
-          border: "none",
-          cursor: allAnswered && !busy ? "pointer" : "not-allowed",
-          background: allAnswered ? C.green : C.border,
-          color: C.white,
-          opacity: busy ? 0.6 : 1,
-        }}
-      >
+      <Btn onClick={submit} disabled={!allAnswered || busy} style={{ width: "100%", padding: "14px 0", fontSize: F.xl, fontWeight: 800, borderRadius: R.card }}>
         {busy ? "GRADING…" : allAnswered ? "SUBMIT TEST" : `ANSWER ALL QUESTIONS (${total - answered} LEFT)`}
-      </button>
+      </Btn>
     </div>
   );
 }
@@ -211,18 +194,12 @@ function AttemptReview({ attemptId, onBack }) {
     <div>
       <style>{`@media print { .no-print { display: none !important; } .training-print { color: #000 !important; } .training-print * { color: #000 !important; border-color: #999 !important; background: #fff !important; } @page { size: letter; margin: 0.5in; } }`}</style>
       <div className="no-print" style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-        <button
-          onClick={onBack}
-          style={{ background: "none", border: `1px solid ${C.border}`, color: C.text, borderRadius: 8, padding: "8px 14px", cursor: "pointer" }}
-        >
+        <Btn small variant="ghost" onClick={onBack}>
           ← BACK
-        </button>
-        <button
-          onClick={() => window.print()}
-          style={{ background: C.blue, border: "none", color: C.white, borderRadius: 8, padding: "8px 14px", fontWeight: 700, cursor: "pointer" }}
-        >
+        </Btn>
+        <Btn small variant="blue" onClick={() => window.print()}>
           PRINT
-        </button>
+        </Btn>
       </div>
       <div className="training-print">
         <h2 style={{ margin: "0 0 2px", fontSize: 18 }}>{data.title} — Policy Knowledge Test</h2>
@@ -231,7 +208,7 @@ function AttemptReview({ attemptId, onBack }) {
         </div>
         <div
           style={{
-            background: good ? PASS_GREEN : FAIL_RED,
+            background: good ? C.greenB : C.redB,
             border: `2px solid ${good ? C.green : C.red}`,
             borderRadius: 10,
             padding: "12px 16px",
@@ -371,21 +348,9 @@ function ResultsGrid({ onViewAttempt }) {
                       )}
                       <StatusChip passed={t.passed} score={t.score_pct} when={t.completed_at} />
                       {t.attempt_id && (
-                        <button
-                          onClick={() => onViewAttempt(t.attempt_id)}
-                          style={{
-                            background: "none",
-                            border: `1px solid ${C.blue}`,
-                            color: C.blue,
-                            borderRadius: 6,
-                            padding: "3px 10px",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: "pointer",
-                          }}
-                        >
+                        <Btn small variant="ghost" onClick={() => onViewAttempt(t.attempt_id)} style={{ color: C.blue, borderColor: C.blue }}>
                           VIEW
-                        </button>
+                        </Btn>
                       )}
                     </div>
                   </div>
@@ -418,27 +383,6 @@ function TrainingPage() {
     refresh();
   }, [refresh]);
 
-  const tabBtn = (key, label) => (
-    <button
-      onClick={() => {
-        setTab(key);
-        setView({ mode: "list" });
-      }}
-      style={{
-        padding: "10px 18px",
-        fontSize: 14,
-        fontWeight: 800,
-        borderRadius: 8,
-        border: `2px solid ${tab === key ? C.red : C.border}`,
-        background: tab === key ? `${C.red}22` : "none",
-        color: C.text,
-        cursor: "pointer",
-      }}
-    >
-      {label}
-    </button>
-  );
-
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "18px 14px 60px" }}>
       {view.mode === "list" && (
@@ -448,9 +392,18 @@ function TrainingPage() {
             Policy knowledge tests from the Flo-Test Policies &amp; Procedures Manual. Passing score is 80%.
           </div>
           {can("view_all_training") && (
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              {tabBtn("mine", "MY TRAINING")}
-              {tabBtn("all", "ALL EMPLOYEES")}
+            <div style={{ marginBottom: 16 }}>
+              <TabBtns
+                value={tab}
+                onChange={(k) => {
+                  setTab(k);
+                  setView({ mode: "list" });
+                }}
+                options={[
+                  ["mine", "MY TRAINING"],
+                  ["all", "ALL EMPLOYEES"],
+                ]}
+              />
             </div>
           )}
         </>
@@ -510,37 +463,18 @@ function TrainingPage() {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <StatusChip passed={t.last_passed} score={t.last_score_pct} when={t.last_completed_at} />
                   {t.last_attempt_id && (
-                    <button
+                    <Btn
+                      small
+                      variant="ghost"
                       onClick={() => setView({ mode: "review", attemptId: t.last_attempt_id })}
-                      style={{
-                        background: "none",
-                        border: `1px solid ${C.blue}`,
-                        color: C.blue,
-                        borderRadius: 8,
-                        padding: "7px 14px",
-                        fontSize: 13,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
+                      style={{ color: C.blue, borderColor: C.blue }}
                     >
                       VIEW
-                    </button>
+                    </Btn>
                   )}
-                  <button
-                    onClick={() => setView({ mode: "take", testId: t.id })}
-                    style={{
-                      background: C.red,
-                      border: "none",
-                      color: C.white,
-                      borderRadius: 8,
-                      padding: "8px 16px",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
+                  <Btn small onClick={() => setView({ mode: "take", testId: t.id })}>
                     {t.last_attempt_id ? "RETAKE" : "TAKE TEST"}
-                  </button>
+                  </Btn>
                 </div>
               </div>
             ))}

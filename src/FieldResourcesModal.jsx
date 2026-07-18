@@ -3,7 +3,12 @@ import { C, API_URL } from "./config.js";
 import { Btn, ModalWrap, Z_INDEX, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
-function CompanyDocumentsModal({ onClose }) {
+// ─── FieldResourcesModal (renamed v28.353 — was CompanyDocumentsModal) ──────
+// The name now matches the on-screen label (gear menu → FIELD RESOURCES) and
+// the function: the employee-facing company document library. The mismatch
+// burned us on 2026-07-17 — upload instructions said "COMPANY DOCUMENTS," a
+// label that exists nowhere on the glass. Names correspond to function.
+function FieldResourcesModal({ onClose }) {
   const { currentUser, can } = useApp();
   const isAdmin = can("manage_settings");
   const [docs, setDocs] = useState([]);
@@ -261,4 +266,4 @@ function CompanyDocumentsModal({ onClose }) {
   );
 }
 
-export default CompanyDocumentsModal;
+export default FieldResourcesModal;

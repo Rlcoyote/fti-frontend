@@ -23,7 +23,7 @@ import ComplianceConsentPage from "./ComplianceConsentPage.jsx";
 // into PeoplePage (one canonical surface for all person-management).
 import PeoplePage from "./PeoplePage.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
-import CompanyDocumentsModal from "./CompanyDocumentsModal.jsx";
+import FieldResourcesModal from "./FieldResourcesModal.jsx";
 import AboutModal from "./AboutModal.jsx";
 import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
@@ -124,7 +124,7 @@ function FTIDashboard() {
   // LOCATIONS + SMS CONSENT SCRIPTS) is retired: yards moved to top-level
   // /yards page (v28.179); SMS Consent Scripts moved to /compliance-consent.
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
-  const [showCompanyDocs, setShowCompanyDocs] = useState(false);
+  const [showFieldResources, setShowFieldResources] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -330,7 +330,7 @@ function FTIDashboard() {
         deletedTotalCount={deletedJobs.length + deletedTickets.length}
         pendingFinalReviewCount={pendingFinalReviewCount}
         setShowEmergencyContacts={setShowEmergencyContacts}
-        setShowCompanyDocs={setShowCompanyDocs}
+        setShowFieldResources={setShowFieldResources}
         setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
         canViewContacts={canViewContacts}
@@ -350,7 +350,7 @@ function FTIDashboard() {
         showSettingsMenu={showSettingsMenu}
         setShowSettingsMenu={setShowSettingsMenu}
         setShowEmergencyContacts={setShowEmergencyContacts}
-        setShowCompanyDocs={setShowCompanyDocs}
+        setShowFieldResources={setShowFieldResources}
         setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
         canViewContacts={canViewContacts}
@@ -460,7 +460,7 @@ function FTIDashboard() {
       {/* v28.180 — SettingsModal retired. Yard locations live on /yards;
           SMS consent scripts live on /compliance-consent. */}
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
-      {showCompanyDocs && <CompanyDocumentsModal onClose={() => setShowCompanyDocs(false)} />}
+      {showFieldResources && <FieldResourcesModal onClose={() => setShowFieldResources(false)} />}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       {/* v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal */}
       {showLogoutConfirm && (

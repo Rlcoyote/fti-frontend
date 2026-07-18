@@ -276,20 +276,79 @@ export function FilterBtn({ active, onClick, children }) {
 // segments, so mutually-exclusive choices (ACTIVE | COMPLETED) read as one
 // switch instead of scattered look-alike buttons.
 export function SegmentedBtns({ value, onChange, options }) {
+  // v28.353 — THE FTI LOOK: the active segment is dimensional (top-lit blue),
+  // the rail sits flat. One home for every filter switch in the app.
   return (
-    <div style={{ display: "inline-flex", border: `1px solid ${C.border}`, borderRadius: 5, overflow: "hidden" }}>
+    <div style={{ display: "inline-flex", border: `1px solid ${C.border}`, borderRadius: R.xl, overflow: "hidden", background: C.steel }}>
       {options.map(([v, label], i) => (
         <button
           key={v}
           onClick={() => onChange(v)}
           style={{
-            background: value === v ? C.blue : "transparent",
+            background: value === v ? `linear-gradient(180deg, ${C.blue}, color-mix(in srgb, ${C.blue} 72%, #000))` : "transparent",
             border: "none",
             borderLeft: i > 0 ? `1px solid ${C.border}` : "none",
             color: value === v ? C.white : C.muted,
+            boxShadow: value === v ? "inset 0 1px 0 rgba(255, 255, 255, 0.2)" : "none",
             padding: "6px 14px",
-            fontSize: 11,
+            fontSize: F.label,
             fontWeight: 700,
+            cursor: "pointer",
+            fontFamily: "'Arial', sans-serif",
+            transition: "background 0.14s ease, color 0.14s ease",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── CARD — THE surface home (v28.353, THE FTI LOOK) ─────────────────────────
+// Every card/tile/row surface rides THIS component: theme-aware background,
+// border, radius, raised elevation, optional identity accent spine, and —
+// when interactive — the same hover-lift/press motion as buttons (.fti-card
+// in index.css). A future look change edits THIS, not ninety files.
+export function Card({ children, onClick, accent, flat, style: extraStyle, className }) {
+  return (
+    <div
+      onClick={onClick}
+      className={[onClick ? "fti-card" : "", className || ""].join(" ").trim() || undefined}
+      style={{
+        background: C.cardBg,
+        border: `1px solid ${C.border}`,
+        borderLeft: accent ? `4px solid ${accent}` : `1px solid ${C.border}`,
+        borderRadius: R.card,
+        boxShadow: flat ? E.flat : E.raised,
+        cursor: onClick ? "pointer" : undefined,
+        ...extraStyle,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── TAB BUTTONS — THE page-tab home (v28.353) ──────────────────────────────
+// The bordered-pill tab pattern (Training MY/ALL, Onboarding MY/OFFICE/EDITOR)
+// given one home with the dimensional active state.
+export function TabBtns({ value, onChange, options }) {
+  return (
+    <div style={{ display: "flex", gap: SP.md, flexWrap: "wrap" }}>
+      {options.map(([k, label]) => (
+        <button
+          key={k}
+          onClick={() => onChange(k)}
+          className="fti-btn"
+          style={{
+            padding: `${SP.lg}px ${SP.xxl}px`,
+            fontSize: F.md,
+            fontWeight: 800,
+            borderRadius: R.card,
+            border: `2px solid ${value === k ? C.red : C.border}`,
+            background: value === k ? `linear-gradient(180deg, ${C.red}22, ${C.red}11)` : "none",
+            color: C.text,
             cursor: "pointer",
             fontFamily: "'Arial', sans-serif",
           }}

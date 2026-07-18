@@ -104,3 +104,24 @@ body.fti-modal-open .fti-modal-selectable * {
   user-select: text;
   -webkit-user-select: text;
 }
+
+/* ─── v28.353 — .fti-card: motion home for interactive Card surfaces ────────
+   Same physics family as .fti-btn, gentler: cards drift up, buttons snap. */
+.fti-card {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+.fti-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.14);
+}
+.fti-card:active {
+  transform: translateY(0);
+  transition-duration: 0.06s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fti-card { transition: none; }
+  .fti-card:hover { transform: none; }
+}

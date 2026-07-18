@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C, F, SP, R } from "./config.js";
 import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
-import { Btn, inputStyle } from "./SharedUI.jsx";
+import { Btn, TabBtns, inputStyle } from "./SharedUI.jsx";
 import OnboardingSignFlow from "./OnboardingSignFlow.jsx";
 import OnboardingEditor from "./OnboardingEditor.jsx";
 
@@ -470,25 +470,12 @@ function OnboardingPage() {
         Handbook are under FIELD RESOURCES.
       </div>
       {isOffice && (
-        <div style={{ display: "flex", gap: SP.md, marginBottom: SP.xxl }}>
-          {[["mine", "MY DOCUMENTS"], ["office", "OFFICE — ROSTER"], ...(isOwner ? [["editor", "DOCUMENT EDITOR"]] : [])].map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              style={{
-                padding: `${SP.lg}px ${SP.xxl}px`,
-                fontSize: F.md,
-                fontWeight: 800,
-                borderRadius: R.card,
-                border: `2px solid ${tab === k ? C.red : C.border}`,
-                background: tab === k ? `${C.red}22` : "none",
-                color: C.text,
-                cursor: "pointer",
-              }}
-            >
-              {label}
-            </button>
-          ))}
+        <div style={{ marginBottom: SP.xxl }}>
+          <TabBtns
+            value={tab}
+            onChange={setTab}
+            options={[["mine", "MY DOCUMENTS"], ["office", "OFFICE — ROSTER"], ...(isOwner ? [["editor", "DOCUMENT EDITOR"]] : [])]}
+          />
         </div>
       )}
       {tab === "mine" ? <MyPacket /> : tab === "editor" && isOwner ? <OnboardingEditor /> : <OfficeRoster />}

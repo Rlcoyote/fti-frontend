@@ -119,7 +119,7 @@ function MobileNavDrawer({
   // v28.180 — setShowSettings removed; SettingsModal retired (Yard Locations
   // → /yards top-level page; SMS Consent Scripts → /compliance-consent).
   setShowEmergencyContacts,
-  setShowCompanyDocs,
+  setShowFieldResources,
   setShowAbout,
   setShowLogoutConfirm,
   canViewContacts,
@@ -371,7 +371,7 @@ function MobileNavDrawer({
           label="Field Resources"
           onClick={() => {
             setDrawerOpen(false);
-            setShowCompanyDocs(true);
+            setShowFieldResources(true);
           }}
         />
         <DrawerItem
