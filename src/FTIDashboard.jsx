@@ -284,8 +284,8 @@ function FTIDashboard() {
         // v28.360 — DEPTH, not paint: grain (NOISE, repeats) + top-lit glow +
         // a faint low-corner cast so the field runs warm-to-cool instead of
         // solid. Layers cost nothing; blur stays banned.
-        backgroundImage: `${NOISE}, radial-gradient(1100px 560px at 50% -180px, ${C.pageBgGlow}, transparent 70%), radial-gradient(900px 700px at 108% 112%, ${C.pageBgCast}, transparent 62%)`,
-        backgroundRepeat: "repeat, no-repeat, no-repeat",
+        backgroundImage: `${NOISE}, radial-gradient(1200px 640px at 50% -180px, ${C.pageBgGlow}, transparent 72%), radial-gradient(1000px 780px at 108% 112%, ${C.pageBgCast}, transparent 64%), radial-gradient(160% 120% at 50% 30%, transparent 55%, rgba(0, 0, 0, 0.22) 100%)`,
+        backgroundRepeat: "repeat, no-repeat, no-repeat, no-repeat",
         backgroundAttachment: "fixed",
         color: C.text,
         fontFamily: "'Arial', sans-serif",

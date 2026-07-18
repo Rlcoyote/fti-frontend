@@ -1,4 +1,4 @@
-import { C, NOISE } from "./config.js";
+import { C, CARBON, CARBON_SIZE } from "./config.js";
 import { PAGE_MAP, ROUTE_MAP } from "./navMap.js";
 import { NavBadge } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -101,7 +101,10 @@ function DesktopNavBar({
         // v28.360 — gunmetal with DEPTH: grain + diagonal sheen + top-lit
         // vertical grade over the base, inner top highlight, deep grounding.
         backgroundColor: C.headerBg,
-        backgroundImage: `${NOISE}, linear-gradient(115deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 32%, rgba(0,0,0,0.10) 100%), linear-gradient(180deg, color-mix(in srgb, ${C.headerBg} 82%, #fff) 0%, ${C.headerBg} 45%, color-mix(in srgb, ${C.headerBg} 78%, #000) 100%)`,
+        // v28.363 — layer order front→back: sheen, CARBON weave (hatched),
+        // top-lit vertical grade over the deep navy base.
+        backgroundImage: `linear-gradient(115deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 30%, rgba(0,0,0,0.14) 100%), ${CARBON}, linear-gradient(180deg, color-mix(in srgb, ${C.headerBg} 80%, #6e88b8) 0%, ${C.headerBg} 42%, color-mix(in srgb, ${C.headerBg} 72%, #000) 100%)`,
+        backgroundSize: `auto, ${CARBON_SIZE}, auto`,
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.09), 0 3px 18px rgba(0,0,0,0.32)",
         borderBottom: `2px solid ${C.red}`,
         padding: "0 28px",

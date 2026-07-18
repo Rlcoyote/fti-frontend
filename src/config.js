@@ -53,12 +53,13 @@ const LIGHT = {
   priLowB: "#e8f0fb",
   // Header tokens (v28.26). Light-mode: dark-navy banner, white text.
   // Dark-mode: light-blue banner, dark-navy text.
-  // v28.360 — GUNMETAL header (Reggie: "gunmetal blue... rich with texture
-  // and depth"). Both modes wear the same navy-steel chrome — white brand
-  // text, red stripe, layered gradient + grain applied in DesktopNavBar.
-  headerBg: "#2b3644",
+  // v28.363 — DEEP GUNMETAL NAVY (Reggie: "def got a deep blue in it.
+  // Similar to the blue on the American Flag. But darker. Heavier.") —
+  // Old Glory #002868 taken down into gunmetal. Carbon weave + sheen
+  // applied in DesktopNavBar.
+  headerBg: "#132342",
   headerText: "#f2f5f9",
-  headerMuted: "#a7b4c4",
+  headerMuted: "#93a5c4",
   // Modal/overlay scrim (v28.285) — the dimmed backdrop behind every modal.
   scrim: "#00000088",
   // THEME-AWARE tint backgrounds (v28.292, color pass) — pale status washes
@@ -93,7 +94,7 @@ const DARK = {
   muted: "#9aa3ad",
   border: "#363b42",
   cardBg: "#1d2024",
-  pageBg: "#131518",
+  pageBg: "#12151b",
   text: "#e8eaed",
   green: "#34d399",
   orange: "#fbbf24",
@@ -104,10 +105,10 @@ const DARK = {
   priHighB: "#3b1f24",
   priLow: "#5b9bf2",
   priLowB: "#1a2a44",
-  // v28.360 — gunmetal header, dark variant (a step deeper than light's).
-  headerBg: "#202834",
+  // v28.363 — deep gunmetal navy, dark variant (heavier still).
+  headerBg: "#0e1a33",
   headerText: "#e8ecf1",
-  headerMuted: "#93a1b2",
+  headerMuted: "#8598b8",
   scrim: "#00000088",
   redB: "#3b1f24",
   greenB: "#173427",
@@ -118,8 +119,8 @@ const DARK = {
   purpleB: "#2b1f3b",
   faint: "#6b7480",
   // v28.351/360 — atmosphere: blue-cast top glow + faint low red ember.
-  pageBgGlow: "#1c242e",
-  pageBgCast: "#1a1518",
+  pageBgGlow: "#1e2c44",
+  pageBgCast: "#261a1e",
 };
 
 // ─── NON-COLOR DESIGN TOKENS (v28.285, theme arc) ─────────────────────────────
@@ -193,7 +194,17 @@ const SHADOWS = {
 // at low opacity gives every atmospheric surface (page, header, login) real
 // tooth instead of flat paint. No blur, no perf cost, prints ignore it.
 export const NOISE =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.055'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0.085'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
+
+// v28.363 — CARBON: the hatched weave (Reggie: "a literal hatched carbon
+// background"). Two counter-diagonal line sets + a knuckle dot-grid, pure
+// CSS gradients — layered UNDER the sheen and OVER the base color.
+export const CARBON = [
+  "repeating-linear-gradient(45deg, rgba(255,255,255,0.045) 0px, rgba(255,255,255,0.045) 1px, transparent 1px, transparent 7px)",
+  "repeating-linear-gradient(-45deg, rgba(0,0,0,0.28) 0px, rgba(0,0,0,0.28) 1px, transparent 1px, transparent 7px)",
+  "radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1.6px)",
+].join(", ");
+export const CARBON_SIZE = "14px 14px, 14px 14px, 14px 14px";
 
 const PALETTES = { light: LIGHT, dark: DARK };
 
