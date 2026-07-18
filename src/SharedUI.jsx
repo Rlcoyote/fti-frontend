@@ -210,7 +210,16 @@ export function Btn({ onClick, children, variant = "primary", small, disabled, s
   });
   const styles = {
     primary: dimensional(C.red),
-    ghost: { background: "transparent", color: C.muted, border: `1px solid ${C.border}` },
+    // v28.364 — ghost gets STRUCTURE (Reggie: "the rest of the buttons need
+    // the shadow of a button... some structure"): a soft raised surface —
+    // top-lit steel grade, inner highlight, light grounding — still clearly
+    // secondary next to the filled variants.
+    ghost: {
+      background: `linear-gradient(180deg, ${C.lightSteel}, ${C.steel})`,
+      color: C.text,
+      border: `1px solid ${C.border}`,
+      boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.28)",
+    },
     blue: dimensional(C.blue),
     // v27.98 — danger variant for destructive confirmations (disable 2FA, etc.)
     danger: dimensional("#8b1010"),

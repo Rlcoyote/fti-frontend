@@ -85,17 +85,21 @@ const DARK = {
   // red/white/blue as accents only). True charcoal replaces the old
   // blue-gray navy; the American triad carries: red = primary action,
   // blue = active/focus accents, white = text on dark.
+  // v28.364 — THE NAVY WORLD (Reggie on the header: "PERFECT color. Now
+  // just do the background of the app itself... that same blue"): the whole
+  // dark palette moves into the Old Glory gunmetal family — page a step
+  // darker than the header so the chrome still lifts; no weave on the page.
   red: "#ff4d5a",
   white: "#FFFFFF",
   blue: "#5b9bf2",
   darkBlue: "#4a8be2",
-  steel: "#24282d",
-  lightSteel: "#2c3138",
-  muted: "#9aa3ad",
-  border: "#363b42",
-  cardBg: "#1d2024",
-  pageBg: "#12151b",
-  text: "#e8eaed",
+  steel: "#1a2740",
+  lightSteel: "#223051",
+  muted: "#8fa0bf",
+  border: "#2c3c5e",
+  cardBg: "#15213a",
+  pageBg: "#0c1626",
+  text: "#e8ecf3",
   green: "#34d399",
   orange: "#fbbf24",
   yellow: "#facc15",
@@ -117,10 +121,10 @@ const DARK = {
   orangeB: "#33230f",
   purple: "#c084fc",
   purpleB: "#2b1f3b",
-  faint: "#6b7480",
+  faint: "#5f7093",
   // v28.351/360 — atmosphere: blue-cast top glow + faint low red ember.
-  pageBgGlow: "#1e2c44",
-  pageBgCast: "#261a1e",
+  pageBgGlow: "#1d2f52",
+  pageBgCast: "#2a1b21",
 };
 
 // ─── NON-COLOR DESIGN TOKENS (v28.285, theme arc) ─────────────────────────────
