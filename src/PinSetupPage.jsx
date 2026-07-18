@@ -206,7 +206,7 @@ function PinSetupPage() {
                   padding: "10px 12px",
                   border: `1px solid ${TINT.border}`,
                   borderRadius: 6,
-                  background: TINT.expandBg,
+                  background: C.steel,
                   cursor: "pointer",
                 }}
               >

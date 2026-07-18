@@ -2,7 +2,7 @@ import { useState } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, TERMINAL_TICKET_STATUSES, WO_TICKET_STATUSES, FINAL_REVIEW_TICKET_STATUSES } from "./config.js";
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
-import { Btn, TicketDot, TodoBadge, ConfirmModal, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
+import { Btn, TicketDot, TodoBadge, ConfirmModal, TabBtns } from "./SharedUI.jsx";
 import { JobTodoTab } from "./TodoPage.jsx";
 import JobTicketsTab from "./JobTicketsTab.jsx";
 import EditJobModal from "./EditJobModal.jsx";
@@ -294,36 +294,19 @@ function JobCard({
 
       {isExpanded && (
         <div style={{ borderTop: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", justifyContent: "center", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "0 18px" }}>
-            {[
-              ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`],
-              ["details", "DETAILS"],
-              ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`],
-            ].map(([tab, label]) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  background: activeTab === tab ? C.cardBg : "transparent",
-                  border: "none",
-                  borderBottom: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
-                  borderTop: activeTab === tab ? `2px solid ${C.red}` : "2px solid transparent",
-                  borderLeft: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
-                  borderRight: activeTab === tab ? `1px solid ${C.border}` : "1px solid transparent",
-                  borderTopLeftRadius: activeTab === tab ? 4 : 0,
-                  borderTopRightRadius: activeTab === tab ? 4 : 0,
-                  marginBottom: activeTab === tab ? -1 : 0,
-                  color: activeTab === tab ? C.text : C.muted,
-                  padding: "10px 16px",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  letterSpacing: "0.06em",
-                }}
-              >
-                {label}
-              </button>
-            ))}
+          {/* v28.355 — the file-folder tabs (red line top AND bottom — Reggie:
+              "they really don't look like buttons") replaced with the shared
+              TabBtns pills: ONE tab language across the whole app. */}
+          <div style={{ display: "flex", justifyContent: "center", borderBottom: `1px solid ${C.border}`, background: C.steel, padding: "10px 18px" }}>
+            <TabBtns
+              value={activeTab}
+              onChange={setActiveTab}
+              options={[
+                ["tickets", `TICKETS${jobTickets.length ? ` (${jobTickets.length})` : ""}`],
+                ["details", "DETAILS"],
+                ["todos", `ACTION ITEMS${pendingTodos ? ` (${pendingTodos})` : ""}`],
+              ]}
+            />
           </div>
 
           {activeTab === "details" && (
@@ -333,7 +316,7 @@ function JobCard({
                 display: "grid",
                 gridTemplateColumns: "1fr 1fr 1fr 1fr",
                 gap: 24,
-                background: TINT.expandBg,
+                background: C.steel,
               }}
             >
               <div>
@@ -351,19 +334,19 @@ function JobCard({
                   const hasAny = pocName || pocPhone || pocEmail || companyCode || costCenter || po || afe;
                   if (!hasAny) return null;
                   const kvRowStyle = { marginBottom: 6, display: "flex", gap: 6, flexWrap: "wrap" };
-                  const keyStyle = { fontSize: 11, color: PANEL_MUTED };
-                  const valStyle = { fontSize: 11, color: PANEL_TEXT, fontWeight: 600 };
+                  const keyStyle = { fontSize: 11, color: C.muted };
+                  const valStyle = { fontSize: 11, color: C.text, fontWeight: 600 };
                   return (
                     <div style={{ marginBottom: 16 }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>WO DETAILS</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WO DETAILS</div>
                       {pocName && (
                         <div style={{ marginBottom: 8 }}>
-                          <div style={{ fontSize: 10, color: PANEL_MUTED, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>
+                          <div style={{ fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 2 }}>
                             Point of Contact
                           </div>
-                          <div style={{ fontSize: 12, color: PANEL_TEXT, fontWeight: 600 }}>{pocName}</div>
-                          {pocPhone && <div style={{ fontSize: 11, color: PANEL_TEXT }}>{pocPhone}</div>}
-                          {pocEmail && <div style={{ fontSize: 11, color: PANEL_TEXT }}>{pocEmail}</div>}
+                          <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{pocName}</div>
+                          {pocPhone && <div style={{ fontSize: 11, color: C.text }}>{pocPhone}</div>}
+                          {pocEmail && <div style={{ fontSize: 11, color: C.text }}>{pocEmail}</div>}
                         </div>
                       )}
                       {companyCode && (
@@ -387,17 +370,17 @@ function JobCard({
                       {afe && (
                         <div style={kvRowStyle}>
                           <span style={keyStyle}>AFE:</span>
-                          <span style={{ fontSize: 11, color: TINT.blueText, fontWeight: 700 }}>{afe}</span>
+                          <span style={{ fontSize: 11, color: C.blue, fontWeight: 700 }}>{afe}</span>
                         </div>
                       )}
                     </div>
                   );
                 })()}
                 {/* WELLS — even split of all non-voided ticket totals across assigned wells. */}
-                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>WELLS</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>WELLS</div>
                 {job.wells.map((well, i) => (
                   <div key={i} style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 12, color: PANEL_TEXT, fontWeight: 600 }}>{well.well_name || well}</div>
+                    <div style={{ fontSize: 12, color: C.text, fontWeight: 600 }}>{well.well_name || well}</div>
                     <div style={{ fontSize: 11, color: C.green, fontWeight: 700 }}>
                       ${perWellAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
@@ -405,21 +388,21 @@ function JobCard({
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>CREW</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>CREW</div>
                 {job.crew.map((c, i) => (
                   <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, color: PANEL_TEXT }}>{c.name}</span>
-                    <span style={{ fontSize: 11, color: PANEL_MUTED, fontStyle: "italic" }}>{c.role}</span>
+                    <span style={{ fontSize: 12, color: C.text }}>{c.name}</span>
+                    <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>{c.role}</span>
                   </div>
                 ))}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>ASSETS</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ASSETS</div>
                 {(assets || [])
                   .filter((a) => a.assigned_job_id === job.id)
                   .map((a) => (
-                    <div key={a.id} style={{ fontSize: 12, color: PANEL_TEXT, marginBottom: 5, display: "flex", gap: 6 }}>
-                      <span style={{ color: TINT.yellowText, fontSize: 8, marginTop: 4 }}>◆</span>
+                    <div key={a.id} style={{ fontSize: 12, color: C.text, marginBottom: 5, display: "flex", gap: 6 }}>
+                      <span style={{ color: C.yellow, fontSize: 8, marginTop: 4 }}>◆</span>
                       <span>
                         {a.name}
                         {a.unit_number ? ` (${a.unit_number})` : ""}
@@ -427,11 +410,11 @@ function JobCard({
                     </div>
                   ))}
                 {(assets || []).filter((a) => a.assigned_job_id === job.id).length === 0 && (
-                  <div style={{ fontSize: 11, color: PANEL_MUTED, fontStyle: "italic" }}>None deployed</div>
+                  <div style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>None deployed</div>
                 )}
               </div>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 8 }}>ACTIONS</div>
                 {(() => {
                   const canDelete = can("delete_jobs");
                   const actions = [
@@ -451,6 +434,7 @@ function JobCard({
                 })().map((btn, i) => (
                   <button
                     key={i}
+                    className="fti-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (btn.action) btn.action();
@@ -458,9 +442,9 @@ function JobCard({
                     style={{
                       display: "block",
                       width: "100%",
-                      background: btn.danger ? TINT.redBg : btn.warn ? TINT.yellowBg : btn.success ? TINT.greenBg : "transparent",
-                      border: `1px solid ${btn.danger ? TINT.redText : btn.warn ? TINT.yellowText : btn.success ? TINT.greenText : C.border}`,
-                      color: btn.danger ? TINT.redText : btn.warn ? TINT.yellowText : btn.success ? TINT.greenText : btn.action ? PANEL_TEXT : PANEL_MUTED,
+                      background: btn.danger ? C.redB : btn.warn ? C.yellowB : btn.success ? C.greenB : "transparent",
+                      border: `1px solid ${btn.danger ? C.red : btn.warn ? C.yellow : btn.success ? C.green : C.border}`,
+                      color: btn.danger ? C.red : btn.warn ? C.yellow : btn.success ? C.green : btn.action ? C.text : C.muted,
                       padding: "7px 12px",
                       borderRadius: 4,
                       fontSize: 12,
@@ -474,12 +458,12 @@ function JobCard({
                     onMouseEnter={(e) => {
                       if (btn.action) {
                         e.target.style.borderColor = C.red;
-                        e.target.style.background = btn.danger ? TINT.redHover : TINT.redHoverSoft;
+                        e.target.style.background = btn.danger ? C.redB : `${C.red}18`;
                       }
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = btn.danger ? TINT.redText : btn.warn ? TINT.yellowText : C.border;
-                      e.target.style.background = btn.danger ? TINT.redBg : btn.warn ? TINT.yellowBg : "transparent";
+                      e.target.style.borderColor = btn.danger ? C.red : btn.warn ? C.yellow : C.border;
+                      e.target.style.background = btn.danger ? C.redB : btn.warn ? C.yellowB : "transparent";
                     }}
                   >
                     {btn.label}
@@ -490,8 +474,8 @@ function JobCard({
             </div>
           )}
           {job.notes && (
-            <div style={{ padding: "0 18px 14px", background: TINT.expandBg }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
+            <div style={{ padding: "0 18px 14px", background: C.steel }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", marginBottom: 4 }}>NOTES</div>
               <div
                 style={{
                   fontSize: 12,
@@ -509,13 +493,13 @@ function JobCard({
           )}
 
           {activeTab === "tickets" && (
-            <div style={{ padding: "0 18px 18px", background: TINT.expandBg }}>
+            <div style={{ padding: "0 18px 18px", background: C.steel }}>
               <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} onTicketDeleted={onTicketDeleted} />
             </div>
           )}
 
           {activeTab === "todos" && (
-            <div style={{ padding: "0 18px 18px", background: TINT.expandBg }}>
+            <div style={{ padding: "0 18px 18px", background: C.steel }}>
               <JobTodoTab jobId={job.id} todos={todos} setTodos={setTodos} jobs={jobs} userNames={userNames} userIdByName={userIdByName} />
             </div>
           )}

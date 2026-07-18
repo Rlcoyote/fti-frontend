@@ -61,7 +61,6 @@ export const TINT = {
   cream: "#f8f4e8", //         rental-cycle strip
   faintText: "#a0aec8", //     faint stamps on always-light rows
   noteYellow: "#fef9e7", //    customer comment bubble
-  expandBg: "#f7f9fc", //      job-card expansion area (doctrine-listed)
   redHover: "#f5c6cb", //      danger button hover
   redHoverSoft: "#fbeaec", //  soft danger hover
   blueGray50: "#eef3fb", //    ticket-form section wash
