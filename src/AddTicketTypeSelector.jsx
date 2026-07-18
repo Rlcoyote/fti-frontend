@@ -1,4 +1,4 @@
-import { C } from "./config.js";
+import { C, E } from "./config.js";
 import { Btn, TICKET_TYPES } from "./SharedUI.jsx";
 
 // ─── AddTicketTypeSelector (v28.59 — extracted from AddTicketModal) ───────────
@@ -27,22 +27,36 @@ export default function AddTicketTypeSelector({ onSelect, onCancel }) {
           <button
             key={key}
             onClick={() => onSelect(key)}
+            className="fti-btn"
             style={{
+              // v28.352 — THE FTI LOOK reaches the type tiles: top-lit surface
+              // gradient, raised elevation, type-color identity kept on the
+              // spine + a soft wash behind the label. Motion rides .fti-btn.
               display: "flex",
               alignItems: "center",
               gap: 12,
-              background: C.cardBg,
-              border: `2px solid ${cfg.color}33`,
+              background: `linear-gradient(180deg, ${C.lightSteel}, ${C.cardBg})`,
+              border: `1px solid ${cfg.color}44`,
               borderLeft: `4px solid ${cfg.color}`,
-              borderRadius: 6,
-              padding: "10px 14px",
+              borderRadius: 8,
+              padding: "12px 14px",
               cursor: "pointer",
               textAlign: "left",
               width: "100%",
+              boxShadow: E.raised,
             }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = cfg.color)}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = cfg.color + "33")}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = cfg.color + "44")}
           >
+            <span
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                background: `radial-gradient(circle at 35% 30%, ${cfg.color}, color-mix(in srgb, ${cfg.color} 55%, #000))`,
+                flexShrink: 0,
+              }}
+            />
             <span style={{ fontSize: 14, fontWeight: 800, color: cfg.color, letterSpacing: "0.06em" }}>{cfg.label}</span>
           </button>
         ))}
