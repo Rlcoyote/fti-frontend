@@ -19,16 +19,19 @@ import { canModifyUser } from "./permissions.js";
 function PersonRowActions({ person: p, currentUser, actions, setEditing, setResetPwUser, setShowChangePw, setShowWebauthn, setConfirmAction }) {
   const { rowFeedback, sendPinSetup, resetPin, deactivate, resendInvite, wipeBio, forceLogout } = actions;
 
+  // v28.358 — LOOK SWEEP: one base for all ten lifecycle chips; motion via
+  // .fti-btn, token radius, house font. Variant colors stay per-action.
   const actionBtnStyle = {
     background: "transparent",
     border: `1px solid ${C.border}`,
     color: C.muted,
     fontSize: 10,
     fontWeight: 700,
-    padding: "3px 8px",
-    borderRadius: 3,
+    padding: "4px 9px",
+    borderRadius: 6,
     cursor: "pointer",
     letterSpacing: "0.04em",
+    fontFamily: "'Arial', sans-serif",
   };
   // v28.46 — disabled style for buttons while their row's async action is pending.
   const disabledBtnStyle = { ...actionBtnStyle, opacity: 0.4, cursor: "not-allowed", color: C.muted, border: `1px solid ${C.border}` };
@@ -46,13 +49,14 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
 
   if (p.is_active) {
     buttons.push(
-      <button key="edit" onClick={() => setEditing(p)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
+      <button className="fti-btn" key="edit" onClick={() => setEditing(p)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
         EDIT
       </button>,
     );
     if (p.pin_set === false) {
       buttons.push(
         <button
+          className="fti-btn"
           key="send-pin"
           disabled={isPending}
           onClick={() => {
@@ -66,6 +70,7 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
     } else if (p.pin_set === true) {
       buttons.push(
         <button
+          className="fti-btn"
           key="reset-pin"
           disabled={isPending}
           onClick={() => {
@@ -86,12 +91,13 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
     }
     if (canModify && !isSelf) {
       buttons.push(
-        <button key="reset-pw" onClick={() => setResetPwUser(p)} style={actionBtnStyle}>
+        <button className="fti-btn" key="reset-pw" onClick={() => setResetPwUser(p)} style={actionBtnStyle}>
           RESET PW
         </button>,
       );
       buttons.push(
         <button
+          className="fti-btn"
           key="resend"
           disabled={isPending}
           onClick={() => {
@@ -104,6 +110,7 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
       );
       buttons.push(
         <button
+          className="fti-btn"
           key="wipe-bio"
           disabled={isPending}
           onClick={() => {
@@ -126,6 +133,7 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
       // cannot force-logout an owner (backend enforces too).
       buttons.push(
         <button
+          className="fti-btn"
           key="force-logout"
           disabled={isPending}
           onClick={() => {
@@ -146,12 +154,17 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
     }
     if (isSelf) {
       buttons.push(
-        <button key="change-pw" onClick={() => setShowChangePw(true)} style={actionBtnStyle}>
+        <button className="fti-btn" key="change-pw" onClick={() => setShowChangePw(true)} style={actionBtnStyle}>
           CHANGE PW
         </button>,
       );
       buttons.push(
-        <button key="manage-devices" onClick={() => setShowWebauthn(true)} style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}>
+        <button
+          className="fti-btn"
+          key="manage-devices"
+          onClick={() => setShowWebauthn(true)}
+          style={{ ...actionBtnStyle, border: `1px solid ${C.blue}44`, color: C.blue }}
+        >
           MANAGE DEVICES
         </button>,
       );
@@ -159,6 +172,7 @@ function PersonRowActions({ person: p, currentUser, actions, setEditing, setRese
     if (canModify && !isSelf) {
       buttons.push(
         <button
+          className="fti-btn"
           key="deactivate"
           disabled={isPending}
           onClick={() => {
