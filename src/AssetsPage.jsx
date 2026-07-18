@@ -308,6 +308,7 @@ function AssetsPage({ jobs }) {
                 <div style={{ fontSize: 12, color: job ? C.text : C.muted }}>{job ? `#${job.id} — ${job.customer}` : "—"}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <button
+                    className="fti-btn"
                     onClick={() => openEdit(a)}
                     style={{
                       background: "transparent",
@@ -324,6 +325,7 @@ function AssetsPage({ jobs }) {
                   </button>
                   {a.status === "available" && (
                     <button
+                      className="fti-btn"
                       onClick={() => {
                         setAssignAsset(a);
                         setAssignJobId("");
@@ -344,6 +346,7 @@ function AssetsPage({ jobs }) {
                   )}
                   {a.status === "deployed" && (
                     <button
+                      className="fti-btn"
                       onClick={() => handleUnassign(a.id)}
                       style={{
                         background: "transparent",
@@ -387,6 +390,7 @@ function AssetsPage({ jobs }) {
               )}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button
+                  className="fti-btn"
                   onClick={() => openEdit(a)}
                   style={{
                     background: "transparent",
@@ -403,6 +407,7 @@ function AssetsPage({ jobs }) {
                 </button>
                 {a.status === "available" && (
                   <button
+                    className="fti-btn"
                     onClick={() => {
                       setAssignAsset(a);
                       setAssignJobId("");
@@ -423,6 +428,7 @@ function AssetsPage({ jobs }) {
                 )}
                 {a.status === "deployed" && (
                   <button
+                    className="fti-btn"
                     onClick={() => handleUnassign(a.id)}
                     style={{
                       background: "transparent",
@@ -494,6 +500,7 @@ function AssetsPage({ jobs }) {
               CANCEL
             </Btn>
             <button
+              className="fti-btn"
               onClick={() => setDeleteConfirmAsset(editAsset)}
               style={{
                 marginLeft: "auto",

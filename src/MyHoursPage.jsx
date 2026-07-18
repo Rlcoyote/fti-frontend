@@ -153,6 +153,7 @@ export default function MyHoursPage() {
           [30, "30 days"],
         ].map(([d, label]) => (
           <button
+            className="fti-btn"
             key={d}
             onClick={() => preset(d)}
             style={{
@@ -210,19 +211,19 @@ export default function MyHoursPage() {
       )}
 
       {/* Summary */}
-      <div style={{ background: "#0f3d22", borderRadius: 12, padding: "16px 18px", marginBottom: 16 }}>
-        <div style={{ color: "#9ff0bd", fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 4 }}>
+      <div style={{ background: C.greenB, borderRadius: 12, padding: "16px 18px", marginBottom: 16 }}>
+        <div style={{ color: C.green, fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", marginBottom: 4 }}>
           TOTAL — {from} → {to}
         </div>
         <div style={{ color: "white", fontSize: 34, fontWeight: 800 }}>{fmtDur(totalSecs)}</div>
-        <div style={{ color: "#cfe9d8", fontSize: 12.5, marginTop: 4 }}>
+        <div style={{ color: C.text, fontSize: 12.5, marginTop: 4 }}>
           {dayCount} day{dayCount === 1 ? "" : "s"} worked · {jobCount} job{jobCount === 1 ? "" : "s"}
         </div>
         {byCategory.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 12, paddingTop: 12, borderTop: "1px solid #ffffff22" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
             {byCategory.map(([k, v]) => (
               <div key={k}>
-                <span style={{ color: "#9ff0bd", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>{k}</span>{" "}
+                <span style={{ color: C.green, fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>{k}</span>{" "}
                 <span style={{ color: "white", fontSize: 13, fontWeight: 700 }}>{fmtDur(v)}</span>
               </div>
             ))}
@@ -280,6 +281,7 @@ export default function MyHoursPage() {
                           <span style={{ color: C.text, fontWeight: 700 }}>{fmtDur(r.elapsed_seconds)}</span>
                           {!pending && fixId !== r.id && (
                             <button
+                              className="fti-btn"
                               onClick={() => openFix(r)}
                               style={{
                                 fontSize: 11,
@@ -321,6 +323,7 @@ export default function MyHoursPage() {
                           />
                           <div style={{ display: "flex", gap: 8 }}>
                             <button
+                              className="fti-btn"
                               onClick={() => submitFix(r)}
                               disabled={fixBusy}
                               style={{
@@ -337,6 +340,7 @@ export default function MyHoursPage() {
                               {fixBusy ? "…" : "Submit request"}
                             </button>
                             <button
+                              className="fti-btn"
                               onClick={() => setFixId(null)}
                               disabled={fixBusy}
                               style={{

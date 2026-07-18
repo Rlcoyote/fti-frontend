@@ -82,6 +82,7 @@ export default function TimeReviewPage() {
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
         {TABS.map(([key, label]) => (
           <button
+            className="fti-btn"
             key={key}
             onClick={() => setStatus(key)}
             style={{
@@ -171,6 +172,7 @@ export default function TimeReviewPage() {
                 (pending ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
                     <button
+                      className="fti-btn"
                       onClick={() => doApply(r.id)}
                       disabled={busyId === r.id}
                       style={{
@@ -187,6 +189,7 @@ export default function TimeReviewPage() {
                       {busyId === r.id ? "…" : "Apply"}
                     </button>
                     <button
+                      className="fti-btn"
                       onClick={() => doReject(r.id)}
                       disabled={busyId === r.id}
                       style={{
@@ -205,6 +208,7 @@ export default function TimeReviewPage() {
                   </div>
                 ) : (
                   <button
+                    className="fti-btn"
                     onClick={() => doApprove(r.id)}
                     disabled={busyId === r.id}
                     style={{

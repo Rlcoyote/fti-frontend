@@ -251,6 +251,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
         {/* v28.330 — one tap texts every unsigned crew member their link */}
         {canSendLink && !jsaCompleted && !ticketIsClosed && data.crew.some((c) => !c.signature_id && c.user_id !== currentUser?.id) && (
           <button
+            className="fti-btn"
             onClick={sendAllLinks}
             disabled={sendingAll}
             style={{
@@ -335,6 +336,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                       {canSelfSign && (
                         <button
+                          className="fti-btn"
                           onClick={() => setSignOpen(true)}
                           style={{
                             background: C.red,
@@ -353,6 +355,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                       )}
                       {canSendLink && !canSelfSign && (
                         <button
+                          className="fti-btn"
                           onClick={() => sendLink(c.user_id)}
                           disabled={busyUserId === c.user_id}
                           style={{
@@ -373,6 +376,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                       {canWitnessOrOverride && !canSelfSign && (
                         <>
                           <button
+                            className="fti-btn"
                             onClick={() => setPinWitnessTarget(c)}
                             style={{
                               background: C.blue,
@@ -390,6 +394,7 @@ function JSACrewSigners({ jsaId, onAllSigned, onNeedsRefresh }) {
                             SIGN W/ PIN
                           </button>
                           <button
+                            className="fti-btn"
                             onClick={() => setOverrideTarget(c)}
                             style={{
                               background: "transparent",

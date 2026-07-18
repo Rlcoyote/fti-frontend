@@ -268,6 +268,7 @@ function InventoryPage({ inventory, setInventory, jobs }) {
                     <div style={{ display: "flex", gap: 4 }}>
                       {item.inYard > 0 && (
                         <button
+                          className="fti-btn"
                           onClick={() => setShowCheckOut(item)}
                           style={{
                             background: C.red,
@@ -285,6 +286,7 @@ function InventoryPage({ inventory, setInventory, jobs }) {
                       )}
                       {out > 0 && (
                         <button
+                          className="fti-btn"
                           onClick={() => setShowCheckIn(item)}
                           style={{
                             background: C.green,
@@ -301,6 +303,7 @@ function InventoryPage({ inventory, setInventory, jobs }) {
                         </button>
                       )}
                       <button
+                        className="fti-btn"
                         onClick={() => setShowEdit(item)}
                         style={{
                           background: "transparent",
@@ -520,6 +523,7 @@ function EditItemModal({ item, onSave, onDelete, onClose }) {
           </Btn>
         </div>
         <button
+          className="fti-btn"
           onClick={() => onDelete(item.id)}
           style={{
             background: "transparent",
