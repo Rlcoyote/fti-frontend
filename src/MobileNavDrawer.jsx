@@ -21,12 +21,15 @@ function ThemeDrawerItem() {
       }}
     >
       <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{isDark ? "☀" : "☾"}</span>
-      <span style={{ fontSize: 15, color: "#b0bdd4", fontWeight: 400 }}>{isDark ? "Light Mode" : "Dark Mode"}</span>
+      <span style={{ fontSize: 15, color: C.muted, fontWeight: 400 }}>{isDark ? "Light Mode" : "Dark Mode"}</span>
     </div>
   );
 }
 
-// ─── MobileNavDrawer (v28.05) ───────────────────────────────────────────────
+// ─── MobileNavDrawer (v28.05; theme-converted v28.354) ──────────────────────
+// v28.354 — the drawer was hardcoded always-dark (9 raw hexes) — DRIFT, not
+// doctrine (Reggie: "convert it"). Every surface now rides C.* and follows
+// the active theme like the rest of the app.
 // Bottom-sheet navigation drawer used at viewport widths < 900px. Slides up
 // from the bottom edge with a backdrop. Lists Dashboard + every NAV_ITEM the
 // current user can access, plus the under-the-gear admin items (Permissions,
@@ -73,13 +76,13 @@ function DrawerItem({ icon, label, active, onClick, badge, badgeColor }) {
         alignItems: "center",
         gap: 14,
         padding: "14px 24px",
-        background: active ? "#ffffff11" : "transparent",
+        background: active ? C.steel : "transparent",
         borderLeft: active ? `3px solid ${C.red}` : "3px solid transparent",
         cursor: "pointer",
       }}
     >
       <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{icon}</span>
-      <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.white : "#b0bdd4" }}>
+      <span style={{ fontSize: 15, fontWeight: active ? 700 : 400, color: active ? C.text : C.muted }}>
         {label}
         {badge != null && badge > 0 && (
           <span
@@ -127,7 +130,7 @@ function MobileNavDrawer({
   return (
     <>
       {/* BACKDROP */}
-      {drawerOpen && <div onClick={() => setDrawerOpen(false)} style={{ position: "fixed", inset: 0, background: "#00000066", zIndex: 1001 }} />}
+      {drawerOpen && <div onClick={() => setDrawerOpen(false)} style={{ position: "fixed", inset: 0, background: C.scrim, zIndex: 1001 }} />}
 
       {/* DRAWER */}
       <div
@@ -137,7 +140,7 @@ function MobileNavDrawer({
           left: 0,
           right: 0,
           zIndex: 1002,
-          background: C.darkBlue,
+          background: C.cardBg,
           borderTop: `3px solid ${C.red}`,
           borderRadius: "16px 16px 0 0",
           transform: drawerOpen ? "translateY(0)" : "translateY(100%)",
@@ -147,10 +150,10 @@ function MobileNavDrawer({
           overflowY: "auto",
         }}
       >
-        <div style={{ width: 40, height: 4, background: "#ffffff33", borderRadius: 2, margin: "0 auto 20px" }} />
+        <div style={{ width: 40, height: 4, background: C.border, borderRadius: 2, margin: "0 auto 20px" }} />
 
         {/* USER HEADER */}
-        <div style={{ padding: "0 20px 16px", borderBottom: `1px solid #ffffff22`, marginBottom: 8 }}>
+        <div style={{ padding: "0 20px 16px", borderBottom: `1px solid ${C.border}`, marginBottom: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
@@ -169,11 +172,11 @@ function MobileNavDrawer({
               {currentUser.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.white }}>{currentUser.name}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{currentUser.name}</div>
               <div
                 style={{
                   fontSize: 11,
-                  color: "#a0aec8",
+                  color: C.faint,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                 }}
@@ -207,7 +210,7 @@ function MobileNavDrawer({
           }
           if (item === "Deleted") {
             badge = deletedTotalCount;
-            badgeColor = "#ffffff33";
+            badgeColor = C.border;
           }
           // v28.188 — Final Review badge mirrors desktop's NavBadge wiring.
           if (item === "Final Review" && pendingFinalReviewCount > 0) {
@@ -417,7 +420,7 @@ function MobileNavDrawer({
             alignItems: "center",
             gap: 14,
             padding: "14px 24px",
-            borderTop: `1px solid #ffffff22`,
+            borderTop: `1px solid ${C.border}`,
             marginTop: 8,
             cursor: "pointer",
           }}
