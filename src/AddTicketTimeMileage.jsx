@@ -1,3 +1,4 @@
+import { tzLabel } from "./utils.js";
 import { C } from "./config.js";
 import { isLogType } from "./ticketFamilies.js";
 import TimePicker from "./TimePicker.jsx";
@@ -65,7 +66,7 @@ export default function AddTicketTimeMileage({
         ))}
         <div>
           <div style={lblSm}>TIME ZONE</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: timeZone ? C.text : C.muted, paddingTop: 4 }}>{timeZone || "—"}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: timeZone ? C.text : C.muted, paddingTop: 4 }}>{tzLabel(timeZone) || "—"}</div>
         </div>
       </div>
       <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, display: "flex", gap: "8px 14px", flexWrap: "wrap", alignItems: "flex-end" }}>

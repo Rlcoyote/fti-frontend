@@ -1,3 +1,4 @@
+import { TZ_OPTIONS } from "./utils.js";
 import { C } from "./config.js";
 import { typeCaps, isLogType } from "./ticketFamilies.js";
 import { inputStyle, labelStyle, PANEL_TEXT, TINT } from "./SharedUI.jsx";
@@ -89,10 +90,10 @@ export default function AddTicketDateTimeFields({
         <div>
           <label style={labelStyle}>TIME ZONE</label>
           <div style={{ display: "flex", gap: 10, paddingTop: 6 }}>
-            {["TX", "NM"].map((tz) => (
+            {TZ_OPTIONS.map(({ label: tzL, value: tzV }) => (
               <span
-                key={tz}
-                onClick={() => setTimeZone(tz)}
+                key={tzV}
+                onClick={() => setTimeZone(tzV)}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -100,7 +101,7 @@ export default function AddTicketDateTimeFields({
                   cursor: "pointer",
                   fontSize: 12,
                   fontWeight: 700,
-                  color: timeZone === tz ? C.red : C.muted,
+                  color: timeZone === tzV || timeZone === tzL ? C.red : C.muted,
                 }}
               >
                 <span
@@ -108,12 +109,12 @@ export default function AddTicketDateTimeFields({
                     width: 12,
                     height: 12,
                     borderRadius: "50%",
-                    border: `2px solid ${timeZone === tz ? C.red : C.border}`,
-                    background: timeZone === tz ? C.red : "transparent",
+                    border: `2px solid ${timeZone === tzV || timeZone === tzL ? C.red : C.border}`,
+                    background: timeZone === tzV || timeZone === tzL ? C.red : "transparent",
                     display: "inline-block",
                   }}
                 />
-                {tz}
+                {tzL}
               </span>
             ))}
           </div>

@@ -1,3 +1,4 @@
+import { tzLabel } from "./utils.js";
 import { C } from "./config.js";
 import { isLogType } from "./ticketFamilies.js";
 import TimePicker from "./TimePicker.jsx";
@@ -137,7 +138,7 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo, ticketTyp
         ))}
         <div>
           <div style={lblStyle}>TIME ZONE</div>
-          <div style={roStyle}>{timeZone || "—"}</div>
+          <div style={roStyle}>{tzLabel(timeZone) || "—"}</div>
         </div>
       </div>
 

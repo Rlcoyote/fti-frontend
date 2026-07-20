@@ -392,3 +392,13 @@ export const captureGps = () =>
     }),
     new Promise((resolve) => setTimeout(() => resolve({ lat: null, lng: null }), 6000)),
   ]);
+
+// ─── v28.366 — ticket time-zone options (ONE home) ──────────────────────────
+// Field-friendly labels, REAL IANA values. Origin: the picker stored its
+// "TX"/"NM" labels raw and Postgres AT TIME ZONE threw on clock-in. Labels
+// are for humans; values are for machines — never store the label again.
+export const TZ_OPTIONS = [
+  { label: "TX", value: "America/Chicago" },
+  { label: "NM", value: "America/Denver" },
+];
+export const tzLabel = (value) => TZ_OPTIONS.find((o) => o.value === value)?.label || value;
