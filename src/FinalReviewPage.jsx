@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, ConfirmModal, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
-import { ticketSaveErrorMessage } from "./utils.js";
+import { ticketSaveErrorMessage, fmtTicketDate } from "./utils.js";
 
 function FinalReviewPage({ jobs, tickets, setTickets }) {
   const { currentUser, showNotice } = useApp();
@@ -31,7 +31,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
 
   const getJob = (t) => jobs.find((j) => j.id === t.jobId);
   const ticketTotal = (t) => (t.lineItems || []).reduce((s, li) => s + (li.rate || 0) * (li.qty || 0) * (li.days || 1), 0);
-  const formatDate = (d) => (d ? new Date(d + "T00:00:00").toLocaleDateString("en-US") : "—");
+  const formatDate = fmtTicketDate; // v28.367 — one tolerant home (utils); local parser showed "Invalid Date" on malformed stored values
 
   const handleApproveAndSend = async (ticketId) => {
     // v28.232 — fetch doesn't throw on 4xx/5xx; don't flash "sent to QB" on a

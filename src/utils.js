@@ -402,3 +402,22 @@ export const TZ_OPTIONS = [
   { label: "NM", value: "America/Denver" },
 ];
 export const tzLabel = (value) => TZ_OPTIONS.find((o) => o.value === value)?.label || value;
+
+// ─── v28.367 — fmtTicketDate: THE tolerant ticket-date formatter ────────────
+// Origin: Final Review showed "Invalid Date" on ticket #300178-1 — a stored
+// date whose SHAPE the page's local formatter couldn't parse. Silent data
+// defects must never render as browser artifacts: this home (1) renders any
+// recoverable shape (YYYY-MM-DD, full ISO, parseable string), (2) renders
+// "—" for the unrecoverable, and (3) reports the bad value to the console
+// (and to the error pipeline when it lands) so bad data becomes a logged
+// event instead of a mystery on an owner's screen.
+export function fmtTicketDate(d) {
+  if (!d) return "—";
+  const s = String(d);
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m) return new Date(m[1] + "T00:00:00").toLocaleDateString("en-US");
+  const parsed = new Date(s);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleDateString("en-US");
+  console.error("[fmtTicketDate] unrenderable date value:", JSON.stringify(d));
+  return "—";
+}
