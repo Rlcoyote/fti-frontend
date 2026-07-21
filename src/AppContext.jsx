@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { API_URL, setCurrentUser as setGlobalUser, applyTheme, getTheme } from "./config.js";
+import { setReporterUser, addBreadcrumb } from "./errorReporter.js";
 import BrandedSplash from "./BrandedSplash.jsx";
 import { JSA_SIGN_FLOW } from "./signFlow.js";
 import { NoticeModal } from "./SharedUI.jsx";
@@ -149,6 +150,16 @@ export function AppProvider({ children }) {
   // re-render because C is the same object reference with new property
   // values.
   const [theme, setThemeState] = useState(() => getTheme());
+
+  // v28.368 — THE ERROR LOG: every report carries who + their trail from login.
+  useEffect(() => {
+    if (currentUser?.name) {
+      setReporterUser(currentUser.name);
+      addBreadcrumb("auth", `logged in: ${currentUser.name} (${currentUser.role})`);
+    } else {
+      setReporterUser(null);
+    }
+  }, [currentUser?.name, currentUser?.role]);
   const setTheme = useCallback((t) => {
     const next = t === "dark" ? "dark" : "light";
     applyTheme(next);

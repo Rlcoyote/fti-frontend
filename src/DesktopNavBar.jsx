@@ -497,6 +497,15 @@ function DesktopNavBar({
                         navigate("/onboarding");
                       }}
                     />
+                    {["owner", "admin"].includes(currentUser.role) && (
+                      <GearMenuItem
+                        label="Error Log"
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          navigate("/error-log");
+                        }}
+                      />
+                    )}
                     {can("view_activity_log") && (
                       <GearMenuItem
                         label="Activity Log"

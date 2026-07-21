@@ -24,6 +24,7 @@
 // as-is. Pass a FormData body and it's sent as multipart (no JSON stringify).
 
 import { API_URL } from "./config.js";
+import { addBreadcrumb, reportError } from "./errorReporter.js";
 
 export class ApiError extends Error {
   constructor(message, status, body) {
@@ -52,7 +53,19 @@ export async function request(path, { method = "GET", body, headers, ...rest } =
     init.headers = headers;
   }
 
-  const res = await fetch(url, init);
+  let res;
+  try {
+    res = await fetch(url, init);
+  } catch (netErr) {
+    // v28.368 — a request that never reached the server is a reportable event.
+    addBreadcrumb("api", `${method} ${path} NETWORK-FAIL`);
+    reportError({ message: `Network failure: ${method} ${path}`, severity: "api", context: { path, method } });
+    throw netErr;
+  }
+  addBreadcrumb("api", `${method} ${path} ${res.status}`);
+  if (res.status >= 500) {
+    reportError({ message: `API ${res.status}: ${method} ${path}`, severity: "api", context: { path, method, status: res.status } });
+  }
 
   if (!res.ok) {
     // Pull a structured error message when the server sent one; never throw

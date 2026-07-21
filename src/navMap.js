@@ -47,6 +47,7 @@ const EXTRA_PAGE_ROUTES = [
   ["/repair-request", "repairRequest"],
   ["/compliance-consent", "compliance"],
   ["/onboarding", "onboarding"], // v28.340 — New Hire Packet self-serve
+  ["/error-log", "errorLog"], // v28.368 — THE ERROR LOG viewer (owner/admin)
   ["/activity", "activity"],
   ["/contacts", "contacts"],
   ["/people", "people"],

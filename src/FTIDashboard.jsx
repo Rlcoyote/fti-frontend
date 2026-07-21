@@ -37,6 +37,7 @@ import RepairRequestForm from "./RepairRequestForm.jsx";
 import SafetyPage from "./SafetyPage.jsx";
 import SafetyMeetingsPage from "./SafetyMeetingsPage.jsx";
 import OnboardingPage from "./OnboardingPage.jsx";
+import ErrorLogPage from "./ErrorLogPage.jsx";
 import ClockPage from "./ClockPage.jsx";
 import TrainingPage from "./TrainingPage.jsx";
 import { pageFromPath } from "./navMap.js";
@@ -115,6 +116,10 @@ function FTIDashboard() {
   // if-chain was a third copy of the nav routing knowledge and had drifted
   // (missing /training + /my-hours -> active-tab highlight never fired there).
   const page = pageFromPath(location.pathname);
+  // v28.368 — navigation breadcrumbs for THE ERROR LOG's story trail.
+  useEffect(() => {
+    import("./errorReporter.js").then(({ addBreadcrumb }) => addBreadcrumb("nav", location.pathname));
+  }, [location.pathname]);
   const navigateToPage = (path) => navigate(path);
 
   // ── UI state ──
@@ -403,6 +408,7 @@ function FTIDashboard() {
         <Route path="/safety-meetings" element={<SafetyMeetingsPage />} />
         {/* v28.340 — Onboarding / New Hire Packet: every employee, self-serve. */}
         <Route path="/onboarding" element={<OnboardingPage />} />
+        {["owner", "admin"].includes(userRole) && <Route path="/error-log" element={<ErrorLogPage />} />}
         <Route path="/clock" element={<ClockPage />} />
         <Route path="/training" element={<TrainingPage />} />
         <Route path="/my-hours" element={<MyHoursPage />} />

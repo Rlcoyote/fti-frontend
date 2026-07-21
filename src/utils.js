@@ -419,5 +419,8 @@ export function fmtTicketDate(d) {
   const parsed = new Date(s);
   if (!Number.isNaN(parsed.getTime())) return parsed.toLocaleDateString("en-US");
   console.error("[fmtTicketDate] unrenderable date value:", JSON.stringify(d));
+  import("./errorReporter.js").then(({ reportError }) =>
+    reportError({ message: "Data sanity: unrenderable ticket date", severity: "data", context: { value: String(d).slice(0, 80) } }),
+  );
   return "—";
 }

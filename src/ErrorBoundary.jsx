@@ -20,6 +20,10 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
+    // v28.368 — render crashes feed THE ERROR LOG with the component stack.
+    import("./errorReporter.js").then(({ reportError }) =>
+      reportError({ message: error?.message || "render crash", stack: (error?.stack || "") + "\n" + (info?.componentStack || ""), severity: "crash" }),
+    );
     console.error("ErrorBoundary caught:", error, info?.componentStack);
   }
 
