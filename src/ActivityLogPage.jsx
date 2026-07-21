@@ -13,6 +13,7 @@ function ActivityLogPage() {
   const [tab, setTab] = useState("log"); // "log" | "sessions"
   const [filterUser, setFilterUser] = useState("All");
   const [filterAction, setFilterAction] = useState("All");
+  const [searchText, setSearchText] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -66,8 +67,16 @@ function ActivityLogPage() {
     if (filterAction !== "All") list = list.filter((a) => a.action === filterAction);
     if (dateFrom) list = list.filter((a) => a.created_at >= dateFrom);
     if (dateTo) list = list.filter((a) => a.created_at <= dateTo + "T23:59:59");
+    // v28.370 — free-text search over the whole row (user, action, details,
+    // IP, ids). Matches anywhere, case-insensitive — "300178" finds every
+    // event whose details mention that ticket. Searches the loaded window
+    // (last 500 events), same as the dropdown filters.
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      list = list.filter((a) => JSON.stringify(a).toLowerCase().includes(q));
+    }
     return list;
-  }, [activity, filterUser, filterAction, dateFrom, dateTo]);
+  }, [activity, filterUser, filterAction, dateFrom, dateTo, searchText]);
 
   const uniqueActions = [...new Set(activity.map((a) => a.action))].sort();
 
@@ -245,6 +254,16 @@ function ActivityLogPage() {
       {/* Filters — only apply to the LOG tab. Sessions are pre-paired server-side. */}
       {tab === "log" && (
         <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div>
+            <label style={labelStyle}>SEARCH</label>
+            <input
+              type="text"
+              style={{ ...inputStyle, width: 210 }}
+              placeholder="Ticket #, name, anything…"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </div>
           <div>
             <label style={labelStyle}>USER</label>
             <select style={{ ...inputStyle, width: 180 }} value={filterUser} onChange={(e) => setFilterUser(e.target.value)}>

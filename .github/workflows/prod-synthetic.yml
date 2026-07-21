@@ -30,20 +30,28 @@ jobs:
           set -e
           curl -fsS https://fti-app-production.up.railway.app/api/health | grep -q '"ok"'
           curl -fsS https://fti-app-production.up.railway.app/api/version | grep -q '"commit"'
+      # These two probes EXPECT a 4xx — the route's own rejection, not the auth
+      # wall. No -f here: -f discards the body on any 4xx, which made this test
+      # unpassable as written (caught on its first-ever run, 2026-07-20). The
+      # body text proves WHICH layer answered; the status code is asserted too.
       - name: Session-less sign REACHES the route (middleware-order fence, v28.327)
         run: |
           set -e
-          BODY=$(curl -fsS -X POST https://fti-app-production.up.railway.app/api/jsas/00000000-0000-0000-0000-000000000000/sign \
+          RESP=$(curl -sS -w "\n%{http_code}" -X POST https://fti-app-production.up.railway.app/api/jsas/00000000-0000-0000-0000-000000000000/sign \
             -H "Content-Type: application/json" \
-            -d '{"method":"biometric","webauthn_response":{},"pending_token":"synthetic"}' || true)
-          echo "$BODY"
+            -d '{"method":"biometric","webauthn_response":{},"pending_token":"synthetic"}')
+          BODY=$(echo "$RESP" | sed '$d'); CODE=$(echo "$RESP" | tail -1)
+          echo "$CODE $BODY"
+          [ "$CODE" = "401" ]
           echo "$BODY" | grep -q "Invalid sign session"
           ! echo "$BODY" | grep -q "Authentication required"
       - name: Sign-link landing rejects garbage with a proper error (not silence)
         run: |
           set -e
-          BODY=$(curl -fsS -X POST https://fti-app-production.up.railway.app/api/jsas/sign-options \
+          RESP=$(curl -sS -w "\n%{http_code}" -X POST https://fti-app-production.up.railway.app/api/jsas/sign-options \
             -H "Content-Type: application/json" \
-            -d '{"token":"synthetic","user_id":"00000000-0000-0000-0000-000000000000","jsa_id":"00000000-0000-0000-0000-000000000000"}' || true)
-          echo "$BODY"
+            -d '{"token":"synthetic","user_id":"00000000-0000-0000-0000-000000000000","jsa_id":"00000000-0000-0000-0000-000000000000"}')
+          BODY=$(echo "$RESP" | sed '$d'); CODE=$(echo "$RESP" | tail -1)
+          echo "$CODE $BODY"
+          [ "$CODE" = "400" ]
           echo "$BODY" | grep -q "Invalid or unknown sign link"
