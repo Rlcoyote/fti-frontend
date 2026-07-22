@@ -286,15 +286,43 @@ function OfficeRoster() {
       .catch(() => {});
   }, []);
 
+  // v28.386 (audit D2 — the ratified re-download approval flow's missing
+  // half): the employee side could REQUEST a packet re-download since v28.341;
+  // the office had no surface to see or decide requests. Backend routes were
+  // built and waiting — approval auto-delivers the packet.
+  const [dlRequests, setDlRequests] = useState([]);
+  const [dlMsg, setDlMsg] = useState("");
+
   const refresh = useCallback(() => {
     api
       .get(`/onboarding/roster`)
       .then(setRoster)
       .catch((e) => setErr(e.message));
+    api
+      .get(`/onboarding/download-requests`)
+      .then(setDlRequests)
+      .catch(() => {});
   }, []);
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  const decideDl = async (id, approve) => {
+    setDlMsg("");
+    try {
+      const r = await api.post(`/onboarding/download-requests/${id}/decide`, { approve });
+      setDlMsg(
+        approve
+          ? r.delivery_error
+            ? `Approved, but delivery failed: ${r.delivery_error}`
+            : `Approved — packet sent via ${r.request?.delivered_channel || "email"}`
+          : "Request denied",
+      );
+      refresh();
+    } catch (e) {
+      setDlMsg(e.message);
+    }
+  };
 
   const openEmployee = async (u) => {
     setOpenUser(u);
@@ -421,6 +449,60 @@ function OfficeRoster() {
         </div>
         {notifySaved && <div style={{ fontSize: F.meta, color: C.green, fontWeight: 700, marginTop: SP.sm }}>{notifySaved}</div>}
       </div>
+
+      {/* DOWNLOAD REQUESTS — management approval gate (ratified: re-download
+          = management approval; approval IS the delivery order). */}
+      {dlRequests.length > 0 && (
+        <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: R.card, padding: SP.xl, marginBottom: SP.xl }}>
+          <div style={{ fontSize: F.label, fontWeight: 800, color: C.muted, marginBottom: SP.sm }}>PACKET RE-DOWNLOAD REQUESTS</div>
+          {dlRequests.map((r) => (
+            <div
+              key={r.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: SP.md,
+                padding: `${SP.sm}px 0`,
+                borderTop: `1px solid ${C.border}33`,
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ fontSize: F.body, color: C.text, flex: "1 1 200px" }}>
+                <span style={{ fontWeight: 700 }}>{r.user_name}</span>
+                <span style={{ fontSize: F.label, color: C.muted }}> · requested {new Date(r.requested_at).toLocaleString()}</span>
+              </div>
+              {r.status === "pending" ? (
+                <div style={{ display: "flex", gap: SP.md }}>
+                  <Btn small onClick={() => decideDl(r.id, true)}>
+                    APPROVE &amp; SEND
+                  </Btn>
+                  <Btn small variant="ghost" onClick={() => decideDl(r.id, false)}>
+                    DENY
+                  </Btn>
+                </div>
+              ) : (
+                <span
+                  style={{
+                    fontSize: F.badge,
+                    fontWeight: 800,
+                    color: r.status === "approved" ? C.green : C.muted,
+                    border: `1px solid ${(r.status === "approved" ? C.green : C.muted) + "66"}`,
+                    background: (r.status === "approved" ? C.green : C.muted) + "18",
+                    borderRadius: R.xl,
+                    padding: "2px 7px",
+                  }}
+                >
+                  {r.status.toUpperCase()}
+                  {r.delivered_channel ? ` — SENT VIA ${String(r.delivered_channel).toUpperCase()}` : ""}
+                </span>
+              )}
+            </div>
+          ))}
+          {dlMsg && <div style={{ fontSize: F.meta, color: dlMsg.includes("fail") ? C.red : C.green, fontWeight: 700, marginTop: SP.sm }}>{dlMsg}</div>}
+        </div>
+      )}
+
       {roster.map((u) => (
         <div
           key={u.user_id}
