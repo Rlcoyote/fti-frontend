@@ -34,11 +34,6 @@ export function recordConsent(payload) {
   return api.post("/sms-consents", payload, { credentials: "include" });
 }
 
-// Revoke an existing consent (owner/admin).
-export function revokeConsent(consentId, reason) {
-  return api.post(`/sms-consents/${consentId}/revoke`, { reason }, { credentials: "include" });
-}
-
 // Fetch the active scripts. Returns { customer_rep: { script_text, ... }, employee: { ... } }.
 export function getActiveScripts() {
   return api.get("/sms-consent-scripts", { credentials: "include" });
@@ -47,9 +42,4 @@ export function getActiveScripts() {
 // Update a script (owner/admin).
 export function updateScript(type, scriptText) {
   return api.put(`/sms-consent-scripts/${type}`, { script_text: scriptText }, { credentials: "include" });
-}
-
-// Fetch script edit history (admin audit view).
-export function getScriptHistory(type) {
-  return api.get(`/sms-consent-scripts/history?type=${encodeURIComponent(type)}`, { credentials: "include" });
 }
