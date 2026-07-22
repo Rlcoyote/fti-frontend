@@ -29,6 +29,10 @@ function LoginBiometricStep({ error, linkSentMsg, loading, authFailedShowLinkOpt
       >
         Your device will prompt for Touch ID, Face ID, Windows Hello, or your saved passkey.
       </div>
+      <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+        If your device asks for a 4-digit PIN or pattern here, that is your <b>phone or computer&apos;s own screen-lock PIN</b> — not an FTI PIN. The app never
+        asks for a PIN to log in.
+      </div>
       {error && <div style={{ color: C.red, fontSize: 12, fontWeight: 700, marginBottom: 12, textAlign: "center" }}>{error}</div>}
       {linkSentMsg && (
         <div

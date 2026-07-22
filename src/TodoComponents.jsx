@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
-import { Btn, PriorityBadge, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
 
 function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [], initial = null, onReactivate = null }) {
   // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
@@ -111,6 +111,11 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [],
 
 // ─── TODO ROW ─────────────────────────────────────────────────────────────────
 function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
+  // v28.393 (field report via the board, 260722): the DONE box completed the
+  // task instantly and the row vanished from the default view — read as
+  // "deleted my task without warning." Completing now confirms and says
+  // exactly what happens. Un-marking stays one click (it's the undo).
+  const [confirmComplete, setConfirmComplete] = useState(false);
   const overdue = isOverdue(todo);
   const job = jobs.find((j) => j.id === todo.jobId);
 
@@ -135,7 +140,8 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
       <div
         onClick={(e) => {
           e.stopPropagation(); // the box completes; it must not open the editor
-          onToggle(todo.id);
+          if (todo.completed) onToggle(todo.id);
+          else setConfirmComplete(true);
         }}
         title={todo.completed ? "Mark as not done" : "Mark task done"}
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, cursor: "pointer" }}
@@ -253,6 +259,23 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
         </Btn>
       )}
       {/* v28.283 — EDIT button retired: the whole row opens the editor. DELETE stays explicit. */}
+      {/* v28.393 — EDIT button restored (retired v28.283 for row-click-opens-
+          editor; the field couldn't FIND it: "the task needs to be editable.
+          It is not."). Row click still works; the button makes it visible. */}
+      {onEdit && (
+        <Btn
+          small
+          variant="ghost"
+          title="Open and edit this task"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(todo);
+          }}
+          style={{ flexShrink: 0, marginTop: 1 }}
+        >
+          EDIT
+        </Btn>
+      )}
       {onDelete && (
         <Btn
           small
@@ -266,6 +289,19 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
         >
           DELETE
         </Btn>
+      )}
+      {confirmComplete && (
+        <ConfirmModal
+          title="Mark Task Done?"
+          message={`"${todo.title}" will be marked COMPLETED and move off the active list — it is NOT deleted. Find it anytime with SHOW COMPLETED, and reopen it from there.`}
+          yesLabel="MARK DONE"
+          accent={C.green}
+          onYes={() => {
+            setConfirmComplete(false);
+            onToggle(todo.id);
+          }}
+          onCancel={() => setConfirmComplete(false)}
+        />
       )}
     </div>
   );
