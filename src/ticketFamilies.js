@@ -36,7 +36,7 @@ export const windowDaysInclusive = (from, to) => {
 // in the create modal + treats JSA as optional at signing, hides GPS + the
 // time/mileage block, and runs the cycle machinery instead of a From/To
 // window. Log types keep the visit-style form until Phase 4 builds theirs.
-export const TYPE_CAPS = {
+const TYPE_CAPS = {
   "Rig Up": { jsaInCreate: true, jsaOptional: false, gps: true, times: true, window: true, cycle: false },
   "Rig Down": { jsaInCreate: true, jsaOptional: false, gps: true, times: true, window: true, cycle: false },
   Rental: { jsaInCreate: false, jsaOptional: true, gps: false, times: false, window: false, cycle: true },

@@ -17,7 +17,7 @@
 // predate the v28.94 extraction and are preserved verbatim — a job in a
 // missing county just misses the autocomplete suggestion (non-blocking).
 
-export const TX_COUNTIES = [
+const TX_COUNTIES = [
   "Andrews",
   "Archer",
   "Armstrong",
@@ -138,7 +138,7 @@ export const TX_COUNTIES = [
   "Zavala",
 ];
 
-export const NM_COUNTIES = [
+const NM_COUNTIES = [
   "Chaves",
   "Cibola",
   "Curry",

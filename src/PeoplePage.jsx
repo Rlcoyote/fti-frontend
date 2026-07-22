@@ -14,10 +14,12 @@ import PeopleRosterTable from "./PeopleRosterTable.jsx";
 
 // ─── PeoplePage (v28.17 — consolidation of UsersPage + EmployeesPage +
 // ─── PermissionsModal) ─────────────────────────────────────────────────────
-// One canonical surface for all "manage a person" operations. Replaces:
-//   - /users (UsersPage.jsx) — auth/access actions
-//   - /employees (EmployeesPage.jsx) — HR/profile fields
-//   - PermissionsModal — matrix view
+// One canonical surface for all "manage a person" operations. Consolidated
+// from three long-gone surfaces (the old UsersPage, EmployeesPage, and
+// PermissionsModal — none of those files exist anymore; audit 260721 N-B):
+//   - auth/access actions still write to /api/users
+//   - HR/profile fields still write to /api/employees
+//   - the permission matrix renders inline here
 //
 // Why one page instead of three:
 //   - Three pages = three role-edit code paths = three places for drift

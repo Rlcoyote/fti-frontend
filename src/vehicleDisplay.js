@@ -5,19 +5,19 @@ import { C } from "./config.js";
 
 // Human-readable Type string from the structured columns. Mirrors the section
 // labels on the MASTER spreadsheet.
-export const KIND_LABELS = {
+const KIND_LABELS = {
   pickup: "Pickups",
   tractor: "Tractors",
   trailer: "Trailers",
   straight_truck: "Straight Trucks",
   other: "Other",
 };
-export const HITCH_LABELS = {
+const HITCH_LABELS = {
   tongue_pull: "Tongue Pull",
   gooseneck: "Gooseneck",
   n_a: null,
 };
-export const SUBTYPE_LABELS = {
+const SUBTYPE_LABELS = {
   "3_4_ton": "3/4 Ton",
   "1_ton": "1 Ton",
   heavy_duty: "Heavy Duty",

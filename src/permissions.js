@@ -24,7 +24,7 @@ export const ROLE_OPTIONS = [
   { value: "salesman", label: "Salesman" },
   { value: "field", label: "Field" },
 ];
-export const ROLE_RANK = { owner: 4, admin: 3, manager: 2, dispatch: 2, hse: 2, lead: 1, mechanic: 1, salesman: 1, field: 0 };
+const ROLE_RANK = { owner: 4, admin: 3, manager: 2, dispatch: 2, hse: 2, lead: 1, mechanic: 1, salesman: 1, field: 0 };
 export const canModifyUser = (currentUserRole, targetUserRole) => {
   if (!currentUserRole || !targetUserRole) return false;
   // v27.87 — strict rank gate. v27.74's owner-same-rank exception was rolled
@@ -34,7 +34,8 @@ export const canModifyUser = (currentUserRole, targetUserRole) => {
   // too (routes/users.js 403s any owner-role write), but keeping the
   // frontend gate strict means the UI doesn't offer paths that the server
   // is just going to reject. Owners editing their own non-role fields is
-  // handled via the separate `isSelf` check in UsersPage.jsx.
+  // handled via the separate `isSelf` check in PeoplePage.jsx (the old
+  // UsersPage was consolidated into it — audit 260721 N-B).
   const myRank = ROLE_RANK[currentUserRole] ?? 0;
   const theirRank = ROLE_RANK[targetUserRole] ?? 0;
   return myRank > theirRank;

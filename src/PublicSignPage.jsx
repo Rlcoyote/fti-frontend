@@ -648,4 +648,3 @@ function PublicSignPage({ token }) {
 }
 
 export default PublicSignPage;
-export { SigningTracker };
