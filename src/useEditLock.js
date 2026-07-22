@@ -8,6 +8,15 @@ function useEditLock(type, id, currentUser, onAutoSave) {
   const lockAcquired = useRef(true);
   const inactivityTimer = useRef(null);
   const pollTimer = useRef(null);
+  // v28.380 (audit pass 6) — Entry 5 onXRef pattern: the lifecycle effect below
+  // deliberately runs on [id] only, so its timers capture that render's
+  // closures. onAutoSave usually closes over the parent's CURRENT form state;
+  // calling a captured copy after 5 idle minutes would save STALE data. The
+  // ref always points at the latest callback.
+  const onAutoSaveRef = useRef(onAutoSave);
+  useEffect(() => {
+    onAutoSaveRef.current = onAutoSave;
+  });
   const TIMEOUT = 5 * 60 * 1000; // 5 min
   const POLL_INTERVAL = 5000; // 5 sec
 
@@ -15,8 +24,8 @@ function useEditLock(type, id, currentUser, onAutoSave) {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
     if (!lockAcquired.current) return;
     inactivityTimer.current = setTimeout(() => {
-      // Auto-save and release
-      if (onAutoSave) onAutoSave();
+      // Auto-save (via ref — always the latest callback) and release
+      if (onAutoSaveRef.current) onAutoSaveRef.current();
       releaseLock();
     }, TIMEOUT);
   };
@@ -161,6 +170,13 @@ function useEditLock(type, id, currentUser, onAutoSave) {
       window.removeEventListener("keydown", activity);
       window.removeEventListener("touchstart", activity);
     };
+    // Lifecycle effect BY DESIGN: acquire on mount / id change, release on
+    // unmount / id change. The handler functions are re-created per render but
+    // only the [id]-render's closures run here; cross-render mutable state
+    // lives in refs (lockAcquired, timers, onAutoSaveRef), and currentUser's
+    // id/name are session-stable. Adding the handlers to deps would re-acquire
+    // the lock every render — the bug, not the fix.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   return { ...lockState, releaseLock, requestEdit, dismissRequest, forceUnlock, resetInactivity };

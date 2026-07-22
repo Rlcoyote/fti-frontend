@@ -47,6 +47,9 @@ function JobTitlesPage() {
 
   useEffect(() => {
     fetchTitles();
+    // Deliberate deps (audit pass 6): fetch on mount + on the one flag it
+    // reads; the per-render fetcher is current at every trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeInactive]);
 
   const deactivate = async (title) => {

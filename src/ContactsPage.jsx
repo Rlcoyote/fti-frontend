@@ -96,6 +96,9 @@ function ContactsPage() {
   useEffect(() => {
     if (customers?.length) fetchAll();
     else setLoading(false);
+    // Deliberate deps (audit pass 6): refetch is keyed on customers identity;
+    // fetchAll is re-created each render so the run here is never stale.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customers]);
 
   // Group contacts by (lower(name), customer_id) so multi-category records

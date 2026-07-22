@@ -112,6 +112,10 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targe
         }
       })
       .catch(() => {});
+    // Deliberate deps (audit pass 6): fire only when coordinates arrive.
+    // jsa?.weather?.length is a mount-time GUARD (don't overwrite an existing
+    // JSA's weather), not a trigger — adding it would refetch on weather edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
   const [ppe, setPpe] = useState(jsa?.ppe || { frClothing: false, toolsTrained: false, confinedSpace: false });
   const [signatures, setSignatures] = useState(jsa?.signatures || [""]);
