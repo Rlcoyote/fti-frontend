@@ -1,6 +1,6 @@
 import { C, F, SP, R } from "./config.js";
 import { Btn } from "./SharedUI.jsx";
-import { AttendanceRow, METHOD_META, fmtMeetingDate, fmtMeetingTime } from "./SafetyMeetingShared.jsx";
+import { AttendanceRow, METHOD_META, fmtMeetingDate, fmtMeetingTime, pooledActionItems } from "./SafetyMeetingShared.jsx";
 
 // ─── SafetyMeetingPrintView (v28.337) ────────────────────────────────────────
 // The auditor-facing record (spec §2.8): EXPORT PDF = the shipped print
@@ -15,8 +15,7 @@ import { AttendanceRow, METHOD_META, fmtMeetingDate, fmtMeetingTime } from "./Sa
 // exists anywhere in this render (ratified Q4).
 
 function SafetyMeetingPrintView({ meeting, onBack }) {
-  const requiredItems = meeting.open_action_items.filter((t) => t.category !== "todo");
-  const todoItems = meeting.open_action_items.filter((t) => t.category === "todo");
+  const actionPool = pooledActionItems(meeting);
 
   const line = (label, value) => (
     <div style={{ display: "flex", gap: SP.md, fontSize: F.body, marginBottom: 2 }}>
@@ -89,17 +88,10 @@ function SafetyMeetingPrintView({ meeting, onBack }) {
         )}
 
         {heading("OPEN ACTION ITEMS AS OF THIS EXPORT")}
-        {requiredItems.length === 0 && todoItems.length === 0 && <div style={{ fontSize: F.meta, color: C.muted }}>None outstanding.</div>}
-        {requiredItems.length > 0 && <div style={{ fontSize: F.label, fontWeight: 800, marginTop: SP.xs }}>REQUIRED</div>}
-        {requiredItems.map((t) => (
+        {actionPool.length === 0 && <div style={{ fontSize: F.meta, color: C.muted }}>None outstanding.</div>}
+        {actionPool.map((t) => (
           <div key={t.id} style={{ fontSize: F.body, marginBottom: 2 }}>
-            • {t.title} — {t.assigned_to_name || "unassigned"}, open since {fmtMeetingDate(t.created_at)}
-          </div>
-        ))}
-        {todoItems.length > 0 && <div style={{ fontSize: F.label, fontWeight: 800, marginTop: SP.xs }}>TO-DO</div>}
-        {todoItems.map((t) => (
-          <div key={t.id} style={{ fontSize: F.body, marginBottom: 2 }}>
-            • {t.title} — {t.assigned_to_name || "unassigned"}, open since {fmtMeetingDate(t.created_at)}
+            • [{t.category === "todo" ? "TO-DO" : "REQUIRED"}] {t.title} — {t.assigned_to_name || "unassigned"}, entered {fmtMeetingDate(t.created_at)}
           </div>
         ))}
 

@@ -135,7 +135,10 @@ function FTIDashboard() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
-  const [sortMode, setSortMode] = useState("scheduled"); // "scheduled" = scheduled date ASC, WO# DESC tiebreak; "ticket" = WO# DESC; "customer" = customer A→Z, WO# DESC tiebreak
+  // v28.372 — default flipped scheduled → ticket (Reggie: newest WO on top).
+  // WO ids come from nextval('job_id_seq') at creation, so WO# DESC IS
+  // most-recently-created first.
+  const [sortMode, setSortMode] = useState("ticket"); // "ticket" = WO# DESC; "scheduled" = scheduled date ASC, WO# DESC tiebreak; "customer" = customer A→Z, WO# DESC tiebreak
   const [showNewJob, setShowNewJob] = useState(false);
 
   // ── Page-level data (jobs, tickets, todos, inventory, deletedTickets, jsas) ──

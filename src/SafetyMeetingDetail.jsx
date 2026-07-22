@@ -3,7 +3,7 @@ import { C, F, SP, R } from "./config.js";
 import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
 import { Btn, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
-import { AttendanceRow, MeetingStatusChip, fmtMeetingDate, fmtMeetingTime } from "./SafetyMeetingShared.jsx";
+import { AttendanceRow, MeetingStatusChip, fmtMeetingDate, fmtMeetingTime, pooledActionItems, actionItemDaysOpen } from "./SafetyMeetingShared.jsx";
 import SafetyMeetingSignModal from "./SafetyMeetingSignModal.jsx";
 import SafetyMeetingPrintView from "./SafetyMeetingPrintView.jsx";
 import { API_URL } from "./config.js";
@@ -302,26 +302,48 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
   const closeMeeting = act(async () => api.post(`/safety-meetings/${meeting.id}/close`, {}));
   const reopenMeeting = act(async () => api.post(`/safety-meetings/${meeting.id}/reopen`, {}));
 
-  const requiredItems = meeting.open_action_items.filter((t) => t.category !== "todo");
-  const todoItems = meeting.open_action_items.filter((t) => t.category === "todo");
-  const recapRow = (t) => (
-    <div
-      key={t.id}
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: SP.md,
-        padding: `${SP.sm}px ${SP.xl}px`,
-        borderTop: `1px solid ${C.border}33`,
-        flexWrap: "wrap",
-      }}
-    >
-      <div style={{ fontSize: F.body, color: C.text, flex: "1 1 200px" }}>{t.title}</div>
-      <div style={{ fontSize: F.label, color: C.muted, whiteSpace: "nowrap" }}>
-        {t.assigned_to_name || "unassigned"} · since {fmtMeetingDate(t.created_at)}
+  const actionPool = pooledActionItems(meeting);
+  const recapRow = (t) => {
+    const isTodo = t.category === "todo";
+    const chipColor = isTodo ? C.muted : C.red;
+    const days = actionItemDaysOpen(t.created_at);
+    return (
+      <div
+        key={t.id}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: SP.md,
+          padding: `${SP.sm}px ${SP.xl}px`,
+          borderTop: `1px solid ${C.border}33`,
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: SP.md, flex: "1 1 220px" }}>
+          <span
+            style={{
+              fontSize: F.badge,
+              fontWeight: 800,
+              color: chipColor,
+              border: `1px solid ${chipColor}66`,
+              background: `${chipColor}18`,
+              borderRadius: R.xl,
+              padding: "2px 7px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {isTodo ? "TO-DO" : "REQUIRED"}
+          </span>
+          <span style={{ fontSize: F.body, color: C.text }}>{t.title}</span>
+        </div>
+        <div style={{ fontSize: F.label, color: C.muted, whiteSpace: "nowrap" }}>
+          {t.assigned_to_name || "unassigned"} · entered {fmtMeetingDate(t.created_at)}
+          {days != null && days > 0 ? ` — ${days} day${days === 1 ? "" : "s"} open` : ""}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (printMode) return <SafetyMeetingPrintView meeting={meeting} onBack={() => setPrintMode(false)} />;
 
@@ -575,11 +597,8 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
 
       {/* ROLL-FORWARD RECAP */}
       <Section title="OPEN ACTION ITEMS — READ OUT EVERY TUESDAY UNTIL CLOSED">
-        {requiredItems.length === 0 && todoItems.length === 0 && <div style={emptyNote}>Nothing outstanding. Clean board.</div>}
-        {requiredItems.length > 0 && <div style={{ padding: `${SP.sm}px ${SP.xl}px 0`, fontSize: F.label, fontWeight: 800, color: C.red }}>REQUIRED</div>}
-        {requiredItems.map(recapRow)}
-        {todoItems.length > 0 && <div style={{ padding: `${SP.sm}px ${SP.xl}px 0`, fontSize: F.label, fontWeight: 800, color: C.muted }}>TO-DO</div>}
-        {todoItems.map(recapRow)}
+        {actionPool.length === 0 && <div style={emptyNote}>Nothing outstanding. Clean board.</div>}
+        {actionPool.map(recapRow)}
         <div
           style={{ padding: `${SP.lg}px ${SP.xl}px`, borderTop: `1px solid ${C.border}`, display: "flex", gap: SP.md, flexWrap: "wrap", alignItems: "center" }}
         >

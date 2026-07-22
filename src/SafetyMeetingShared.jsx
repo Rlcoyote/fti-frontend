@@ -16,6 +16,23 @@ export const METHOD_META = {
   external: { label: "VISITOR", color: () => C.blue, note: (row) => row.external_company || null },
 };
 
+// v28.372 — ONE pool for the Tuesday roll-forward recap (Reggie: "maybe they
+// all need addressed and can be lumped into a pool. One thing for sure, they
+// need to be categorized by date entered"). Every row comes from the same
+// todos board anyway — the REQUIRED/TO-DO headings implied two lists that
+// don't exist in the data. Oldest first: age is the read-out signal, and the
+// category survives as an inline chip on each row. One home (Entry 7) —
+// the detail card and the print export both consume THIS ordering.
+export function pooledActionItems(meeting) {
+  return [...(meeting.open_action_items || [])].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+}
+
+export function actionItemDaysOpen(createdAt) {
+  const ms = Date.now() - new Date(createdAt).getTime();
+  if (!Number.isFinite(ms)) return null;
+  return Math.max(0, Math.floor(ms / 86400000));
+}
+
 // TZ-proof date formatter for DATE columns. The backend serializes DATE as
 // UTC-midnight ISO ("2026-07-14T00:00:00.000Z"); localizing that in Chicago
 // renders the PREVIOUS day. Slice the date part and format from parts.
