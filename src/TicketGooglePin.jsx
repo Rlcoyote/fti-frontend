@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveMapPin } from "./mapPin.js";
 import { C, API_URL } from "./config.js";
 import { inputStyle, TINT } from "./SharedUI.jsx";
 
@@ -38,23 +39,10 @@ function TicketGooglePin({ editable, values, onChange, job, driveInfo, driveLoad
     if (!pin.trim()) return;
     setResolving(true);
     setResolveError("");
-    try {
-      const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: pin.trim() }),
-      });
-      if (!r.ok) {
-        setResolveError("Could not resolve pin.");
-      } else {
-        const { lat: newLat, lng: newLng } = await r.json();
-        onChange({ lat: newLat, lng: newLng });
-      }
-    } catch {
-      setResolveError("Network error.");
-    } finally {
-      setResolving(false);
-    }
+    const res = await resolveMapPin(pin);
+    if (res.ok) onChange({ lat: res.lat, lng: res.lng });
+    else setResolveError(res.error);
+    setResolving(false);
   };
 
   return (

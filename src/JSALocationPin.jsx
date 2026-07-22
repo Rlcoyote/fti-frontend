@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { resolveMapPin } from "./mapPin.js";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
 
@@ -64,27 +65,15 @@ function JSALocationPin({ lat, setLat, lng, setLng }) {
           if (!matched && (val.includes("maps.app.goo.gl") || val.includes("goo.gl/maps") || val.includes("google.com/maps"))) {
             setMapResolving(true);
             setMapErr("");
-            fetch(`${API_URL}/jobs/resolve-map-pin`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: val }),
-            })
-              // v28.231 — fetch doesn't throw on 4xx; check r.ok and surface a
-              // failed resolve instead of silently leaving the pin unset.
-              .then(async (r) => (r.ok ? r.json() : Promise.reject(new Error((await r.json().catch(() => ({}))).error || "resolve failed"))))
-              .then((data) => {
-                if (data.lat && data.lng) {
-                  setLat(data.lat);
-                  setLng(data.lng);
-                } else {
-                  setMapErr("Couldn't pull coordinates from that link.");
-                }
-                setMapResolving(false);
-              })
-              .catch(() => {
-                setMapErr("Couldn't resolve that map link — check it and try again.");
-                setMapResolving(false);
-              });
+            resolveMapPin(val).then((res) => {
+              if (res.ok) {
+                setLat(res.lat);
+                setLng(res.lng);
+              } else {
+                setMapErr(res.error);
+              }
+              setMapResolving(false);
+            });
           }
         }}
         placeholder="Paste Google Maps link or lat, lon"

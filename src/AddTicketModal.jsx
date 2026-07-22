@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { resolveMapPin } from "./mapPin.js";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
@@ -294,20 +295,12 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         if (effPin && (!effPinLat || !effPinLng)) {
           let rlat = null;
           let rlng = null;
-          try {
-            const rr = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ url: effPin }),
-            });
-            if (rr.ok) {
-              const j = await rr.json();
-              rlat = j.lat;
-              rlng = j.lng;
-            }
-          } catch {
-            // fall through to the not-resolved notice
+          const res = await resolveMapPin(effPin);
+          if (res.ok) {
+            rlat = res.lat;
+            rlng = res.lng;
           }
+          // not-ok falls through to the not-resolved notice below
           if (!rlat || !rlng) {
             showNotice(
               "Pin not resolved",

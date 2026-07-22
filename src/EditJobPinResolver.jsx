@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveMapPin } from "./mapPin.js";
 import { C, API_URL } from "./config.js";
 import { inputStyle } from "./SharedUI.jsx";
 
@@ -21,20 +22,16 @@ function EditJobPinResolver({ googlePin, setGooglePin, pinLat, setPinLat, pinLng
     if (!googlePin.trim()) return;
     setResolving(true);
     setPinError("");
+    const res = await resolveMapPin(googlePin);
+    if (!res.ok) {
+      setPinError(res.error);
+      setResolving(false);
+      return;
+    }
+    const { lat, lng } = res;
+    setPinLat(lat);
+    setPinLng(lng);
     try {
-      const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: googlePin.trim() }),
-      });
-      if (!r.ok) {
-        setPinError("Could not resolve pin.");
-        setResolving(false);
-        return;
-      }
-      const { lat, lng } = await r.json();
-      setPinLat(lat);
-      setPinLng(lng);
       // Geocode to state/county
       const geoR = await fetch(`${API_URL}/jobs/geocode`, {
         method: "POST",

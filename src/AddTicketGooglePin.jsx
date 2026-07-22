@@ -1,4 +1,5 @@
 import { C, API_URL } from "./config.js";
+import { resolveMapPin } from "./mapPin.js";
 import { inputStyle, TINT } from "./SharedUI.jsx";
 
 // ─── AddTicketGooglePin (v28.68 — extracted from AddTicketModal) ──────────────
@@ -32,22 +33,12 @@ export default function AddTicketGooglePin({
     if (!ticketPin.trim()) return;
     setTicketPinResolving(true);
     setTicketPinError("");
-    try {
-      const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: ticketPin.trim() }),
-      });
-      if (!r.ok) {
-        setTicketPinError("Could not resolve pin.");
-        setTicketPinResolving(false);
-        return;
-      }
-      const { lat, lng } = await r.json();
-      setTicketPinLat(lat);
-      setTicketPinLng(lng);
-    } catch {
-      setTicketPinError("Network error.");
+    const res = await resolveMapPin(ticketPin);
+    if (res.ok) {
+      setTicketPinLat(res.lat);
+      setTicketPinLng(res.lng);
+    } else {
+      setTicketPinError(res.error);
     }
     setTicketPinResolving(false);
   };

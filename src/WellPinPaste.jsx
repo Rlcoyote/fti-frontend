@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveMapPin } from "./mapPin.js";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 
@@ -39,27 +40,12 @@ export default function WellPinPaste({ pinLat, pinLng, setPinLat, setPinLng }) {
     if (!url.trim()) return;
     setResolving(true);
     setError("");
-    try {
-      const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-      if (!r.ok) {
-        setError("Could not resolve pin link. Check the URL and try again.");
-        setResolving(false);
-        return;
-      }
-      const data = await r.json();
-      if (!data.lat || !data.lng) {
-        setError("No coordinates found in this link.");
-        setResolving(false);
-        return;
-      }
-      setPinLat(data.lat);
-      setPinLng(data.lng);
-    } catch {
-      setError("Network error resolving pin. Try again.");
+    const res = await resolveMapPin(url);
+    if (res.ok) {
+      setPinLat(res.lat);
+      setPinLng(res.lng);
+    } else {
+      setError(res.error);
     }
     setResolving(false);
   };

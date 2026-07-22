@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveMapPin } from "./mapPin.js";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 
@@ -35,38 +36,28 @@ export default function NewJobGooglePin({ googlePin, setGooglePin, pinLat, setPi
     if (!pinUrl.trim()) return;
     setPinResolving(true);
     setPinError("");
+    // Step 1: resolve pin → coordinates (one home — mapPin.js, audit C1)
+    const res = await resolveMapPin(pinUrl);
+    if (!res.ok) {
+      setPinError(res.error);
+      setPinResolving(false);
+      return;
+    }
+    setPinLat(res.lat);
+    setPinLng(res.lng);
     try {
-      // Step 1: resolve short URL to coordinates via existing backend resolver
-      const resolveR = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: pinUrl.trim() }),
-      });
-      if (!resolveR.ok) {
-        setPinError("Could not resolve pin link. Check the URL and try again.");
-        setPinResolving(false);
-        return;
-      }
-      const { lat, lng } = await resolveR.json();
-      if (!lat || !lng) {
-        setPinError("No coordinates found in this link.");
-        setPinResolving(false);
-        return;
-      }
-      setPinLat(lat);
-      setPinLng(lng);
       // Step 2: geocode coordinates → state + county
       const geoR = await fetch(`${API_URL}/jobs/geocode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lat, lng }),
+        body: JSON.stringify({ lat: res.lat, lng: res.lng }),
       });
       if (geoR.ok) {
         const { state, county } = await geoR.json();
         if (onResolveSuccess) onResolveSuccess({ state, county });
       }
     } catch {
-      setPinError("Network error resolving pin. Try again.");
+      /* geocode enrichment is best-effort — coordinates already set */
     }
     setPinResolving(false);
   };
