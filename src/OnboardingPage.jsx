@@ -549,7 +549,7 @@ function OnboardingPage() {
       <h1 style={{ fontSize: F.h1, margin: `0 0 ${SP.xs}px`, color: C.text }}>ONBOARDING — MY DOCUMENTS</h1>
       <div style={{ fontSize: F.body, color: C.muted, marginBottom: SP.xxl }}>
         Your New Hire Packet, signed with your own biometric. Your records are always available to you here. The Policies &amp; Procedures Manual and Employee
-        Handbook are under FIELD RESOURCES.
+        Handbook are under COMPANY LIBRARY.
       </div>
       {isOffice && (
         <div style={{ marginBottom: SP.xxl }}>

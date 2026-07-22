@@ -33,7 +33,7 @@ function ThemeDrawerItem() {
 // Bottom-sheet navigation drawer used at viewport widths < 900px. Slides up
 // from the bottom edge with a backdrop. Lists Dashboard + every NAV_ITEM the
 // current user can access, plus the under-the-gear admin items (Permissions,
-// Yard Locations, Emergency Information, Contacts, Field Resources, Activity
+// Yard Locations, Emergency Information, Contacts, Company Library, Activity
 // Log) and a Sign Out at the bottom.
 //
 // Previously inlined in FTIDashboard.jsx as ~120 lines including the drawer
@@ -371,7 +371,7 @@ function MobileNavDrawer({
         )}
         <DrawerItem
           icon="📁"
-          label="Field Resources"
+          label="Company Library"
           onClick={() => {
             setDrawerOpen(false);
             setShowFieldResources(true);

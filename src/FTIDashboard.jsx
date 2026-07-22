@@ -23,7 +23,7 @@ import ComplianceConsentPage from "./ComplianceConsentPage.jsx";
 // into PeoplePage (one canonical surface for all person-management).
 import PeoplePage from "./PeoplePage.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
-import FieldResourcesModal from "./FieldResourcesModal.jsx";
+import CompanyLibraryModal from "./CompanyLibraryModal.jsx";
 import AboutModal from "./AboutModal.jsx";
 import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
@@ -471,7 +471,7 @@ function FTIDashboard() {
       {/* v28.180 — SettingsModal retired. Yard locations live on /yards;
           SMS consent scripts live on /compliance-consent. */}
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
-      {showFieldResources && <FieldResourcesModal onClose={() => setShowFieldResources(false)} />}
+      {showFieldResources && <CompanyLibraryModal onClose={() => setShowFieldResources(false)} />}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       {/* v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal */}
       {showLogoutConfirm && (

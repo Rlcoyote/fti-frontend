@@ -699,7 +699,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
           ))}
           {meeting.document_updates.library.map((l, i) => (
             <div key={"l" + i} style={{ padding: `${SP.sm}px ${SP.xl}px`, borderTop: `1px solid ${C.border}33`, fontSize: F.body, color: C.text }}>
-              {l.name} <span style={{ fontSize: F.label, color: C.muted }}>— added to FIELD RESOURCES</span>
+              {l.name} <span style={{ fontSize: F.label, color: C.muted }}>— added to the COMPANY LIBRARY</span>
             </div>
           ))}
         </Section>

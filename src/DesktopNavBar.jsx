@@ -34,7 +34,7 @@ function ThemeToggleIcon() {
 //   - The FTI logo + brand text + version banner (clicks navigate to /)
 //   - The horizontal nav strip (NAV_ITEMS, page-active highlight, badge counts)
 //   - The settings gear dropdown menu (Employees, Job Titles, Permissions,
-//     Yard Locations, Emergency Information, Contacts, Field Resources,
+//     Yard Locations, Emergency Information, Contacts, Company Library,
 //     Activity Log) — visible to admin/manager and owner-only items hidden
 //     for non-owners
 //   - The Sign Out button + user-initial avatar
@@ -298,7 +298,7 @@ function DesktopNavBar({
               non-admin users with view_inventory still need access. Each item
               inside still has its own per-permission gate, so non-admins see
               only what they're allowed to see (master-data items + the always-
-              on items like Field Resources and About). */}
+              on items like Company Library and About). */}
           {(can("manage_users") ||
             can("view_inventory") ||
             can("view_gps_events") ||
@@ -483,7 +483,7 @@ function DesktopNavBar({
                       />
                     )}
                     <GearMenuItem
-                      label="Field Resources"
+                      label="Company Library"
                       hasTopBorder
                       onClick={() => {
                         setShowSettingsMenu(false);

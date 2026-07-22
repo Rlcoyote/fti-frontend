@@ -1,0 +1,349 @@
+import { useState, useEffect, useRef } from "react";
+import { C, API_URL } from "./config.js";
+import { Btn, ModalWrap, Z_INDEX, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
+
+// ─── CompanyLibraryModal (v28.387 — was FieldResourcesModal, was
+//     CompanyDocumentsModal) ─────────────────────────────────────────────────
+// THE COMPANY LIBRARY, ratified 2026-07-22: one library, three shelves.
+//   POLICIES & HANDBOOK — canonical (PPM, Employee Handbook): anyone, anywhere.
+//   FIELD REFERENCE     — tank charts, bucket counts, SOPs: everyone.
+//   OFFICE FORMS & RECORDS — acknowledgements, incident/near-miss forms,
+//     company records: manage_settings holders only (server-enforced).
+// Viewer fix (same ship): documents render from BINARY blob URLs via
+// /documents/:id/file — the old data-URL <object> blanked the 5MB PPM and
+// cut multi-page PDFs to one page on mobile. OPEN FULL SCREEN covers the
+// small-screen embedded-PDF limits.
+
+const SHELVES = [
+  { key: "policy", label: "POLICIES & HANDBOOK", note: "Canonical company policy — available to everyone, anywhere" },
+  { key: "field", label: "FIELD REFERENCE", note: "Tank charts, bucket counts, SOPs, equipment specs" },
+  { key: "office", label: "OFFICE FORMS & RECORDS", note: "Forms and records — office only" },
+];
+
+function CompanyLibraryModal({ onClose }) {
+  const { currentUser, can } = useApp();
+  const isAdmin = can("manage_settings");
+  const [docs, setDocs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showUpload, setShowUpload] = useState(false);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  const [shelf, setShelf] = useState("field");
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [viewDoc, setViewDoc] = useState(null);
+  const [viewUrl, setViewUrl] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  const blobRef = useRef(null);
+
+  const fetchDocs = async () => {
+    try {
+      const r = await fetch(`${API_URL}/safety/documents`);
+      if (r.ok) setDocs(await r.json());
+    } catch {
+      /* ignore */
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchDocs();
+    return () => {
+      if (blobRef.current) URL.revokeObjectURL(blobRef.current);
+    };
+  }, []);
+
+  const handleUpload = async () => {
+    if (!file || !name.trim()) {
+      setMsg("Name and file are required.");
+      return;
+    }
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const r = await fetch(`${API_URL}/safety/documents`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: name.trim(),
+            description: desc.trim() || null,
+            file_type: file.type || "application/octet-stream",
+            file_data: e.target.result,
+            file_size: file.size,
+            uploaded_by: currentUser?.id || null,
+            shelf,
+          }),
+        });
+        if (r.ok) {
+          await fetchDocs();
+          setShowUpload(false);
+          setName("");
+          setDesc("");
+          setShelf("field");
+          setFile(null);
+          setMsg("Document uploaded.");
+          setTimeout(() => setMsg(""), 3000);
+        } else {
+          setMsg("Upload failed.");
+        }
+      } catch {
+        setMsg("Upload failed.");
+      }
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const r = await fetch(`${API_URL}/safety/documents/${id}`, { method: "DELETE" });
+      if (!r.ok) {
+        setMsg("Delete failed.");
+        return;
+      }
+      await fetchDocs();
+      if (viewDoc?.id === id) closeViewer();
+    } catch {
+      setMsg("Delete failed.");
+    }
+  };
+
+  const reshelve = async (id, newShelf) => {
+    try {
+      const r = await fetch(`${API_URL}/safety/documents/${id}/shelf`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shelf: newShelf }),
+      });
+      if (r.ok) await fetchDocs();
+      else setMsg("Could not move document.");
+    } catch {
+      setMsg("Could not move document.");
+    }
+  };
+
+  const closeViewer = () => {
+    if (blobRef.current) {
+      URL.revokeObjectURL(blobRef.current);
+      blobRef.current = null;
+    }
+    setViewUrl(null);
+    setViewDoc(null);
+  };
+
+  // Binary viewer: fetch bytes, build a blob URL. Handles the 5MB PPM that a
+  // data-URL <object> silently refused to render.
+  const openDoc = async (doc) => {
+    closeViewer();
+    setViewDoc(doc);
+    setViewLoading(true);
+    try {
+      const r = await fetch(`${API_URL}/safety/documents/${doc.id}/file`);
+      if (!r.ok) throw new Error();
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      blobRef.current = url;
+      setViewUrl(url);
+    } catch {
+      setMsg("Could not load document.");
+      setViewDoc(null);
+    }
+    setViewLoading(false);
+  };
+
+  const fileIcon = (type) => {
+    if (!type) return "📄";
+    if (type.includes("pdf")) return "📕";
+    if (type.includes("image")) return "🖼";
+    if (type.includes("sheet") || type.includes("excel") || type.includes("xlsx")) return "📊";
+    if (type.includes("word") || type.includes("doc")) return "📝";
+    return "📄";
+  };
+
+  const formatSize = (bytes) => {
+    if (!bytes) return "—";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const docRow = (doc) => (
+    <div
+      key={doc.id}
+      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${C.border}22`, cursor: "pointer" }}
+      onClick={() => openDoc(doc)}
+      onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      <span style={{ fontSize: 24 }}>{fileIcon(doc.file_type)}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{doc.name}</div>
+        {doc.description && <div style={{ fontSize: 11, color: C.muted }}>{doc.description}</div>}
+        <div style={{ fontSize: 10, color: C.muted }}>
+          {formatSize(doc.file_size)} · {new Date(doc.created_at).toLocaleDateString()}
+        </div>
+      </div>
+      {isAdmin && (
+        <select
+          value={doc.shelf}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => reshelve(doc.id, e.target.value)}
+          style={{ ...inputStyle, width: "auto", marginBottom: 0, fontSize: 10, padding: "4px 6px" }}
+          title="Move to another shelf"
+        >
+          <option value="policy">POLICIES</option>
+          <option value="field">FIELD</option>
+          <option value="office">OFFICE</option>
+        </select>
+      )}
+      {isAdmin && (
+        <button
+          className="fti-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(doc.id);
+          }}
+          style={{ background: "transparent", border: "none", color: C.muted, cursor: "pointer", fontSize: 14 }}
+        >
+          🗑
+        </button>
+      )}
+    </div>
+  );
+
+  return (
+    <ModalWrap variant="dialog" z={Z_INDEX.overlay} width={640} accent={C.blue} onClose={onClose}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>COMPANY LIBRARY</div>
+          <div style={{ fontSize: 11, color: C.muted }}>Policies &amp; Handbook · Field Reference · Office Forms</div>
+        </div>
+        {isAdmin && !showUpload && (
+          <Btn small onClick={() => setShowUpload(true)}>
+            + UPLOAD
+          </Btn>
+        )}
+      </div>
+
+      {msg && (
+        <div style={{ fontSize: 12, fontWeight: 700, color: msg.includes("fail") || msg.includes("not") ? C.red : C.green, marginBottom: 10 }}>{msg}</div>
+      )}
+
+      {showUpload && (
+        <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 16 }}>
+          <div style={{ marginBottom: 8 }}>
+            <label style={labelStyle}>DOCUMENT NAME *</label>
+            <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Tank Volume Chart, Near Miss Form, etc." />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label style={labelStyle}>DESCRIPTION</label>
+            <input style={inputStyle} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Optional description" />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label style={labelStyle}>SHELF</label>
+            <select style={inputStyle} value={shelf} onChange={(e) => setShelf(e.target.value)}>
+              <option value="policy">POLICIES &amp; HANDBOOK — everyone, canonical</option>
+              <option value="field">FIELD REFERENCE — everyone</option>
+              <option value="office">OFFICE FORMS &amp; RECORDS — office only</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={labelStyle}>FILE (PDF, Image, Excel, Word)</label>
+            <input
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.doc,.docx"
+              onChange={(e) => {
+                const f = e.target.files[0];
+                setFile(f);
+                if (f && !name.trim()) setName(f.name.replace(/\.[^/.]+$/, ""));
+              }}
+              style={{ fontSize: 11 }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn small disabled={uploading} onClick={handleUpload}>
+              {uploading ? "UPLOADING..." : "UPLOAD"}
+            </Btn>
+            <Btn
+              small
+              variant="ghost"
+              onClick={() => {
+                setShowUpload(false);
+                setName("");
+                setDesc("");
+                setShelf("field");
+                setFile(null);
+              }}
+            >
+              CANCEL
+            </Btn>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ textAlign: "center", padding: 20, color: C.muted }}>Loading...</div>
+      ) : docs.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 30, color: C.muted, fontSize: 13 }}>No documents uploaded yet.</div>
+      ) : (
+        SHELVES.map((s) => {
+          const shelfDocs = docs.filter((d) => d.shelf === s.key);
+          if (shelfDocs.length === 0) return null;
+          return (
+            <div key={s.key} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>{s.label}</div>
+              <div style={{ fontSize: 10, color: C.muted, marginBottom: 2 }}>{s.note}</div>
+              {shelfDocs.map(docRow)}
+            </div>
+          );
+        })
+      )}
+
+      {viewDoc && (
+        <div style={{ marginTop: 16, background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: "1 1 200px" }}>{viewDoc.name}</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {viewUrl && (
+                <Btn small variant="ghost" onClick={() => window.open(viewUrl, "_blank", "noopener")}>
+                  OPEN FULL SCREEN
+                </Btn>
+              )}
+              <button
+                className="fti-btn"
+                onClick={closeViewer}
+                style={{ background: "transparent", border: "none", fontSize: 16, color: C.muted, cursor: "pointer" }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          {viewLoading && <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>Loading document…</div>}
+          {viewUrl && viewDoc.file_type?.includes("image") && <img src={viewUrl} alt={viewDoc.name} style={{ maxWidth: "100%", borderRadius: 4 }} />}
+          {viewUrl && viewDoc.file_type?.includes("pdf") && (
+            <object data={viewUrl} type="application/pdf" style={{ width: "100%", height: "70vh", border: "none", borderRadius: 4 }}>
+              <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>This device can&apos;t display the document inline — use OPEN FULL SCREEN above.</div>
+            </object>
+          )}
+          {viewUrl && !viewDoc.file_type?.includes("image") && !viewDoc.file_type?.includes("pdf") && (
+            <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>Inline viewing isn&apos;t available for this file type — use OPEN FULL SCREEN above.</div>
+          )}
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 8, fontStyle: "italic" }}>
+            Company documents are proprietary. For a printed or emailed copy, ask the office.
+          </div>
+        </div>
+      )}
+
+      <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+        <Btn variant="ghost" onClick={onClose}>
+          CLOSE
+        </Btn>
+      </div>
+    </ModalWrap>
+  );
+}
+
+export default CompanyLibraryModal;
