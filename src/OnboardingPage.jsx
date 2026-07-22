@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { C, F, SP, R } from "./config.js";
 import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
@@ -548,7 +549,19 @@ function OnboardingPage() {
   // (it rewrites what every employee signs; backend enforces the same).
   const isOffice = ["owner", "admin"].includes(currentUser.role);
   const isOwner = currentUser.role === "owner";
+  // v28.391 — ?tab= deep link (gear-menu hover submenu lands here directly),
+  // live-synced so selecting a submenu while already on the page works too.
+  const location = useLocation();
   const [tab, setTab] = useState("mine");
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    if (["mine", "office", "editor"].includes(t)) setTab(t);
+  }, [location.search]);
+  // v28.391 — BACK from OFFICE — ROSTER / DOCUMENT EDITOR returns to MY
+  // DOCUMENTS, not the main page (Reggie: "Is this the correct logic?" — yes:
+  // one entry per departure from the home tab; switching between non-home
+  // tabs doesn't stack additional presses).
+  useBackClose(tab !== "mine", () => setTab("mine"));
 
   return (
     <div style={{ maxWidth: 860, margin: "0 auto", padding: `${SP.xxl + 2}px ${SP.xl + 2}px 60px` }}>

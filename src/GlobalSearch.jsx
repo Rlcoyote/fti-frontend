@@ -51,8 +51,12 @@ function GlobalSearch({ onClose }) {
   }, [q]);
 
   const go = (item) => {
-    onClose();
+    // Navigate FIRST, close after: the back-contract cleanup checks whether
+    // history still sits on its own entry before consuming it — navigating
+    // first moves history to the destination, so closing can never bounce
+    // the user back off the page they just searched their way to.
     navigate(item.route);
+    onClose();
   };
 
   return (

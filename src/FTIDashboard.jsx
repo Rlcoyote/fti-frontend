@@ -144,6 +144,18 @@ function FTIDashboard() {
   // /yards page (v28.179); SMS Consent Scripts moved to /compliance-consent.
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
   const [showSearch, setShowSearch] = useState(false); // v28.390 — global search
+  // v28.391 — "/" opens search from anywhere (unless typing in a field).
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "/") return;
+      const t = e.target;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      e.preventDefault();
+      setShowSearch(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [showFieldResources, setShowFieldResources] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);

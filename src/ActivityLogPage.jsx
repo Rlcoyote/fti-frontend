@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -11,6 +12,12 @@ function ActivityLogPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("log"); // "log" | "sessions"
+  // v28.391 — ?tab= deep link from the gear submenu.
+  const location = useLocation();
+  useEffect(() => {
+    const t = new URLSearchParams(location.search).get("tab");
+    if (["log", "sessions"].includes(t)) setTab(t);
+  }, [location.search]);
   const [filterUser, setFilterUser] = useState("All");
   const [filterAction, setFilterAction] = useState("All");
   const [searchText, setSearchText] = useState("");

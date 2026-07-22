@@ -49,22 +49,80 @@ function ThemeToggleIcon() {
 
 // Inline helper to render a single dropdown menu item with consistent style
 // + hover background. Cuts down JSX repetition in the gear menu.
-function GearMenuItem({ label, onClick, hasTopBorder }) {
+function GearMenuItem({ label, onClick, hasTopBorder, subItems }) {
+  // v28.391 — hover flyout (Reggie: the tabs behind a gear destination "are
+  // basically hidden and the user doesn't know that they're there"). Items
+  // with sub-pages advertise them on hover; clicking a sub-item lands on that
+  // tab directly (?tab= deep links). Same grace-delay pattern as NavGroupPill.
+  const [subOpen, setSubOpen] = useState(false);
+  const subTimer = useRef(null);
+  const enter = () => {
+    if (subTimer.current) clearTimeout(subTimer.current);
+    setSubOpen(true);
+  };
+  const leave = () => {
+    subTimer.current = setTimeout(() => setSubOpen(false), 150);
+  };
   return (
     <div
       onClick={onClick}
       style={{
+        position: "relative",
         padding: "10px 16px",
         fontSize: 13,
         fontWeight: 600,
         color: C.text,
         cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
         ...(hasTopBorder ? { borderTop: `1px solid ${C.border}` } : {}),
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = C.steel;
+        if (subItems?.length) enter();
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "transparent";
+        if (subItems?.length) leave();
+      }}
     >
       {label}
+      {subItems?.length > 0 && <span style={{ fontSize: 10, color: C.muted }}>‹</span>}
+      {subOpen && subItems?.length > 0 && (
+        <div
+          onMouseEnter={enter}
+          onMouseLeave={leave}
+          style={{
+            position: "absolute",
+            right: "100%",
+            top: 0,
+            background: C.cardBg,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            boxShadow: E.overlay,
+            minWidth: 180,
+            zIndex: 400,
+            overflow: "hidden",
+          }}
+        >
+          {subItems.map((si) => (
+            <div
+              key={si.label}
+              onClick={(e) => {
+                e.stopPropagation();
+                si.onClick();
+              }}
+              style={{ padding: "9px 14px", fontSize: 12, fontWeight: 600, color: C.text, cursor: "pointer", whiteSpace: "nowrap" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              {si.label}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -287,6 +345,28 @@ function DesktopNavBar({
 
         {/* GEAR DROPDOWN + THEME TOGGLE */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* v28.391 — SEARCH lives IN the header (Reggie: "Search is always
+              in a small window at the top in the header... it's currently
+              buried where no one can find it"). The box is a trigger — click
+              (or press /) opens the full search overlay focused. */}
+          <div
+            onClick={() => setShowSearch(true)}
+            title="Search everything (press /)"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "rgba(255,255,255,0.08)",
+              border: `1px solid ${C.headerMuted}44`,
+              borderRadius: 999,
+              padding: "5px 12px",
+              cursor: "pointer",
+              minWidth: 140,
+            }}
+          >
+            <span style={{ fontSize: 12 }}>🔍</span>
+            <span style={{ fontSize: 11, color: C.headerMuted, fontWeight: 600, letterSpacing: "0.04em" }}>Search…</span>
+          </div>
           {/* Theme toggle (v28.25) — visible to all users. The icon shown is
               the destination, not the current state: sun = "click for light",
               moon = "click for dark." Title attribute spells it out so there's
@@ -484,15 +564,8 @@ function DesktopNavBar({
                       />
                     )}
                     <GearMenuItem
-                      label="Search"
-                      hasTopBorder
-                      onClick={() => {
-                        setShowSettingsMenu(false);
-                        setShowSearch(true);
-                      }}
-                    />
-                    <GearMenuItem
                       label="Company Library"
+                      hasTopBorder
                       onClick={() => {
                         setShowSettingsMenu(false);
                         setShowFieldResources(true);
@@ -504,6 +577,37 @@ function DesktopNavBar({
                         setShowSettingsMenu(false);
                         navigate("/onboarding");
                       }}
+                      subItems={[
+                        {
+                          label: "MY DOCUMENTS",
+                          onClick: () => {
+                            setShowSettingsMenu(false);
+                            navigate("/onboarding?tab=mine");
+                          },
+                        },
+                        ...(["owner", "admin"].includes(currentUser.role)
+                          ? [
+                              {
+                                label: "OFFICE — ROSTER",
+                                onClick: () => {
+                                  setShowSettingsMenu(false);
+                                  navigate("/onboarding?tab=office");
+                                },
+                              },
+                            ]
+                          : []),
+                        ...(currentUser.role === "owner"
+                          ? [
+                              {
+                                label: "DOCUMENT EDITOR",
+                                onClick: () => {
+                                  setShowSettingsMenu(false);
+                                  navigate("/onboarding?tab=editor");
+                                },
+                              },
+                            ]
+                          : []),
+                      ]}
                     />
                     {["owner", "admin"].includes(currentUser.role) && (
                       <GearMenuItem
@@ -522,6 +626,22 @@ function DesktopNavBar({
                           setShowSettingsMenu(false);
                           navigate("/activity");
                         }}
+                        subItems={[
+                          {
+                            label: "LOG",
+                            onClick: () => {
+                              setShowSettingsMenu(false);
+                              navigate("/activity?tab=log");
+                            },
+                          },
+                          {
+                            label: "SESSIONS",
+                            onClick: () => {
+                              setShowSettingsMenu(false);
+                              navigate("/activity?tab=sessions");
+                            },
+                          },
+                        ]}
                       />
                     )}
                     <GearMenuItem

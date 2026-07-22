@@ -17,6 +17,7 @@ import { useEffect, useRef } from "react";
 // (each pop handled by the most recent registrant, matching what the eye sees).
 
 const stack = [];
+let seq = 0;
 
 export default function useBackClose(isOpen, onClose) {
   const idRef = useRef(null);
@@ -27,11 +28,11 @@ export default function useBackClose(isOpen, onClose) {
 
   useEffect(() => {
     if (!isOpen) return;
-    const id = Symbol("backClose");
+    const id = `fti-bc-${++seq}`;
     idRef.current = id;
     stack.push(id);
     let poppedByButton = false;
-    window.history.pushState({ ftiBackClose: true }, "");
+    window.history.pushState({ ftiBackClose: id }, "");
     const onPop = () => {
       // Only the top of the stack answers a BACK press.
       if (stack[stack.length - 1] !== id) return;
@@ -45,10 +46,13 @@ export default function useBackClose(isOpen, onClose) {
       const idx = stack.indexOf(id);
       if (idx !== -1) stack.splice(idx, 1);
       // Closed via X/CANCEL/save instead of BACK: consume the entry we pushed
-      // so the next BACK press doesn't need two clicks.
-      if (!poppedByButton) window.history.back();
+      // so the next BACK press doesn't need two clicks — but ONLY if our entry
+      // is still the current one. If the app has ALREADY navigated (e.g. a
+      // search result click pushed a new route), history.back() here would
+      // undo THAT navigation — the v28.390 bug: search results closed the
+      // modal and instantly bounced back off the destination page.
+      if (!poppedByButton && window.history.state?.ftiBackClose === id) window.history.back();
     };
     // Deliberate deps: open/close lifecycle only; onClose rides the ref.
-     
   }, [isOpen]);
 }
