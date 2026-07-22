@@ -63,7 +63,22 @@ export function reportError({ message, stack, severity = "error", context }) {
 if (typeof window !== "undefined" && !window.__ftiErrorReporterInstalled) {
   window.__ftiErrorReporterInstalled = true;
   window.addEventListener("error", (e) => {
-    reportError({ message: e.message || "window.onerror", stack: e.error?.stack, severity: "crash", context: { file: e.filename, line: e.lineno } });
+    // Cross-origin mask (fix-agent finding, 2026-07-21): a script from another
+    // origin (browser extension, in-app-browser injection) throws and the
+    // browser strips message/file/line/stack before we see it. Tag the shape so
+    // the log separates third-party noise from real FTI crashes — still logged,
+    // never suppressed (Article XXXIII: capture everything, label honestly).
+    const opaque = e.error == null && !e.filename && !e.lineno && e.message === "Script error.";
+    reportError({
+      message: e.message || "window.onerror",
+      stack: e.error?.stack,
+      severity: "crash",
+      context: {
+        file: e.filename,
+        line: e.lineno,
+        ...(opaque ? { kind: "cross-origin-opaque", note: "non-FTI script (extension/injected) — origin masked by browser" } : {}),
+      },
+    });
   });
   window.addEventListener("unhandledrejection", (e) => {
     const r = e.reason;
