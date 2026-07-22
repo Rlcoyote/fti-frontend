@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useQueryPrefill } from "./useQueryPrefill.js";
 import { C, API_URL } from "./config.js";
 import { Btn, FilterBtn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -8,6 +9,7 @@ function InventoryPage({ inventory, setInventory, jobs }) {
   const [sizeFilter, setSizeFilter] = useState("All");
   const [catFilter, setCatFilter] = useState("All");
   const [search, setSearch] = useState("");
+  useQueryPrefill("q", setSearch); // v28.394 — search results arrive pre-filtered
   const [showCheckOut, setShowCheckOut] = useState(null);
   const [showCheckIn, setShowCheckIn] = useState(null);
   const [showEdit, setShowEdit] = useState(null);

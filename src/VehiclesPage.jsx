@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useQueryPrefill } from "./useQueryPrefill.js";
 import { C, API_URL } from "./config.js";
 import { Btn, FilterBtn, ModalWrap, inputStyle, ConfirmModal, NoticeModal } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
@@ -34,6 +35,7 @@ function VehiclesPage() {
 
   // Filters
   const [search, setSearch] = useState("");
+  useQueryPrefill("q", setSearch); // v28.394 — search results arrive pre-filtered
   const [filterType, setFilterType] = useState("all"); // matches a vehicleTypeDisplay() string
   const [filterStatus, setFilterStatus] = useState("active"); // active | retired | all
   const [filterGps, setFilterGps] = useState("any"); // any | linked | unlinked

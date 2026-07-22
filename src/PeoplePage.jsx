@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryPrefill } from "./useQueryPrefill.js";
 import { C, API_URL } from "./config.js";
 import { Btn, ConfirmModal, inputStyle } from "./SharedUI.jsx";
 import { ROLE_OPTIONS } from "./permissions.js";
@@ -68,6 +69,7 @@ function PeoplePage() {
   const [jobTitles, setJobTitles] = useState([]);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [search, setSearch] = useState("");
+  useQueryPrefill("q", setSearch); // v28.394 — search results arrive pre-filtered
   const [loading, setLoading] = useState(true);
 
   // Edit modal — null | "new" | personObject

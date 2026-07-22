@@ -151,7 +151,11 @@ function FTIDashboard() {
       const t = e.target;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
       e.preventDefault();
-      setShowSearch(true);
+      // Desktop: focus the header field (search happens IN the header,
+      // v28.394). Mobile (no header field rendered): open the overlay.
+      const headerBox = document.getElementById("fti-header-search");
+      if (headerBox && headerBox.offsetParent !== null) headerBox.focus();
+      else setShowSearch(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

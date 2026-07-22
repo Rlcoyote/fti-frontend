@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useQueryPrefill } from "./useQueryPrefill.js";
 import { C } from "./config.js";
 import { api } from "./api.js";
 import { Btn, FilterBtn, ModalWrap, inputStyle, labelStyle, ConfirmModal } from "./SharedUI.jsx";
@@ -41,6 +42,7 @@ function AssetsPage({ jobs }) {
   const { assets, refreshAssets } = useApp();
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  useQueryPrefill("q", setSearch); // v28.394 — search results arrive pre-filtered
   const [showAdd, setShowAdd] = useState(false);
   const [editAsset, setEditAsset] = useState(null);
   const [assignAsset, setAssignAsset] = useState(null);

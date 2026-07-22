@@ -219,6 +219,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
   // (rules-of-hooks).
   const [confirmRemoveRow, setConfirmRemoveRow] = useState(null);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmRemoveTopic, setConfirmRemoveTopic] = useState(null); // v28.394 — X'd a topic with no warning
 
   const refresh = useCallback(() => {
     api
@@ -418,6 +419,18 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
       </div>
       {actionErr && <div style={{ color: C.red, fontSize: F.meta, fontWeight: 700, marginBottom: SP.xl }}>{actionErr}</div>}
 
+      {confirmRemoveTopic && (
+        <ConfirmModal
+          title="Remove Topic?"
+          message={`"${confirmRemoveTopic.title}" will be removed from this meeting's covered topics (audit-logged). Bank topics can be re-added from the picker below the list.`}
+          yesLabel="REMOVE TOPIC"
+          onYes={() => {
+            removeTopic(confirmRemoveTopic.id);
+            setConfirmRemoveTopic(null);
+          }}
+          onCancel={() => setConfirmRemoveTopic(null)}
+        />
+      )}
       {confirmRemoveRow && (
         <ConfirmModal
           title="Remove Attendance Row?"
@@ -535,7 +548,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
             </div>
             <button
               className="fti-btn"
-              onClick={() => removeTopic(t.id)}
+              onClick={() => setConfirmRemoveTopic(t)}
               title="Remove topic (audit-logged)"
               style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: F.md }}
             >

@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { C, E, CARBON, CARBON_SIZE } from "./config.js";
 import { PAGE_MAP, ROUTE_MAP, NAV_GROUPS, NAV_DISPLAY } from "./navMap.js";
+import { useSearch } from "./useSearch.js";
 import { NavBadge } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -89,7 +90,11 @@ function GearMenuItem({ label, onClick, hasTopBorder, subItems }) {
       }}
     >
       {label}
-      {subItems?.length > 0 && <span style={{ fontSize: 10, color: C.muted }}>‹</span>}
+      {subItems?.length > 0 && (
+        <span style={{ fontSize: 13, fontWeight: 900, color: C.blue, lineHeight: 1 }} title="Hover for pages inside">
+          ◂
+        </span>
+      )}
       {subOpen && subItems?.length > 0 && (
         <div
           onMouseEnter={enter}
@@ -122,6 +127,112 @@ function GearMenuItem({ label, onClick, hasTopBorder, subItems }) {
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── HeaderSearch (v28.394) — inline header search with results dropdown ────
+// The field IS the search: type here, grouped results appear directly below,
+// Enter opens the first result, Escape clears. Shares useSearch with the
+// mobile overlay (one query home).
+function HeaderSearch({ navigate }) {
+  const { q, setQ, groups, busy, searched } = useSearch();
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef(null);
+
+  const go = (item) => {
+    navigate(item.route);
+    setQ("");
+    setOpen(false);
+    boxRef.current?.blur();
+  };
+  const first = groups[0]?.items?.[0];
+
+  return (
+    <div style={{ position: "relative" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: "rgba(255,255,255,0.08)",
+          border: `1px solid ${C.headerMuted}44`,
+          borderRadius: 999,
+          padding: "4px 12px",
+          minWidth: 170,
+        }}
+      >
+        <span style={{ fontSize: 12 }}>🔍</span>
+        <input
+          id="fti-header-search"
+          ref={boxRef}
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setQ("");
+              setOpen(false);
+              boxRef.current?.blur();
+            }
+            if (e.key === "Enter" && first) go(first);
+          }}
+          placeholder="Search…  ( / )"
+          style={{
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            color: C.headerText,
+            fontSize: 12,
+            fontWeight: 600,
+            width: 130,
+          }}
+        />
+      </div>
+      {open && q.trim().length >= 2 && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: 299 }} onClick={() => setOpen(false)} />
+          <div
+            style={{
+              position: "absolute",
+              top: "calc(100% + 8px)",
+              right: 0,
+              zIndex: 300,
+              width: 420,
+              maxHeight: "60vh",
+              overflowY: "auto",
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              boxShadow: E.overlay,
+              padding: 10,
+            }}
+          >
+            {busy && <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>Searching…</div>}
+            {!busy && searched && groups.length === 0 && <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>Nothing found for “{q.trim()}”.</div>}
+            {groups.map((g) => (
+              <div key={g.group} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", padding: "2px 4px" }}>{g.group}</div>
+                {g.items.map((item, i) => (
+                  <div
+                    key={i}
+                    onClick={() => go(item)}
+                    style={{ padding: "7px 10px", borderRadius: 5, cursor: "pointer" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{item.label}</div>
+                    {item.sub && <div style={{ fontSize: 10, color: C.muted }}>{item.sub}</div>}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
@@ -195,7 +306,6 @@ function DesktopNavBar({
   // → /yards top-level page; SMS Consent Scripts → /compliance-consent.
   setShowEmergencyContacts,
   setShowFieldResources,
-  setShowSearch,
   setShowAbout,
   setShowLogoutConfirm,
   canViewContacts,
@@ -345,28 +455,10 @@ function DesktopNavBar({
 
         {/* GEAR DROPDOWN + THEME TOGGLE */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* v28.391 — SEARCH lives IN the header (Reggie: "Search is always
-              in a small window at the top in the header... it's currently
-              buried where no one can find it"). The box is a trigger — click
-              (or press /) opens the full search overlay focused. */}
-          <div
-            onClick={() => setShowSearch(true)}
-            title="Search everything (press /)"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "rgba(255,255,255,0.08)",
-              border: `1px solid ${C.headerMuted}44`,
-              borderRadius: 999,
-              padding: "5px 12px",
-              cursor: "pointer",
-              minWidth: 140,
-            }}
-          >
-            <span style={{ fontSize: 12 }}>🔍</span>
-            <span style={{ fontSize: 11, color: C.headerMuted, fontWeight: 600, letterSpacing: "0.04em" }}>Search…</span>
-          </div>
+          {/* v28.394 — search happens IN the header field itself (Reggie:
+              opening a separate window to type was "disjointed"). Type here,
+              results drop down right below; Escape or click-away clears. */}
+          <HeaderSearch navigate={navigate} />
           {/* Theme toggle (v28.25) — visible to all users. The icon shown is
               the destination, not the current state: sun = "click for light",
               moon = "click for dark." Title attribute spells it out so there's
@@ -409,7 +501,10 @@ function DesktopNavBar({
                       borderRadius: 6,
                       boxShadow: "0 4px 16px #00000033",
                       minWidth: 160,
-                      overflow: "hidden",
+                      // v28.394 — was overflow:hidden, which CLIPPED the hover
+                      // flyouts into invisibility ("essentially, nothing
+                      // happens"). Rounding lives on the items now.
+                      overflow: "visible",
                     }}
                   >
                     {can("manage_users") && (

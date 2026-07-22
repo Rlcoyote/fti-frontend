@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, E, F, SP, R } from "./config.js";
-import { api } from "./api.js";
+import { useSearch } from "./useSearch.js";
 import { ModalWrap, Z_INDEX, inputStyle } from "./SharedUI.jsx";
 
 // ─── GlobalSearch (v28.390) ──────────────────────────────────────────────────
@@ -15,40 +15,14 @@ import { ModalWrap, Z_INDEX, inputStyle } from "./SharedUI.jsx";
 
 function GlobalSearch({ onClose }) {
   const navigate = useNavigate();
-  const [q, setQ] = useState("");
-  const [groups, setGroups] = useState([]);
-  const [busy, setBusy] = useState(false);
-  const [searched, setSearched] = useState(false);
+  // v28.394 — querying moved to useSearch (one home; the desktop header
+  // dropdown consumes the same hook). This overlay remains the MOBILE shell.
+  const { q, setQ, groups, busy, searched } = useSearch();
   const boxRef = useRef(null);
-  const timer = useRef(null);
 
   useEffect(() => {
     boxRef.current?.focus();
   }, []);
-
-  // Debounced live search — 250ms after the last keystroke.
-  useEffect(() => {
-    if (timer.current) clearTimeout(timer.current);
-    const term = q.trim();
-    if (term.length < 2) {
-      setGroups([]);
-      setSearched(false);
-      return;
-    }
-    timer.current = setTimeout(async () => {
-      setBusy(true);
-      try {
-        const r = await api.get(`/search?q=${encodeURIComponent(term)}`);
-        setGroups(r.results || []);
-        setSearched(true);
-      } catch {
-        setGroups([]);
-        setSearched(true);
-      }
-      setBusy(false);
-    }, 250);
-    return () => clearTimeout(timer.current);
-  }, [q]);
 
   const go = (item) => {
     // Navigate FIRST, close after: the back-contract cleanup checks whether

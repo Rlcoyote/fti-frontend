@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useQueryPrefill } from "./useQueryPrefill.js";
 import { C } from "./config.js";
 import { api } from "./api.js";
 import { Btn, inputStyle, labelStyle } from "./SharedUI.jsx";
@@ -29,6 +30,7 @@ function ContactsPage() {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  useQueryPrefill("q", setSearch); // v28.394 — search results arrive pre-filtered
   // v28.210 — bulk customer-contact import (xlsx). Header-name mapped on the BE.
   const importRef = useRef(null);
   const [importing, setImporting] = useState(false);

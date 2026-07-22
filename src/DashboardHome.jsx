@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn } from "./SharedUI.jsx";
 import JobCard from "./JobCard.jsx";
@@ -29,6 +29,16 @@ function DashboardHome({
   jsas,
   setJsas,
 }) {
+  // v28.394 — a search result ("/?wo=") lands ON the record: when the
+  // expanded WO changes, scroll its card into view instead of leaving the
+  // user at the top of the list ("it doesn't jump to that location").
+  const expandedCardRef = useRef(null);
+  useEffect(() => {
+    if (expandedId && expandedCardRef.current) {
+      expandedCardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [expandedId]);
+
   const { currentUser } = useApp();
   // v28.47 — Tier 2: log WO_viewed events when a user expands a WO. Once
   // per WO per session — re-expanding the same WO repeatedly is noise we
@@ -40,13 +50,16 @@ function DashboardHome({
     setExpandedId(expandedId === jobId ? null : jobId);
     if (isExpanding && currentUser && !woViewedRef.current.has(jobId)) {
       woViewedRef.current.add(jobId);
-      const job = sortedJobs.find(j => j.id === jobId);
+      const job = sortedJobs.find((j) => j.id === jobId);
       fetch(`${API_URL}/activity`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: currentUser.id, user_name: currentUser.name,
-          action: "wo_viewed", entity_type: "job", entity_id: String(jobId),
+          user_id: currentUser.id,
+          user_name: currentUser.name,
+          action: "wo_viewed",
+          entity_type: "job",
+          entity_id: String(jobId),
           details: { customer: job?.customer || null, location: job?.location || null },
         }),
       }).catch(() => {});
@@ -57,9 +70,7 @@ function DashboardHome({
       <div className="fti-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Work Orders</h1>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
-            {activeJobs.length} total · Updated just now
-          </div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeJobs.length} total · Updated just now</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn onClick={() => navigateToPage("/todos")} variant="ghost">
@@ -78,30 +89,50 @@ function DashboardHome({
           completed WOs live in /archive. */}
       <div className="fti-filter-row" style={{ display: "flex", gap: 0, marginBottom: 16, alignItems: "center", borderBottom: `1px solid ${C.border}` }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 10 }}>SORT:</span>
-        <select value={sortMode} onChange={e => setSortMode(e.target.value)}
-          style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "5px 8px", fontSize: 11, color: C.text, background: C.cardBg, fontFamily: "'Arial', sans-serif", marginRight: 10, marginBottom: 6 }}>
+        <select
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value)}
+          style={{
+            border: `1px solid ${C.border}`,
+            borderRadius: 4,
+            padding: "5px 8px",
+            fontSize: 11,
+            color: C.text,
+            background: C.cardBg,
+            fontFamily: "'Arial', sans-serif",
+            marginRight: 10,
+            marginBottom: 6,
+          }}
+        >
           <option value="scheduled">Scheduled Date</option>
           <option value="ticket">Ticket #</option>
           <option value="customer">Customer (A → Z)</option>
         </select>
       </div>
 
-      {sortedJobs.map(job => (
-        <JobCard
-          key={job.id} job={job}
-          isExpanded={expandedId === job.id}
-          onToggle={() => handleWoToggle(job.id)}
-          pendingTodos={pendingByJob[job.id] || 0}
-          todos={todos} setTodos={setTodos}
-          tickets={tickets} setTickets={setTickets}
-          jobs={jobs} onNavigateJob={navigateToJob}
-          onUpdateJob={handleUpdateJob}
-          jsas={jsas} setJsas={setJsas}
-          onDeleteJob={handleDeleteJob}
-          onFlagCancel={handleFlagCancel}
-          onCloseJob={handleCloseJob}
-          onTicketDeleted={(ticket) => setDeletedTickets(prev => [...prev, ticket])}
-        />
+      {sortedJobs.map((job) => (
+        <div key={"wrap" + job.id} ref={expandedId === job.id ? expandedCardRef : null}>
+          <JobCard
+            key={job.id}
+            job={job}
+            isExpanded={expandedId === job.id}
+            onToggle={() => handleWoToggle(job.id)}
+            pendingTodos={pendingByJob[job.id] || 0}
+            todos={todos}
+            setTodos={setTodos}
+            tickets={tickets}
+            setTickets={setTickets}
+            jobs={jobs}
+            onNavigateJob={navigateToJob}
+            onUpdateJob={handleUpdateJob}
+            jsas={jsas}
+            setJsas={setJsas}
+            onDeleteJob={handleDeleteJob}
+            onFlagCancel={handleFlagCancel}
+            onCloseJob={handleCloseJob}
+            onTicketDeleted={(ticket) => setDeletedTickets((prev) => [...prev, ticket])}
+          />
+        </div>
       ))}
     </div>
   );
