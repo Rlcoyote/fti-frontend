@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSiblingRigUps } from "./useSiblingRigUps.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C, API_URL } from "./config.js";
 import { Btn, Z_INDEX, PANEL_TEXT, PANEL_MUTED, ModalWrap, TINT } from "./SharedUI.jsx";
@@ -22,33 +23,14 @@ import { Btn, Z_INDEX, PANEL_TEXT, PANEL_MUTED, ModalWrap, TINT } from "./Shared
 
 function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, onCopy }) {
   useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
-  const [rigUps, setRigUps] = useState([]); // [{ id, ticketNumber, date, voided, customerName, ... }]
-  const [sourceId, setSourceId] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [sourceCrew, setSourceCrew] = useState([]);
-  const [loadingRigUps, setLoadingRigUps] = useState(true);
   const [loadingCrew, setLoadingCrew] = useState(false);
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  // Step 1: load all eligible Rig Up tickets on this job (newest first).
-  useEffect(() => {
-    if (!jobId) return;
-    setLoadingRigUps(true);
-    setError("");
-    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        const eligible = (data || [])
-          .filter((tk) => tk.type === "Rig Up" && !tk.voided_at)
-          .filter((tk) => tk.id !== excludeTicketId)
-          .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-        setRigUps(eligible);
-        setSourceId(eligible[0]?.id || null);
-      })
-      .catch(() => setError("Could not load Rig Up tickets on this job."))
-      .finally(() => setLoadingRigUps(false));
-  }, [jobId, excludeTicketId]);
+  // Step 1 (one home — useSiblingRigUps, audit 260721 C3): eligible Rig Ups,
+  // newest first; default source = newest overall. setError is reused by the
+  // step-2 crew fetch below.
+  const { rigUps, sourceId, setSourceId, loading: loadingRigUps, error, setError } = useSiblingRigUps(jobId, excludeTicketId);
 
   // Step 2: load the chosen source's crew.
   useEffect(() => {
@@ -63,7 +45,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
       .then((data) => setSourceCrew(data || []))
       .catch(() => setError("Could not load source crew."))
       .finally(() => setLoadingCrew(false));
-  }, [sourceId]);
+  }, [sourceId, setError]);
 
   const source = rigUps.find((t) => t.id === sourceId);
   const skipped = sourceCrew.filter((c) => existingCrewUserIds?.has(c.user_id));

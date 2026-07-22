@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useSiblingRigUps } from "./useSiblingRigUps.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C, API_URL } from "./config.js";
 import { Btn, Z_INDEX, ModalWrap } from "./SharedUI.jsx";
@@ -21,37 +22,12 @@ import { calcLineTotal } from "./utils.js";
 
 function CopyLineItemsModal({ jobId, excludeTicketId, onClose, onCopy }) {
   useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
-  const [rigUps, setRigUps] = useState([]); // eligible sources
-  const [sourceId, setSourceId] = useState(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  // Step 1: load eligible Rig Up tickets on this job, newest first.
-  // Tickets carry their lineItems on the list response (no second fetch
-  // needed). Empty Rig Ups are eligible but dimmed in the picker.
-  useEffect(() => {
-    if (!jobId) return;
-    setLoading(true);
-    setError("");
-    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        const eligible = (data || [])
-          .filter((tk) => tk.type === "Rig Up" && !tk.voided_at)
-          .filter((tk) => tk.id !== excludeTicketId)
-          .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
-        setRigUps(eligible);
-        // Default source = newest RU that actually has line items. Falls
-        // back to newest overall if every RU is empty (the user will see
-        // the empty preview and bail).
-        const firstWithItems = eligible.find((tk) => (tk.lineItems || tk.line_items || []).length > 0);
-        setSourceId((firstWithItems || eligible[0])?.id || null);
-      })
-      .catch(() => setError("Could not load Rig Up tickets on this job."))
-      .finally(() => setLoading(false));
-  }, [jobId, excludeTicketId]);
+  // Step 1 (one home — useSiblingRigUps, audit 260721 C3): eligible Rig Ups,
+  // newest first; default source = newest RU that actually has line items
+  // (falls back to newest overall — the user sees the empty preview and bails).
+  const { rigUps, sourceId, setSourceId, loading, error } = useSiblingRigUps(jobId, excludeTicketId, { preferWithItems: true });
 
   const source = rigUps.find((t) => t.id === sourceId);
   const sourceItems = (source?.lineItems || source?.line_items || []).map((li) => ({
