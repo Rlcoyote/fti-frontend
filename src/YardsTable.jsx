@@ -38,7 +38,7 @@ export default function YardsTable({ yards, isMob, onRowClick }) {
 
   return (
     <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: COLS, background: C.darkBlue, padding: "10px 16px", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: COLS, background: C.navy, padding: "10px 16px", gap: 8 }}>
         {HEADERS.map((h) => (
           <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
             {h}

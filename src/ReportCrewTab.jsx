@@ -49,7 +49,7 @@ export default function ReportCrewTab({ filteredTickets, visibleJobs, dateFrom, 
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
-            <tr style={{ background: C.darkBlue }}>
+            <tr style={{ background: C.navy }}>
               {["CREW MEMBER", "TICKETS", "TOTAL HOURS", "ON LOCATION", "DRIVE TIME", "MILES", "DAYS WORKED", "UTILIZATION"].map((h) => (
                 <th key={h} style={th}>
                   {h}

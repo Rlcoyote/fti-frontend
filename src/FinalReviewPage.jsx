@@ -161,7 +161,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
               gridTemplateColumns: "36px 80px 1fr 120px 100px 100px 90px 120px",
               gap: 4,
               padding: "8px 12px",
-              background: C.darkBlue,
+              background: C.navy,
               borderRadius: "6px 6px 0 0",
             }}
           >
@@ -228,7 +228,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
                       className="fti-btn"
                       onClick={() => setAccountingMenu(accountingMenu === t.id ? null : t.id)}
                       style={{
-                        background: C.darkBlue,
+                        background: C.navy,
                         color: C.white,
                         border: "none",
                         borderRadius: 4,
@@ -408,7 +408,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
                     className="fti-btn"
                     onClick={() => setAccountingMenu(accountingMenu === t.id ? null : t.id)}
                     style={{
-                      background: C.darkBlue,
+                      background: C.navy,
                       color: C.white,
                       border: "none",
                       borderRadius: 4,

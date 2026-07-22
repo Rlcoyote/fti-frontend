@@ -219,7 +219,7 @@ function InventoryPage({ inventory, setInventory, jobs }) {
       <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6, overflow: "auto", maxHeight: "calc(100vh - 340px)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontFamily: "'Arial', sans-serif" }}>
           <thead>
-            <tr style={{ background: C.darkBlue, position: "sticky", top: 0, zIndex: 2 }}>
+            <tr style={{ background: C.navy, position: "sticky", top: 0, zIndex: 2 }}>
               {["#", "SIZE", "CATEGORY", "ITEM", "ITEM #", "OWNED", "IN YARD", "OUT", "CUSTOMER / LOCATION", "FT #", "ACTIONS"].map((h) => (
                 <th
                   key={h}
@@ -231,7 +231,7 @@ function InventoryPage({ inventory, setInventory, jobs }) {
                     color: C.white,
                     letterSpacing: "0.1em",
                     borderBottom: `2px solid ${C.red}`,
-                    background: C.darkBlue,
+                    background: C.navy,
                   }}
                 >
                   {h}

@@ -262,7 +262,7 @@ function SafetyPage() {
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
               <div style={{ overflowX: "auto" }}>
                 <div style={{ minWidth: 800 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 1fr 120px 120px 80px 80px", background: C.darkBlue, padding: "10px 14px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 120px 1fr 120px 120px 80px 80px", background: C.navy, padding: "10px 14px" }}>
                     {["EMPLOYEE", "TYPE", "CERTIFICATION", "ISSUED", "EXPIRES", "STATUS", ""].map((h) => (
                       <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
                         {h}

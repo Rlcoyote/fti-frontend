@@ -35,6 +35,11 @@ const LIGHT = {
   white: "#FFFFFF",
   blue: "#002868",
   darkBlue: "#002060",
+  // navy — SURFACE token: the deep-navy band (table headers, splash). Distinct
+  // from darkBlue, which is a TEXT/accent token and flips BRIGHT in dark mode
+  // for contrast — using darkBlue as a background is what painted the splash
+  // and every table header pastel #4a8be2 in dark mode (v28.373).
+  navy: "#002060",
   steel: "#f0f3f8",
   lightSteel: "#e4e9f2",
   muted: "#4a5570",
@@ -93,6 +98,9 @@ const DARK = {
   white: "#FFFFFF",
   blue: "#5b9bf2",
   darkBlue: "#4a8be2",
+  // navy — SURFACE token (see LIGHT palette note): stays deep navy here, in
+  // step with the navy world (headerBg family), never the bright text blue.
+  navy: "#0e1a33",
   steel: "#1a2740",
   lightSteel: "#223051",
   muted: "#8fa0bf",

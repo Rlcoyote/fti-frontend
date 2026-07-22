@@ -34,7 +34,7 @@ function ContactsTable({ loading, filtered, merged, selectMode, isAdmin, isOwner
             style={{
               display: "grid",
               gridTemplateColumns: selectMode ? "36px 1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px" : "1fr 1fr 1.2fr 130px 130px 1.2fr 1.1fr 56px",
-              background: C.darkBlue,
+              background: C.navy,
               padding: "10px 14px",
             }}
           >

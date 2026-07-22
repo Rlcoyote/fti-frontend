@@ -305,7 +305,7 @@ function AssetsPage({ jobs }) {
       {/* Asset List */}
       {!isMob && (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 140px 120px 1fr 180px", background: C.darkBlue, padding: "10px 16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 100px 100px 140px 120px 1fr 180px", background: C.navy, padding: "10px 16px" }}>
             {["NAME", "TYPE", "UNIT #", "SERIAL / VIN", "STATUS", "ASSIGNED TO", "ACTIONS"].map((h) => (
               <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>
                 {h}

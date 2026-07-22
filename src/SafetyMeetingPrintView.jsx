@@ -87,6 +87,20 @@ function SafetyMeetingPrintView({ meeting, onBack }) {
           </>
         )}
 
+        {heading("NEAR MISSES")}
+        {(meeting.near_misses || []).length > 0 ? (
+          (meeting.near_misses || []).map((nm) => (
+            <div key={nm.id} style={{ fontSize: F.body, marginBottom: 2 }}>
+              • {nm.description}
+              {nm.raised_by ? ` — raised by ${nm.raised_by}` : ""} ({nm.report_completed ? "report filed" : "report owed"})
+            </div>
+          ))
+        ) : meeting.near_misses_reviewed_at ? (
+          <div style={{ fontSize: F.body }}>Asked — none raised{meeting.near_misses_reviewed_by_name ? ` (${meeting.near_misses_reviewed_by_name})` : ""}</div>
+        ) : (
+          <div style={{ fontSize: F.meta, color: C.muted }}>Not recorded for this meeting.</div>
+        )}
+
         {heading("OPEN ACTION ITEMS AS OF THIS EXPORT")}
         {actionPool.length === 0 && <div style={{ fontSize: F.meta, color: C.muted }}>None outstanding.</div>}
         {actionPool.map((t) => (

@@ -102,7 +102,7 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
       <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           <div style={{ minWidth: 720 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 120px 100px 90px", background: C.darkBlue, padding: "10px 16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 1fr 120px 100px 90px", background: C.navy, padding: "10px 16px" }}>
               {["WORK ORDER #", "CUSTOMER", "LOCATION", "DATE", "WELLS", "STATUS"].map((h) => (
                 <div key={h} style={{ fontSize: 10, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>
                   {h}

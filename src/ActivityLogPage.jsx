@@ -306,7 +306,7 @@ function ActivityLogPage() {
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
             <div style={{ overflowX: "auto" }}>
               <div style={{ minWidth: 780 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "140px 120px 1fr 120px 1.5fr", background: C.darkBlue, padding: "10px 14px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "140px 120px 1fr 120px 1.5fr", background: C.navy, padding: "10px 14px" }}>
                   {["TIME", "USER", "ACTION", "IP ADDRESS", "DETAILS"].map((h) => (
                     <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
                       {h}
@@ -376,7 +376,7 @@ function ActivityLogPage() {
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 760 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "120px 140px 140px 100px 80px 120px", background: C.darkBlue, padding: "10px 14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "120px 140px 140px 100px 80px 120px", background: C.navy, padding: "10px 14px" }}>
                 {["USER", "LOGIN", "LOGOUT", "DURATION", "STATUS", "IP"].map((h) => (
                   <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
                     {h}

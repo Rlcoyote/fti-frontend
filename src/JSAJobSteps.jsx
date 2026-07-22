@@ -44,7 +44,7 @@ function JSAJobSteps({ additionalSteps, setAdditionalSteps }) {
     <>
       <label style={labelStyle}>BASIC JOB STEPS / POTENTIAL HAZARDS / SAFE PROCEDURES</label>
       <div style={{ border: `1px solid ${C.border}`, borderRadius: 6, overflow: "hidden", marginBottom: 14 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 1fr", background: C.darkBlue, padding: "8px 10px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "40px 1fr 1fr 1fr", background: C.navy, padding: "8px 10px" }}>
           {["#", "Basic Job Step", "Potential Hazards", "Recommended Safe Procedures"].map((h) => (
             <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.white, letterSpacing: "0.08em" }}>
               {h}

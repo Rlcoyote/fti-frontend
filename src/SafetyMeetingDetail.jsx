@@ -206,6 +206,10 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
   const [needTitle, setNeedTitle] = useState("");
   const [needAssignee, setNeedAssignee] = useState("");
   const [needCategory, setNeedCategory] = useState("required");
+  // near miss state
+  const [nmDesc, setNmDesc] = useState("");
+  const [nmRaisedBy, setNmRaisedBy] = useState("");
+  const [nmOwner, setNmOwner] = useState("");
   // notes
   const [notes, setNotes] = useState("");
   const [notesDirty, setNotesDirty] = useState(false);
@@ -287,6 +291,18 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
       setActionErr(e.message);
     }
   };
+  const addNearMiss = act(async () => {
+    if (!nmDesc.trim() || !nmOwner) throw new Error("Description and a report owner are both required");
+    await api.post(`/safety-meetings/${meeting.id}/near-misses`, {
+      description: nmDesc.trim(),
+      raised_by: nmRaisedBy || null,
+      assigned_to: userIdByName[nmOwner],
+    });
+    setNmDesc("");
+    setNmRaisedBy("");
+    setNmOwner("");
+  });
+  const markNoNearMisses = act(async () => api.post(`/safety-meetings/${meeting.id}/near-misses/none`, {}));
   const addEquipmentNeed = act(async () => {
     if (!needTitle.trim() || !needAssignee) throw new Error("Equipment need and its owner are both required");
     await api.post(`/safety-meetings/${meeting.id}/equipment-needs`, {
@@ -572,6 +588,100 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
               ))}
           </div>
         )}
+      </Section>
+
+      {/* NEAR MISSES (v28.373, Reggie 2026-07-21) — asked EVERY meeting, and
+          the record proves it either way: raised entries (each spawning the
+          REQUIRED report Action Item) or the asked-none-raised stamp. */}
+      <Section title="NEAR MISSES — ASK EVERY MEETING">
+        <div style={{ padding: `${SP.lg}px ${SP.xl}px 0`, fontSize: F.body, fontWeight: 700, color: C.text }}>
+          “Have there been any near misses? Are there any safety issues anyone has identified that need to be talked about?”
+        </div>
+        <div style={{ padding: `${SP.xs}px ${SP.xl}px ${SP.md}px`, fontSize: F.meta, color: C.muted }}>
+          Anything raised gets documented on the Near Miss Report form — adding it here creates the REQUIRED action item automatically.
+        </div>
+        {(meeting.near_misses || []).map((nm) => (
+          <div
+            key={nm.id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: SP.md,
+              padding: `${SP.sm}px ${SP.xl}px`,
+              borderTop: `1px solid ${C.border}33`,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ fontSize: F.body, color: C.text, flex: "1 1 220px" }}>
+              {nm.description}
+              {nm.raised_by && <span style={{ color: C.muted, fontSize: F.label }}> — raised by {nm.raised_by}</span>}
+            </div>
+            <span
+              style={{
+                fontSize: F.badge,
+                fontWeight: 800,
+                color: nm.report_completed ? C.green : C.red,
+                border: `1px solid ${(nm.report_completed ? C.green : C.red) + "66"}`,
+                background: (nm.report_completed ? C.green : C.red) + "18",
+                borderRadius: R.xl,
+                padding: "2px 7px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {nm.report_completed ? "REPORT FILED" : "REPORT OWED"}
+            </span>
+          </div>
+        ))}
+        {(meeting.near_misses || []).length === 0 && meeting.near_misses_reviewed_at && (
+          <div style={{ padding: `${SP.md}px ${SP.xl}px`, borderTop: `1px solid ${C.border}33`, fontSize: F.body, color: C.green, fontWeight: 700 }}>
+            ✓ Asked — none raised
+            <span style={{ color: C.muted, fontWeight: 400, fontSize: F.label }}>
+              {" "}
+              · {meeting.near_misses_reviewed_by_name || ""} · {new Date(meeting.near_misses_reviewed_at).toLocaleString()}
+            </span>
+          </div>
+        )}
+        {(meeting.near_misses || []).length === 0 && !meeting.near_misses_reviewed_at && (
+          <div style={{ padding: `${SP.sm}px ${SP.xl}px ${SP.md}px` }}>
+            <Btn small variant="ghost" onClick={markNoNearMisses}>
+              ASKED — NONE RAISED
+            </Btn>
+          </div>
+        )}
+        <div
+          style={{ padding: `${SP.lg}px ${SP.xl}px`, borderTop: `1px solid ${C.border}`, display: "flex", gap: SP.md, flexWrap: "wrap", alignItems: "center" }}
+        >
+          <input
+            placeholder="What happened / what was identified…"
+            value={nmDesc}
+            onChange={(e) => setNmDesc(e.target.value)}
+            style={{ ...inputStyle, width: "auto", flex: "2 1 220px", marginBottom: 0 }}
+          />
+          <select
+            value={nmRaisedBy}
+            onChange={(e) => setNmRaisedBy(e.target.value)}
+            style={{ ...inputStyle, width: "auto", flex: "1 1 130px", marginBottom: 0 }}
+          >
+            <option value="">— Raised by —</option>
+            {userNames.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <select value={nmOwner} onChange={(e) => setNmOwner(e.target.value)} style={{ ...inputStyle, width: "auto", flex: "1 1 140px", marginBottom: 0 }}>
+            <option value="">— Report owner —</option>
+            {userNames.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <Btn small onClick={addNearMiss} disabled={!nmDesc.trim() || !nmOwner}>
+            ADD
+          </Btn>
+        </div>
       </Section>
 
       {/* POLICY & DOCUMENT UPDATES (v28.348) — auto-derived since the last
