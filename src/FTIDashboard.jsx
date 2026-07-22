@@ -24,6 +24,7 @@ import ComplianceConsentPage from "./ComplianceConsentPage.jsx";
 import PeoplePage from "./PeoplePage.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import CompanyLibraryModal from "./CompanyLibraryModal.jsx";
+import GlobalSearch from "./GlobalSearch.jsx";
 import AboutModal from "./AboutModal.jsx";
 import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
@@ -122,6 +123,19 @@ function FTIDashboard() {
   }, [location.pathname]);
   const navigateToPage = (path) => navigate(path);
 
+  // v28.390 — search-result deep links: /?wo=300178 expands that WO on the
+  // dashboard; /?library=1 opens the COMPANY LIBRARY. Params are consumed
+  // (replaced away) so refresh/back don't replay them.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const wo = params.get("wo");
+    const lib = params.get("library");
+    if (wo) setExpandedId(Number(wo));
+    if (lib) setShowFieldResources(true);
+    if (wo || lib) navigate("/", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
   // ── UI state ──
   // v28.17 — showPermissions removed; the permissions matrix is now a tab
   // inside PeoplePage instead of a standalone modal.
@@ -129,6 +143,7 @@ function FTIDashboard() {
   // LOCATIONS + SMS CONSENT SCRIPTS) is retired: yards moved to top-level
   // /yards page (v28.179); SMS Consent Scripts moved to /compliance-consent.
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(false);
+  const [showSearch, setShowSearch] = useState(false); // v28.390 — global search
   const [showFieldResources, setShowFieldResources] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -341,6 +356,7 @@ function FTIDashboard() {
         pendingFinalReviewCount={pendingFinalReviewCount}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowFieldResources={setShowFieldResources}
+        setShowSearch={setShowSearch}
         setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
         canViewContacts={canViewContacts}
@@ -361,6 +377,7 @@ function FTIDashboard() {
         setShowSettingsMenu={setShowSettingsMenu}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowFieldResources={setShowFieldResources}
+        setShowSearch={setShowSearch}
         setShowAbout={setShowAbout}
         setShowLogoutConfirm={setShowLogoutConfirm}
         canViewContacts={canViewContacts}
@@ -473,6 +490,7 @@ function FTIDashboard() {
       {showEmergencyContacts && <EmergencyContactsModal onClose={() => setShowEmergencyContacts(false)} />}
       {showFieldResources && <CompanyLibraryModal onClose={() => setShowFieldResources(false)} />}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      {showSearch && <GlobalSearch onClose={() => setShowSearch(false)} />}
       {/* v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal */}
       {showLogoutConfirm && (
         <ConfirmModal

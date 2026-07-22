@@ -1,6 +1,7 @@
 import { C, E, F, SP, R } from "./config.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
+import useBackClose from "./useBackClose.js";
 
 // ─── MODAL Z-INDEX LAYERS (v27.67) ────────────────────────────────────────
 // The app stacks modals intentionally: a confirmation-over-an-edit-modal
@@ -530,6 +531,9 @@ export function TicketStatusBadge({ status }) {
 export function ModalWrap({ title, onClose, children, width = 440, accent = C.red, z = Z_INDEX.modal, variant = "sheet" }) {
   const isMob = useIsMobile();
   useBodyScrollLock(true);
+  // v28.390 — the universal back-button contract: BACK closes the top-most
+  // modal instead of leaving the page. Every ModalWrap consumer gets this free.
+  useBackClose(true, onClose);
   const dialog = variant === "dialog";
   const asSheet = !dialog && isMob;
   return (

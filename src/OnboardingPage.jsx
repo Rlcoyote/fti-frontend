@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { C, F, SP, R } from "./config.js";
 import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
+import useBackClose from "./useBackClose.js";
 import { Btn, TabBtns, inputStyle } from "./SharedUI.jsx";
 import OnboardingSignFlow from "./OnboardingSignFlow.jsx";
 import OnboardingEditor from "./OnboardingEditor.jsx";
@@ -59,7 +60,10 @@ function MyPacket() {
   const [docs, setDocs] = useState(null);
   const [err, setErr] = useState(null);
   const [openDoc, setOpenDoc] = useState(null); // full doc for sign flow
+  // v28.390 — BACK closes the open document, not the whole page.
+  useBackClose(!!openDoc, () => setOpenDoc(null));
   const [viewDoc, setViewDoc] = useState(null); // signed record view
+  useBackClose(!!viewDoc, () => setViewDoc(null));
   const [notice, setNotice] = useState("");
 
   const refresh = useCallback(() => {
@@ -274,6 +278,8 @@ function OfficeRoster() {
   const [roster, setRoster] = useState(null);
   const [err, setErr] = useState(null);
   const [openUser, setOpenUser] = useState(null);
+  // v28.390 — BACK returns to the roster, not the main page.
+  useBackClose(!!openUser, () => setOpenUser(null));
   const [userDocs, setUserDocs] = useState(null);
   const [comment, setComment] = useState("");
   const [errMsg, setErrMsg] = useState("");

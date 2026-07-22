@@ -123,6 +123,7 @@ function MobileNavDrawer({
   // → /yards top-level page; SMS Consent Scripts → /compliance-consent).
   setShowEmergencyContacts,
   setShowFieldResources,
+  setShowSearch,
   setShowAbout,
   setShowLogoutConfirm,
   canViewContacts,
@@ -369,6 +370,14 @@ function MobileNavDrawer({
             }}
           />
         )}
+        <DrawerItem
+          icon="🔍"
+          label="Search"
+          onClick={() => {
+            setDrawerOpen(false);
+            setShowSearch(true);
+          }}
+        />
         <DrawerItem
           icon="📁"
           label="Company Library"

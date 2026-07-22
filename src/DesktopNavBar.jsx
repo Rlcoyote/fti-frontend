@@ -137,6 +137,7 @@ function DesktopNavBar({
   // → /yards top-level page; SMS Consent Scripts → /compliance-consent.
   setShowEmergencyContacts,
   setShowFieldResources,
+  setShowSearch,
   setShowAbout,
   setShowLogoutConfirm,
   canViewContacts,
@@ -483,8 +484,15 @@ function DesktopNavBar({
                       />
                     )}
                     <GearMenuItem
-                      label="Company Library"
+                      label="Search"
                       hasTopBorder
+                      onClick={() => {
+                        setShowSettingsMenu(false);
+                        setShowSearch(true);
+                      }}
+                    />
+                    <GearMenuItem
+                      label="Company Library"
                       onClick={() => {
                         setShowSettingsMenu(false);
                         setShowFieldResources(true);
