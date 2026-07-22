@@ -89,8 +89,12 @@ export function MeetingStatusChip({ meeting }) {
 }
 
 // One attendance row — name, method chip, note, time. Used by the meeting
-// detail card today and the PDF export in a later slice.
-export function AttendanceRow({ row }) {
+// detail card and the PDF export (one home, Entry 7).
+// v28.392 (Reggie: signed after the meeting date "documented today's current
+// time, but did not input the date") — pass meetingDate and any signature
+// whose date differs shows its FULL date plus an AFTER MEETING DATE flag.
+// The record tells the truth about when the attestation actually happened.
+export function AttendanceRow({ row, meetingDate }) {
   const meta = METHOD_META[row.method] || { label: row.method, color: () => C.muted, note: () => null };
   const color = meta.color();
   const note = meta.note(row);
@@ -125,9 +129,20 @@ export function AttendanceRow({ row }) {
         >
           {meta.label}
         </span>
-        <span style={{ fontSize: F.label, color: C.muted, whiteSpace: "nowrap" }}>
-          {row.signed_at ? new Date(row.signed_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}
-        </span>
+        {(() => {
+          if (!row.signed_at) return null;
+          const signed = new Date(row.signed_at);
+          const signedDate = signed.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
+          const mDate = meetingDate ? String(meetingDate).slice(0, 10) : null;
+          const afterFact = mDate && signedDate !== mDate;
+          return (
+            <span style={{ fontSize: F.label, color: afterFact ? C.orange : C.muted, whiteSpace: "nowrap", fontWeight: afterFact ? 800 : 400 }}>
+              {afterFact ? `${fmtMeetingDate(signedDate)} ` : ""}
+              {signed.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+              {afterFact ? " — AFTER MEETING DATE" : ""}
+            </span>
+          );
+        })()}
       </div>
     </div>
   );

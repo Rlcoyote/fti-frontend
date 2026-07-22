@@ -213,6 +213,12 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
   // notes
   const [notes, setNotes] = useState("");
   const [notesDirty, setNotesDirty] = useState(false);
+  // v28.392 (Reggie: "It deleted my name entry as attending without warning.
+  // There needs to be a warning.") — confirm state for the two destructive
+  // actions. Declared HERE with the other hooks, above the early returns
+  // (rules-of-hooks).
+  const [confirmRemoveRow, setConfirmRemoveRow] = useState(null);
+  const [confirmClose, setConfirmClose] = useState(false);
 
   const refresh = useCallback(() => {
     api
@@ -395,7 +401,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
           EXPORT PDF
         </Btn>
         {isOpen && canClose && (
-          <Btn variant="ghost" small onClick={closeMeeting}>
+          <Btn variant="ghost" small onClick={() => setConfirmClose(true)} title="Closes SIGN-IN for this meeting — not this screen">
             CLOSE MEETING
           </Btn>
         )}
@@ -412,18 +418,43 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
       </div>
       {actionErr && <div style={{ color: C.red, fontSize: F.meta, fontWeight: 700, marginBottom: SP.xl }}>{actionErr}</div>}
 
+      {confirmRemoveRow && (
+        <ConfirmModal
+          title="Remove Attendance Row?"
+          message={`${confirmRemoveRow.user_name || confirmRemoveRow.external_name} will be removed from this meeting's attendance record. This is audit-logged and cannot be undone from here.`}
+          yesLabel="REMOVE"
+          onYes={() => {
+            removeAttendance(confirmRemoveRow.id);
+            setConfirmRemoveRow(null);
+          }}
+          onCancel={() => setConfirmRemoveRow(null)}
+        />
+      )}
+      {confirmClose && (
+        <ConfirmModal
+          title="Close This Meeting?"
+          message="This closes the MEETING to new sign-ins — it does not just close this screen. Reopening afterward requires a manager, admin, or owner."
+          yesLabel="CLOSE MEETING"
+          onYes={() => {
+            closeMeeting();
+            setConfirmClose(false);
+          }}
+          onCancel={() => setConfirmClose(false)}
+        />
+      )}
+
       {/* ATTENDANCE */}
       <Section title={`ATTENDANCE (${meeting.attendance.length})`}>
         {meeting.attendance.length === 0 && <div style={emptyNote}>Nobody has signed in yet.</div>}
         {meeting.attendance.map((row) => (
           <div key={row.id} style={{ display: "flex", alignItems: "center" }}>
             <div style={{ flex: 1 }}>
-              <AttendanceRow row={row} />
+              <AttendanceRow row={row} meetingDate={meeting.meeting_date} />
             </div>
             {can("safety_meeting_delete") && (
               <button
                 className="fti-btn"
-                onClick={() => removeAttendance(row.id)}
+                onClick={() => setConfirmRemoveRow(row)}
                 title="Remove row (admin — audit-logged)"
                 style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: F.md, padding: SP.md }}
               >

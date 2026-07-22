@@ -57,7 +57,7 @@ function SafetyMeetingPrintView({ meeting, onBack }) {
         {heading(`ATTENDANCE (${meeting.attendance.length})`)}
         {meeting.attendance.length === 0 && <div style={{ fontSize: F.meta, color: C.muted }}>No attendance recorded.</div>}
         {meeting.attendance.map((row) => (
-          <AttendanceRow key={row.id} row={row} />
+          <AttendanceRow key={row.id} row={row} meetingDate={meeting.meeting_date} />
         ))}
         {meeting.attendance.length > 0 && (
           <div style={{ fontSize: F.badge, color: C.muted, marginTop: SP.sm, lineHeight: 1.5 }}>
