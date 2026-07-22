@@ -66,11 +66,19 @@ export const REG_FILL = {
   ok: "transparent",
   unknown: "transparent",
 };
+// Getters, not values (SharedUI idiom) — eager C reads at module level freeze
+// the load-time theme. The two amber hexes are theme-static by design.
 export const REG_LABEL_COLOR = {
-  expired: C.red,
   due: "#8a6500",
   due_soon: "#9a7400",
-  ok: C.muted,
-  unknown: C.muted,
+  get expired() {
+    return C.red;
+  },
+  get ok() {
+    return C.muted;
+  },
+  get unknown() {
+    return C.muted;
+  },
 };
 // LIFECYCLE_COLORS moved to LifecycleBadge.jsx (shared with yards) — v28.236.

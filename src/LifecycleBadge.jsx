@@ -5,9 +5,27 @@ import { C } from "./config.js";
 // the vehicle split (vehicleDisplay + VehiclesTable) and YardsPage; shared here
 // so every fleet entity renders the same badge from one source (Article XVII).
 
+// Getters, not values (SharedUI idiom) — module-level + exported; eager C
+// reads would freeze the load-time theme into every consumer's badges.
 export const LIFECYCLE_COLORS = {
-  active: { color: C.green, bg: C.greenB, label: "ACTIVE" },
-  retired: { color: C.muted, bg: C.lightSteel, label: "RETIRED" },
+  active: {
+    label: "ACTIVE",
+    get color() {
+      return C.green;
+    },
+    get bg() {
+      return C.greenB;
+    },
+  },
+  retired: {
+    label: "RETIRED",
+    get color() {
+      return C.muted;
+    },
+    get bg() {
+      return C.lightSteel;
+    },
+  },
 };
 
 export default function LifecycleBadge({ status }) {

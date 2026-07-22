@@ -16,9 +16,38 @@ import { API_URL } from "./config.js";
 // notes. Content edit is open to everyone (JSA doctrine — the audit trail
 // carries changes); attestation rows are append-only; delete is admin.
 
-const sectionStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: R.card, marginBottom: SP.xl, overflow: "hidden" };
-const sectionHead = { padding: `${SP.lg}px ${SP.xl}px`, fontWeight: 800, fontSize: F.md, color: C.text, borderBottom: `1px solid ${C.border}` };
-const emptyNote = { padding: `${SP.lg}px ${SP.xl}px`, fontSize: F.meta, color: C.muted };
+// Getters, not values (SharedUI idiom): a module-level object evaluates ONCE,
+// which freezes the load-time theme into every Section — the v28.371 dark-mode
+// bug. Color reads must resolve at render time.
+const sectionStyle = {
+  borderRadius: R.card,
+  marginBottom: SP.xl,
+  overflow: "hidden",
+  get background() {
+    return C.cardBg;
+  },
+  get border() {
+    return `1px solid ${C.border}`;
+  },
+};
+const sectionHead = {
+  padding: `${SP.lg}px ${SP.xl}px`,
+  fontWeight: 800,
+  fontSize: F.md,
+  get color() {
+    return C.text;
+  },
+  get borderBottom() {
+    return `1px solid ${C.border}`;
+  },
+};
+const emptyNote = {
+  padding: `${SP.lg}px ${SP.xl}px`,
+  fontSize: F.meta,
+  get color() {
+    return C.muted;
+  },
+};
 
 function Section({ title, right, children }) {
   return (

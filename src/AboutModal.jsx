@@ -10,7 +10,14 @@ import { APP_VERSION } from "./version.js";
 // surface so future items (support contact, what's-new) have an obvious home
 // instead of scattering across the app.
 
-const LINK_STYLE = { color: C.blue, textDecoration: "underline" };
+// Getter, not value (SharedUI idiom) — module-level objects evaluate once and
+// would freeze the load-time theme color.
+const LINK_STYLE = {
+  textDecoration: "underline",
+  get color() {
+    return C.blue;
+  },
+};
 
 function AboutModal({ onClose }) {
   // v28.287 (theme arc) — renders through the one shell.

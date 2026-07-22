@@ -54,14 +54,39 @@ export const ticketTotal = (t) => (t.lineItems || []).reduce((s, li) => s + calc
 export const getField = (t, camel, snake) => t[camel] || t[snake] || "";
 
 // ── Shared card styles ──
-export const cardStyle = { background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 6, padding: "20px 24px", marginBottom: 16 };
+// Getters, not values (SharedUI idiom): these are module-level and exported —
+// eager C reads would freeze the load-time theme into every Reports card
+// (the same class as the v28.371 Safety Meeting dark-mode bug).
+export const cardStyle = {
+  borderRadius: 6,
+  padding: "20px 24px",
+  marginBottom: 16,
+  get background() {
+    return C.cardBg;
+  },
+  get border() {
+    return `1px solid ${C.border}`;
+  },
+};
 export const headerStyle = {
   fontSize: 13,
   fontWeight: 800,
-  color: C.text,
   letterSpacing: "0.06em",
   marginBottom: 12,
-  borderBottom: `2px solid ${C.red}`,
   paddingBottom: 8,
+  get color() {
+    return C.text;
+  },
+  get borderBottom() {
+    return `2px solid ${C.red}`;
+  },
 };
-export const rowStyle = { display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${C.border}22`, fontSize: 13 };
+export const rowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  padding: "6px 0",
+  fontSize: 13,
+  get borderBottom() {
+    return `1px solid ${C.border}22`;
+  },
+};

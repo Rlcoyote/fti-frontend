@@ -5,10 +5,36 @@ import { Btn, FilterBtn, ModalWrap, inputStyle, labelStyle, ConfirmModal } from 
 import { useApp } from "./AppContext.jsx";
 
 const ASSET_TYPES = ["Truck", "Trailer", "Separator", "Tank", "Generator", "Pump Unit", "Other"];
+// Getters, not values (SharedUI idiom) — a module-level map with eager C reads
+// freezes the load-time theme into the status chips.
 const STATUS_COLORS = {
-  available: { color: C.green, bg: C.greenB, label: "AVAILABLE" },
-  deployed: { color: C.yellow, bg: C.yellowB, label: "DEPLOYED" },
-  maintenance: { color: C.red, bg: C.redB, label: "MAINTENANCE" },
+  available: {
+    label: "AVAILABLE",
+    get color() {
+      return C.green;
+    },
+    get bg() {
+      return C.greenB;
+    },
+  },
+  deployed: {
+    label: "DEPLOYED",
+    get color() {
+      return C.yellow;
+    },
+    get bg() {
+      return C.yellowB;
+    },
+  },
+  maintenance: {
+    label: "MAINTENANCE",
+    get color() {
+      return C.red;
+    },
+    get bg() {
+      return C.redB;
+    },
+  },
 };
 
 function AssetsPage({ jobs }) {
