@@ -744,24 +744,43 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
               <AddTicketGpsReference driveLoading={driveLoading} driveInfo={driveInfo} dueOnLoc={dueOnLoc} />
 
               {caps.times && (
-                <AddTicketTimeMileage
-                  ticketType={type}
-                  lvYard={lvYard}
-                  arrivalTime={arrivalTime}
-                  jobStartTime={jobStartTime}
-                  jobEndTime={jobEndTime}
-                  retYard={retYard}
-                  setLvYard={setLvYard}
-                  setArrivalTime={setArrivalTime}
-                  setJobStartTime={setJobStartTime}
-                  setJobEndTime={setJobEndTime}
-                  setRetYard={setRetYard}
-                  timeZone={timeZone}
-                  mileageBegin={mileageBegin}
-                  mileageEnd={mileageEnd}
-                  setMileageBegin={setMileageBegin}
-                  setMileageEnd={setMileageEnd}
-                />
+                <>
+                  {isLogType(type) && (
+                    <div
+                      style={{
+                        background: TINT.blueBg,
+                        border: `1px solid ${TINT.blueText}44`,
+                        borderRadius: 6,
+                        padding: "10px 14px",
+                        marginBottom: 12,
+                        fontSize: 12,
+                        color: TINT.blueText,
+                        fontWeight: 700,
+                      }}
+                    >
+                      📋 DAILY HOURS &amp; WELL LOG — entered ON THE TICKET, which opens automatically the moment you hit CREATE. Below: travel legs + mileage
+                      only (stamped once per ticket).
+                    </div>
+                  )}
+                  <AddTicketTimeMileage
+                    ticketType={type}
+                    lvYard={lvYard}
+                    arrivalTime={arrivalTime}
+                    jobStartTime={jobStartTime}
+                    jobEndTime={jobEndTime}
+                    retYard={retYard}
+                    setLvYard={setLvYard}
+                    setArrivalTime={setArrivalTime}
+                    setJobStartTime={setJobStartTime}
+                    setJobEndTime={setJobEndTime}
+                    setRetYard={setRetYard}
+                    timeZone={timeZone}
+                    mileageBegin={mileageBegin}
+                    mileageEnd={mileageEnd}
+                    setMileageBegin={setMileageBegin}
+                    setMileageEnd={setMileageEnd}
+                  />
+                </>
               )}
 
               <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>

@@ -122,7 +122,9 @@ function TicketTimeAndMileage({ editable, values, onChange, driveInfo, ticketTyp
 
   return (
     <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 24px" }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>TIME &amp; MILEAGE</div>
+      <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>
+        {isLog ? "TRAVEL & MILEAGE — once per ticket" : "TIME & MILEAGE"}
+      </div>
 
       {/* Time fields */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "flex-end", marginBottom: 8 }}>
