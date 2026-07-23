@@ -126,6 +126,11 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [equipment, setEquipment] = useState([]);
   // v28.267 — log-family (Tester/Pumper) body: DAYS & HOURS | WELL LOG tabs.
   const [logTab, setLogTab] = useState("days");
+  // v28.400 (Reggie 1.1 ruling) — WEEK SYNOPSIS for log-family tickets: the
+  // overview of the daily inputs, replacing the standard-ticket time section's
+  // role (travel legs + mileage remain below per the paper model).
+  const [logDaysWorked, setLogDaysWorked] = useState(null);
+  const [logWellDays, setLogWellDays] = useState(null);
   // v28.273 — per-day JSA: chip click loads that DAY's JSA (may be null) and
   // opens JSAModal locked to the date. jsaBump refreshes the chips on close.
   const [dayJsa, setDayJsa] = useState(null); // { date, existing } | null
@@ -682,6 +687,39 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   </span>
                 ))}
               </div>
+              {(logDaysWorked !== null || logHours || logWellDays !== null) && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 14,
+                    flexWrap: "wrap",
+                    background: C.steel,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 6,
+                    padding: "8px 14px",
+                    marginBottom: 12,
+                    fontSize: 12,
+                    color: C.text,
+                  }}
+                >
+                  <span style={{ fontWeight: 800, letterSpacing: "0.06em", color: C.muted }}>WEEK SYNOPSIS</span>
+                  {logDaysWorked !== null && (
+                    <span>
+                      <strong>{logDaysWorked}</strong> of 7 days entered
+                    </span>
+                  )}
+                  {logHours ? (
+                    <span>
+                      <strong>{logHours}</strong> total hrs
+                    </span>
+                  ) : null}
+                  {logWellDays !== null && (
+                    <span>
+                      well log <strong>{logWellDays}</strong> of 7 days
+                    </span>
+                  )}
+                </div>
+              )}
               {logTab === "days" ? (
                 <TicketWeekDays
                   ticket={ticket}
@@ -692,6 +730,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   jsaBump={jsaBump}
                   onTotalHours={(total, meta) => {
                     setLogHours(total || null);
+                    if (meta?.daysWorked !== undefined) setLogDaysWorked(meta.daysWorked);
                     // v28.267 — auto-sum: the saved week total flows into any
                     // line item measured in hours (U/M starting HR/HOUR).
                     // Office adjusts before approval; the signature wipes
@@ -714,7 +753,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   }}
                 />
               ) : (
-                <WellLogTab ticket={ticket} accent={tcfg.color} readOnly={isLocked} showNotice={showNotice} />
+                <WellLogTab ticket={ticket} accent={tcfg.color} readOnly={isLocked} showNotice={showNotice} onSummary={setLogWellDays} />
               )}
             </div>
           )}

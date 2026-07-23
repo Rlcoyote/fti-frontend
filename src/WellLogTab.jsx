@@ -53,7 +53,7 @@ function Stat({ label, value, accent, big }) {
   );
 }
 
-function WellLogTab({ ticket, accent, readOnly, showNotice }) {
+function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
   const wells = ticket.assignedWells?.length ? ticket.assignedWells : [];
   const [well, setWell] = useState(wells[0] || "");
   const weekStart = ticket.weekStart ? String(ticket.weekStart).slice(0, 10) : null;
@@ -84,9 +84,18 @@ function WellLogTab({ ticket, accent, readOnly, showNotice }) {
           map[`${r.well}|${String(r.date).slice(0, 10)}`] = true;
         });
         setHaveData(map);
+        // v28.400 — lift the count of THIS ticket's week-days that carry well
+        // readings (any well) for the WEEK SYNOPSIS strip.
+        if (onSummary && ticket.weekStart) {
+          const ws = String(ticket.weekStart).slice(0, 10);
+          const weekDates = new Set(Array.from({ length: 7 }, (_, i) => addDays(ws, i)));
+          const loggedDates = new Set((idx || []).map((r) => String(r.date).slice(0, 10)).filter((d) => weekDates.has(d)));
+          onSummary(loggedDates.size);
+        }
       })
       .catch(() => {});
-  }, [ticket.jobId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket.jobId, ticket.weekStart]);
 
   const loadSummary = useCallback(() => {
     if (!well || !date) return;
@@ -122,7 +131,6 @@ function WellLogTab({ ticket, accent, readOnly, showNotice }) {
         setBanner(null);
       })
       .catch((e) => setBanner({ kind: "error", text: e.message }));
-     
   }, [well, date, ticket.jobId, dayStart]);
 
   const setCell = (i, field, value) => {

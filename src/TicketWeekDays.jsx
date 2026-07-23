@@ -153,7 +153,8 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
         });
         setDays(map);
         setDirty(false);
-        onTotalHours?.(data.total_hours || 0);
+        const worked = (data.days || []).filter((d) => d.in1 || d.out1 || d.in2 || d.out2).length;
+        onTotalHours?.(data.total_hours || 0, { daysWorked: worked });
       })
       .catch((e) => setBanner({ kind: "error", text: e.message }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,7 +181,7 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
       const result = await api.put(`/tickets/${ticket.id}/days`, { days: payload });
       setDirty(false);
       setBanner({ kind: "ok", text: `Week saved — ${result.total_hours} total test hours.` });
-      onTotalHours?.(result.total_hours, { saved: true });
+      onTotalHours?.(result.total_hours, { saved: true, daysWorked: Object.values(days).filter((d) => d.in1 || d.out1 || d.in2 || d.out2).length });
     } catch (e) {
       setBanner({ kind: "error", text: e.message });
     } finally {
