@@ -1,4 +1,5 @@
-import { C } from "./config.js";
+import { useState, useEffect } from "react";
+import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 
@@ -40,6 +41,67 @@ import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 const contactCategory = (c) => c?.category || c?.role_tag;
 const isPocCategory = (cat) => ["poc", "site_rep", "site_manager", "company_man"].includes(cat);
 const isApproverCategory = (cat) => cat === "approver";
+
+// ─── AllCustomersHatch (v28.410, ratified 260722) ────────────────────────────
+// "Show this customer's contacts first, but allow searching all" — company
+// men move between operators. Collapsed by default; expands to a debounced
+// search against GET /customers/contacts/search. Picking fills the POC
+// fields exactly like the customer picker does.
+function AllCustomersHatch({ onPick }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [hits, setHits] = useState([]);
+  useEffect(() => {
+    if (!open || q.trim().length < 2) {
+      setHits([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`${API_URL}/customers/contacts/search?q=${encodeURIComponent(q.trim())}`);
+        setHits(r.ok ? await r.json() : []);
+      } catch {
+        setHits([]);
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q, open]);
+
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <span onClick={() => setOpen((v) => !v)} style={{ fontSize: 11, fontWeight: 700, color: C.blue, cursor: "pointer", textDecoration: "underline" }}>
+        {open ? "▾ Searching all customers" : "🔍 Search ALL customers (reps move between operators)"}
+      </span>
+      {open && (
+        <div style={{ marginTop: 6 }}>
+          <input style={{ ...inputStyle, maxWidth: 420 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, phone, or company…" />
+          {hits.map((c) => (
+            <div
+              key={c.id}
+              onClick={() => {
+                onPick(c);
+                setOpen(false);
+                setQ("");
+              }}
+              style={{ fontSize: 12, padding: "6px 10px", cursor: "pointer", borderBottom: `1px solid ${C.border}33`, color: C.text }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = C.cardBg)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <strong>{c.name}</strong>
+              <span style={{ color: C.muted }}>
+                {" "}
+                — {c.customer_name}
+                {c.title ? ` · ${c.title}` : ""}
+                {c.phone_work ? ` · ${c.phone_work}` : ""}
+              </span>
+            </div>
+          ))}
+          {q.trim().length >= 2 && hits.length === 0 && <div style={{ fontSize: 11, color: C.muted, padding: "6px 10px" }}>No matches anywhere.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function NewWorkOrderContactsPanel({
   knownContacts,
@@ -127,6 +189,7 @@ export default function NewWorkOrderContactsPanel({
           </select>
         </div>
       )}
+      <AllCustomersHatch onPick={applyContact} />
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 12 }}>
         <div>
           <label style={labelStyle}>FIRST NAME *</label>
