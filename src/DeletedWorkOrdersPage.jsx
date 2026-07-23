@@ -19,7 +19,7 @@ import { useApp } from "./AppContext.jsx";
 // Archive rules are unchanged: Archive moves items out of the trash into the
 // Archive page (non-restorable). Role-gated to owner/admin.
 
-function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
+function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
   const { can } = useApp();
   const [selectMode, setSelectMode] = useState(false);
   // v28.398 (Reggie: "What if we want to search for deleted stuff?") — the
@@ -364,4 +364,4 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
   );
 }
 
-export default DeletedJobsPage;
+export default DeletedWorkOrdersPage;

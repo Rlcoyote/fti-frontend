@@ -2,7 +2,7 @@ import { api } from "./api.js";
 import { mapTicketFromApi } from "./utils.js";
 import { recordConsent } from "./smsConsent.js";
 
-// ─── useJobActions (v28.05) ─────────────────────────────────────────────────
+// ─── useWorkOrderActions (v28.05) ─────────────────────────────────────────────────
 // Job/ticket CRUD handlers. Previously inlined in FTIDashboard.jsx as ~211
 // lines of handlers. Extracting them here removes the largest logic block
 // from the dashboard component.
@@ -19,8 +19,8 @@ import { recordConsent } from "./smsConsent.js";
 //
 // Article XXV split intent: the dashboard component goes from "what state +
 // what actions + what UI" to "what state (via usePageData) + what UI (with
-// action callbacks injected)". useJobActions is the action layer.
-export function useJobActions({
+// action callbacks injected)". useWorkOrderActions is the action layer.
+export function useWorkOrderActions({
   // From usePageData
   jobs,
   setJobs,
@@ -216,7 +216,7 @@ export function useJobActions({
   // on a WO whose tickets are all in terminal states (sentToQB, qbVerified,
   // voided). Writes archive record with reason="job_closed", which sets
   // archived_at on the job and removes it from active queries. Distinct
-  // from handleArchiveJob (which is called from DeletedJobsPage to permanently
+  // from handleArchiveJob (which is called from DeletedWorkOrdersPage to permanently
   // archive deleted-but-not-yet-purged WOs with reason="deleted").
   const handleCloseJob = async (jobId) => {
     if (!can("view_archive")) return;

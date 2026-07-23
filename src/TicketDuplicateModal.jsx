@@ -18,7 +18,7 @@ import { today } from "./utils.js";
 //   jobs       — all jobs (for target WO dropdown)
 //   tickets    — all tickets (for source picker — filters to same-WO)
 //   onClose    — dismiss (cancel or after success)
-//   onDuplicate(sourceTicket, options) — parent handler (see JobTicketsTab /
+//   onDuplicate(sourceTicket, options) — parent handler (see WorkOrderTicketsTab /
 //     TicketPage for existing implementations)
 
 const DUP_TYPES = ["Rig Up", "Tester", "Pumper", "Rental", "Rig Down"];

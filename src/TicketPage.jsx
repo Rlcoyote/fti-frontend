@@ -21,7 +21,7 @@ function TicketPage({ jobs, tickets, setTickets }) {
   const openToSign = location.state?.openToSign || false;
 
   useEffect(() => {
-    // Try router state first (passed from JobTicketsTab/AllTicketsPage)
+    // Try router state first (passed from WorkOrderTicketsTab/AllTicketsPage)
     if (location.state?.ticket) {
       setTicket(location.state.ticket);
       setLoading(false);

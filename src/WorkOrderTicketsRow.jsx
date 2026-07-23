@@ -5,7 +5,7 @@ import { TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketRentalCycle.jsx";
 import { useApp } from "./AppContext.jsx";
 
-// ─── JobTicketsRow (v28.90 — ship 9 of JobTicketsTab split, the big one) ───
+// ─── WorkOrderTicketsRow (v28.90 — ship 9 of WorkOrderTicketsTab split, the big one) ───
 // A single ticket card on the Tickets tab. Renders the mobile (vertical
 // stack) or desktop (horizontal flex) layout depending on the parent's
 // isMobile flag. Both branches share status flags, JSA badge, button
@@ -61,7 +61,7 @@ const BTN_BASE = {
   whiteSpace: "nowrap",
 };
 
-export default function JobTicketsRow({ ticket: t, custEmail, isMobile, isActiveTicket, actions }) {
+export default function WorkOrderTicketsRow({ ticket: t, custEmail, isMobile, isActiveTicket, actions }) {
   const { can } = useApp();
   const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type || "Unknown" };
   const total = calcTicketTotal(t);

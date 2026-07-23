@@ -3,7 +3,7 @@ import { C } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { ALL_COUNTIES } from "./Geography.js";
 
-// ─── NewJobLocationPanel (v28.100 — ship 7 of NewJobModal split) ───────────
+// ─── NewWorkOrderLocationPanel (v28.100 — ship 7 of NewWorkOrderModal split) ───────────
 // State (2-letter) + County (autocomplete from TX+NM list) fields, plus
 // the "auto-filled from pin" warning banner and per-field unlock
 // buttons.
@@ -30,7 +30,7 @@ const formatState = (val) =>
     .slice(0, 2)
     .toUpperCase();
 
-export default function NewJobLocationPanel({
+export default function NewWorkOrderLocationPanel({
   jobState,
   setJobState,
   county,

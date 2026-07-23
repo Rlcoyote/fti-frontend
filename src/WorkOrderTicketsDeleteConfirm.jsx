@@ -1,11 +1,11 @@
 import { ConfirmModal } from "./SharedUI.jsx";
 
-// ─── JobTicketsDeleteConfirm (v28.87 — ship 6 of JobTicketsTab split) ──────
+// ─── WorkOrderTicketsDeleteConfirm (v28.87 — ship 6 of WorkOrderTicketsTab split) ──────
 // Confirmation modal for row-level "DELETE" on the Tickets tab.
 // v28.289 (theme arc): was a hand-rolled copy of ConfirmModal — now IS one.
 //
 // Naming note — DIFFERENT from `TicketDeleteModal.jsx`:
-//   - JobTicketsDeleteConfirm (this file): true hard delete from the row
+//   - WorkOrderTicketsDeleteConfirm (this file): true hard delete from the row
 //     button. Copy reads "This cannot be undone." Used here in the Tab.
 //   - TicketDeleteModal: opens from inside TicketDetail; goes through a
 //     soft-archive path where an admin can still recover. Copy reads
@@ -19,7 +19,7 @@ import { ConfirmModal } from "./SharedUI.jsx";
 //   onConfirm — async () => boolean. Parent closes on success.
 //   onClose   — () => void. CANCEL click.
 
-export default function JobTicketsDeleteConfirm({ ticket, onConfirm, onClose }) {
+export default function WorkOrderTicketsDeleteConfirm({ ticket, onConfirm, onClose }) {
   if (!ticket) return null;
 
   return (

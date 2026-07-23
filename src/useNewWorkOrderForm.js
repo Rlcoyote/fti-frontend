@@ -7,14 +7,14 @@ import { API_URL } from "./config.js";
 import { today, formatPhone as formatPhoneImpl } from "./utils.js";
 import { VALID_STATES } from "./Geography.js";
 
-// ─── useNewJobForm (v28.104 — ship 11 of NewJobModal split, arc final) ─────
-// Owns all NewJobModal form state, derived values, validation, and the
+// ─── useNewWorkOrderForm (v28.104 — ship 11 of NewWorkOrderModal split, arc final) ─────
+// Owns all NewWorkOrderModal form state, derived values, validation, and the
 // save dispatch. Big API surface (40+ entries) but matches the
 // useTicketState / useNewJobModal pattern elsewhere — single-call
 // orchestrator the shell destructures.
 //
 // What this hook owns:
-//   - Every useState declaration that was inline in NewJobModal
+//   - Every useState declaration that was inline in NewWorkOrderModal
 //     (POC fields, Approver fields, billing codes, location, wells,
 //     schedule, salesman, pin, errors, showUnsaved, knownContacts,
 //     selectedCust, custSearch)
@@ -26,8 +26,8 @@ import { VALID_STATES } from "./Geography.js";
 //   - validateAndCreate (gathers errors, scrolls to first error,
 //     or fires onCreateJob with the assembled payload)
 //
-// What stays in the shell (NewJobModal.jsx):
-//   - useApp + useIsMobile + useNewJobMobileBack at the top
+// What stays in the shell (NewWorkOrderModal.jsx):
+//   - useApp + useIsMobile + useNewWorkOrderMobileBack at the top
 //   - The hook call below
 //   - All JSX, wiring the hook's bag into the sibling components
 //
@@ -36,7 +36,7 @@ import { VALID_STATES } from "./Geography.js";
 // useNewJobLocationState + useNewJobValidation. Currently ~200 lines,
 // well under the threshold.
 
-export default function useNewJobForm({ onClose, onCreateJob }) {
+export default function useNewWorkOrderForm({ onClose, onCreateJob }) {
   // Customer
   const [custSearch, setCustSearch] = useState("");
   const [selectedCust, setSelectedCust] = useState(null);
@@ -75,7 +75,7 @@ export default function useNewJobForm({ onClose, onCreateJob }) {
   const [approverPhone, setApproverPhone] = useState("");
   const [approverEmail, setApproverEmail] = useState("");
   // v28.54 — A2P 10DLC consent intents. Captured here; posted by
-  // useJobActions.handleCreateJob AFTER the WO insert returns success
+  // useWorkOrderActions.handleCreateJob AFTER the WO insert returns success
   // (never record consent for a job that wasn't actually created).
   const [pocConsentIntent, setPocConsentIntent] = useState(false);
   const [approverConsentIntent, setApproverConsentIntent] = useState(false);
@@ -234,7 +234,7 @@ export default function useNewJobForm({ onClose, onCreateJob }) {
       approverPhone,
       approverEmail,
       // v28.54 — consent intents travel with the job payload. The action
-      // layer (useJobActions.handleCreateJob) reads these AFTER the WO
+      // layer (useWorkOrderActions.handleCreateJob) reads these AFTER the WO
       // insert returns success and POSTs them to /api/sms-consents.
       pocConsentIntent,
       approverConsentIntent,

@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import useIsMobile from "./useIsMobile.js";
 
-// ─── useNewJobMobileBack (v28.96 — ship 3 of NewJobModal split) ────────────
-// Wires the device back-button (popstate) to the NewJobModal's onClose
+// ─── useNewWorkOrderMobileBack (v28.96 — ship 3 of NewWorkOrderModal split) ────────────
+// Wires the device back-button (popstate) to the NewWorkOrderModal's onClose
 // when running on a mobile viewport. Pushes a sentinel history entry on
 // mount; if the user hits BACK before saving, the sentinel pops and we
 // call onClose — same behavior as if they'd tapped the X.
@@ -16,7 +16,7 @@ import useIsMobile from "./useIsMobile.js";
 // so the NewJob-specific sentinel ({newJobOpen:true}) and the
 // AddTicket-specific sentinel stay distinguishable in browser history.
 
-export default function useNewJobMobileBack(onClose) {
+export default function useNewWorkOrderMobileBack(onClose) {
   const isMobile = useIsMobile();
   useEffect(() => {
     if (!isMobile) return undefined;

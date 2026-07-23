@@ -3,18 +3,18 @@ import { resolveMapPin } from "./mapPin.js";
 import { C, API_URL } from "./config.js";
 import { inputStyle } from "./SharedUI.jsx";
 
-// ─── EditJobPinResolver (v28.143 — ship 3 of the EditJobModal split) ───────
-// The Google-pin field for EditJobModal: paste a Maps link, RESOLVE it to
+// ─── EditWorkOrderPinResolver (v28.143 — ship 3 of the EditWorkOrderModal split) ───────
+// The Google-pin field for EditWorkOrderModal: paste a Maps link, RESOLVE it to
 // lat/lng via the backend, and on success reverse-geocode to auto-fill
 // State + County. COPY copies the link back out.
 //
-// Controlled: googlePin / pinLat / pinLng live in the parent — EditJobModal
+// Controlled: googlePin / pinLat / pinLng live in the parent — EditWorkOrderModal
 // needs them for the save payload, the edit-lock auto-save, and dirty
 // detection. pinError + resolving are pure pin-local UI state and live here.
 // onGeocode(state, county) pushes a successful resolve's reverse-geocoded
 // location up to the parent's State / County fields.
 
-function EditJobPinResolver({ googlePin, setGooglePin, pinLat, setPinLat, pinLng, setPinLng, onGeocode }) {
+function EditWorkOrderPinResolver({ googlePin, setGooglePin, pinLat, setPinLat, pinLng, setPinLng, onGeocode }) {
   const [pinError, setPinError] = useState("");
   const [resolving, setResolving] = useState(false);
 
@@ -116,4 +116,4 @@ function EditJobPinResolver({ googlePin, setGooglePin, pinLat, setPinLat, pinLng
   );
 }
 
-export default EditJobPinResolver;
+export default EditWorkOrderPinResolver;

@@ -1,4 +1,4 @@
-// ─── JobTicketsTab (v28.92 — final shell, 11 of 11 ships) ──────────────────
+// ─── WorkOrderTicketsTab (v28.92 — final shell, 11 of 11 ships) ──────────────────
 // Composition root for the Tickets tab on the Job Detail page.
 //
 // Was a 1008-line monolith pre-v28.82. The v28.82 → v28.92 file-split
@@ -6,10 +6,10 @@
 //
 //   Hooks                                    Components
 //   ─────                                    ──────────
-//   useIsMobile           (v28.82)           JobTicketsHeader      (v28.84)
-//   useJobTicketsView     (v28.83)           EmailSignatureRequestModal (v28.86)
-//   useTicketEmailRequest (v28.85)           JobTicketsDeleteConfirm    (v28.87)
-//   useAddTicket          (v28.88)           JobTicketsRow         (v28.90)
+//   useIsMobile           (v28.82)           WorkOrderTicketsHeader      (v28.84)
+//   useWorkOrderTicketsView     (v28.83)           EmailSignatureRequestModal (v28.86)
+//   useTicketEmailRequest (v28.85)           WorkOrderTicketsDeleteConfirm    (v28.87)
+//   useAddTicket          (v28.88)           WorkOrderTicketsRow         (v28.90)
 //   useTicketModalRouting (v28.89)
 //   useTicketDetailModalActions (v28.91)
 //
@@ -27,18 +27,18 @@ import TicketDetail from "./TicketDetail.jsx";
 import AddTicketModal from "./AddTicketModal.jsx";
 import { useApp } from "./AppContext.jsx";
 import useIsMobile from "./useIsMobile.js";
-import useJobTicketsView from "./useJobTicketsView.js";
-import JobTicketsHeader from "./JobTicketsHeader.jsx";
+import useWorkOrderTicketsView from "./useWorkOrderTicketsView.js";
+import WorkOrderTicketsHeader from "./WorkOrderTicketsHeader.jsx";
 import { isLogType } from "./ticketFamilies.js";
 import useTicketEmailRequest from "./useTicketEmailRequest.js";
 import EmailSignatureRequestModal from "./EmailSignatureRequestModal.jsx";
-import JobTicketsDeleteConfirm from "./JobTicketsDeleteConfirm.jsx";
+import WorkOrderTicketsDeleteConfirm from "./WorkOrderTicketsDeleteConfirm.jsx";
 import useAddTicket from "./useAddTicket.js";
 import useTicketModalRouting from "./useTicketModalRouting.js";
-import JobTicketsRow from "./JobTicketsRow.jsx";
+import WorkOrderTicketsRow from "./WorkOrderTicketsRow.jsx";
 import useTicketDetailModalActions from "./useTicketDetailModalActions.js";
 
-function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
+function WorkOrderTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
   const { showAdd, openAdd, closeAdd, handleAdd, initialType } = useAddTicket({ setTickets });
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -49,8 +49,8 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
   // v28.40 — WO surface shows only tickets in the lead's domain. Approved
   // tickets ship to Final Review; sentToQB / qbVerified / voided tickets
-  // ship to Archive. Derivation extracted to useJobTicketsView in v28.83.
-  const { jobTickets, movedToFinalReview } = useJobTicketsView(tickets, jobId);
+  // ship to Archive. Derivation extracted to useWorkOrderTicketsView in v28.83.
+  const { jobTickets, movedToFinalReview } = useWorkOrderTicketsView(tickets, jobId);
 
   // v28.90 — lifted from inside the .map (was recomputed N times per
   // render). Same value for every row of this tab.
@@ -100,14 +100,14 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
 
   return (
     <div style={{ padding: "16px 0" }}>
-      <JobTicketsHeader ticketCount={jobTickets.length} approvedCount={movedToFinalReview} onAdd={openAdd} />
+      <WorkOrderTicketsHeader ticketCount={jobTickets.length} approvedCount={movedToFinalReview} onAdd={openAdd} />
 
       {jobTickets.length === 0 && (
         <div style={{ textAlign: "center", padding: "24px 0", color: C.muted, fontSize: 13 }}>No tickets yet. Add one to get started.</div>
       )}
 
       {jobTickets.map((t) => (
-        <JobTicketsRow
+        <WorkOrderTicketsRow
           key={t.id}
           ticket={t}
           job={job}
@@ -175,7 +175,7 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
         />
       )}
       {/* Delete ticket confirmation — uses the unified handleDelete path */}
-      <JobTicketsDeleteConfirm
+      <WorkOrderTicketsDeleteConfirm
         ticket={deleteConfirmId ? jobTickets.find((t) => t.id === deleteConfirmId) : null}
         onConfirm={async () => {
           const ok = await handleDelete(deleteConfirmId);
@@ -188,4 +188,4 @@ function JobTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
   );
 }
 
-export default JobTicketsTab;
+export default WorkOrderTicketsTab;

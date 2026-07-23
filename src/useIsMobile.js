@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-// ─── useIsMobile (v28.82 — ship 1 of the JobTicketsTab split) ──────────────
+// ─── useIsMobile (v28.82 — ship 1 of the WorkOrderTicketsTab split) ──────────────
 // Single source of truth for the mobile-vs-desktop breakpoint check.
 // Tracks viewport width and returns a boolean that flips on transitions
 // across `breakpoint` (default 900px). Re-checks on resize.
@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 // Why a hook (not a constant):
 //   The repo has ~8 sites doing `useState(() => window.innerWidth <= 900)`
 //   — captures once at mount, never updates on rotation or window-drag.
-//   JobTicketsTab was the only file doing it correctly (with a resize
+//   WorkOrderTicketsTab was the only file doing it correctly (with a resize
 //   listener); v28.82 lifts that pattern out as a reusable hook. Other
 //   call sites stay on the worse pattern for now and get swept in a
 //   later cleanup pass (one ship, one piece per CAM Article XXIV).

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ─── useTicketModalRouting (v28.89 — ship 8 of JobTicketsTab split) ────────
+// ─── useTicketModalRouting (v28.89 — ship 8 of WorkOrderTicketsTab split) ────────
 // Owns the "open a ticket" flow used by the Tickets tab on the Job
 // Detail page. The flow forks on viewport:
 //

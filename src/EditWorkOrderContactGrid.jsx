@@ -1,13 +1,13 @@
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 
-// ─── EditJobContactGrid (v28.144 — ship 4 of the EditJobModal split) ───────
+// ─── EditWorkOrderContactGrid (v28.144 — ship 4 of the EditWorkOrderModal split) ───────
 // One 4-field contact grid — FIRST / LAST / PHONE / EMAIL, with the SMS
-// consent checkbox under PHONE. EditJobModal renders it twice: once for the
+// consent checkbox under PHONE. EditWorkOrderModal renders it twice: once for the
 // Point of Contact, once for the Approver. Those were two near-identical
 // blocks before this extraction, so this is both a split and a dedup.
 //
-// formatPhone lives here now — EditJobModal's only callers were these two
+// formatPhone lives here now — EditWorkOrderModal's only callers were these two
 // grids, so it moved in with them.
 
 function formatPhone(val) {
@@ -17,7 +17,7 @@ function formatPhone(val) {
   return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
 }
 
-function EditJobContactGrid({ first, setFirst, last, setLast, phone, setPhone, email, setEmail, consentIntent, setConsentIntent }) {
+function EditWorkOrderContactGrid({ first, setFirst, last, setLast, phone, setPhone, email, setEmail, consentIntent, setConsentIntent }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8, marginBottom: 4 }}>
       <div>
@@ -41,4 +41,4 @@ function EditJobContactGrid({ first, setFirst, last, setLast, phone, setPhone, e
   );
 }
 
-export default EditJobContactGrid;
+export default EditWorkOrderContactGrid;

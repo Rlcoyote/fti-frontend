@@ -202,7 +202,7 @@ export const validateTicketForApproval = (t) => {
 };
 
 // v28.188 — single source of truth for US phone formatting. Lifted from
-// useNewJobForm.js (was inline formatPhoneImpl) so AddTicketSiteManager and
+// useNewWorkOrderForm.js (was inline formatPhoneImpl) so AddTicketSiteManager and
 // any future caller share the same XXX-XXX-XXXX masking. Accepts whatever the
 // user types; strips non-digits and re-inserts hyphens as the field fills.
 export const formatPhone = (val) => {
@@ -313,7 +313,7 @@ export const updateTicketApi = async (id, updates, setTickets, onError) => {
 };
 
 // Shared helper: POST /tickets/:id/revise + refetch + map the new ticket.
-// v27.63: extracted from JobTicketsTab.jsx (desktop modal) and TicketPage.jsx
+// v27.63: extracted from WorkOrderTicketsTab.jsx (desktop modal) and TicketPage.jsx
 // (mobile route) which had ~35 lines of near-identical logic each.
 // Returns { success, refreshed, newTicket, ticketNumber }. Callers decide
 // how to "open" the new ticket (modal setState vs router navigate) based on

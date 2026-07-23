@@ -3,7 +3,7 @@ import { API_URL } from "./config.js";
 import { buildTicketPayload } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 
-// ─── useTicketEmailRequest (v28.85 — ship 4 of JobTicketsTab split) ────────
+// ─── useTicketEmailRequest (v28.85 — ship 4 of WorkOrderTicketsTab split) ────────
 // Owns the state + async behavior for the "email signature request" flow.
 // The JSX (modal layout, input bindings, buttons) stays in the parent — ship
 // 5 of the split arc extracts that into EmailSignatureRequestModal.

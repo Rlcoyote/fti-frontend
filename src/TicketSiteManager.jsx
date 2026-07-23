@@ -20,7 +20,7 @@ import { inputStyle, labelStyle, TINT } from "./SharedUI.jsx";
 //   - Copy POC button dropped — redundant with the dropdown, and the
 //     dropdown is more honest about whose data is being copied. Pickup
 //     of the customer's POC now happens through the saved-contact list
-//     (v28.79 saves the NewJobModal POC to customer_contacts at job
+//     (v28.79 saves the NewWorkOrderModal POC to customer_contacts at job
 //     creation, so it's always present in the dropdown).
 //
 // Stays a controlled component — parent owns first/last/phone/email

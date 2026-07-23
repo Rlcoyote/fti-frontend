@@ -1,23 +1,23 @@
-// ─── NewJobModal (v28.104 — final shell, 11 of 11 ships) ───────────────────
+// ─── NewWorkOrderModal (v28.104 — final shell, 11 of 11 ships) ───────────────────
 // Composition root for the "Create Work Order" modal. Was a 1306-line
 // monolith pre-v28.94. The v28.94 → v28.104 file-split arc lifted ten
 // coherent units into siblings:
 //
 //   Hooks                                      Components
 //   ─────                                      ──────────
-//   useNewJobMobileBack       (v28.96)         NewJobUnsavedConfirm    (v28.95)
-//   useNewJobForm             (v28.104)        NewJobNotesField        (v28.97)
-//                                              NewJobWellsPanel        (v28.98)
-//                                              NewJobScheduleSalesman  (v28.99)
-//                                              NewJobLocationPanel     (v28.100)
-//                                              NewJobGooglePin         (v28.101)
-//                                              NewJobContactsPanel     (v28.102)
-//                                              NewJobCustomerPicker    (v28.103)
+//   useNewWorkOrderMobileBack       (v28.96)         NewWorkOrderUnsavedConfirm    (v28.95)
+//   useNewWorkOrderForm             (v28.104)        NewWorkOrderNotesField        (v28.97)
+//                                              NewWorkOrderWellsPanel        (v28.98)
+//                                              NewWorkOrderScheduleSalesman  (v28.99)
+//                                              NewWorkOrderLocationPanel     (v28.100)
+//                                              NewWorkOrderGooglePin         (v28.101)
+//                                              NewWorkOrderContactsPanel     (v28.102)
+//                                              NewWorkOrderCustomerPicker    (v28.103)
 //
 //   Constants: Geography.js — TX/NM counties + VALID_STATES
 //
 // What's left here is pure orchestration: useApp + useIsMobile +
-// useNewJobMobileBack + useNewJobForm at the top, then JSX wiring the
+// useNewWorkOrderMobileBack + useNewWorkOrderForm at the top, then JSX wiring the
 // hook's bag into the sibling components.
 //
 // The Billing block remains inline (three small text inputs — splitting
@@ -29,23 +29,23 @@ import useBodyScrollLock from "./useBodyScrollLock.js";
 import { C } from "./config.js";
 import { Btn, inputStyle, labelStyle, Z_INDEX } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
-import useNewJobMobileBack from "./useNewJobMobileBack.js";
-import useNewJobForm from "./useNewJobForm.js";
-import NewJobUnsavedConfirm from "./NewJobUnsavedConfirm.jsx";
-import NewJobNotesField from "./NewJobNotesField.jsx";
-import NewJobWellsPanel from "./NewJobWellsPanel.jsx";
-import NewJobScheduleSalesman from "./NewJobScheduleSalesman.jsx";
-import NewJobLocationPanel from "./NewJobLocationPanel.jsx";
-import NewJobGooglePin from "./NewJobGooglePin.jsx";
-import NewJobContactsPanel from "./NewJobContactsPanel.jsx";
-import NewJobCustomerPicker from "./NewJobCustomerPicker.jsx";
+import useNewWorkOrderMobileBack from "./useNewWorkOrderMobileBack.js";
+import useNewWorkOrderForm from "./useNewWorkOrderForm.js";
+import NewWorkOrderUnsavedConfirm from "./NewWorkOrderUnsavedConfirm.jsx";
+import NewWorkOrderNotesField from "./NewWorkOrderNotesField.jsx";
+import NewWorkOrderWellsPanel from "./NewWorkOrderWellsPanel.jsx";
+import NewWorkOrderScheduleSalesman from "./NewWorkOrderScheduleSalesman.jsx";
+import NewWorkOrderLocationPanel from "./NewWorkOrderLocationPanel.jsx";
+import NewWorkOrderGooglePin from "./NewWorkOrderGooglePin.jsx";
+import NewWorkOrderContactsPanel from "./NewWorkOrderContactsPanel.jsx";
+import NewWorkOrderCustomerPicker from "./NewWorkOrderCustomerPicker.jsx";
 
-function NewJobModal({ onClose, onCreateJob }) {
+function NewWorkOrderModal({ onClose, onCreateJob }) {
   useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const { customers, users, refreshCustomers } = useApp();
   const isMobile = useIsMobile();
-  useNewJobMobileBack(onClose);
-  const f = useNewJobForm({ onClose, onCreateJob });
+  useNewWorkOrderMobileBack(onClose);
+  const f = useNewWorkOrderForm({ onClose, onCreateJob });
   const salesmen = users.filter((u) => u.role === "salesman");
 
   return (
@@ -79,7 +79,7 @@ function NewJobModal({ onClose, onCreateJob }) {
       >
         <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>NEW WORK ORDER</div>
 
-        <NewJobScheduleSalesman
+        <NewWorkOrderScheduleSalesman
           schedDate={f.schedDate}
           setSchedDate={f.setSchedDate}
           salesman={f.salesman}
@@ -90,7 +90,7 @@ function NewJobModal({ onClose, onCreateJob }) {
           clearError={() => f.clearError("salesman")}
         />
 
-        <NewJobCustomerPicker
+        <NewWorkOrderCustomerPicker
           customers={customers}
           refreshCustomers={refreshCustomers}
           custSearch={f.custSearch}
@@ -102,7 +102,7 @@ function NewJobModal({ onClose, onCreateJob }) {
           clearError={() => f.clearError("customer")}
         />
 
-        <NewJobContactsPanel
+        <NewWorkOrderContactsPanel
           knownContacts={f.knownContacts}
           contactFirst={f.contactFirst}
           setContactFirst={f.setContactFirst}
@@ -150,7 +150,7 @@ function NewJobModal({ onClose, onCreateJob }) {
 
         <div style={{ background: C.steel, border: `1px solid ${C.border}`, borderRadius: 6, padding: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 10 }}>LOCATION</div>
-          <NewJobGooglePin
+          <NewWorkOrderGooglePin
             googlePin={f.googlePin}
             setGooglePin={f.setGooglePin}
             pinLat={f.pinLat}
@@ -172,7 +172,7 @@ function NewJobModal({ onClose, onCreateJob }) {
               f.setCountyLockedByPin(false);
             }}
           />
-          <NewJobLocationPanel
+          <NewWorkOrderLocationPanel
             jobState={f.jobState}
             setJobState={f.setJobState}
             county={f.county}
@@ -203,7 +203,7 @@ function NewJobModal({ onClose, onCreateJob }) {
           </div>
         </div>
 
-        <NewJobWellsPanel
+        <NewWorkOrderWellsPanel
           wellList={f.wellList}
           setWellList={f.setWellList}
           wellOverrides={f.wellOverrides}
@@ -216,7 +216,7 @@ function NewJobModal({ onClose, onCreateJob }) {
           clearWellsError={() => f.clearError("wells")}
         />
 
-        <NewJobNotesField value={f.jobNotes} onChange={f.setJobNotes} />
+        <NewWorkOrderNotesField value={f.jobNotes} onChange={f.setJobNotes} />
 
         <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
           <Btn onClick={f.validateAndCreate}>CREATE WORK ORDER</Btn>
@@ -225,10 +225,10 @@ function NewJobModal({ onClose, onCreateJob }) {
           </Btn>
         </div>
 
-        <NewJobUnsavedConfirm open={f.showUnsaved} onDiscard={onClose} onDismiss={() => f.setShowUnsaved(false)} />
+        <NewWorkOrderUnsavedConfirm open={f.showUnsaved} onDiscard={onClose} onDismiss={() => f.setShowUnsaved(false)} />
       </div>
     </div>
   );
 }
 
-export default NewJobModal;
+export default NewWorkOrderModal;

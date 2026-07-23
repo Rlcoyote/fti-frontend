@@ -2,7 +2,7 @@ import { C } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import SmsConsentCheckbox from "./SmsConsentCheckbox.jsx";
 
-// ─── NewJobContactsPanel (v28.102 — ship 9 of NewJobModal split) ───────────
+// ─── NewWorkOrderContactsPanel (v28.102 — ship 9 of NewWorkOrderModal split) ───────────
 // The CONTACT INFORMATION panel — the biggest single chunk of the modal.
 // Holds the POC sub-panel (picker + 4 form fields + SMS consent) and
 // the Approver sub-panel (picker + 4 form fields + SMS consent).
@@ -41,7 +41,7 @@ const contactCategory = (c) => c?.category || c?.role_tag;
 const isPocCategory = (cat) => ["poc", "site_rep", "site_manager", "company_man"].includes(cat);
 const isApproverCategory = (cat) => cat === "approver";
 
-export default function NewJobContactsPanel({
+export default function NewWorkOrderContactsPanel({
   knownContacts,
   // POC
   contactFirst,

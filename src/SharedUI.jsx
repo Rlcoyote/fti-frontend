@@ -149,8 +149,8 @@ export const TICKET_STATUSES = {
 //
 // History: introduced v28.39 as locals in TicketHeaderRow.jsx. Promoted to
 // SharedUI v28.44 (LineItemEditor, ReadOnlyLineItems, TicketDetail,
-// AddTicketModal sweep). Broadened v28.53 (JobCard details panel,
-// JobTicketsTab active/sent cards, AddTicketModal readonly end-date,
+// AddTicketModal sweep). Broadened v28.53 (WorkOrderCard details panel,
+// WorkOrderTicketsTab active/sent cards, AddTicketModal readonly end-date,
 // PhotoStrip filename caption) after the original "pastel-only" wording
 // proved too narrow — the same bug landed on sibling always-light surfaces
 // the v28.44 sweep didn't cover.

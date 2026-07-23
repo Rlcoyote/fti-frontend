@@ -1,7 +1,7 @@
 import { C } from "./config.js";
 
-// ─── EditJobLockBanner (v28.142 — ship 2 of the EditJobModal split) ────────
-// The two edit-lock banners for EditJobModal:
+// ─── EditWorkOrderLockBanner (v28.142 — ship 2 of the EditWorkOrderModal split) ────────
+// The two edit-lock banners for EditWorkOrderModal:
 //   1. "This job is being edited by X" + REQUEST EDIT — shown to a non-holder
 //      while someone else holds the lock.
 //   2. "X is requesting access" + dismiss — shown to the holder when another
@@ -13,7 +13,7 @@ import { C } from "./config.js";
 // identical (tickets carry an owner/admin FORCE UNLOCK; jobs don't). Kept
 // separate; merging the two is a dedup for another day.
 
-function EditJobLockBanner({ editLock }) {
+function EditWorkOrderLockBanner({ editLock }) {
   return (
     <>
       {editLock.isLocked && !editLock.hasLock && (
@@ -92,4 +92,4 @@ function EditJobLockBanner({ editLock }) {
   );
 }
 
-export default EditJobLockBanner;
+export default EditWorkOrderLockBanner;

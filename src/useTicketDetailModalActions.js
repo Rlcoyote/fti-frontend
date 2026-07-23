@@ -2,7 +2,7 @@ import { API_URL } from "./config.js";
 import { today, mapTicketFromApi, reviseTicketRequest } from "./utils.js";
 import { useApp } from "./AppContext.jsx";
 
-// ─── useTicketDetailModalActions (v28.91 — ship 10 of JobTicketsTab split) ─
+// ─── useTicketDetailModalActions (v28.91 — ship 10 of WorkOrderTicketsTab split) ─
 // Owns the two non-trivial callbacks the TicketDetail modal asks the
 // parent to satisfy: onDuplicate and onRevise. Both are I/O-heavy and
 // reach into setTickets / setViewTicket / setViewTicketMode — perfect

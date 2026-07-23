@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { TICKET_STATUS_ORDER, WO_TICKET_STATUSES } from "./config.js";
 
-// ─── useJobTicketsView (v28.83 — ship 2 of JobTicketsTab split) ────────────
+// ─── useWorkOrderTicketsView (v28.83 — ship 2 of WorkOrderTicketsTab split) ────────────
 // Derives the view-model for the Tickets tab of a single work order. Pure
 // — no I/O, no side effects, no React state of its own. Memoized so the
 // sort/filter passes only re-run when `tickets` or `jobId` actually change.
@@ -21,11 +21,11 @@ import { TICKET_STATUS_ORDER, WO_TICKET_STATUSES } from "./config.js";
 // order, given the raw list and a job id."
 //
 // `byType` (grouped-by-type) is intentionally omitted — it was computed
-// by the inline code in JobTicketsTab.jsx but never actually read. If a
+// by the inline code in WorkOrderTicketsTab.jsx but never actually read. If a
 // future feature wants it, add it back; in the meantime an unused field
 // in the hook contract is clutter.
 
-export default function useJobTicketsView(tickets, jobId) {
+export default function useWorkOrderTicketsView(tickets, jobId) {
   return useMemo(() => {
     const allJobTickets = tickets.filter((t) => t.jobId === jobId);
     const jobTickets = allJobTickets

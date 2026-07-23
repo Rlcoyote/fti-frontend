@@ -5,13 +5,13 @@ import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 import useEditLock from "./useEditLock.js";
 import { useApp } from "./AppContext.jsx";
 import { VALID_STATES } from "./Geography.js";
-import EditJobLockBanner from "./EditJobLockBanner.jsx";
-import EditJobPinResolver from "./EditJobPinResolver.jsx";
-import EditJobContactGrid from "./EditJobContactGrid.jsx";
-import EditJobDetailFields from "./EditJobDetailFields.jsx";
+import EditWorkOrderLockBanner from "./EditWorkOrderLockBanner.jsx";
+import EditWorkOrderPinResolver from "./EditWorkOrderPinResolver.jsx";
+import EditWorkOrderContactGrid from "./EditWorkOrderContactGrid.jsx";
+import EditWorkOrderDetailFields from "./EditWorkOrderDetailFields.jsx";
 import UnsavedChangesModal from "./UnsavedChangesModal.jsx";
 
-function EditJobModal({ job, onSave, onClose }) {
+function EditWorkOrderModal({ job, onSave, onClose }) {
   const { currentUser } = useApp();
   const isMobile = useIsMobile();
 
@@ -81,7 +81,7 @@ function EditJobModal({ job, onSave, onClose }) {
   const [approverEmail, setApproverEmail] = useState(job.approverEmail || job.approver_email || "");
   // v28.54 — consent intents for SMS consent capture during edit. Triggered
   // when the user changes a phone number to one that has no existing
-  // consent. Posted by useJobActions.handleUpdateJob after the PUT succeeds.
+  // consent. Posted by useWorkOrderActions.handleUpdateJob after the PUT succeeds.
   const [pocConsentIntent, setPocConsentIntent] = useState(false);
   const [approverConsentIntent, setApproverConsentIntent] = useState(false);
   const [companyCode, setCompanyCode] = useState(job.companyCode || job.company_code || "");
@@ -153,8 +153,8 @@ function EditJobModal({ job, onSave, onClose }) {
 
   return (
     <ModalWrap title={`Edit Work Order #${job.id}`} onClose={handleClose} width={600}>
-      {/* Edit-lock banners — extracted to EditJobLockBanner (v28.142) */}
-      <EditJobLockBanner editLock={editLock} />
+      {/* Edit-lock banners — extracted to EditWorkOrderLockBanner (v28.142) */}
+      <EditWorkOrderLockBanner editLock={editLock} />
       {showUnsaved && (
         <UnsavedChangesModal
           message="This work order has unsaved changes. Are you sure you want to close?"
@@ -171,7 +171,7 @@ function EditJobModal({ job, onSave, onClose }) {
           placement bug Reggie called out); now it sits above the wells in
           the LOCATION block, matching the New WO modal. */}
       {sectionHead("LOCATION PIN")}
-      <EditJobPinResolver
+      <EditWorkOrderPinResolver
         googlePin={editGooglePin}
         setGooglePin={setEditGooglePin}
         pinLat={editPinLat}
@@ -198,10 +198,10 @@ function EditJobModal({ job, onSave, onClose }) {
         <span style={{ fontSize: 11, color: C.muted, fontStyle: "italic" }}>Default 300ft.</span>
       </div>
 
-      {/* Customer / Location / Wells / AFE — extracted to EditJobDetailFields (v28.145).
+      {/* Customer / Location / Wells / AFE — extracted to EditWorkOrderDetailFields (v28.145).
           v28.181 — wellOverrides + setWellOverrides passed through so the
           per-well "use same location" checkbox + pin override are wired. */}
-      <EditJobDetailFields
+      <EditWorkOrderDetailFields
         customer={customer}
         setCustomer={setCustomer}
         jobState={jobState}
@@ -218,9 +218,9 @@ function EditJobModal({ job, onSave, onClose }) {
         setAfe={setAfe}
       />
 
-      {/* Point of Contact + Approver — extracted to EditJobContactGrid (v28.144) */}
+      {/* Point of Contact + Approver — extracted to EditWorkOrderContactGrid (v28.144) */}
       {sectionHead("POINT OF CONTACT")}
-      <EditJobContactGrid
+      <EditWorkOrderContactGrid
         first={contactFirst}
         setFirst={setContactFirst}
         last={contactLast}
@@ -235,7 +235,7 @@ function EditJobModal({ job, onSave, onClose }) {
       <div style={{ marginBottom: 12 }}></div>
 
       {sectionHead("APPROVER")}
-      <EditJobContactGrid
+      <EditWorkOrderContactGrid
         first={approver}
         setFirst={setApprover}
         last={approverLast}
@@ -267,7 +267,7 @@ function EditJobModal({ job, onSave, onClose }) {
       </div>
 
       {/* v28.181 — Google Pin section was here; moved UP to before
-          EditJobDetailFields (above the wells list) to match the New WO
+          EditWorkOrderDetailFields (above the wells list) to match the New WO
           modal order. */}
 
       {/* Notes */}
@@ -363,4 +363,4 @@ function EditJobModal({ job, onSave, onClose }) {
   );
 }
 
-export default EditJobModal;
+export default EditWorkOrderModal;

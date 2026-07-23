@@ -1,10 +1,10 @@
 // ─── Geography.js (v28.141) ────────────────────────────────────────────────
 // Shared US state + Texas/New Mexico county data. Born as NewJobConstants.js
-// (v28.94, ship 1 of the NewJobModal split); renamed to this neutral name in
-// v28.141 when the EditJobModal split needed the same tables — the exact
+// (v28.94, ship 1 of the NewWorkOrderModal split); renamed to this neutral name in
+// v28.141 when the EditWorkOrderModal split needed the same tables — the exact
 // "another surface needs counties or state codes" case the v28.94 header
-// anticipated. Imported by the NewJob flow (NewJobLocationPanel, useNewJobForm)
-// and by EditJobModal.
+// anticipated. Imported by the NewJob flow (NewWorkOrderLocationPanel, useNewWorkOrderForm)
+// and by EditWorkOrderModal.
 //
 // TX_COUNTIES — the 113-county Texas list historically appearing on Flo-Test
 // work orders (the company is Permian-Basin-centered but covers the state).

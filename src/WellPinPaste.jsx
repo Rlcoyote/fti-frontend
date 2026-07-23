@@ -4,11 +4,11 @@ import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 
 // ─── WellPinPaste (v28.182) ─────────────────────────────────────────────────
-// Compact per-well version of NewJobGooglePin. Used inside NewJobWellsPanel
-// + EditJobDetailFields when a well overrides the WO's primary pin (the
+// Compact per-well version of NewWorkOrderGooglePin. Used inside NewWorkOrderWellsPanel
+// + EditWorkOrderDetailFields when a well overrides the WO's primary pin (the
 // "Use same location as the work order pin" checkbox is unchecked).
 //
-// Why a separate component rather than reusing NewJobGooglePin: NewJobGooglePin
+// Why a separate component rather than reusing NewWorkOrderGooglePin: NewWorkOrderGooglePin
 // is sized for the WO-level LOCATION block — full width, separate label,
 // resolves state + county too. A per-well override only needs lat/lng (state
 // + county are owned by the parent WO), and the row needs a compact UI that

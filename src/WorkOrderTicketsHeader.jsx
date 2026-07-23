@@ -3,12 +3,12 @@ import { C } from "./config.js";
 import { Btn, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
 import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 
-// ─── JobTicketsHeader (v28.84 split; v28.271 type menu) ─────────────────────
+// ─── WorkOrderTicketsHeader (v28.84 split; v28.271 type menu) ─────────────────────
 // The top of the Tickets tab. ADD TICKET opens the type picker; picking a
 // type opens the form already typed and colored. Parent receives onAdd(type).
 //
 // v28.320 — the hand-rolled dropdown is GONE. It rendered absolutely inside
-// JobCard, whose `overflow: hidden` CLIPPED it to the card's bounds — on a
+// WorkOrderCard, whose `overflow: hidden` CLIPPED it to the card's bounds — on a
 // short card only Rig Up + Rig Down were visible/clickable ("tester and
 // pumper no longer populate", field report 2026-07-14, with screenshot).
 // Worse, it was a second sibling surface for type picking next to
@@ -17,7 +17,7 @@ import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 // overlay no ancestor overflow can clip. Structurally unclippable
 // (Article XVII).
 
-export default function JobTicketsHeader({ ticketCount, approvedCount, onAdd }) {
+export default function WorkOrderTicketsHeader({ ticketCount, approvedCount, onAdd }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>

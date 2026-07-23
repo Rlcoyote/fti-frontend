@@ -4,11 +4,11 @@ import { C, TERMINAL_TICKET_STATUSES, WO_TICKET_STATUSES, FINAL_REVIEW_TICKET_ST
 import { formatDate, formatShortStamp, shortName, calcTicketTotal } from "./utils.js";
 import { Btn, TicketDot, TodoBadge, ConfirmModal, TabBtns } from "./SharedUI.jsx";
 import { JobTodoTab } from "./TodoPage.jsx";
-import JobTicketsTab from "./JobTicketsTab.jsx";
-import EditJobModal from "./EditJobModal.jsx";
+import WorkOrderTicketsTab from "./WorkOrderTicketsTab.jsx";
+import EditWorkOrderModal from "./EditWorkOrderModal.jsx";
 import { useApp } from "./AppContext.jsx";
 
-function JobCard({
+function WorkOrderCard({
   job,
   isExpanded,
   onToggle,
@@ -496,7 +496,7 @@ function JobCard({
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: C.steel }}>
-              <JobTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} onTicketDeleted={onTicketDeleted} />
+              <WorkOrderTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} onTicketDeleted={onTicketDeleted} />
             </div>
           )}
 
@@ -508,7 +508,7 @@ function JobCard({
         </div>
       )}
       {showEditJob && (
-        <EditJobModal
+        <EditWorkOrderModal
           job={job}
           onSave={(updates) => {
             onUpdateJob(job.id, updates);
@@ -561,4 +561,4 @@ function JobCard({
   );
 }
 
-export default JobCard;
+export default WorkOrderCard;

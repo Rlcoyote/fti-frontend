@@ -2,10 +2,10 @@ import { useState } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn, Z_INDEX, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx";
 
-// ─── NewJobCustomerPicker (v28.103 — ship 10 of NewJobModal split) ─────────
+// ─── NewWorkOrderCustomerPicker (v28.103 — ship 10 of NewWorkOrderModal split) ─────────
 // Customer search + dropdown + "Add New Customer" inline sub-modal. On
 // pick, fetches that customer's contacts and writes them to the
-// parent's knownContacts (which NewJobContactsPanel reads to populate
+// parent's knownContacts (which NewWorkOrderContactsPanel reads to populate
 // its POC + Approver pickers).
 //
 // Local state (owned by this component, parent doesn't need to see):
@@ -21,7 +21,7 @@ import { Btn, Z_INDEX, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx"
 //                                 saveContactsForCustomer for the
 //                                 customer_id; selectedCust?.id)
 //   setKnownContacts            — written when a customer is picked;
-//                                 NewJobContactsPanel reads it
+//                                 NewWorkOrderContactsPanel reads it
 //   customers / refreshCustomers — both from useApp() in the parent;
 //                                 passed in so this component is
 //                                 self-contained against the context
@@ -31,7 +31,7 @@ import { Btn, Z_INDEX, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx"
 //   clearError      — () => parent clears errors.customer
 //   `data-error="customer"` attribute preserved for scroll-to-error
 
-export default function NewJobCustomerPicker({
+export default function NewWorkOrderCustomerPicker({
   customers,
   refreshCustomers,
   custSearch,

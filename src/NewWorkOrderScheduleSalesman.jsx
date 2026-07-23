@@ -1,7 +1,7 @@
 import { C } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 
-// ─── NewJobScheduleSalesman (v28.99 — ship 6 of NewJobModal split) ─────────
+// ─── NewWorkOrderScheduleSalesman (v28.99 — ship 6 of NewWorkOrderModal split) ─────────
 // Top of the New Job form: Scheduled Date + Salesman selector. Two
 // coupled fields that always render together as a row (desktop) or a
 // stack (mobile).
@@ -24,7 +24,7 @@ import { inputStyle, labelStyle } from "./SharedUI.jsx";
 //   error                            — errors.salesman from parent
 //   clearError                       — () => parent clears errors.salesman
 
-export default function NewJobScheduleSalesman({ schedDate, setSchedDate, salesman, setSalesman, salesmenList, isMobile, error, clearError }) {
+export default function NewWorkOrderScheduleSalesman({ schedDate, setSchedDate, salesman, setSalesman, salesmenList, isMobile, error, clearError }) {
   return (
     <div
       style={

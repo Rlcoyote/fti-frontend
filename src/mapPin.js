@@ -2,8 +2,8 @@ import { API_URL } from "./config.js";
 
 // ─── resolveMapPin (audit 260721, C1) ────────────────────────────────────────
 // The ONE home for "Google-Maps pin URL → coordinates" — this exact fetch was
-// copy-pasted across seven files (AddTicketGooglePin, NewJobGooglePin,
-// TicketGooglePin, JSALocationPin, EditJobPinResolver, WellPinPaste,
+// copy-pasted across seven files (AddTicketGooglePin, NewWorkOrderGooglePin,
+// TicketGooglePin, JSALocationPin, EditWorkOrderPinResolver, WellPinPaste,
 // AddTicketModal inline), each with its own drift on error wording and
 // missing-coordinate handling (Entry 7). Callers keep their own state; the
 // resolve itself happens here, once.

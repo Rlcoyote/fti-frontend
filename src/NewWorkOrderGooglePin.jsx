@@ -3,13 +3,13 @@ import { resolveMapPin } from "./mapPin.js";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 
-// ─── NewJobGooglePin (v28.101 — ship 8 of NewJobModal split) ───────────────
+// ─── NewWorkOrderGooglePin (v28.101 — ship 8 of NewWorkOrderModal split) ───────────────
 // Google Maps pin input + RESOLVE button + resolved-coordinate display.
 // Owns the two-step async (resolve URL → coordinates; then geocode →
 // state/county) but the state/county side-effect is callbacks-up to the
 // parent so this component doesn't reach across concerns.
 //
-// Cross-concern with NewJobLocationPanel (ship 7):
+// Cross-concern with NewWorkOrderLocationPanel (ship 7):
 //   When the resolve succeeds AND the geocoder returns state/county,
 //   we call onResolveSuccess({ state, county }) and the parent writes
 //   them with stateLockedByPin / countyLockedByPin set to true. When
@@ -28,7 +28,7 @@ import { inputStyle, labelStyle } from "./SharedUI.jsx";
 // pinResolving + pinError stay local-to-this-component (parent doesn't
 // need them). The user clears the error implicitly by editing the pin.
 
-export default function NewJobGooglePin({ googlePin, setGooglePin, pinLat, setPinLat, pinLng, setPinLng, onResolveSuccess, onResolveClear }) {
+export default function NewWorkOrderGooglePin({ googlePin, setGooglePin, pinLat, setPinLat, pinLng, setPinLng, onResolveSuccess, onResolveClear }) {
   const [pinResolving, setPinResolving] = useState(false);
   const [pinError, setPinError] = useState("");
 

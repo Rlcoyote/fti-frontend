@@ -1,7 +1,7 @@
 import { C } from "./config.js";
 import { Btn, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
 
-// ─── EmailSignatureRequestModal (v28.86 — ship 5 of JobTicketsTab split) ───
+// ─── EmailSignatureRequestModal (v28.86 — ship 5 of WorkOrderTicketsTab split) ───
 // Pure-presentation modal for the "email signature request" flow. All
 // state and async logic live in useTicketEmailRequest (v28.85); this
 // component just renders the inputs and wires the buttons to the hook's

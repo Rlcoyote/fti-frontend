@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { C, API_URL } from "./config.js";
 import { Btn } from "./SharedUI.jsx";
-import JobCard from "./JobCard.jsx";
+import WorkOrderCard from "./WorkOrderCard.jsx";
 import { useApp } from "./AppContext.jsx";
 
 function DashboardHome({
@@ -112,7 +112,7 @@ function DashboardHome({
 
       {sortedJobs.map((job) => (
         <div key={"wrap" + job.id} ref={expandedId === job.id ? expandedCardRef : null}>
-          <JobCard
+          <WorkOrderCard
             key={job.id}
             job={job}
             isExpanded={expandedId === job.id}

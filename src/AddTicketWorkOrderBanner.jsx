@@ -1,6 +1,6 @@
 import { C } from "./config.js";
 
-// ─── AddTicketJobBanner (v28.60 — extracted from AddTicketModal) ──────────────
+// ─── AddTicketWorkOrderBanner (v28.60 — extracted from AddTicketModal) ──────────────
 // Compact "WORK ORDER INFO" banner shown across the top of AddTicketModal
 // once a ticket type is selected. Carries the contextual job facts so the
 // lead doesn't have to remember which WO they're adding a ticket to:
@@ -11,7 +11,7 @@ import { C } from "./config.js";
 // rendering of each field is internal to this component — if a job is
 // missing State or POC, those rows simply don't render.
 
-export default function AddTicketJobBanner({ job }) {
+export default function AddTicketWorkOrderBanner({ job }) {
   if (!job) return null;
   return (
     <div style={{ background: C.steel, borderBottom: `1px solid ${C.border}`, padding: "10px 20px" }}>

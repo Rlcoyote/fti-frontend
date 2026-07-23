@@ -7,7 +7,7 @@ import BrandedSplash from "./BrandedSplash.jsx";
 import { Btn, ConfirmModal } from "./SharedUI.jsx";
 import { TodoPage } from "./TodoPage.jsx";
 import DashboardHome from "./DashboardHome.jsx";
-import NewJobModal from "./NewJobModal.jsx";
+import NewWorkOrderModal from "./NewWorkOrderModal.jsx";
 import InventoryPage from "./InventoryPage.jsx";
 import LaborTimeRulesPage from "./LaborTimeRulesPage.jsx";
 import TimeReviewPage from "./TimeReviewPage.jsx";
@@ -16,8 +16,8 @@ import ReportsPage from "./ReportsPage.jsx";
 import AllTicketsPage from "./AllTicketsPage.jsx";
 import FinalReviewPage from "./FinalReviewPage.jsx";
 import CrewPage from "./CrewPage.jsx";
-import JobHistoryPage from "./JobHistoryPage.jsx";
-import DeletedJobsPage from "./DeletedJobsPage.jsx";
+import WorkOrderHistoryPage from "./WorkOrderHistoryPage.jsx";
+import DeletedWorkOrdersPage from "./DeletedWorkOrdersPage.jsx";
 import ComplianceConsentPage from "./ComplianceConsentPage.jsx";
 // v28.17 — PermissionsModal, UsersPage, EmployeesPage all consolidated
 // into PeoplePage (one canonical surface for all person-management).
@@ -48,7 +48,7 @@ import TicketPage from "./TicketPage.jsx";
 import MobileNavDrawer from "./MobileNavDrawer.jsx";
 import DesktopNavBar from "./DesktopNavBar.jsx";
 import { usePageData } from "./usePageData.js";
-import { useJobActions } from "./useJobActions.js";
+import { useWorkOrderActions } from "./useWorkOrderActions.js";
 
 // ─── FTIDashboard (v28.05) ──────────────────────────────────────────────────
 // Top-level shell post-login. Owns:
@@ -61,7 +61,7 @@ import { useJobActions } from "./useJobActions.js";
 //
 // Delegates:
 //   - Page-level data state (jobs, tickets, todos, inventory, etc.) → usePageData()
-//   - Job/ticket CRUD handlers → useJobActions()
+//   - Job/ticket CRUD handlers → useWorkOrderActions()
 //   - Mobile bottom-sheet navigation → <MobileNavDrawer>
 //   - Top desktop navigation + gear menu + sign-out → <DesktopNavBar>
 //
@@ -217,7 +217,7 @@ function FTIDashboard() {
     handleArchiveTicket,
     handleFlagCancel,
     handleUpdateJob,
-  } = useJobActions({
+  } = useWorkOrderActions({
     jobs,
     setJobs,
     setTickets,
@@ -472,7 +472,7 @@ function FTIDashboard() {
           path="/todos"
           element={<TodoPage todos={todos} setTodos={setTodos} jobs={jobs} onNavigateJob={navigateToJob} userNames={userNames} userIdByName={userIdByName} />}
         />
-        {can("view_jobs") && <Route path="/job-history" element={<JobHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
+        {can("view_jobs") && <Route path="/job-history" element={<WorkOrderHistoryPage jobs={jobs} onNavigateJob={navigateToJob} />} />}
         <Route path="/crew" element={<CrewPage jobs={jobs} />} />
         <Route path="/safety" element={<SafetyPage />} />
         {/* v28.335 — Safety Meetings: open to everyone (spec §8b.7). */}
@@ -510,7 +510,7 @@ function FTIDashboard() {
           <Route
             path="/deleted"
             element={
-              <DeletedJobsPage
+              <DeletedWorkOrdersPage
                 deletedJobs={deletedJobs}
                 deletedTickets={deletedTickets}
                 jobs={jobs}
@@ -534,7 +534,7 @@ function FTIDashboard() {
       </Routes>
 
       {/* MODALS */}
-      {showNewJob && <NewJobModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} />}
+      {showNewJob && <NewWorkOrderModal onClose={() => setShowNewJob(false)} onCreateJob={handleCreateJob} />}
       {/* v28.17 — PermissionsModal removed; matrix lives inside /people. */}
       {/* v28.180 — SettingsModal retired. Yard locations live on /yards;
           SMS consent scripts live on /compliance-consent. */}

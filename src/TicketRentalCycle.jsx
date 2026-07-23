@@ -7,7 +7,7 @@ import { formatDate } from "./utils.js";
 // based on the rental's endDate. Renders nothing if the ticket isn't a
 // Rental, has no endDate, is past-due, is voided, or has cycleEnded set.
 //
-// Used by this module's RentalCycle component AND by JobTicketsTab rows
+// Used by this module's RentalCycle component AND by WorkOrderTicketsTab rows
 // (hence the named export).
 export function RentalCountdown({ ticket }) {
   const endDate = ticket.endDate || ticket.end_date;

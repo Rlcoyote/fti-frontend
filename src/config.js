@@ -320,7 +320,7 @@ applyTheme(getTheme());
 // COMPLETION, then it's archived (lives in /archive). No badge on active
 // WOs — the ticket pips are the state.
 
-// Canonical ticket lifecycle order. Drives the sort in JobTicketsTab + the
+// Canonical ticket lifecycle order. Drives the sort in WorkOrderTicketsTab + the
 // "needs lead action" filter on the WO surface (incomplete + signed +
 // sigNotReq stay in the WO; approved+ ship to Final Review/Archive).
 // inField was merged into incomplete in v28.40 — see TICKET_STATUSES.

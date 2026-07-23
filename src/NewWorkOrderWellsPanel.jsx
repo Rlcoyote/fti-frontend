@@ -2,10 +2,10 @@ import { C } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import WellPinPaste from "./WellPinPaste.jsx";
 
-// ─── NewJobWellsPanel ───────────────────────────────────────────────────────
+// ─── NewWorkOrderWellsPanel ───────────────────────────────────────────────────────
 // The Wells + AFE panel from the New Job form. Owns the visible add/remove
 // + auto-grow behavior; the wellList/wellOverrides/wellTBD/afe state lives
-// in useNewJobForm so it can flow into the create payload.
+// in useNewWorkOrderForm so it can flow into the create payload.
 //
 // v28.181 — Per-well location override added. Each well row carries a "use
 // same location" checkbox (default checked → well inherits the WO's primary
@@ -22,10 +22,10 @@ import WellPinPaste from "./WellPinPaste.jsx";
 //   - List starts with 2 pre-seeded blanks (wellList) + matching overrides
 //   - Auto-grow: typing into the LAST empty row spawns a new blank below,
 //     up to a 10-row cap, AND grows wellOverrides in lockstep.
-//   - Empty rows drop on submit (via cleanWells in useNewJobForm).
+//   - Empty rows drop on submit (via cleanWells in useNewWorkOrderForm).
 //   - TBD checkbox short-circuits the list; submission sends ["TBD"].
 
-export default function NewJobWellsPanel({
+export default function NewWorkOrderWellsPanel({
   wellList,
   setWellList,
   wellOverrides,

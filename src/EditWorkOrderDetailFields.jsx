@@ -3,15 +3,15 @@ import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { ALL_COUNTIES } from "./Geography.js";
 import WellPinPaste from "./WellPinPaste.jsx";
 
-// ─── EditJobDetailFields (v28.145 — ship 5 of the EditJobModal split) ──────
-// The work-order detail fields for EditJobModal: Customer, Location (State +
+// ─── EditWorkOrderDetailFields (v28.145 — ship 5 of the EditWorkOrderModal split) ──────
+// The work-order detail fields for EditWorkOrderModal: Customer, Location (State +
 // County autocomplete), the Wells list, and AFE. Presentational/controlled —
-// every value + setter is a prop; EditJobModal still owns the state for the
+// every value + setter is a prop; EditWorkOrderModal still owns the state for the
 // save payload and dirty detection.
 //
 // formatState, the well-list mutators, and the county-autocomplete filter
 // are field-local logic and live here. (Billing + Notes stay inline in
-// EditJobModal — small enough not to warrant their own files; POC / Approver
+// EditWorkOrderModal — small enough not to warrant their own files; POC / Approver
 // / Google-pin are already their own components and render between these
 // sections, which is why this panel stops at AFE.)
 
@@ -26,7 +26,7 @@ function sectionHead(label) {
   return <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 8, marginTop: 4 }}>{label}</div>;
 }
 
-function EditJobDetailFields({
+function EditWorkOrderDetailFields({
   customer,
   setCustomer,
   jobState,
@@ -231,4 +231,4 @@ function EditJobDetailFields({
   );
 }
 
-export default EditJobDetailFields;
+export default EditWorkOrderDetailFields;

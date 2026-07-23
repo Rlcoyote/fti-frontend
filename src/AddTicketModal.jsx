@@ -14,7 +14,7 @@ import AddTicketCrewSection from "./AddTicketCrewSection.jsx";
 import AddTicketUnsavedConfirm from "./AddTicketUnsavedConfirm.jsx";
 import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 import AddTicketWellsConfirm from "./AddTicketWellsConfirm.jsx";
-import AddTicketJobBanner from "./AddTicketJobBanner.jsx";
+import AddTicketWorkOrderBanner from "./AddTicketWorkOrderBanner.jsx";
 import AddTicketSiteManager from "./AddTicketSiteManager.jsx";
 import AddTicketDateTimeFields from "./AddTicketDateTimeFields.jsx";
 import AddTicketGooglePin from "./AddTicketGooglePin.jsx";
@@ -419,7 +419,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
           : {}),
       };
       // v28.07.5 / v28.09 — pass selected crew along so the parent
-      // (JobTicketsTab.handleAdd) can bulk-POST them to /tickets/:id/crew
+      // (WorkOrderTicketsTab.handleAdd) can bulk-POST them to /tickets/:id/crew
       // after the ticket POST succeeds.
       if (crewSelection.length > 0) ticketData.crewSelection = crewSelection;
       return ticketData;
@@ -514,7 +514,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         {showUnsaved && <AddTicketUnsavedConfirm onDiscard={onClose} onDismiss={() => setShowUnsaved(false)} />}
 
         {/* Job info banner — always visible once type selected */}
-        {type && <AddTicketJobBanner job={job} />}
+        {type && <AddTicketWorkOrderBanner job={job} />}
 
         {/* v28.243 — SAVE & START JSA restores the soft-save flow. The v28.42
             removal forced every new-ticket JSA through save → close → reopen;
@@ -557,7 +557,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
                 with only some crew signed — communicating "JSA complete"
                 falsely. Now: green ✓ only when `completed_at` is set;
                 amber DRAFT otherwise. Same color tokens as the JSA badge
-                on JobTicketsTab so the two surfaces agree. */}
+                on WorkOrderTicketsTab so the two surfaces agree. */}
             {(() => {
               const isComplete = !!existingJSA.completed_at;
               const colors = isComplete

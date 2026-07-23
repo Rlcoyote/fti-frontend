@@ -20,7 +20,7 @@ import { checkConsent } from "./smsConsent.js";
 //   revoked (STOP)                → ✗ red  "Opted out (STOP)"
 //
 // Filename + props are preserved so existing call sites
-// (NewJobContactsPanel, EditJobContactGrid, PinSetupPage) don't need to change.
+// (NewWorkOrderContactsPanel, EditWorkOrderContactGrid, PinSetupPage) don't need to change.
 // `consentIntent` / `setConsentIntent` / `labelHint` props are now accepted but
 // ignored — they kept their slots so v28.197 ships as a focused FE-only change
 // without touching parent state plumbing. A follow-up can rename + clean up.

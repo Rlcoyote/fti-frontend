@@ -15,7 +15,7 @@ const JOB_STATUS_FILTERS = [
   { value: "flaggedCancel", label: "FLAGGED", color: C.orange, bg: C.orangeB },
 ];
 
-function JobHistoryPage({ jobs, onNavigateJob }) {
+function WorkOrderHistoryPage({ jobs, onNavigateJob }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [dateFrom, setDateFrom] = useState("");
@@ -159,4 +159,4 @@ function JobHistoryPage({ jobs, onNavigateJob }) {
   );
 }
 
-export default JobHistoryPage;
+export default WorkOrderHistoryPage;

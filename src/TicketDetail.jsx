@@ -19,7 +19,7 @@ import TicketHeaderRow from "./TicketHeaderRow.jsx";
 import TicketClockInReadiness from "./TicketClockInReadiness.jsx";
 import TicketSignatureFlow from "./TicketSignatureFlow.jsx";
 import TicketStatusBanners from "./TicketStatusBanners.jsx";
-import TicketJobInfo from "./TicketJobInfo.jsx";
+import TicketWorkOrderInfo from "./TicketWorkOrderInfo.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
 import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, ConfirmModal, Z_INDEX } from "./SharedUI.jsx";
@@ -41,7 +41,7 @@ import JSAModal from "./JSAModal.jsx";
 import TicketRentalCycle, { RentalCountdown } from "./TicketRentalCycle.jsx";
 import { useApp } from "./AppContext.jsx";
 
-// RentalCountdown is re-exported below for backward compat with JobTicketsTab
+// RentalCountdown is re-exported below for backward compat with WorkOrderTicketsTab
 // which still imports from this module path. New code should import directly
 // from TicketRentalCycle.
 
@@ -511,8 +511,8 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           />
         )}
 
-        {/* Job / Customer Info — extracted to TicketJobInfo (v27.86) */}
-        <TicketJobInfo job={job} assignedWells={ticket.assignedWells} />
+        {/* Job / Customer Info — extracted to TicketWorkOrderInfo (v27.86) */}
+        <TicketWorkOrderInfo job={job} assignedWells={ticket.assignedWells} />
 
         {/* Site Manager — extracted to TicketSiteManager (v27.76) */}
         <TicketSiteManager

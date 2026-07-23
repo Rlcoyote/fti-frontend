@@ -10,7 +10,7 @@ import { formatPhone } from "./utils.js";
 // phone) instead of clicking a blind shortcut.
 //
 // Filter: category IN ['poc', 'site_rep'] plus legacy role_tag fallbacks
-// ('site_manager', 'company_man') — same logic as the NewJobModal POC
+// ('site_manager', 'company_man') — same logic as the NewWorkOrderModal POC
 // picker (v28.79). site_rep absorbs the old site_manager + company_man +
 // DSM values per the v28.72 canonical.
 //
@@ -52,7 +52,7 @@ export default function AddTicketSiteManager({ job, smFirst, smLast, smPhone, sm
     };
   }, [customerId]);
 
-  // Same category-resolution logic as NewJobModal (v28.79). Site Manager
+  // Same category-resolution logic as NewWorkOrderModal (v28.79). Site Manager
   // for an AddTicket can legitimately come from POC, site_rep, or any
   // legacy on-site role.
   const isSmCategory = (cat) => ["poc", "site_rep", "site_manager", "company_man"].includes(cat);
