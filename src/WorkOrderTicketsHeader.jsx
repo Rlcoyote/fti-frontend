@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { C } from "./config.js";
-import { Btn, ModalWrap, Z_INDEX } from "./SharedUI.jsx";
-import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
+import { Btn, Z_INDEX, TICKET_TYPES } from "./SharedUI.jsx";
 
 // ─── WorkOrderTicketsHeader (v28.84 split; v28.271 type menu) ─────────────────────
 // The top of the Tickets tab. ADD TICKET opens the type picker; picking a
@@ -17,8 +16,26 @@ import AddTicketTypeSelector from "./AddTicketTypeSelector.jsx";
 // overlay no ancestor overflow can clip. Structurally unclippable
 // (Article XVII).
 
+// v28.413 (Reggie: "would it be simpler for the user to click 'add ticket'
+// and a drop down populate?") — the v28.271 dropdown returns, this time
+// UNCLIPPABLE: rendered position:fixed from the button's rect (the gear-
+// flyout technique), so no ancestor overflow can eat Tester/Pumper again
+// (the v28.320 incident). White-label dividend: a one-ticket-type tenant
+// skips the menu entirely — ADD TICKET goes straight to the form.
 export default function WorkOrderTicketsHeader({ ticketCount, approvedCount, onAdd }) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
+  const btnRef = useRef(null);
+  const typeKeys = Object.keys(TICKET_TYPES);
+  const openPicker = () => {
+    if (typeKeys.length === 1) {
+      onAdd(typeKeys[0]);
+      return;
+    }
+    const r = btnRef.current?.getBoundingClientRect();
+    setMenuPos(r ? { top: r.bottom + 6, right: Math.max(8, window.innerWidth - r.right) } : { top: 80, right: 16 });
+    setPickerOpen(true);
+  };
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
       <div>
@@ -31,19 +48,48 @@ export default function WorkOrderTicketsHeader({ ticketCount, approvedCount, onA
           </div>
         )}
       </div>
-      <Btn small onClick={() => setPickerOpen(true)}>
-        + ADD TICKET
-      </Btn>
-      {pickerOpen && (
-        <ModalWrap variant="dialog" z={Z_INDEX.overlay} width={340} accent={C.red} onClose={() => setPickerOpen(false)}>
-          <AddTicketTypeSelector
-            onSelect={(key) => {
-              setPickerOpen(false);
-              onAdd(key);
+      <span ref={btnRef}>
+        <Btn small onClick={openPicker}>
+          + ADD TICKET
+        </Btn>
+      </span>
+      {pickerOpen && menuPos && (
+        <>
+          <div style={{ position: "fixed", inset: 0, zIndex: Z_INDEX.overlay - 1 }} onClick={() => setPickerOpen(false)} />
+          <div
+            style={{
+              position: "fixed",
+              top: menuPos.top,
+              right: menuPos.right,
+              zIndex: Z_INDEX.overlay,
+              background: C.cardBg,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              boxShadow: "0 6px 24px rgba(0,0,0,0.35)",
+              minWidth: 180,
+              overflow: "hidden",
             }}
-            onCancel={() => setPickerOpen(false)}
-          />
-        </ModalWrap>
+          >
+            {typeKeys.map((key) => {
+              const t = TICKET_TYPES[key];
+              return (
+                <div
+                  key={key}
+                  onClick={() => {
+                    setPickerOpen(false);
+                    onAdd(key);
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <span style={{ width: 10, height: 10, borderRadius: "50%", background: t.color, display: "inline-block" }} />
+                  <span style={{ fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: "0.04em" }}>{t.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
