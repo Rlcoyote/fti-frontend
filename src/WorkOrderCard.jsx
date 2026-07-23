@@ -113,7 +113,37 @@ function WorkOrderCard({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #{job.id}</div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: C.muted,
+                  letterSpacing: "0.1em",
+                  display: "flex",
+                  gap: 6,
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                }}
+              >
+                WORK ORDER #{job.id}{" "}
+                {isFlagged && (
+                  <span
+                    style={{
+                      fontSize: 9,
+                      fontWeight: 800,
+                      color: C.orange,
+                      border: `1px solid ${C.orange}66`,
+                      background: `${C.orange}18`,
+                      borderRadius: 999,
+                      padding: "2px 8px",
+                      letterSpacing: "0.06em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    ⚑ FLAGGED FOR CANCELLATION
+                  </span>
+                )}
+              </div>
               <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{job.customer}</div>
               <div style={{ fontSize: 11, color: C.muted }}>{job.location}</div>
               {job.createdBy && (
@@ -190,7 +220,26 @@ function WorkOrderCard({
           }}
         >
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em" }}>WORK ORDER #</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.1em", display: "flex", gap: 6, alignItems: "center" }}>
+              WORK ORDER #{" "}
+              {isFlagged && (
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 800,
+                    color: C.orange,
+                    border: `1px solid ${C.orange}66`,
+                    background: `${C.orange}18`,
+                    borderRadius: 999,
+                    padding: "2px 8px",
+                    letterSpacing: "0.06em",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  ⚑ FLAGGED FOR CANCELLATION
+                </span>
+              )}
+            </div>
             <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>{job.id}</div>
             {job.createdBy && (
               <div style={{ fontSize: 9, color: C.faint, marginTop: 2 }}>
