@@ -613,7 +613,7 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
         <div style={{ padding: 24 }}>
           {!type ? (
             <AddTicketTypeSelector onSelect={handleSelectType} onCancel={handleClose} />
-          ) : type && !wellsConfirmed && workOrderWells.length > 1 ? (
+          ) : type && !wellsConfirmed && workOrderWells.length >= 1 ? (
             <AddTicketWellsConfirm
               type={type}
               workOrderWells={workOrderWells}

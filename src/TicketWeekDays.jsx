@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { C } from "./config.js";
 import { api } from "./api.js";
+import TimePicker from "./TimePicker.jsx";
 import { Btn, inputStyle, TINT } from "./SharedUI.jsx";
 
 // ─── TicketWeekDays (v28.267, master-ticket Phase 4) ────────────────────────
@@ -84,19 +85,36 @@ function TimeCell({ value, onChange, disabled, accent, isOut }) {
       </span>
     );
   }
+  // v28.412 (Reggie: "They all need the same flow. Standardized." + the AM/PM
+  // cutoff): the day rows use THE TimePicker — the exact control RU/RD time
+  // fields use — via 24h ↔ 12h adapters (storage stays HH:MM for the hours
+  // math and the BE).
+  const to12 = (v) => {
+    if (!v) return "";
+    const [H, M] = v.split(":").map(Number);
+    if (!Number.isFinite(H)) return "";
+    const p = H >= 12 ? "PM" : "AM";
+    const h = H % 12 === 0 ? 12 : H % 12;
+    return `${h}:${String(M).padStart(2, "0")} ${p}`;
+  };
+  const to24 = (v) => {
+    if (!v) return "";
+    const m = String(v).match(/^(\d{1,2}):(\d{2}) (AM|PM)$/);
+    if (!m) return "";
+    let H = Number(m[1]) % 12;
+    if (m[3] === "PM") H += 12;
+    return `${String(H).padStart(2, "0")}:${m[2]}`;
+  };
+  if (disabled) {
+    return <span style={{ fontSize: 12, fontWeight: 700, minWidth: 74, display: "inline-block" }}>{value ? to12(value) : "—"}</span>;
+  }
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
-      <input
-        type="time"
-        style={{ ...inputStyle, width: 96, padding: "5px 6px" }}
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-      />
-      {isOut && !disabled && (
+      <TimePicker value={to12(value)} onChange={(v) => onChange(to24(v))} startHour={isOut ? 6 : 6} startPeriod={isOut ? "PM" : "AM"} />
+      {isOut && (
         <span
           onClick={() => onChange("24:00")}
-          title="Set to midnight (end of day)"
+          title="Worked to midnight — sets this OUT to end-of-day 24:00"
           style={{
             fontSize: 9,
             fontWeight: 800,
@@ -108,7 +126,7 @@ function TimeCell({ value, onChange, disabled, accent, isOut }) {
             whiteSpace: "nowrap",
           }}
         >
-          24:00
+          →24:00
         </span>
       )}
     </span>
@@ -234,7 +252,10 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
           <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: "0.08em", color: C.text }}>
             WEEK OF {fmtMD(dates[0])} – {fmtMD(dates[6])}
           </div>
-          <div style={{ fontSize: 11, opacity: 0.65 }}>Monday 12:00am through Sunday midnight · fill each day you worked</div>
+          <div style={{ fontSize: 11, opacity: 0.65 }}>
+            Monday 12:00am through Sunday midnight · fill each day you worked. One continuous shift = the FIRST pair only. The second pair is for SPLIT DAYS —
+            off location and back on the same date. →24:00 stamps an OUT at end-of-day midnight.
+          </div>
         </div>
         {!readOnly && (
           <Btn
@@ -274,12 +295,16 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
               <div style={{ fontSize: 12, fontWeight: 800, color: has ? accent : C.text, letterSpacing: "0.05em" }}>{DAY_NAMES[i]}</div>
               <div style={{ fontSize: 11, opacity: 0.6 }}>{fmtMD(date)}</div>
             </div>
+            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>IN</span>
             <TimeCell value={r.in1} onChange={(v) => setField(date, "in1", v)} disabled={readOnly} accent={accent} />
             <span style={{ opacity: 0.4, fontSize: 11 }}>to</span>
+            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>OUT</span>
             <TimeCell value={r.out1} onChange={(v) => setField(date, "out1", v)} disabled={readOnly} accent={accent} isOut />
-            <span style={{ opacity: 0.3, fontSize: 11, fontWeight: 700 }}>+</span>
+            <span style={{ opacity: 0.35, fontSize: 10, fontWeight: 800, letterSpacing: "0.04em" }}>SPLIT DAY?</span>
+            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>IN</span>
             <TimeCell value={r.in2} onChange={(v) => setField(date, "in2", v)} disabled={readOnly} accent={accent} />
             <span style={{ opacity: 0.4, fontSize: 11 }}>to</span>
+            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>OUT</span>
             <TimeCell value={r.out2} onChange={(v) => setField(date, "out2", v)} disabled={readOnly} accent={accent} isOut />
             {onOpenJsa && (
               <span
