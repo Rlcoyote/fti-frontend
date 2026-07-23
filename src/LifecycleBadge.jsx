@@ -1,3 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- v28.407 (audit F5
+   resolution): this file exports non-component values ALONGSIDE components
+   DELIBERATELY. LIFECYCLE_COLORS is shared with yards by design (v28.236).
+   The warning is HMR-only (a full reload instead of hot refresh in dev);
+   fragmenting the one-home to satisfy it would trade architecture for
+   dev-loop sugar. Documented, not silenced blindly. */
 import { C } from "./config.js";
 
 // ─── LifecycleBadge (v28.236) ────────────────────────────────────────────────

@@ -1,3 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- v28.407 (audit F5
+   resolution): this file exports non-component values ALONGSIDE components
+   DELIBERATELY. useApp beside its Provider is the standard React context pattern.
+   The warning is HMR-only (a full reload instead of hot refresh in dev);
+   fragmenting the one-home to satisfy it would trade architecture for
+   dev-loop sugar. Documented, not silenced blindly. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { API_URL, setCurrentUser as setGlobalUser, applyTheme, getTheme } from "./config.js";
 import { setReporterUser, addBreadcrumb } from "./errorReporter.js";

@@ -1,3 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- v28.407 (audit F5
+   resolution): this file exports non-component values ALONGSIDE components
+   DELIBERATELY. THE safety-meeting one-home (Entry 7): rules + renderers co-live by design.
+   The warning is HMR-only (a full reload instead of hot refresh in dev);
+   fragmenting the one-home to satisfy it would trade architecture for
+   dev-loop sugar. Documented, not silenced blindly. */
 import { C, F, SP, R } from "./config.js";
 
 // ─── SafetyMeetingShared (v28.335) ───────────────────────────────────────────

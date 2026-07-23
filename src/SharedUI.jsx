@@ -1,3 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- v28.407 (audit F5
+   resolution): this file exports non-component values ALONGSIDE components
+   DELIBERATELY. THE shared home (Entry 7): tokens + primitives co-live by ratified design.
+   The warning is HMR-only (a full reload instead of hot refresh in dev);
+   fragmenting the one-home to satisfy it would trade architecture for
+   dev-loop sugar. Documented, not silenced blindly. */
 import { C, E, F, SP, R } from "./config.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";

@@ -1,3 +1,9 @@
+/* eslint-disable react-refresh/only-export-components -- v28.407 (audit F5
+   resolution): this file exports non-component values ALONGSIDE components
+   DELIBERATELY. Shared JSA summary constants co-live with their renderer by design.
+   The warning is HMR-only (a full reload instead of hot refresh in dev);
+   fragmenting the one-home to satisfy it would trade architecture for
+   dev-loop sugar. Documented, not silenced blindly. */
 import { C } from "./config.js";
 
 // ─── JsaSummaryCard (v28.307 — extracted from LoginJsaSignStep) ──────────────
