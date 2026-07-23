@@ -44,7 +44,7 @@ function TicketDeleteModal({ ticket, onClose, onDeleted }) {
         <>
           This will remove ticket{" "}
           <strong>
-            #{ticket.jobId}
+            #{ticket.workOrderId}
             {ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}
           </strong>{" "}
           ({ticket.type}). The ticket can be recovered by an admin.

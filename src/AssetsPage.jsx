@@ -91,7 +91,7 @@ function AssetsPage({ jobs }) {
     return list;
   }, [assets, filter, search]);
 
-  const activeJobs = useMemo(() => (jobs || []).filter((j) => j.status !== "Completed"), [jobs]);
+  const activeWorkOrders = useMemo(() => (jobs || []).filter((j) => j.status !== "Completed"), [jobs]);
 
   const handleAdd = async () => {
     if (!newName.trim()) {
@@ -555,7 +555,7 @@ function AssetsPage({ jobs }) {
             <label style={labelStyle}>ASSIGN TO WORK ORDER</label>
             <select style={inputStyle} value={assignJobId} onChange={(e) => setAssignJobId(e.target.value)}>
               <option value="">Select job...</option>
-              {activeJobs.map((j) => (
+              {activeWorkOrders.map((j) => (
                 <option key={j.id} value={j.id}>
                   #{j.id} — {j.customer} ({j.wells?.map((w) => w.well_name || w).join(", ")})
                 </option>

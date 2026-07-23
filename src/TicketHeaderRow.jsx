@@ -62,7 +62,7 @@ function TicketHeaderRow({
         <TicketTypeBadge type={ticket.type} />
         <TicketStatusBadge status={status} />
         <span style={{ fontSize: 13, fontWeight: 700, color: PANEL_TEXT }}>
-          #{ticket.jobId}
+          #{ticket.workOrderId}
           {ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}
         </span>
         {isLocked && (

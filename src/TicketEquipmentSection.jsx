@@ -20,7 +20,7 @@ import { isVisitType } from "./ticketFamilies.js";
 // Controlled: parent owns rows ([{ inventory_id?, item, size, qty, note }]).
 // Any edit calls onSigWipe (the equipment grid is part of the signed page).
 
-function TicketEquipmentSection({ rows, setRows, ticketType, jobId, readOnly, onSigWipe }) {
+function TicketEquipmentSection({ rows, setRows, ticketType, workOrderId, readOnly, onSigWipe }) {
   const [inventory, setInventory] = useState([]);
   const [copyMsg, setCopyMsg] = useState(null);
 
@@ -69,7 +69,7 @@ function TicketEquipmentSection({ rows, setRows, ticketType, jobId, readOnly, on
   const copyFromRigUp = async () => {
     setCopyMsg(null);
     try {
-      const tickets = await api.get(`/tickets?job_id=${jobId}&include_voided=true`);
+      const tickets = await api.get(`/tickets?job_id=${workOrderId}&include_voided=true`);
       const ru = (tickets || []).filter((t) => t.type === "Rig Up" && !t.voided_at).sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
       if (!ru) {
         setCopyMsg("No Rig Up ticket on this work order yet.");
@@ -92,7 +92,7 @@ function TicketEquipmentSection({ rows, setRows, ticketType, jobId, readOnly, on
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", color: C.text, opacity: 0.75 }}>EQUIPMENT ON LOCATION</div>
-        {!readOnly && ticketType === "Rig Down" && jobId && (
+        {!readOnly && ticketType === "Rig Down" && workOrderId && (
           <Btn variant="ghost" small onClick={copyFromRigUp}>
             COPY FROM RIG UP
           </Btn>

@@ -12,7 +12,7 @@ import { Btn, Z_INDEX, PANEL_TEXT, PANEL_MUTED, ModalWrap, TINT } from "./Shared
 // adding clicks for the common single-RU case).
 //
 // Props:
-//   jobId               — current ticket's job, for sibling-RU lookup
+//   workOrderId               — current ticket's job, for sibling-RU lookup
 //   excludeTicketId     — current ticket's own id (excluded from sources)
 //   existingCrewUserIds — Set of user_ids already on destination crew; the
 //                         preview filters these out so the user sees what
@@ -21,7 +21,7 @@ import { Btn, Z_INDEX, PANEL_TEXT, PANEL_MUTED, ModalWrap, TINT } from "./Shared
 //   onCopy(members)     — parent commits the array (each: { user_id,
 //                         user_name, is_lead })
 
-function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, onCopy }) {
+function CopyCrewModal({ workOrderId, excludeTicketId, existingCrewUserIds, onClose, onCopy }) {
   useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const [pickerOpen, setPickerOpen] = useState(false);
   const [sourceCrew, setSourceCrew] = useState([]);
@@ -30,7 +30,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
   // Step 1 (one home — useSiblingRigUps, audit 260721 C3): eligible Rig Ups,
   // newest first; default source = newest overall. setError is reused by the
   // step-2 crew fetch below.
-  const { rigUps, sourceId, setSourceId, loading: loadingRigUps, error, setError } = useSiblingRigUps(jobId, excludeTicketId);
+  const { rigUps, sourceId, setSourceId, loading: loadingRigUps, error, setError } = useSiblingRigUps(workOrderId, excludeTicketId);
 
   // Step 2: load the chosen source's crew.
   useEffect(() => {
@@ -101,7 +101,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
               <div style={{ fontSize: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>COPYING FROM:</span>
                 <span style={{ color: C.text, fontWeight: 600 }}>
-                  Rig Up #{source.jobId}
+                  Rig Up #{source.workOrderId}
                   {source.ticketNumber ? `-${source.ticketNumber}` : ""}
                 </span>
                 {source.date && <span style={{ color: C.muted }}>· {String(source.date).slice(0, 10)}</span>}
@@ -136,7 +136,7 @@ function CopyCrewModal({ jobId, excludeTicketId, existingCrewUserIds, onClose, o
                 >
                   {rigUps.map((t) => (
                     <option key={t.id} value={t.id}>
-                      Rig Up #{t.jobId}
+                      Rig Up #{t.workOrderId}
                       {t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)}
                     </option>
                   ))}

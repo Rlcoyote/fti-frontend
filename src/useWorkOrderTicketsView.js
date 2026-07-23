@@ -4,7 +4,7 @@ import { TICKET_STATUS_ORDER, WO_TICKET_STATUSES } from "./config.js";
 // ─── useWorkOrderTicketsView (v28.83 — ship 2 of WorkOrderTicketsTab split) ────────────
 // Derives the view-model for the Tickets tab of a single work order. Pure
 // — no I/O, no side effects, no React state of its own. Memoized so the
-// sort/filter passes only re-run when `tickets` or `jobId` actually change.
+// sort/filter passes only re-run when `tickets` or `workOrderId` actually change.
 //
 // Returns:
 //   jobTickets         — tickets for this job whose status is in
@@ -25,9 +25,9 @@ import { TICKET_STATUS_ORDER, WO_TICKET_STATUSES } from "./config.js";
 // future feature wants it, add it back; in the meantime an unused field
 // in the hook contract is clutter.
 
-export default function useWorkOrderTicketsView(tickets, jobId) {
+export default function useWorkOrderTicketsView(tickets, workOrderId) {
   return useMemo(() => {
-    const allJobTickets = tickets.filter((t) => t.jobId === jobId);
+    const allJobTickets = tickets.filter((t) => t.workOrderId === workOrderId);
     const jobTickets = allJobTickets
       .filter((t) => WO_TICKET_STATUSES.includes(t.status))
       .sort((a, b) => {
@@ -39,5 +39,5 @@ export default function useWorkOrderTicketsView(tickets, jobId) {
       });
     const movedToFinalReview = allJobTickets.filter((t) => t.status === "approved").length;
     return { jobTickets, movedToFinalReview };
-  }, [tickets, jobId]);
+  }, [tickets, workOrderId]);
 }

@@ -24,7 +24,7 @@ import AddTicketTimeMileage from "./AddTicketTimeMileage.jsx";
 import { useApp } from "./AppContext.jsx";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 
-function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialType = null }) {
+function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = [], initialType = null }) {
   const isMobile = useIsMobile();
   // v28.268 — the create modal locks the page behind it (scroll-chain fix).
   useBodyScrollLock(true);
@@ -75,8 +75,8 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
   // ALL job wells; the confirm step remains the check. Log types (Tester/
   // Pumper) keep deliberate selection — one well per ticket.
   useEffect(() => {
-    if (type && !isLogType(type) && !wellsConfirmed && assignedWells.length === 0 && (jobWells || []).length > 0) {
-      setAssignedWells(jobWells);
+    if (type && !isLogType(type) && !wellsConfirmed && assignedWells.length === 0 && (workOrderWells || []).length > 0) {
+      setAssignedWells(workOrderWells);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
@@ -117,18 +117,18 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
   // current ticket is itself a Rig Up — copying from sibling RUs onto a
   // new RU isn't a workflow we expose.
   useEffect(() => {
-    if (!jobId || type === "Rig Up") {
+    if (!workOrderId || type === "Rig Up") {
       setHasRigUpForCopy(false);
       return;
     }
-    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+    fetch(`${API_URL}/tickets?job_id=${workOrderId}&include_voided=true`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         const rigUps = (data || []).filter((tk) => tk.type === "Rig Up" && !tk.voided_at);
         setHasRigUpForCopy(rigUps.length > 0);
       })
       .catch(() => setHasRigUpForCopy(false));
-  }, [jobId, type]);
+  }, [workOrderId, type]);
   // v28.183 — GPS vehicle picker. uuid of vehicles row; populates
   // tickets.gps_vehicle_id on save. AddTicketGpsVehicle auto-defaults to
   // the lead crew's assigned vehicle but only on the first pass — user
@@ -245,11 +245,11 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
 
   const handleSelectType = (t) => {
     setType(t);
-    setAssignedWells([...jobWells]);
-    if (jobWells.length <= 1) setWellsConfirmed(true);
+    setAssignedWells([...workOrderWells]);
+    if (workOrderWells.length <= 1) setWellsConfirmed(true);
     else setWellsConfirmed(false);
     if (t === "Rig Down") {
-      fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+      fetch(`${API_URL}/tickets?job_id=${workOrderId}&include_voided=true`)
         .then((r) => (r.ok ? r.json() : []))
         .then((data) => {
           const ru = data.filter((tk) => tk.type === "Rig Up" && !tk.voided_at).sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))[0];
@@ -275,7 +275,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
     // WORKSHEET is the well-data authority, and it's multi-well.
     setAssignedWells((prev) => (prev.includes(well) ? prev.filter((w) => w !== well) : [...prev, well]));
   };
-  const selectAllWells = () => setAssignedWells([...jobWells]);
+  const selectAllWells = () => setAssignedWells([...workOrderWells]);
 
   // Pin-resolve + drive calc + time gate + payload build — shared by the final
   // save and the JSA soft-save so the two can never construct a ticket
@@ -367,7 +367,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         }
       }
       const ticketData = {
-        jobId,
+        workOrderId,
         // v28.109 — carried so useAddTicket can upsert a manually-entered
         // site manager as a customer contact for this customer.
         customerId: job?.customerId || job?.customer_id || null,
@@ -379,7 +379,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         lineItems,
         equipment,
         notes,
-        assignedWells: assignedWells ?? jobWells,
+        assignedWells: assignedWells ?? workOrderWells,
         siteMgrFirst: smFirst,
         siteMgrLast: smLast,
         siteMgrPhone: smPhone,
@@ -596,7 +596,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         <AddTicketJsaPortal
           open={showJSA}
           savedTicketId={savedTicketId}
-          jobId={jobId}
+          workOrderId={workOrderId}
           job={job}
           type={type}
           date={date}
@@ -613,10 +613,10 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
         <div style={{ padding: 24 }}>
           {!type ? (
             <AddTicketTypeSelector onSelect={handleSelectType} onCancel={handleClose} />
-          ) : type && !wellsConfirmed && jobWells.length > 1 ? (
+          ) : type && !wellsConfirmed && workOrderWells.length > 1 ? (
             <AddTicketWellsConfirm
               type={type}
-              jobWells={jobWells}
+              workOrderWells={workOrderWells}
               assignedWells={assignedWells}
               onToggleWell={toggleWell}
               onSelectAll={selectAllWells}
@@ -700,7 +700,7 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
               <AddTicketCrewSection
                 savedTicketId={savedTicketId}
                 type={type}
-                jobId={jobId}
+                workOrderId={workOrderId}
                 users={users}
                 crewSelection={crewSelection}
                 setCrewSelection={setCrewSelection}
@@ -765,8 +765,8 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
               )}
 
               <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
-              <TicketEquipmentSection rows={equipment} setRows={setEquipment} ticketType={type} jobId={jobId} readOnly={false} />
-              <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} jobId={jobId} />
+              <TicketEquipmentSection rows={equipment} setRows={setEquipment} ticketType={type} workOrderId={workOrderId} readOnly={false} />
+              <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} workOrderId={workOrderId} />
               <div style={{ marginTop: 16, marginBottom: 16 }}>
                 <label style={labelStyle}>NOTES</label>
                 <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 56 }} value={notes} onChange={(e) => setNotes(e.target.value)} />

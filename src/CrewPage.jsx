@@ -11,12 +11,12 @@ function CrewPage({ jobs }) {
   const crewData = users
     .filter((u) => !["owner", "admin"].includes(u.role))
     .map((u) => {
-      const activeJobs = jobs.filter((j) => ["Scheduled", "Rigged Up", "Active"].includes(j.status) && (j.crew || []).some((c) => c.name === u.name));
-      const currentJob = activeJobs[0] || null;
+      const activeWorkOrders = jobs.filter((j) => ["Scheduled", "Rigged Up", "Active"].includes(j.status) && (j.crew || []).some((c) => c.name === u.name));
+      const currentJob = activeWorkOrders[0] || null;
       const status = currentJob ? "On Job" : "Available";
       const role = currentJob ? currentJob.crew.find((c) => c.name === u.name)?.role || u.role : u.role;
       const daysOnJob = currentJob?.dateStarted ? Math.floor((Date.now() - new Date(currentJob.dateStarted).getTime()) / 86400000) : null;
-      return { ...u, currentJob, status, displayRole: role, daysOnJob, activeJobs };
+      return { ...u, currentJob, status, displayRole: role, daysOnJob, activeWorkOrders };
     });
 
   const filtered = search
@@ -92,9 +92,9 @@ function CrewPage({ jobs }) {
                 </div>
                 <div style={{ fontSize: 11, color: C.muted }}>{c.currentJob.location}</div>
                 {c.daysOnJob !== null && <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Day {c.daysOnJob + 1} on job</div>}
-                {c.activeJobs.length > 1 && (
+                {c.activeWorkOrders.length > 1 && (
                   <div style={{ fontSize: 10, color: C.orange, marginTop: 4, fontWeight: 700 }}>
-                    + {c.activeJobs.length - 1} more job{c.activeJobs.length - 1 > 1 ? "s" : ""}
+                    + {c.activeWorkOrders.length - 1} more job{c.activeWorkOrders.length - 1 > 1 ? "s" : ""}
                   </div>
                 )}
               </div>

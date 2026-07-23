@@ -25,7 +25,7 @@ export default function WorkOrderTicketsDeleteConfirm({ ticket, onConfirm, onClo
   return (
     <ConfirmModal
       title="Delete Ticket?"
-      message={`This will permanently delete ticket #${ticket.jobId}${ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} (${ticket.type}). This cannot be undone.`}
+      message={`This will permanently delete ticket #${ticket.workOrderId}${ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""} (${ticket.type}). This cannot be undone.`}
       yesLabel="DELETE"
       onYes={onConfirm}
       onCancel={onClose}

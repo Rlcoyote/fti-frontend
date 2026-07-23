@@ -83,13 +83,13 @@ export function usePageData() {
         const ticketsMapped = (ticketsR || [])
           .map(mapTicketFromApi)
           .filter((t) => !t.archivedAt)
-          .filter((t) => activeJobIds.has(t.jobId));
+          .filter((t) => activeJobIds.has(t.workOrderId));
         // Transform todos
         const todosMapped = (todosR || []).map((t) => ({
           id: t.id,
           title: t.title,
           description: t.description,
-          jobId: t.job_id,
+          workOrderId: t.job_id,
           priority: t.priority,
           dueDate: t.due_date,
           createdBy: t.created_by_name || t.created_by,

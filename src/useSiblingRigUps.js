@@ -10,17 +10,17 @@ import { API_URL } from "./config.js";
 //   (the line-items copy wants that; crew copy takes newest overall).
 // Returns setError too — consumers reuse the same banner for their own
 // second-stage loads (e.g. the crew fetch).
-export function useSiblingRigUps(jobId, excludeTicketId, { preferWithItems = false } = {}) {
+export function useSiblingRigUps(workOrderId, excludeTicketId, { preferWithItems = false } = {}) {
   const [rigUps, setRigUps] = useState([]);
   const [sourceId, setSourceId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!jobId) return;
+    if (!workOrderId) return;
     setLoading(true);
     setError("");
-    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+    fetch(`${API_URL}/tickets?job_id=${workOrderId}&include_voided=true`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         const eligible = (data || [])
@@ -35,7 +35,7 @@ export function useSiblingRigUps(jobId, excludeTicketId, { preferWithItems = fal
       .finally(() => setLoading(false));
     // Deliberate deps: preferWithItems is a per-consumer constant.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobId, excludeTicketId]);
+  }, [workOrderId, excludeTicketId]);
 
   return { rigUps, sourceId, setSourceId, loading, error, setError };
 }

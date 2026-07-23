@@ -54,7 +54,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   // Parent WO this ticket belongs to (needed before useTicketState so the
   // hook can derive contact email / customer contacts).
-  const job = (jobs || []).find((j) => j.id === ticket.jobId);
+  const job = (jobs || []).find((j) => j.id === ticket.workOrderId);
 
   // ── All ticket field state + dirty tracking + payload builder (v27.88) ──
   const s = useTicketState(ticket, job);
@@ -72,7 +72,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   // ── Signature arrival polling (v27.88) ──────────────────────────────────
   // Fires every 30s while status === "emailed" and !signedBy. Flips local
   // state when the external signer lands on the /sign/:token page.
-  useSignaturePolling(ticket.id, ticket.jobId, s.status, s.signedBy, ({ signedBy, signedAt, signatureImage }) => {
+  useSignaturePolling(ticket.id, ticket.workOrderId, s.status, s.signedBy, ({ signedBy, signedAt, signatureImage }) => {
     s.setSignedBy(signedBy);
     s.setSignedAt(signedAt);
     s.setSignatureImage(signatureImage);
@@ -538,7 +538,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             ticketIsClosed={isFullyLocked || !!ticket.voidedAt || !!ticket.deletedAt}
             editable={editable}
             ticketType={ticket.type}
-            jobId={ticket.jobId}
+            workOrderId={ticket.workOrderId}
           />
         )}
 
@@ -762,7 +762,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             rows={equipment}
             setRows={setEquipmentDirty}
             ticketType={ticket.type}
-            jobId={ticket.jobId}
+            workOrderId={ticket.workOrderId}
             readOnly={isLocked}
             onSigWipe={handleSigWipe}
           />
@@ -775,7 +775,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
               ticketType={ticket.type}
               qbItems={qbItems}
               onSigWipe={handleSigWipe}
-              jobId={ticket.jobId}
+              workOrderId={ticket.workOrderId}
             />
           ) : (
             <ReadOnlyLineItems lineItems={s.lineItems} ticketType={ticket.type} total={total} />

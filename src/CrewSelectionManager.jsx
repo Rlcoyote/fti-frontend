@@ -20,7 +20,7 @@ import CopyCrewModal from "./CopyCrewModal.jsx";
 //   DELETE /tickets/:id/crew/:userId        — soft-remove
 //   PUT    /tickets/:id/crew/lead           — body { user_id }
 
-function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType = null, jobId = null }) {
+function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType = null, workOrderId = null }) {
   const { currentUser, users, can } = useApp();
   const [crew, setCrew] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,18 +71,18 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
   // is itself a Rig Up — copying from sibling RUs onto a new RU isn't
   // a workflow we expose. Pattern matches LineItemEditor's hasRigUp gate.
   useEffect(() => {
-    if (!jobId || ticketType === "Rig Up") {
+    if (!workOrderId || ticketType === "Rig Up") {
       setHasRigUp(false);
       return;
     }
-    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+    fetch(`${API_URL}/tickets?job_id=${workOrderId}&include_voided=true`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         const rigUps = (data || []).filter((tk) => tk.type === "Rig Up" && !tk.voided_at);
         setHasRigUp(rigUps.length > 0);
       })
       .catch(() => setHasRigUp(false));
-  }, [jobId, ticketType]);
+  }, [workOrderId, ticketType]);
 
   const handleAdd = async (userId, isLead) => {
     if (!userId) return;
@@ -213,7 +213,13 @@ function CrewSelectionManager({ ticketId, ticketIsClosed, editable, ticketType =
       />
 
       {showCopy && (
-        <CopyCrewModal jobId={jobId} excludeTicketId={ticketId} existingCrewUserIds={activeCrewIds} onClose={() => setShowCopy(false)} onCopy={bulkAdd} />
+        <CopyCrewModal
+          workOrderId={workOrderId}
+          excludeTicketId={ticketId}
+          existingCrewUserIds={activeCrewIds}
+          onClose={() => setShowCopy(false)}
+          onCopy={bulkAdd}
+        />
       )}
     </>
   );

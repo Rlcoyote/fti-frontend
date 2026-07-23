@@ -17,7 +17,7 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError, onComp
     const payload = {
       title: form.title,
       description: form.description,
-      job_id: form.jobId,
+      job_id: form.workOrderId,
       priority: form.priority,
       due_date: form.dueDate,
       category: form.category || "todo",
@@ -41,7 +41,7 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError, onComp
     const payload = {
       title: form.title,
       description: form.description,
-      job_id: form.jobId,
+      job_id: form.workOrderId,
       priority: form.priority,
       due_date: form.dueDate,
       category: form.category || "todo",

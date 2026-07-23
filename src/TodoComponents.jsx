@@ -3,12 +3,12 @@ import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
 import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
 
-function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [], initial = null, onReactivate = null }) {
+function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames = [], initial = null, onReactivate = null }) {
   // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
   const [form, setForm] = useState({
     title: initial?.title || "",
     description: initial?.description || "",
-    jobId: initial ? initial.jobId : defaultJobId,
+    workOrderId: initial ? initial.workOrderId : defaultWorkOrderId,
     assignedTo: initial?.assignedTo || getCurrentUser(),
     priority: initial?.priority || "normal",
     // v28.336 — REQUIRED = a must-do future action; TO-DO = convenience/supply
@@ -20,7 +20,7 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [],
 
   const handleSave = () => {
     if (!form.title.trim()) return;
-    onSave({ ...form, jobId: form.jobId ? Number(form.jobId) : null, dueDate: form.dueDate || null });
+    onSave({ ...form, workOrderId: form.workOrderId ? Number(form.workOrderId) : null, dueDate: form.dueDate || null });
   };
 
   return (
@@ -69,7 +69,7 @@ function TodoForm({ onSave, onCancel, defaultJobId = null, jobs, userNames = [],
         </div>
         <div>
           <label style={labelStyle}>LINK TO WORK ORDER</label>
-          <select style={inputStyle} value={form.jobId ?? ""} onChange={(e) => set("jobId", e.target.value || null)}>
+          <select style={inputStyle} value={form.workOrderId ?? ""} onChange={(e) => set("workOrderId", e.target.value || null)}>
             <option value="">— General Task —</option>
             {jobs.map((j) => (
               <option key={j.id} value={j.id}>
@@ -117,7 +117,7 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
   // exactly what happens. Un-marking stays one click (it's the undo).
   const [confirmComplete, setConfirmComplete] = useState(false);
   const overdue = isOverdue(todo);
-  const job = jobs.find((j) => j.id === todo.jobId);
+  const job = jobs.find((j) => j.id === todo.workOrderId);
 
   return (
     <div

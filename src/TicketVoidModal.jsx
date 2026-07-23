@@ -44,7 +44,7 @@ function TicketVoidModal({ ticket, onClose, onRevise }) {
       <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.7 }}>
         Ticket{" "}
         <strong>
-          #{ticket.jobId}
+          #{ticket.workOrderId}
           {ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}
         </strong>{" "}
         is signed and permanent.

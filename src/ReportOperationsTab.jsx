@@ -20,7 +20,7 @@ export default function ReportOperationsTab({ filteredTickets, visibleJobs, rptG
   const agingByAge = filteredTickets
     .filter((t) => ["signed", "sigNotReq", "approved"].includes(t.status))
     .map((t) => {
-      const job = visibleJobs.find((j) => j.id === t.jobId);
+      const job = visibleJobs.find((j) => j.id === t.workOrderId);
       const daysSigned = t.signedAt ? Math.floor((Date.now() - new Date(t.signedAt).getTime()) / 86400000) : null;
       const daysCreated = t.date ? Math.floor((Date.now() - new Date(t.date).getTime()) / 86400000) : null;
       return { ...t, customer: job?.customer || "Unknown", age: daysSigned ?? daysCreated ?? 0 };

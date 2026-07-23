@@ -17,7 +17,7 @@ const NAV = [
   // [label, pageKey, path]
   ["Dashboard", "dashboard", "/"],
   ["All Tickets", "allTickets", "/all-tickets"],
-  ["Work Order History", "jobHistory", "/job-history"],
+  ["Work Order History", "workOrderHistory", "/job-history"],
   ["Action Items", "todos", "/todos"],
   ["Inventory", "inventory", "/inventory"],
   ["Assets", "assets", "/assets"],

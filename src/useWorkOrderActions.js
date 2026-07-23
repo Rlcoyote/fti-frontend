@@ -158,23 +158,23 @@ export function useWorkOrderActions({
     }
   };
 
-  const handleDeleteJob = async (jobId) => {
+  const handleDeleteJob = async (workOrderId) => {
     if (!can("delete_jobs")) return;
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => j.id === workOrderId);
     try {
-      await api.put(`/jobs/${jobId}`, { status: "Deleted" });
+      await api.put(`/jobs/${workOrderId}`, { status: "Deleted" });
       await logAudit(
         "job_delete",
         "job",
-        jobId,
+        workOrderId,
         { status: job?.status, customer: job?.customer },
         { status: "Deleted" },
-        `Work Order #${jobId} deleted by ${currentUser.name}`,
+        `Work Order #${workOrderId} deleted by ${currentUser.name}`,
       );
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: "Deleted" } : j)));
+      setJobs((prev) => prev.map((j) => (j.id === workOrderId ? { ...j, status: "Deleted" } : j)));
       // Backend cascaded deleted_at + deleted_with_wo onto this WO's active tickets —
       // drop them from the active list and pull fresh deleted list.
-      setTickets((prev) => prev.filter((t) => t.jobId !== jobId));
+      setTickets((prev) => prev.filter((t) => t.workOrderId !== workOrderId));
       await refreshDeletedTickets();
       setExpandedId(null);
     } catch (err) {
@@ -182,17 +182,24 @@ export function useWorkOrderActions({
     }
   };
 
-  const handleRestoreJob = async (jobId) => {
+  const handleRestoreJob = async (workOrderId) => {
     try {
-      await api.put(`/jobs/${jobId}`, { status: "Scheduled" });
-      await logAudit("job_restore", "job", jobId, { status: "Deleted" }, { status: "Scheduled" }, `Work Order #${jobId} restored by ${currentUser.name}`);
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: "Scheduled" } : j)));
+      await api.put(`/jobs/${workOrderId}`, { status: "Scheduled" });
+      await logAudit(
+        "job_restore",
+        "job",
+        workOrderId,
+        { status: "Deleted" },
+        { status: "Scheduled" },
+        `Work Order #${workOrderId} restored by ${currentUser.name}`,
+      );
+      setJobs((prev) => prev.map((j) => (j.id === workOrderId ? { ...j, status: "Scheduled" } : j)));
       // Backend cascade-restored tickets that were deleted_with_wo=true on this WO —
       // pull fresh active + deleted lists so UI matches DB.
       try {
-        const data = await api.get(`/tickets?job_id=${jobId}&include_voided=true`);
+        const data = await api.get(`/tickets?job_id=${workOrderId}&include_voided=true`);
         const mapped = (data || []).map(mapTicketFromApi);
-        setTickets((prev) => [...prev.filter((t) => t.jobId !== jobId), ...mapped]);
+        setTickets((prev) => [...prev.filter((t) => t.workOrderId !== workOrderId), ...mapped]);
       } catch (err) {
         console.error("Ticket refresh after restore failed:", err);
       }
@@ -202,11 +209,11 @@ export function useWorkOrderActions({
     }
   };
 
-  const handleArchiveJob = async (jobId) => {
+  const handleArchiveJob = async (workOrderId) => {
     if (!can("view_archive")) return;
     try {
-      await api.post("/archive", { entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "deleted" });
-      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+      await api.post("/archive", { entity_type: "job", entity_id: workOrderId, archived_by: currentUser.id, archive_reason: "deleted" });
+      setJobs((prev) => prev.filter((j) => j.id !== workOrderId));
     } catch (err) {
       console.error("Archive job failed:", err);
     }
@@ -218,20 +225,20 @@ export function useWorkOrderActions({
   // archived_at on the job and removes it from active queries. Distinct
   // from handleArchiveJob (which is called from DeletedWorkOrdersPage to permanently
   // archive deleted-but-not-yet-purged WOs with reason="deleted").
-  const handleCloseJob = async (jobId) => {
+  const handleCloseJob = async (workOrderId) => {
     if (!can("view_archive")) return;
-    const job = jobs.find((j) => j.id === jobId);
+    const job = jobs.find((j) => j.id === workOrderId);
     try {
-      await api.post("/archive", { entity_type: "job", entity_id: jobId, archived_by: currentUser.id, archive_reason: "job_closed" });
+      await api.post("/archive", { entity_type: "job", entity_id: workOrderId, archived_by: currentUser.id, archive_reason: "job_closed" });
       await logAudit(
         "job_closed",
         "job",
-        jobId,
+        workOrderId,
         { status: job?.status, customer: job?.customer },
         { archive_reason: "job_closed" },
-        `Work Order #${jobId} closed out by ${currentUser.name}`,
+        `Work Order #${workOrderId} closed out by ${currentUser.name}`,
       );
-      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+      setJobs((prev) => prev.filter((j) => j.id !== workOrderId));
     } catch (err) {
       console.error("Close job failed:", err);
     }
@@ -265,19 +272,19 @@ export function useWorkOrderActions({
     }
   };
 
-  const handleFlagCancel = async (jobId) => {
-    const job = jobs.find((j) => j.id === jobId);
+  const handleFlagCancel = async (workOrderId) => {
+    const job = jobs.find((j) => j.id === workOrderId);
     try {
-      await api.put(`/jobs/${jobId}`, { status: "flaggedCancel" });
+      await api.put(`/jobs/${workOrderId}`, { status: "flaggedCancel" });
       await logAudit(
         "job_flag_cancel",
         "job",
-        jobId,
+        workOrderId,
         { status: job?.status },
         { status: "flaggedCancel" },
-        `Work Order #${jobId} flagged for cancellation by ${currentUser.name}`,
+        `Work Order #${workOrderId} flagged for cancellation by ${currentUser.name}`,
       );
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: "flaggedCancel" } : j)));
+      setJobs((prev) => prev.map((j) => (j.id === workOrderId ? { ...j, status: "flaggedCancel" } : j)));
     } catch (err) {
       console.error("Flag cancel failed:", err);
     }

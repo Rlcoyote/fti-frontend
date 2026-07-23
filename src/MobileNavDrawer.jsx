@@ -44,7 +44,7 @@ function ThemeDrawerItem() {
 // boundary (drawerOpen state in / nav callbacks out) is the right thing to
 // extract. Caller passes in: open state + setter, current page string, the
 // curated NAV_ITEMS list, the navigate function, the handful of count
-// badges (myActiveTodos.length, deletedJobs.length + deletedTickets.length),
+// badges (myActiveTodos.length, deletedWorkOrders.length + deletedTickets.length),
 // and the modal-open setters for the gear items.
 
 const NAV_ICONS = {

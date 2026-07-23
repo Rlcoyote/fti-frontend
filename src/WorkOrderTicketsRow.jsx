@@ -122,7 +122,7 @@ export default function WorkOrderTicketsRow({ ticket: t, custEmail, isMobile, is
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                 <TicketTypeBadge type={t.type} />
                 <span style={{ fontSize: 9, color: cardMuted, fontWeight: 600, whiteSpace: "nowrap" }}>
-                  #{t.jobId}
+                  #{t.workOrderId}
                   {t.ticketNumber ? `-${t.ticketNumber}` : ""}
                 </span>
               </div>
@@ -322,7 +322,7 @@ export default function WorkOrderTicketsRow({ ticket: t, custEmail, isMobile, is
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, minWidth: 70 }}>
               <TicketTypeBadge type={t.type} />
               <span style={{ fontSize: 10, color: cardMuted, whiteSpace: "nowrap", fontWeight: 600 }}>
-                #{t.jobId}
+                #{t.workOrderId}
                 {t.ticketNumber ? `-${t.ticketNumber}` : ""}
               </span>
             </div>

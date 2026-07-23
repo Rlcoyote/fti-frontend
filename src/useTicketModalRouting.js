@@ -37,11 +37,11 @@ export default function useTicketModalRouting({ tickets, isMobile }) {
     const enriched = { ...t };
     if (t.replacedBy) {
       const replacement = tickets.find((tk) => tk.id === t.replacedBy);
-      enriched._replacedByLabel = replacement ? `${t.jobId}-${replacement.ticketNumber}` : null;
+      enriched._replacedByLabel = replacement ? `${t.workOrderId}-${replacement.ticketNumber}` : null;
     }
     if (t.revisionOf) {
       const original = tickets.find((tk) => tk.id === t.revisionOf);
-      enriched._revisionOfLabel = original ? `${t.jobId}-${original.ticketNumber}` : null;
+      enriched._revisionOfLabel = original ? `${t.workOrderId}-${original.ticketNumber}` : null;
     }
     // Mobile: navigate to /ticket/:id as a real page
     if (isMobile) {

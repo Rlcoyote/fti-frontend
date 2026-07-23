@@ -246,7 +246,7 @@ function FTIDashboard() {
     const approved = tickets.filter((t) => t.status === "approved");
     if (currentUser?.role === "salesman") {
       return approved.filter((t) => {
-        const j = jobs.find((x) => x.id === t.jobId);
+        const j = jobs.find((x) => x.id === t.workOrderId);
         return j?.salesman === currentUser.name;
       }).length;
     }
@@ -256,16 +256,16 @@ function FTIDashboard() {
   const pendingByJob = useMemo(() => {
     const map = {};
     todos
-      .filter((t) => t.jobId && !t.completed)
+      .filter((t) => t.workOrderId && !t.completed)
       .forEach((t) => {
-        map[t.jobId] = (map[t.jobId] || 0) + 1;
+        map[t.workOrderId] = (map[t.workOrderId] || 0) + 1;
       });
     return map;
   }, [todos]);
 
-  const navigateToJob = (jobId) => {
+  const navigateToJob = (workOrderId) => {
     navigate("/");
-    setExpandedId(jobId);
+    setExpandedId(workOrderId);
   };
 
   // v28.40 — Active dashboard now excludes Completed (closed-out) WOs in
@@ -273,9 +273,9 @@ function FTIDashboard() {
   // archive_reason="job_closed" and removes from local state). The 3-tier
   // SCHEDULED/IN PROGRESS/COMPLETED filter on the dashboard is gone — see
   // CAM Article III Amendment 2 evaluation in the v28.40 commit.
-  const activeJobs = jobs.filter((j) => j.status !== "Deleted" && j.status !== "Completed");
-  const deletedJobs = jobs.filter((j) => j.status === "Deleted");
-  const sortedJobs = [...activeJobs].sort((a, b) => {
+  const activeWorkOrders = jobs.filter((j) => j.status !== "Deleted" && j.status !== "Completed");
+  const deletedWorkOrders = jobs.filter((j) => j.status === "Deleted");
+  const sortedWorkOrders = [...activeWorkOrders].sort((a, b) => {
     if (sortMode === "ticket") {
       return (b.id || 0) - (a.id || 0);
     }
@@ -403,7 +403,7 @@ function FTIDashboard() {
         isField={isField}
         can={can}
         myActiveTodosCount={myActiveTodos.length}
-        deletedTotalCount={deletedJobs.length + deletedTickets.length}
+        deletedTotalCount={deletedWorkOrders.length + deletedTickets.length}
         pendingFinalReviewCount={pendingFinalReviewCount}
         setShowEmergencyContacts={setShowEmergencyContacts}
         setShowFieldResources={setShowFieldResources}
@@ -422,7 +422,7 @@ function FTIDashboard() {
         can={can}
         myActiveTodosCount={myActiveTodos.length}
         totalInventoryOut={totalOut}
-        deletedTotalCount={deletedJobs.length + deletedTickets.length}
+        deletedTotalCount={deletedWorkOrders.length + deletedTickets.length}
         pendingFinalReviewCount={pendingFinalReviewCount}
         showSettingsMenu={showSettingsMenu}
         setShowSettingsMenu={setShowSettingsMenu}
@@ -442,8 +442,8 @@ function FTIDashboard() {
           element={
             <DashboardHome
               jobs={jobs}
-              activeJobs={activeJobs}
-              sortedJobs={sortedJobs}
+              activeWorkOrders={activeWorkOrders}
+              sortedWorkOrders={sortedWorkOrders}
               sortMode={sortMode}
               setSortMode={setSortMode}
               myActiveTodos={myActiveTodos}
@@ -511,7 +511,7 @@ function FTIDashboard() {
             path="/deleted"
             element={
               <DeletedWorkOrdersPage
-                deletedJobs={deletedJobs}
+                deletedWorkOrders={deletedWorkOrders}
                 deletedTickets={deletedTickets}
                 jobs={jobs}
                 handleRestoreJob={handleRestoreJob}

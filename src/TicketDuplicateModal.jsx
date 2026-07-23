@@ -27,7 +27,7 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
   useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const [dupType, setDupType] = useState(ticket.type);
   const [dupDate, setDupDate] = useState(() => today());
-  const [dupJobId, setDupJobId] = useState(ticket.jobId);
+  const [dupJobId, setDupJobId] = useState(ticket.workOrderId);
   const [dupSourceId, setDupSourceId] = useState(ticket.id);
   const [dupSourcePickerOpen, setDupSourcePickerOpen] = useState(false);
   const [incLineItems, setIncLineItems] = useState(true);
@@ -40,13 +40,15 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
   // via the "(change)" link for the ~10% case where a different source is wanted.
   const dupSource = (tickets || []).find((t) => t.id === dupSourceId) || ticket;
   const dupTargetJob = (jobs || []).find((j) => j.id === dupJobId);
-  const dupSourceJob = (jobs || []).find((j) => j.id === dupSource.jobId);
+  const dupSourceJob = (jobs || []).find((j) => j.id === dupSource.workOrderId);
   const dupCustChanged = dupTargetJob && dupSourceJob && dupTargetJob.customer !== dupSourceJob.customer;
   const dupActiveJobs = (jobs || []).filter((j) => j.status !== "Deleted");
   // Eligible sources: same-WO tickets that aren't deleted. Voided tickets
   // stay listed (copying FROM a voided original is legitimate for reissue flows)
   // but are badged so the user sees what they're picking.
-  const sourceOptions = (tickets || []).filter((t) => t.jobId === ticket.jobId && !t.deletedAt).sort((a, b) => (b.ticketNumber || 0) - (a.ticketNumber || 0));
+  const sourceOptions = (tickets || [])
+    .filter((t) => t.workOrderId === ticket.workOrderId && !t.deletedAt)
+    .sort((a, b) => (b.ticketNumber || 0) - (a.ticketNumber || 0));
 
   const chk = { width: 16, height: 16, cursor: "pointer", accentColor: C.blue };
   const lbl = { fontSize: 13, cursor: "pointer", userSelect: "none" };
@@ -56,7 +58,7 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
     try {
       await onDuplicate(dupSource, {
         new_date: dupDate,
-        new_job_id: dupJobId !== dupSource.jobId ? dupJobId : undefined,
+        new_job_id: dupJobId !== dupSource.workOrderId ? dupJobId : undefined,
         new_type: dupType !== dupSource.type ? dupType : undefined,
         assigned_wells: incWells ? dupSource.assignedWells : [],
         include_notes: incNotes,
@@ -81,7 +83,7 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
           <div style={{ fontSize: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>DUPLICATING FROM:</span>
             <span style={{ color: C.text, fontWeight: 600 }}>
-              #{dupSource.jobId}
+              #{dupSource.workOrderId}
               {dupSource.ticketNumber ? `-${dupSource.ticketNumber}` : ""}
             </span>
             {dupSource.date && <span style={{ color: C.muted }}>· {String(dupSource.date).slice(0, 10)}</span>}
@@ -118,7 +120,7 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
             >
               {sourceOptions.map((t) => (
                 <option key={t.id} value={t.id}>
-                  #{t.jobId}
+                  #{t.workOrderId}
                   {t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)} · {t.type || "—"}
                   {t.voidedAt ? " · VOIDED" : ""}
                 </option>
@@ -186,7 +188,9 @@ function TicketDuplicateModal({ ticket, jobs = [], tickets = [], onClose, onDupl
             </option>
           ))}
         </select>
-        {dupJobId !== dupSource.jobId && dupTargetJob && <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Customer: {dupTargetJob.customer}</div>}
+        {dupJobId !== dupSource.workOrderId && dupTargetJob && (
+          <div style={{ fontSize: 11, color: C.blue, marginTop: 4 }}>Customer: {dupTargetJob.customer}</div>
+        )}
       </div>
 
       {/* Carry Over Options — all counts/flags reflect the chosen SOURCE */}

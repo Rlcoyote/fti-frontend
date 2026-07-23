@@ -19,7 +19,7 @@ import { useApp } from "./AppContext.jsx";
 // Archive rules are unchanged: Archive moves items out of the trash into the
 // Archive page (non-restorable). Role-gated to owner/admin.
 
-function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
+function DeletedWorkOrdersPage({ deletedWorkOrders, deletedTickets = [], jobs, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
   const { can } = useApp();
   const [selectMode, setSelectMode] = useState(false);
   // v28.398 (Reggie: "What if we want to search for deleted stuff?") — the
@@ -31,35 +31,35 @@ function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleR
 
   const canArchive = can("view_archive");
 
-  // Build groups keyed by jobId. A group exists whenever a WO is fully deleted
+  // Build groups keyed by workOrderId. A group exists whenever a WO is fully deleted
   // OR has at least one deleted ticket under it (or both).
   const groups = useMemo(() => {
     const byJob = new Map();
-    const getOrCreate = (jobId) => {
-      if (!byJob.has(jobId)) {
-        byJob.set(jobId, { jobId, jobRecord: null, woDeleted: false, cascaded: [], individual: [] });
+    const getOrCreate = (workOrderId) => {
+      if (!byJob.has(workOrderId)) {
+        byJob.set(workOrderId, { workOrderId, workOrderRecord: null, woDeleted: false, cascaded: [], individual: [] });
       }
-      return byJob.get(jobId);
+      return byJob.get(workOrderId);
     };
     for (const t of deletedTickets) {
-      const g = getOrCreate(t.jobId);
+      const g = getOrCreate(t.workOrderId);
       (t.deletedWithWo ? g.cascaded : g.individual).push(t);
     }
-    for (const j of deletedJobs) {
+    for (const j of deletedWorkOrders) {
       const g = getOrCreate(j.id);
       g.woDeleted = true;
-      g.jobRecord = j;
+      g.workOrderRecord = j;
     }
     // Fill in active-WO records for groups that don't have one yet.
     for (const g of byJob.values()) {
-      if (!g.jobRecord) g.jobRecord = jobs.find((j) => j.id === g.jobId) || null;
+      if (!g.workOrderRecord) g.workOrderRecord = jobs.find((j) => j.id === g.workOrderId) || null;
     }
-    // Sort: fully-deleted WOs first, then active; within each, by jobId desc.
+    // Sort: fully-deleted WOs first, then active; within each, by workOrderId desc.
     return Array.from(byJob.values()).sort((a, b) => {
       if (a.woDeleted !== b.woDeleted) return a.woDeleted ? -1 : 1;
-      return (b.jobId || 0) - (a.jobId || 0);
+      return (b.workOrderId || 0) - (a.workOrderId || 0);
     });
-  }, [deletedJobs, deletedTickets, jobs]);
+  }, [deletedWorkOrders, deletedTickets, jobs]);
 
   const totalTickets = deletedTickets.length;
   const totalWOs = groups.length;
@@ -69,14 +69,14 @@ function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleR
     ? groups
     : groups.filter(
         (g) =>
-          String(g.jobId).includes(q) ||
-          String(g.jobRecord?.customer || "")
+          String(g.workOrderId).includes(q) ||
+          String(g.workOrderRecord?.customer || "")
             .toLowerCase()
             .includes(q) ||
-          String(g.jobRecord?.location || "")
+          String(g.workOrderRecord?.location || "")
             .toLowerCase()
             .includes(q) ||
-          [...g.cascaded, ...g.individual].some((t) => `${g.jobId}-${t.ticketNumber ?? t.ticket_number ?? ""} ${t.type || ""}`.toLowerCase().includes(q)),
+          [...g.cascaded, ...g.individual].some((t) => `${g.workOrderId}-${t.ticketNumber ?? t.ticket_number ?? ""} ${t.type || ""}`.toLowerCase().includes(q)),
       );
   const fullyDeletedWOs = groups.filter((g) => g.woDeleted).length;
   const selectedCount = selectedJobs.size + selectedTickets.size;
@@ -141,7 +141,7 @@ function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleR
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-              #{t.jobId}
+              #{t.workOrderId}
               {t.ticketNumber ? `-${t.ticketNumber}` : ""}
             </span>
             <span
@@ -181,7 +181,7 @@ function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleR
   };
 
   const groupBlock = (g) => {
-    const job = g.jobRecord;
+    const job = g.workOrderRecord;
     const cascadedCount = g.cascaded.length;
     const individualCount = g.individual.length;
     const cust = job?.customer || "Unknown customer";
@@ -189,7 +189,7 @@ function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleR
 
     return (
       <div
-        key={g.jobId}
+        key={g.workOrderId}
         style={{
           background: g.woDeleted ? C.priHighB : C.lightSteel,
           border: `1px solid ${g.woDeleted ? C.red + "44" : C.border}`,
@@ -200,10 +200,12 @@ function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleR
       >
         {/* Group header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-          {selectMode && g.woDeleted && <input type="checkbox" checked={selectedJobs.has(g.jobId)} onChange={() => toggleJob(g.jobId)} style={checkboxStyle} />}
+          {selectMode && g.woDeleted && (
+            <input type="checkbox" checked={selectedJobs.has(g.workOrderId)} onChange={() => toggleJob(g.workOrderId)} style={checkboxStyle} />
+          )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-              Work Order #{g.jobId}
+              Work Order #{g.workOrderId}
               {g.woDeleted ? (
                 <span
                   style={{
@@ -231,11 +233,11 @@ function DeletedWorkOrdersPage({ deletedJobs, deletedTickets = [], jobs, handleR
           </div>
           {g.woDeleted && (
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <Btn small variant="blue" onClick={() => handleRestoreJob(g.jobId)}>
+              <Btn small variant="blue" onClick={() => handleRestoreJob(g.workOrderId)}>
                 Restore WO{cascadedCount > 0 ? ` + ${cascadedCount} Ticket${cascadedCount !== 1 ? "s" : ""}` : ""}
               </Btn>
               {canArchive && (
-                <Btn small onClick={() => handleArchiveJob(g.jobId)}>
+                <Btn small onClick={() => handleArchiveJob(g.workOrderId)}>
                   Archive WO
                 </Btn>
               )}

@@ -35,7 +35,7 @@ export default function useTicketDetailModalActions({ setTickets, setViewTicket,
 
   const handleDuplicate = async (t, opts = {}) => {
     try {
-      const targetJobId = opts.new_job_id || t.jobId;
+      const targetJobId = opts.new_job_id || t.workOrderId;
       const r = await fetch(`${API_URL}/tickets/${t.id}/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -64,15 +64,15 @@ export default function useTicketDetailModalActions({ setTickets, setViewTicket,
         const mapped = data.map(mapTicketFromApi);
         setTickets((prev) => {
           // Remove old tickets for target job, add refreshed ones
-          const otherJobs = prev.filter((tk) => tk.jobId !== targetJobId);
+          const otherJobs = prev.filter((tk) => tk.workOrderId !== targetJobId);
           // If duplicating to a different job, also keep source job tickets
-          if (targetJobId !== t.jobId) {
-            const sourceJobTickets = prev.filter((tk) => tk.jobId === t.jobId);
-            return [...otherJobs.filter((tk) => tk.jobId !== t.jobId), ...sourceJobTickets, ...mapped];
+          if (targetJobId !== t.workOrderId) {
+            const sourceJobTickets = prev.filter((tk) => tk.workOrderId === t.workOrderId);
+            return [...otherJobs.filter((tk) => tk.workOrderId !== t.workOrderId), ...sourceJobTickets, ...mapped];
           }
           return [...otherJobs, ...mapped];
         });
-        if (targetJobId === t.jobId) {
+        if (targetJobId === t.workOrderId) {
           // Same job — open the new ticket inline
           const newTicket = mapped.find((tk) => tk.id === saved.id);
           if (newTicket) {

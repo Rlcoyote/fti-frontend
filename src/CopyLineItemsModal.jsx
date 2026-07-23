@@ -14,20 +14,20 @@ import { calcLineTotal } from "./utils.js";
 // single-RU case).
 //
 // Props:
-//   jobId           — current ticket's job, for sibling-RU lookup
+//   workOrderId           — current ticket's job, for sibling-RU lookup
 //   excludeTicketId — current ticket's own id (excluded from sources)
 //   onClose         — dismiss
 //   onCopy(items)   — parent commits the array (each: { qbCode, desc,
 //                     rate, qty, um, days })
 
-function CopyLineItemsModal({ jobId, excludeTicketId, onClose, onCopy }) {
+function CopyLineItemsModal({ workOrderId, excludeTicketId, onClose, onCopy }) {
   useBodyScrollLock(true); // v28.274 sweep — modal locks the page behind it
   const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   // Step 1 (one home — useSiblingRigUps, audit 260721 C3): eligible Rig Ups,
   // newest first; default source = newest RU that actually has line items
   // (falls back to newest overall — the user sees the empty preview and bails).
-  const { rigUps, sourceId, setSourceId, loading, error } = useSiblingRigUps(jobId, excludeTicketId, { preferWithItems: true });
+  const { rigUps, sourceId, setSourceId, loading, error } = useSiblingRigUps(workOrderId, excludeTicketId, { preferWithItems: true });
 
   const source = rigUps.find((t) => t.id === sourceId);
   const sourceItems = (source?.lineItems || source?.line_items || []).map((li) => ({
@@ -83,7 +83,7 @@ function CopyLineItemsModal({ jobId, excludeTicketId, onClose, onCopy }) {
               <div style={{ fontSize: 12, display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
                 <span style={{ fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>COPYING FROM:</span>
                 <span style={{ color: C.text, fontWeight: 600 }}>
-                  Rig Up #{source.jobId}
+                  Rig Up #{source.workOrderId}
                   {source.ticketNumber ? `-${source.ticketNumber}` : ""}
                 </span>
                 {source.date && <span style={{ color: C.muted }}>· {String(source.date).slice(0, 10)}</span>}
@@ -120,7 +120,7 @@ function CopyLineItemsModal({ jobId, excludeTicketId, onClose, onCopy }) {
                     const itemCount = (t.lineItems || t.line_items || []).length;
                     return (
                       <option key={t.id} value={t.id}>
-                        Rig Up #{t.jobId}
+                        Rig Up #{t.workOrderId}
                         {t.ticketNumber ? `-${t.ticketNumber}` : ""} · {String(t.date || "").slice(0, 10)} · {itemCount} item{itemCount !== 1 ? "s" : ""}
                       </option>
                     );

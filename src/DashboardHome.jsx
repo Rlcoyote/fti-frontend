@@ -6,8 +6,8 @@ import { useApp } from "./AppContext.jsx";
 
 function DashboardHome({
   jobs,
-  activeJobs,
-  sortedJobs,
+  activeWorkOrders,
+  sortedWorkOrders,
   sortMode,
   setSortMode,
   myActiveTodos,
@@ -45,12 +45,12 @@ function DashboardHome({
   // don't want filling the activity log. The set lives in a ref so it
   // survives re-renders but resets on full reload (new session).
   const woViewedRef = useRef(new Set());
-  const handleWoToggle = (jobId) => {
-    const isExpanding = expandedId !== jobId;
-    setExpandedId(expandedId === jobId ? null : jobId);
-    if (isExpanding && currentUser && !woViewedRef.current.has(jobId)) {
-      woViewedRef.current.add(jobId);
-      const job = sortedJobs.find((j) => j.id === jobId);
+  const handleWoToggle = (workOrderId) => {
+    const isExpanding = expandedId !== workOrderId;
+    setExpandedId(expandedId === workOrderId ? null : workOrderId);
+    if (isExpanding && currentUser && !woViewedRef.current.has(workOrderId)) {
+      woViewedRef.current.add(workOrderId);
+      const job = sortedWorkOrders.find((j) => j.id === workOrderId);
       fetch(`${API_URL}/activity`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -59,7 +59,7 @@ function DashboardHome({
           user_name: currentUser.name,
           action: "wo_viewed",
           entity_type: "job",
-          entity_id: String(jobId),
+          entity_id: String(workOrderId),
           details: { customer: job?.customer || null, location: job?.location || null },
         }),
       }).catch(() => {});
@@ -70,7 +70,7 @@ function DashboardHome({
       <div className="fti-dashboard-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Active Work Orders</h1>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeJobs.length} total · Updated just now</div>
+          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>{activeWorkOrders.length} total · Updated just now</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn onClick={() => navigateToPage("/todos")} variant="ghost">
@@ -110,7 +110,7 @@ function DashboardHome({
         </select>
       </div>
 
-      {sortedJobs.map((job) => (
+      {sortedWorkOrders.map((job) => (
         <div key={"wrap" + job.id} ref={expandedId === job.id ? expandedCardRef : null}>
           <WorkOrderCard
             key={job.id}

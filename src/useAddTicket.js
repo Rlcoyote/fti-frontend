@@ -68,7 +68,7 @@ export default function useAddTicket({ setTickets }) {
     // value ignored).
     let savedTicket;
     const payload = {
-      job_id: ticketData.jobId,
+      job_id: ticketData.workOrderId,
       type: ticketData.type,
       status: ticketData.status || "incomplete",
       date: ticketData.date,

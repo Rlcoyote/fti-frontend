@@ -30,7 +30,7 @@ export default function ReportEfficiencyTab({ filteredTickets, visibleJobs, rptG
       onTimeCount++;
     } else {
       lateCount++;
-      const job = visibleJobs.find((j) => j.id === t.jobId);
+      const job = visibleJobs.find((j) => j.id === t.workOrderId);
       lateTix.push({ ticket: t.ticketNumber || t.id, customer: job?.customer || "Unknown", late: diff, date: t.date });
     }
   });
@@ -68,7 +68,7 @@ export default function ReportEfficiencyTab({ filteredTickets, visibleJobs, rptG
     bwBilledMin += billedMin;
     bwWorkedMin += onLoc;
     bwCount++;
-    const job = visibleJobs.find((j) => j.id === t.jobId);
+    const job = visibleJobs.find((j) => j.id === t.workOrderId);
     bwRows.push({ ticket: t.ticketNumber || t.id, customer: job?.customer || "Unknown", date: t.date, billedMin, workedMin: onLoc, gap: billedMin - onLoc });
   });
   bwRows.sort((a, b) => b.gap - a.gap);

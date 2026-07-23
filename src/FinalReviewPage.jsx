@@ -24,12 +24,12 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
   const allReviewable = tickets.filter((t) => reviewStatuses.includes(t.status));
   const visibleTickets = isSalesman
     ? allReviewable.filter((t) => {
-        const job = jobs.find((j) => j.id === t.jobId);
+        const job = jobs.find((j) => j.id === t.workOrderId);
         return job?.salesman === currentUser?.name;
       })
     : allReviewable;
 
-  const getJob = (t) => jobs.find((j) => j.id === t.jobId);
+  const getJob = (t) => jobs.find((j) => j.id === t.workOrderId);
   const ticketTotal = (t) => (t.lineItems || []).reduce((s, li) => s + (li.rate || 0) * (li.qty || 0) * (li.days || 1), 0);
   const formatDate = fmtTicketDate; // v28.367 — one tolerant home (utils); local parser showed "Invalid Date" on malformed stored values
 
@@ -207,7 +207,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
                     />
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                    #{t.jobId}
+                    #{t.workOrderId}
                     {t.ticketNumber ? `-${t.ticketNumber}` : ""}
                   </div>
                   <div style={{ fontSize: 12, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -386,7 +386,7 @@ function FinalReviewPage({ jobs, tickets, setTickets }) {
                   <div style={{ flex: 1, minWidth: 0 }} onClick={() => setExpandedId(isExpanded ? null : t.id)}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                       <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-                        #{t.jobId}
+                        #{t.workOrderId}
                         {t.ticketNumber ? `-${t.ticketNumber}` : ""}
                       </span>
                       <span style={{ fontSize: 14, fontWeight: 800, color: C.green }}>${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>

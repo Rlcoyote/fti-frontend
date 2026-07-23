@@ -27,8 +27,8 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
   const filtered = myTodos.filter((t) => {
     if (filter === "active" && t.completed) return false;
     if (filter === "completed" && !t.completed) return false;
-    if (typeFilter === "job" && !t.jobId) return false;
-    if (typeFilter === "general" && t.jobId) return false;
+    if (typeFilter === "job" && !t.workOrderId) return false;
+    if (typeFilter === "general" && t.workOrderId) return false;
     return true;
   });
 
@@ -153,7 +153,7 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
 }
 
 // ─── JOB TODO TAB ─────────────────────────────────────────────────────────────
-function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
+function JobTodoTab({ workOrderId, todos, setTodos, jobs, userNames, userIdByName }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -169,14 +169,14 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
     onCompleteRequest: setCompleting,
   });
 
-  const jobTodos = todos.filter((t) => t.jobId === jobId);
-  const visible = jobTodos.filter((t) => showCompleted || !t.completed);
+  const workOrderTodos = todos.filter((t) => t.workOrderId === workOrderId);
+  const visible = workOrderTodos.filter((t) => showCompleted || !t.completed);
 
   return (
     <div style={{ padding: "16px 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>
-          {jobTodos.filter((t) => !t.completed).length} active task{jobTodos.filter((t) => !t.completed).length !== 1 ? "s" : ""}
+          {workOrderTodos.filter((t) => !t.completed).length} active task{workOrderTodos.filter((t) => !t.completed).length !== 1 ? "s" : ""}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button
@@ -214,7 +214,7 @@ function JobTodoTab({ jobId, todos, setTodos, jobs, userNames, userIdByName }) {
             setShowForm(false);
           }}
           onCancel={() => setShowForm(false)}
-          defaultJobId={jobId}
+          defaultWorkOrderId={workOrderId}
           jobs={jobs}
           userNames={userNames}
         />

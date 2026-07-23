@@ -350,12 +350,12 @@ function CheckOutModal({ item, jobs, onCheckOut, onClose }) {
   const [ft, setFt] = useState("");
   const [jobLink, setJobLink] = useState("");
 
-  const activeJobs = jobs.filter((j) => j.status !== "Invoiced");
+  const activeWorkOrders = jobs.filter((j) => j.status !== "Invoiced");
 
-  const handleJobSelect = (jobId) => {
-    setJobLink(jobId);
-    if (jobId) {
-      const job = jobs.find((j) => j.id === Number(jobId));
+  const handleJobSelect = (workOrderId) => {
+    setJobLink(workOrderId);
+    if (workOrderId) {
+      const job = jobs.find((j) => j.id === Number(workOrderId));
       if (job) setCustomer(`${job.customer} — ${job.location}`);
     }
   };
@@ -369,7 +369,7 @@ function CheckOutModal({ item, jobs, onCheckOut, onClose }) {
         <label style={labelStyle}>LINK TO WORK ORDER</label>
         <select style={inputStyle} value={jobLink} onChange={(e) => handleJobSelect(e.target.value)}>
           <option value="">— No Work Order / Manual Entry —</option>
-          {activeJobs.map((j) => (
+          {activeWorkOrders.map((j) => (
             <option key={j.id} value={j.id}>
               #{j.id} {j.customer}
             </option>

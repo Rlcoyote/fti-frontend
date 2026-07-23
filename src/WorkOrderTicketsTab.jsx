@@ -38,7 +38,7 @@ import useTicketModalRouting from "./useTicketModalRouting.js";
 import WorkOrderTicketsRow from "./WorkOrderTicketsRow.jsx";
 import useTicketDetailModalActions from "./useTicketDetailModalActions.js";
 
-function WorkOrderTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted }) {
+function WorkOrderTicketsTab({ workOrderId, tickets, setTickets, jobs, onTicketDeleted }) {
   const { currentUser, showNotice } = useApp();
   const { showAdd, openAdd, closeAdd, handleAdd, initialType } = useAddTicket({ setTickets });
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -50,11 +50,11 @@ function WorkOrderTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted
   // v28.40 — WO surface shows only tickets in the lead's domain. Approved
   // tickets ship to Final Review; sentToQB / qbVerified / voided tickets
   // ship to Archive. Derivation extracted to useWorkOrderTicketsView in v28.83.
-  const { jobTickets, movedToFinalReview } = useWorkOrderTicketsView(tickets, jobId);
+  const { jobTickets, movedToFinalReview } = useWorkOrderTicketsView(tickets, workOrderId);
 
   // v28.90 — lifted from inside the .map (was recomputed N times per
   // render). Same value for every row of this tab.
-  const job = jobs.find((j) => j.id === jobId);
+  const job = jobs.find((j) => j.id === workOrderId);
   const custEmail = job?.pocEmail || job?.poc_email || null;
 
   const handleUpdate = (id, updates) => updateTicketApi(id, updates, setTickets, (msg) => showNotice("Couldn't save", msg, "error"));
@@ -138,7 +138,7 @@ function WorkOrderTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted
 
       {showAdd && (
         <AddTicketModal
-          jobId={jobId}
+          workOrderId={workOrderId}
           job={job}
           initialType={initialType}
           onSave={async (ticketData, opts) => {
@@ -154,7 +154,7 @@ function WorkOrderTicketsTab({ jobId, tickets, setTickets, jobs, onTicketDeleted
             return saved;
           }}
           onClose={closeAdd}
-          jobWells={(job?.wells || []).map((w) => w.well_name || w)}
+          workOrderWells={(job?.wells || []).map((w) => w.well_name || w)}
         />
       )}
       {viewTicket && (

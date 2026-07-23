@@ -18,7 +18,7 @@ import CopyCrewModal from "./CopyCrewModal.jsx";
 export default function AddTicketCrewSection({
   savedTicketId,
   type,
-  jobId,
+  workOrderId,
   users,
   crewSelection,
   setCrewSelection,
@@ -27,7 +27,7 @@ export default function AddTicketCrewSection({
   setShowCopyCrew,
 }) {
   if (savedTicketId) {
-    return <CrewSelectionManager ticketId={savedTicketId} ticketIsClosed={false} editable={true} ticketType={type} jobId={jobId} />;
+    return <CrewSelectionManager ticketId={savedTicketId} ticketIsClosed={false} editable={true} ticketType={type} workOrderId={workOrderId} />;
   }
 
   const addableUsers = (users || [])
@@ -67,7 +67,7 @@ export default function AddTicketCrewSection({
 
       {showCopyCrew && (
         <CopyCrewModal
-          jobId={jobId}
+          workOrderId={workOrderId}
           excludeTicketId={savedTicketId}
           existingCrewUserIds={new Set(crewSelection.map((c) => c.user_id))}
           onClose={() => setShowCopyCrew(false)}

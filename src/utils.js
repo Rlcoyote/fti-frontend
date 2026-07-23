@@ -86,7 +86,7 @@ export const mapTicketFromApi = (t) => {
   __checkTicketDrift(t);
   return {
     id: t.id,
-    jobId: t.job_id,
+    workOrderId: t.job_id,
     type: t.type,
     status: t.status,
     date: t.date,
@@ -343,7 +343,7 @@ export const reviseTicketRequest = async ({ ticket, reason, alsoCreateNew = fals
       showNotice?.("Notification Email Failed", "The ticket was voided successfully, but the notification email failed to send.", "error");
     }
     // Refetch the WO's tickets (including voided) so local state matches server.
-    const tr = await fetch(`${API_URL}/tickets?job_id=${ticket.jobId}&include_voided=true`);
+    const tr = await fetch(`${API_URL}/tickets?job_id=${ticket.workOrderId}&include_voided=true`);
     if (!tr.ok) {
       showNotice?.(
         "Voided — Refresh Needed",
@@ -356,7 +356,7 @@ export const reviseTicketRequest = async ({ ticket, reason, alsoCreateNew = fals
     const mapped = data.map(mapTicketFromApi);
     if (setTickets) {
       setTickets((prev) => {
-        const otherJobs = prev.filter((tk) => tk.jobId !== ticket.jobId);
+        const otherJobs = prev.filter((tk) => tk.workOrderId !== ticket.workOrderId);
         return [...otherJobs, ...mapped];
       });
     }

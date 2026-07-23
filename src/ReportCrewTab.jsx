@@ -8,7 +8,7 @@ export default function ReportCrewTab({ filteredTickets, visibleJobs, dateFrom, 
   const crewHours = {};
 
   filteredTickets.forEach((t) => {
-    const job = visibleJobs.find((j) => j.id === t.jobId);
+    const job = visibleJobs.find((j) => j.id === t.workOrderId);
     if (!job?.crew) return;
     const overall = diffMinutes(getField(t, "lvYard", "lv_yard"), getField(t, "retYard", "ret_yard"));
     const onLoc = diffMinutes(getField(t, "arrivalTime", "arrival_time"), getField(t, "jobEndTime", "job_end_time"));

@@ -179,7 +179,7 @@ function JSAModal({ job, ticket, onClose, onSave, onComplete, existingJSA, targe
   // v28.51 — build the current form's payload. Used by both ENABLE CREW
   // SIGNING (lazy-create) and the on-close upsert.
   const buildJsaPayload = () => ({
-    jobId: job.id,
+    workOrderId: job.id,
     ticketId: ticket?.id || null,
     date,
     time,

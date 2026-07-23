@@ -34,7 +34,7 @@ function ReportsPage({ jobs, tickets, inventory }) {
   const visibleJobIds = new Set(visibleJobs.map((j) => j.id));
 
   const filteredTickets = tickets.filter((t) => {
-    if (!visibleJobIds.has(t.jobId)) return false;
+    if (!visibleJobIds.has(t.workOrderId)) return false;
     if (dateFrom && t.date && t.date < dateFrom) return false;
     if (dateTo && t.date && t.date > dateTo) return false;
     return true;

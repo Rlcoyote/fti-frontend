@@ -9,7 +9,7 @@ import { Btn, inputStyle } from "./SharedUI.jsx";
 // real date, PLUS the recovery ledger — LOAD TO RECOVER (frac load, barrels,
 // tester-entered, lives on the WO's well), today's totals, overall
 // cumulatives, oil cut %, and FLUID LEFT TO RECOVER. All rollups computed
-// SERVER-side (GET /well-readings/:jobId/summary) — the spreadsheet's
+// SERVER-side (GET /well-readings/:workOrderId/summary) — the spreadsheet's
 // INDIRECT carry-over chain became a live SUM.
 //
 // The field day starts at the OPERATOR'S hour (06/07/08:00 all exist) —
@@ -77,7 +77,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
 
   const loadIndex = useCallback(() => {
     api
-      .get(`/well-readings/${ticket.jobId}`)
+      .get(`/well-readings/${ticket.workOrderId}`)
       .then((idx) => {
         const map = {};
         (idx || []).forEach((r) => {
@@ -95,19 +95,19 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticket.jobId, ticket.weekStart]);
+  }, [ticket.workOrderId, ticket.weekStart]);
 
   const loadSummary = useCallback(() => {
     if (!well || !date) return;
     api
-      .get(`/well-readings/${ticket.jobId}/summary?well=${encodeURIComponent(well)}&date=${date}`)
+      .get(`/well-readings/${ticket.workOrderId}/summary?well=${encodeURIComponent(well)}&date=${date}`)
       .then((s) => {
         setSummary(s);
         setDayStart(s.field_day_start ?? 7);
         setLoadInput(s.load_to_recover != null ? String(s.load_to_recover) : "");
       })
       .catch(() => setSummary(null));
-  }, [ticket.jobId, well, date]);
+  }, [ticket.workOrderId, well, date]);
 
   useEffect(loadIndex, [loadIndex]);
   useEffect(loadSummary, [loadSummary]);
@@ -115,7 +115,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
   useEffect(() => {
     if (!well || !date) return;
     api
-      .get(`/well-readings/${ticket.jobId}?well=${encodeURIComponent(well)}&date=${date}`)
+      .get(`/well-readings/${ticket.workOrderId}?well=${encodeURIComponent(well)}&date=${date}`)
       .then((data) => {
         const byHour = {};
         (data || []).forEach((r) => {
@@ -131,7 +131,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
         setBanner(null);
       })
       .catch((e) => setBanner({ kind: "error", text: e.message }));
-  }, [well, date, ticket.jobId, dayStart]);
+  }, [well, date, ticket.workOrderId, dayStart]);
 
   const setCell = (i, field, value) => {
     setDirty(true);
@@ -143,7 +143,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
     setBanner(null);
     try {
       const payload = rows.map((r, i) => ({ hour: HOURS[i], ...r }));
-      const result = await api.put(`/well-readings/${ticket.jobId}`, { well, date, rows: payload });
+      const result = await api.put(`/well-readings/${ticket.workOrderId}`, { well, date, rows: payload });
       setDirty(false);
       setBanner({ kind: "ok", text: `${fmtMD(date)} saved — ${result.saved} hourly entries.` });
       loadIndex();
@@ -157,7 +157,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
 
   const saveLoad = async () => {
     try {
-      await api.put(`/well-readings/${ticket.jobId}/meta`, { well, load_to_recover: loadInput === "" ? null : loadInput });
+      await api.put(`/well-readings/${ticket.workOrderId}/meta`, { well, load_to_recover: loadInput === "" ? null : loadInput });
       loadSummary();
       showNotice?.("Saved", `Load to recover set for ${well}.`, "success");
     } catch (e) {
@@ -168,7 +168,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
   const saveDayStart = async (h) => {
     setDayStart(h);
     try {
-      await api.put(`/well-readings/${ticket.jobId}/meta`, { field_day_start: h });
+      await api.put(`/well-readings/${ticket.workOrderId}/meta`, { field_day_start: h });
     } catch (e) {
       showNotice?.("Save Failed", e.message, "error");
     }
@@ -181,7 +181,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
       .filter(Boolean);
     if (!to.length) return;
     try {
-      await api.post(`/well-readings/${ticket.jobId}/email-summary`, { well, date, to });
+      await api.post(`/well-readings/${ticket.workOrderId}/email-summary`, { well, date, to });
       setEmailOpen(false);
       showNotice?.("Summary Sent", `${fmtMD(date)} summary for ${well} emailed to ${to.length} recipient${to.length === 1 ? "" : "s"}.`, "success");
     } catch (e) {

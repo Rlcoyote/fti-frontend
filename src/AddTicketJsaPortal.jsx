@@ -16,7 +16,7 @@ import { useApp } from "./AppContext.jsx";
 export default function AddTicketJsaPortal({
   open,
   savedTicketId,
-  jobId,
+  workOrderId,
   job,
   type,
   date,
@@ -54,7 +54,7 @@ export default function AddTicketJsaPortal({
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              job_id: jobId,
+              job_id: workOrderId,
               date: jsaData.date,
               time: jsaData.time,
               operator: jsaData.operator,

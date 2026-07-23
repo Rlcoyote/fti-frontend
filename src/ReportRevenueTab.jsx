@@ -35,7 +35,7 @@ const rankBy = (tickets, keyOf) => {
 };
 
 export default function ReportRevenueTab({ filteredTickets, visibleJobs, totalRevenue, rptGrid }) {
-  const jobOf = (t) => visibleJobs.find((j) => j.id === t.jobId);
+  const jobOf = (t) => visibleJobs.find((j) => j.id === t.workOrderId);
 
   const revByCustomer = rankBy(filteredTickets, (t) => jobOf(t)?.customer || "Unknown");
   const revBySalesman = rankBy(filteredTickets, (t) => jobOf(t)?.salesman || "Unassigned");

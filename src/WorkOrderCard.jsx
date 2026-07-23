@@ -28,7 +28,7 @@ function WorkOrderCard({
   setJsas: _setJsas,
 }) {
   const { assets, userNames, userIdByName, can } = useApp();
-  const jobTickets = tickets.filter((t) => t.jobId === job.id);
+  const jobTickets = tickets.filter((t) => t.workOrderId === job.id);
   const [activeTab, setActiveTab] = useState("tickets");
   const [showEditJob, setShowEditJob] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -496,13 +496,13 @@ function WorkOrderCard({
 
           {activeTab === "tickets" && (
             <div style={{ padding: "0 18px 18px", background: C.steel }}>
-              <WorkOrderTicketsTab jobId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} onTicketDeleted={onTicketDeleted} />
+              <WorkOrderTicketsTab workOrderId={job.id} tickets={tickets} setTickets={setTickets} jobs={jobs} onTicketDeleted={onTicketDeleted} />
             </div>
           )}
 
           {activeTab === "todos" && (
             <div style={{ padding: "0 18px 18px", background: C.steel }}>
-              <JobTodoTab jobId={job.id} todos={todos} setTodos={setTodos} jobs={jobs} userNames={userNames} userIdByName={userIdByName} />
+              <JobTodoTab workOrderId={job.id} todos={todos} setTodos={setTodos} jobs={jobs} userNames={userNames} userIdByName={userIdByName} />
             </div>
           )}
         </div>

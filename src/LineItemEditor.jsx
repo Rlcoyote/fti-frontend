@@ -7,7 +7,7 @@ import { isVisitType } from "./ticketFamilies.js";
 import { useApp } from "./AppContext.jsx";
 import CopyLineItemsModal from "./CopyLineItemsModal.jsx";
 
-function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId }) {
+function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, workOrderId }) {
   const { qbItems } = useApp();
   const [searchTerm, setSearchTerm] = useState("");
   const [showSearch, setShowSearch] = useState(false);
@@ -31,12 +31,12 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
   // show the button whenever ANY non-voided Rig Up exists and let the copy action walk the list
   // (newest first) to find one with items, or surface a visible message when none do.
   useEffect(() => {
-    if (!jobId || ticketType === "Rig Up") {
+    if (!workOrderId || ticketType === "Rig Up") {
       setHasRigUp(false);
       setAllowedCodes(null);
       return;
     }
-    fetch(`${API_URL}/tickets?job_id=${jobId}&include_voided=true`)
+    fetch(`${API_URL}/tickets?job_id=${workOrderId}&include_voided=true`)
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         const rigUps = data.filter((tk) => tk.type === "Rig Up" && !tk.voided_at);
@@ -59,7 +59,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
         setHasRigUp(false);
         if (isRigDown) setAllowedCodes(new Set());
       });
-  }, [jobId, ticketType, isRigDown]);
+  }, [workOrderId, ticketType, isRigDown]);
 
   // v28.11 — copy-from-Rig-Up flow handed to CopyLineItemsModal so it
   // matches the source-picker pattern from CopyCrewModal +
@@ -404,7 +404,9 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, jobId 
           </Btn>
         )}
         {copyMsg && <span style={{ fontSize: 11, fontWeight: 600, color: copyMsg.startsWith("Copied") ? C.green : C.red }}>{copyMsg}</span>}
-        {showCopyModal && <CopyLineItemsModal jobId={jobId} excludeTicketId={null} onClose={() => setShowCopyModal(false)} onCopy={handleCopyItems} />}
+        {showCopyModal && (
+          <CopyLineItemsModal workOrderId={workOrderId} excludeTicketId={null} onClose={() => setShowCopyModal(false)} onCopy={handleCopyItems} />
+        )}
         {showSearch && (
           <div
             style={{

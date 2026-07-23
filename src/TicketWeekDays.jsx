@@ -193,7 +193,7 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
     const nextMonday = addDays(weekStart, 7);
     try {
       const r = await api.post(`/tickets`, {
-        job_id: ticket.jobId,
+        job_id: ticket.workOrderId,
         type: ticket.type,
         status: "incomplete",
         date: nextMonday,

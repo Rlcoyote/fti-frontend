@@ -31,7 +31,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
       if (scfg?.label !== filterStatus && t.status !== filterStatus) return false;
     }
     if (filterCustomer !== "All") {
-      const job = jobs.find((j) => j.id === t.jobId);
+      const job = jobs.find((j) => j.id === t.workOrderId);
       if ((job?.customer || "Unknown") !== filterCustomer) return false;
     }
     return true;
@@ -47,8 +47,8 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
         .filter(Boolean)
     : [...filtered].sort((a, b) => {
         if (sortMode === "customer") {
-          const custA = jobs.find((j) => j.id === a.jobId)?.customer || "";
-          const custB = jobs.find((j) => j.id === b.jobId)?.customer || "";
+          const custA = jobs.find((j) => j.id === a.workOrderId)?.customer || "";
+          const custB = jobs.find((j) => j.id === b.workOrderId)?.customer || "";
           const cust = custA.localeCompare(custB);
           if (cust !== 0) return cust;
           return (b.date || "").localeCompare(a.date || "");
@@ -86,7 +86,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
   // Unique customer list for filter
   const customerSet = new Set(
     activeTickets.map((t) => {
-      const job = jobs.find((j) => j.id === t.jobId);
+      const job = jobs.find((j) => j.id === t.workOrderId);
       return job?.customer || "Unknown";
     }),
   );
@@ -167,7 +167,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
       {/* Ticket rows */}
       {sorted.length === 0 && <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>No tickets match your filters.</div>}
       {sorted.map((t, idx) => {
-        const job = jobs.find((j) => j.id === t.jobId);
+        const job = jobs.find((j) => j.id === t.workOrderId);
         const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type };
         const scfg = TICKET_STATUSES[t.status] || { color: C.muted, bg: C.steel, label: t.status };
         const total = (t.lineItems || []).reduce((s, li) => s + (li.rate || 0) * (li.qty || 0) * (li.days || 1), 0);
@@ -201,7 +201,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
                 <span style={{ fontSize: 15, color: "#bbb", cursor: "grab" }}>⠿</span>
                 <TicketTypeBadge type={t.type} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                  #{t.jobId}
+                  #{t.workOrderId}
                   {t.ticketNumber ? `-${t.ticketNumber}` : ""}
                 </span>
                 <span style={{ fontSize: 12, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 160 }}>
