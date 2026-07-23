@@ -2,13 +2,14 @@ import { useState } from "react";
 import { C, E, F, SP, R } from "./config.js";
 import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
+import { PhoneText } from "./SharedUI.jsx";
 
 // ─── SearchResults (v28.396) — the ONE result list both search shells render ─
 // (Entry 7: header dropdown + mobile overlay consumed slightly-drifted copies.)
 // Person rows expand an inline DIRECTORY CARD (phone/email — Reggie: a new
 // hire "needs Eli's phone number"); manage_users holders also get OPEN IN
 // PEOPLE. The scope footer states EXACTLY what this caller's search covered.
-export function SearchResults({ groups, busy, searched, q, scope, onGo }) {
+export function SearchResults({ groups, busy, searched, q, scope, hints, onGo }) {
   const { can } = useApp();
   const [openPerson, setOpenPerson] = useState(null); // person_id
   const [card, setCard] = useState(null);
@@ -72,7 +73,7 @@ export function SearchResults({ groups, busy, searched, q, scope, onGo }) {
                       {card.phone && (
                         <div style={{ fontSize: F.body, marginBottom: 2 }}>
                           <a href={`tel:${card.phone}`} style={{ color: C.blue, fontWeight: 700, textDecoration: "none" }}>
-                            📞 {card.phone}
+                            📞 <PhoneText value={card.phone} />
                           </a>
                         </div>
                       )}
@@ -99,6 +100,7 @@ export function SearchResults({ groups, busy, searched, q, scope, onGo }) {
       {searched && (scope || []).length > 0 && (
         <div style={{ fontSize: F.badge, color: C.muted, borderTop: `1px solid ${C.border}33`, paddingTop: SP.sm, marginTop: SP.sm, lineHeight: 1.6 }}>
           SEARCHED FOR YOUR ROLE: {scope.join(" · ")}. Search only navigates — editing follows each page's own permissions.
+          {(hints || []).length > 0 && <div style={{ marginTop: 2 }}>NOT SEARCHED HERE — {hints.join(" · ")}.</div>}
         </div>
       )}
     </>

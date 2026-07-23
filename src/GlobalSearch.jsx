@@ -18,7 +18,7 @@ function GlobalSearch({ onClose }) {
   const navigate = useNavigate();
   // v28.394 — querying moved to useSearch (one home; the desktop header
   // dropdown consumes the same hook). This overlay remains the MOBILE shell.
-  const { q, setQ, groups, busy, searched, scope } = useSearch();
+  const { q, setQ, groups, busy, searched, scope, hints } = useSearch();
   const boxRef = useRef(null);
 
   useEffect(() => {
@@ -45,7 +45,7 @@ function GlobalSearch({ onClose }) {
         placeholder="WO #, ticket # (300178-1), name, customer, document, vehicle…"
       />
       <div style={{ marginTop: SP.lg, maxHeight: "55vh", overflowY: "auto" }}>
-        <SearchResults groups={groups} busy={busy} searched={searched} q={q} scope={scope} onGo={go} />
+        <SearchResults groups={groups} busy={busy} searched={searched} q={q} scope={scope} hints={hints} onGo={go} />
       </div>
     </ModalWrap>
   );

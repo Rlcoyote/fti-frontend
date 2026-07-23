@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { C, API_URL } from "./config.js";
 import { inputStyle, labelStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import { renderAuditDetails } from "./auditDetails.js";
 
 function ActivityLogPage() {
   const { users, can } = useApp();
@@ -147,46 +148,9 @@ function ActivityLogPage() {
     return `${s}s`;
   };
 
-  // Render audit-style details ({from, to, note}) into a compact inline summary for the log table.
-  // Keeps the one-line row constraint but shows meaningful context instead of raw JSON.
-  const renderDetails = (d) => {
-    if (!d) return "—";
-    let obj = d;
-    if (typeof d === "string") {
-      try {
-        obj = JSON.parse(d);
-      } catch {
-        return d.slice(0, 80);
-      }
-    }
-    if (typeof obj !== "object") return String(obj).slice(0, 80);
-    const parts = [];
-    if (obj.note || obj.notes) parts.push(String(obj.note || obj.notes));
-    if (obj.from && obj.to) {
-      const summarize = (v) => {
-        if (v == null) return "∅";
-        if (typeof v !== "object") return String(v);
-        const keys = Object.keys(v);
-        if (keys.length === 1) return `${keys[0]}: ${v[keys[0]]}`;
-        return keys
-          .slice(0, 2)
-          .map((k) => `${k}:${v[k]}`)
-          .join(", ");
-      };
-      parts.push(`${summarize(obj.from)} → ${summarize(obj.to)}`);
-    } else if (obj.count != null) {
-      parts.push(`count: ${obj.count}`);
-    } else if (Object.keys(obj).length > 0 && parts.length === 0) {
-      // Fallback: short key:value render
-      parts.push(
-        Object.entries(obj)
-          .slice(0, 3)
-          .map(([k, v]) => `${k}: ${typeof v === "object" ? "…" : v}`)
-          .join(" · "),
-      );
-    }
-    return parts.length > 0 ? parts.join(" · ") : "—";
-  };
+  // v28.398 — details render through the shared auditDetails home (Entry 7;
+  // same renderer as the meeting change log).
+  const renderDetails = (d) => renderAuditDetails(d) || "—";
 
   if (!isAdmin) {
     return (

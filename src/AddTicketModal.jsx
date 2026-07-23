@@ -70,6 +70,16 @@ function AddTicketModal({ jobId, job, onSave, onClose, jobWells = [], initialTyp
   // fallback empty state for any path that opens without a type.
   const [type, setType] = useState(initialType);
   const [assignedWells, setAssignedWells] = useState([]);
+  // v28.398 (Reggie: "prior renditions already had the wells selected and…
+  // gave the user the option to deselect") — visit-family tickets preselect
+  // ALL job wells; the confirm step remains the check. Log types (Tester/
+  // Pumper) keep deliberate selection — one well per ticket.
+  useEffect(() => {
+    if (type && !isLogType(type) && !wellsConfirmed && assignedWells.length === 0 && (jobWells || []).length > 0) {
+      setAssignedWells(jobWells);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
   const [wellsConfirmed, setWellsConfirmed] = useState(false);
   const [lineItems, setLineItems] = useState([]);
   // v28.264 — equipment-on-location rows (master-ticket Phase 3). Separate

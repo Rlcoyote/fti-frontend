@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { C } from "./config.js";
 import { formatDate } from "./utils.js";
-import { Btn, ConfirmModal, TICKET_TYPES } from "./SharedUI.jsx";
+import { Btn, ConfirmModal, TICKET_TYPES, inputStyle } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── Deleted Items page ──────────────────────────────────────────────────────
@@ -22,6 +22,9 @@ import { useApp } from "./AppContext.jsx";
 function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestoreJob, handleArchiveJob, handleRestoreTicket, handleArchiveTicket }) {
   const { can } = useApp();
   const [selectMode, setSelectMode] = useState(false);
+  // v28.398 (Reggie: "What if we want to search for deleted stuff?") — the
+  // deleted page gets its own filter; global search points here via its hint.
+  const [deletedSearch, setDeletedSearch] = useState("");
   const [selectedJobs, setSelectedJobs] = useState(() => new Set());
   const [selectedTickets, setSelectedTickets] = useState(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -60,6 +63,21 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
 
   const totalTickets = deletedTickets.length;
   const totalWOs = groups.length;
+  // v28.398 — filter over WO #, customer, location, ticket type/number.
+  const q = deletedSearch.trim().toLowerCase();
+  const shownGroups = !q
+    ? groups
+    : groups.filter(
+        (g) =>
+          String(g.jobId).includes(q) ||
+          String(g.jobRecord?.customer || "")
+            .toLowerCase()
+            .includes(q) ||
+          String(g.jobRecord?.location || "")
+            .toLowerCase()
+            .includes(q) ||
+          [...g.cascaded, ...g.individual].some((t) => `${g.jobId}-${t.ticketNumber ?? t.ticket_number ?? ""} ${t.type || ""}`.toLowerCase().includes(q)),
+      );
   const fullyDeletedWOs = groups.filter((g) => g.woDeleted).length;
   const selectedCount = selectedJobs.size + selectedTickets.size;
 
@@ -306,7 +324,14 @@ function DeletedJobsPage({ deletedJobs, deletedTickets = [], jobs, handleRestore
           : `${totalTickets} ticket${totalTickets !== 1 ? "s" : ""} across ${totalWOs} WO${totalWOs !== 1 ? "s" : ""}${fullyDeletedWOs > 0 ? ` (${fullyDeletedWOs} WO${fullyDeletedWOs !== 1 ? "s" : ""} fully deleted)` : ""}.`}
       </div>
 
-      {groups.map(groupBlock)}
+      <input
+        placeholder="Search deleted — WO #, customer, location, ticket…"
+        value={deletedSearch}
+        onChange={(e) => setDeletedSearch(e.target.value)}
+        style={{ ...inputStyle, maxWidth: 380, margin: "0 0 14px" }}
+      />
+      {q && shownGroups.length === 0 && <div style={{ color: C.muted, fontSize: 13, padding: 12 }}>Nothing deleted matches “{deletedSearch.trim()}”.</div>}
+      {shownGroups.map(groupBlock)}
 
       {/* Confirm batch archive */}
       {confirmOpen && (

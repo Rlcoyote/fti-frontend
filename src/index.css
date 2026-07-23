@@ -125,3 +125,10 @@ body.fti-modal-open .fti-modal-selectable * {
   .fti-card { transition: none; }
   .fti-card:hover { transform: none; }
 }
+
+/* v28.398 — dark-mode native date/time picker icons (Reggie: invisible). */
+[data-fti-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-fti-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.85);
+  cursor: pointer;
+}

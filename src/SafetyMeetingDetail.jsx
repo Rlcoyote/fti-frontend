@@ -7,6 +7,7 @@ import { AttendanceRow, MeetingStatusChip, fmtMeetingDate, fmtMeetingTime, poole
 import SafetyMeetingSignModal from "./SafetyMeetingSignModal.jsx";
 import SafetyMeetingPrintView from "./SafetyMeetingPrintView.jsx";
 import { API_URL } from "./config.js";
+import { renderAuditDetails } from "./auditDetails.js";
 
 // ─── SafetyMeetingDetail (v28.335) ───────────────────────────────────────────
 // One meeting: header + lock state, topics (random picker / bank / free-form),
@@ -909,20 +910,21 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
       {/* CHANGE LOG (v28.396 — Reggie: additions and changes "must be
           readably entailed within this page") */}
       {(meeting.change_log || []).length > 0 && (
-        <Section title={`CHANGE LOG (${meeting.change_log.length})`}>
+        <Section title={`SAFETY MEETING CHANGE LOG (${meeting.change_log.length})`}>
           {meeting.change_log.map((c, i) => (
             <div key={i} style={{ display: "flex", gap: SP.md, padding: `${SP.sm}px ${SP.xl}px`, borderTop: `1px solid ${C.border}22`, flexWrap: "wrap" }}>
               <span style={{ fontSize: F.label, color: C.muted, whiteSpace: "nowrap" }}>{new Date(c.created_at).toLocaleString()}</span>
-              <span style={{ fontSize: F.label, fontWeight: 700, color: C.text }}>{String(c.action || "").replace(/_/g, " ")}</span>
+              <span style={{ fontSize: F.label, fontWeight: 700, color: C.text }}>
+                {String(c.action || "")
+                  .replace(/^safety_meeting_/, "")
+                  .replace(/_/g, " ")}
+              </span>
               <span style={{ fontSize: F.label, color: C.muted }}>
                 {c.performed_by_name || c.performed_by || ""}
-                {c.details && typeof c.details === "object" && Object.keys(c.details).length > 0
-                  ? " — " +
-                    Object.entries(c.details)
-                      .slice(0, 3)
-                      .map(([k, v]) => `${k}: ${typeof v === "object" ? "…" : String(v).slice(0, 60)}`)
-                      .join(" · ")
-                  : ""}
+                {(() => {
+                  const d = renderAuditDetails(c.details);
+                  return d ? ` — ${d}` : "";
+                })()}
               </span>
             </div>
           ))}

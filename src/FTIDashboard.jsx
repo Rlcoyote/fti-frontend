@@ -171,6 +171,22 @@ function FTIDashboard() {
   // most-recently-created first.
   const [sortMode, setSortMode] = useState("ticket"); // "ticket" = WO# DESC; "scheduled" = scheduled date ASC, WO# DESC tiebreak; "customer" = customer A→Z, WO# DESC tiebreak
   const [showNewJob, setShowNewJob] = useState(false);
+  // v28.398 (ratified 260723) — app-wide amber reminder for GATED users with
+  // an incomplete packet. The hard wall stays at clock-in only; this is the
+  // reminder layer ("Where does it stop?" — here).
+  const [onboardingOwed, setOnboardingOwed] = useState(0);
+  useEffect(() => {
+    import("./api.js").then(({ api }) =>
+      api
+        .get("/onboarding/my")
+        .then((r) => {
+          if (!r.gated) return;
+          const owed = (r.documents || []).filter((d) => ["ack", "consent", "form"].includes(d.kind) && !d.complete).length;
+          setOnboardingOwed(owed);
+        })
+        .catch(() => {}),
+    );
+  }, []);
 
   // ── Page-level data (jobs, tickets, todos, inventory, deletedTickets, jsas) ──
   const {
@@ -330,6 +346,25 @@ function FTIDashboard() {
         fontFamily: "'Arial', sans-serif",
       }}
     >
+      {onboardingOwed > 0 && (
+        <div
+          onClick={() => navigate("/onboarding")}
+          style={{
+            background: C.orangeB,
+            borderBottom: `1px solid ${C.orange}66`,
+            color: C.orange,
+            fontWeight: 800,
+            fontSize: 12,
+            letterSpacing: "0.04em",
+            padding: "8px 16px",
+            cursor: "pointer",
+            textAlign: "center",
+          }}
+        >
+          ⚠ YOUR ONBOARDING IS INCOMPLETE — {onboardingOwed} DOCUMENT{onboardingOwed === 1 ? "" : "S"} REMAIN{onboardingOwed === 1 ? "S" : ""}. TAP TO FINISH →
+        </div>
+      )}
+
       {/* MOBILE HAMBURGER (floating button bottom-right) */}
       <div
         className="fti-hamburger"

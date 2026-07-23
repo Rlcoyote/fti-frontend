@@ -289,6 +289,11 @@ export function presentTheme(theme) {
     // scrollbars, and form controls in the right scheme (kills the pale
     // autofill slab on dark inputs — Reggie's login email finding).
     document.documentElement.style.colorScheme = activeTheme;
+    // v28.398 — native widget chrome (date-picker calendar icon) doesn't
+    // reliably follow colorScheme in all engines; the data attribute lets
+    // index.css invert it explicitly (Reggie: "you cannot see the 'calendar'
+    // icon" in dark mode).
+    document.documentElement.dataset.ftiTheme = activeTheme;
   }
 }
 

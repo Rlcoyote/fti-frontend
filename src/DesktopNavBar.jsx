@@ -138,7 +138,7 @@ function GearMenuItem({ label, onClick, hasTopBorder, subItems }) {
 // Enter opens the first result, Escape clears. Shares useSearch with the
 // mobile overlay (one query home).
 function HeaderSearch({ navigate }) {
-  const { q, setQ, groups, busy, searched, scope } = useSearch();
+  const { q, setQ, groups, busy, searched, scope, hints } = useSearch();
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
 
@@ -213,7 +213,7 @@ function HeaderSearch({ navigate }) {
               padding: 10,
             }}
           >
-            <SearchResults groups={groups} busy={busy} searched={searched} q={q} scope={scope} onGo={go} />
+            <SearchResults groups={groups} busy={busy} searched={searched} q={q} scope={scope} hints={hints} onGo={go} />
           </div>
         </>
       )}

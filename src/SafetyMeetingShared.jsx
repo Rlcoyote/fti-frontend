@@ -98,6 +98,9 @@ export function AttendanceRow({ row, meetingDate }) {
   const meta = METHOD_META[row.method] || { label: row.method, color: () => C.muted, note: () => null };
   const color = meta.color();
   const note = meta.note(row);
+  // v28.398 tombstone (ratified): a removed row stays, struck through, with
+  // who removed it and when — a compliance record corrects visibly.
+  const removed = !!row.removed_at;
   return (
     <div
       style={{
@@ -108,10 +111,18 @@ export function AttendanceRow({ row, meetingDate }) {
         padding: `${SP.md}px ${SP.xl}px`,
         borderTop: `1px solid ${C.border}33`,
         flexWrap: "wrap",
+        opacity: removed ? 0.55 : 1,
       }}
     >
       <div style={{ flex: "1 1 180px" }}>
-        <div style={{ fontWeight: 700, fontSize: F.md, color: C.text }}>{row.user_name || row.external_name}</div>
+        <div style={{ fontWeight: 700, fontSize: F.md, color: C.text, textDecoration: removed ? "line-through" : "none" }}>
+          {row.user_name || row.external_name}
+        </div>
+        {removed && (
+          <div style={{ fontSize: F.label, color: C.red, fontWeight: 700 }}>
+            REMOVED by {row.removed_by_name || "admin"} · {new Date(row.removed_at).toLocaleString()} · audit-logged
+          </div>
+        )}
         {note && <div style={{ fontSize: F.label, color: C.muted, marginTop: 1 }}>{note}</div>}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: SP.md }}>

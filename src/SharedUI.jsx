@@ -2,6 +2,7 @@ import { C, E, F, SP, R } from "./config.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
 import useBackClose from "./useBackClose.js";
+import { formatPhone } from "./utils.js";
 
 // ─── MODAL Z-INDEX LAYERS (v27.67) ────────────────────────────────────────
 // The app stacks modals intentionally: a confirmation-over-an-edit-modal
@@ -197,6 +198,21 @@ export const labelStyle = {
     return C.muted;
   },
 };
+
+// ─── PhoneText (v28.398) — phone display, ONE home ──────────────────────────
+// Formats via utils.formatPhone and guarantees any line wrap breaks AFTER the
+// area code, never mid-number (Reggie: "(432) 940-\n9485" is wrong; aesthetics
+// matter BIGLY). Renders "(432) 940-9485" as two atoms.
+export function PhoneText({ value, style }) {
+  const f = formatPhone(String(value || ""));
+  const m = f.match(/^(\(\d{3}\))\s*(.+)$/);
+  if (!m) return <span style={{ whiteSpace: "nowrap", ...style }}>{f}</span>;
+  return (
+    <span style={style}>
+      <span style={{ whiteSpace: "nowrap" }}>{m[1]}</span> <span style={{ whiteSpace: "nowrap" }}>{m[2]}</span>
+    </span>
+  );
+}
 
 // ─── SHARED BUTTONS ───────────────────────────────────────────────────────────
 export function Btn({ onClick, children, variant = "primary", small, disabled, style: extraStyle, title }) {
