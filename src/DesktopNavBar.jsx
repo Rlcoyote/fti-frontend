@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { C, E, CARBON, CARBON_SIZE } from "./config.js";
 import { PAGE_MAP, ROUTE_MAP, NAV_GROUPS, NAV_DISPLAY } from "./navMap.js";
 import { useSearch } from "./useSearch.js";
+import { SearchResults } from "./SearchResults.jsx";
 import { NavBadge } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -137,7 +138,7 @@ function GearMenuItem({ label, onClick, hasTopBorder, subItems }) {
 // Enter opens the first result, Escape clears. Shares useSearch with the
 // mobile overlay (one query home).
 function HeaderSearch({ navigate }) {
-  const { q, setQ, groups, busy, searched } = useSearch();
+  const { q, setQ, groups, busy, searched, scope } = useSearch();
   const [open, setOpen] = useState(false);
   const boxRef = useRef(null);
 
@@ -212,25 +213,7 @@ function HeaderSearch({ navigate }) {
               padding: 10,
             }}
           >
-            {busy && <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>Searching…</div>}
-            {!busy && searched && groups.length === 0 && <div style={{ fontSize: 12, color: C.muted, padding: 8 }}>Nothing found for “{q.trim()}”.</div>}
-            {groups.map((g) => (
-              <div key={g.group} style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", padding: "2px 4px" }}>{g.group}</div>
-                {g.items.map((item, i) => (
-                  <div
-                    key={i}
-                    onClick={() => go(item)}
-                    style={{ padding: "7px 10px", borderRadius: 5, cursor: "pointer" }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                  >
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{item.label}</div>
-                    {item.sub && <div style={{ fontSize: 10, color: C.muted }}>{item.sub}</div>}
-                  </div>
-                ))}
-              </div>
-            ))}
+            <SearchResults groups={groups} busy={busy} searched={searched} q={q} scope={scope} onGo={go} />
           </div>
         </>
       )}

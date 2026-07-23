@@ -145,6 +145,9 @@ function PeoplePage() {
     const q = search.trim().toLowerCase();
     return people.filter(
       (p) =>
+        // v28.396 — full-name match FIRST: search results hand over the whole
+        // name ("Eli Springer"), which matches neither first nor last alone.
+        `${String(p.first_name || "")} ${String(p.last_name || "")}`.toLowerCase().includes(q) ||
         String(p.first_name || "")
           .toLowerCase()
           .includes(q) ||

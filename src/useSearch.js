@@ -10,6 +10,7 @@ export function useSearch() {
   const [groups, setGroups] = useState([]);
   const [busy, setBusy] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [scope, setScope] = useState([]);
   const timer = useRef(null);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export function useSearch() {
       try {
         const r = await api.get(`/search?q=${encodeURIComponent(term)}`);
         setGroups(r.results || []);
+        setScope(r.scope || []);
         setSearched(true);
       } catch {
         setGroups([]);
@@ -35,5 +37,5 @@ export function useSearch() {
     return () => clearTimeout(timer.current);
   }, [q]);
 
-  return { q, setQ, groups, busy, searched };
+  return { q, setQ, groups, busy, searched, scope };
 }

@@ -150,7 +150,14 @@ function EditMeetingModal({ meeting, onClose, onSaved }) {
     <ModalWrap title="Edit Meeting" onClose={onClose} width={440}>
       <div style={{ fontSize: F.meta, color: C.muted, marginBottom: SP.xl }}>Every change is recorded in the audit trail.</div>
       <label style={labelStyle}>MEETING DATE</label>
-      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ ...inputStyle, marginBottom: SP.lg }} />
+      <input
+        type="date"
+        value={date}
+        min="2020-01-01"
+        max={new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10)}
+        onChange={(e) => setDate(e.target.value)}
+        style={{ ...inputStyle, marginBottom: SP.lg }}
+      />
       <div style={{ display: "flex", gap: SP.md }}>
         <div style={{ flex: 1 }}>
           <label style={labelStyle}>START</label>
@@ -287,6 +294,10 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
     setVisitorCompany("");
   });
   const removeAttendance = (rowId) => act(async () => api.del(`/safety-meetings/${meeting.id}/attendance/${rowId}`))();
+  // v28.396 (Reggie 260722 lockdown) — server-computed: conductor of THIS
+  // meeting or the safety_meeting_edit permission. Gated controls render only
+  // for holders; the backend enforces regardless.
+  const canEditContent = meeting.can_edit_content !== false;
   const pullQuestions = async () => {
     setActionErr("");
     try {
@@ -395,9 +406,11 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
             MANAGER SIGN-IN
           </Btn>
         )}
-        <Btn variant="ghost" small onClick={() => setModal("edit")}>
-          EDIT MEETING
-        </Btn>
+        {canEditContent && (
+          <Btn variant="ghost" small onClick={() => setModal("edit")}>
+            EDIT MEETING
+          </Btn>
+        )}
         <Btn variant="ghost" small onClick={() => setPrintMode(true)}>
           EXPORT PDF
         </Btn>
@@ -501,30 +514,39 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
                   </option>
                 ))}
             </select>
-            <Btn small onClick={addTypedEmployee} disabled={!typedName}>
+            <Btn small onClick={addTypedEmployee} disabled={!typedName || !canEditContent} title={canEditContent ? undefined : "Conductor or manager only"}>
               ADD FROM PAPER RECORD
             </Btn>
           </div>
         )}
-        <div
-          style={{ padding: `${SP.lg}px ${SP.xl}px`, borderTop: `1px solid ${C.border}`, display: "flex", gap: SP.md, flexWrap: "wrap", alignItems: "center" }}
-        >
-          <input
-            placeholder="Visitor name"
-            value={visitorName}
-            onChange={(e) => setVisitorName(e.target.value)}
-            style={{ ...inputStyle, width: "auto", flex: "1 1 140px", marginBottom: 0 }}
-          />
-          <input
-            placeholder="Company"
-            value={visitorCompany}
-            onChange={(e) => setVisitorCompany(e.target.value)}
-            style={{ ...inputStyle, width: "auto", flex: "1 1 140px", marginBottom: 0 }}
-          />
-          <Btn small variant="ghost" onClick={addVisitor} disabled={!visitorName.trim()}>
-            ADD VISITOR
-          </Btn>
-        </div>
+        {canEditContent && (
+          <div
+            style={{
+              padding: `${SP.lg}px ${SP.xl}px`,
+              borderTop: `1px solid ${C.border}`,
+              display: "flex",
+              gap: SP.md,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <input
+              placeholder="Visitor name"
+              value={visitorName}
+              onChange={(e) => setVisitorName(e.target.value)}
+              style={{ ...inputStyle, width: "auto", flex: "1 1 140px", marginBottom: 0 }}
+            />
+            <input
+              placeholder="Company"
+              value={visitorCompany}
+              onChange={(e) => setVisitorCompany(e.target.value)}
+              style={{ ...inputStyle, width: "auto", flex: "1 1 140px", marginBottom: 0 }}
+            />
+            <Btn small variant="ghost" onClick={addVisitor} disabled={!visitorName.trim()}>
+              ADD VISITOR
+            </Btn>
+          </div>
+        )}
       </Section>
 
       {/* TOPICS */}
@@ -548,8 +570,8 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
             </div>
             <button
               className="fti-btn"
-              onClick={() => setConfirmRemoveTopic(t)}
-              title="Remove topic (audit-logged)"
+              onClick={() => canEditContent && setConfirmRemoveTopic(t)}
+              title={canEditContent ? "Remove topic (audit-logged)" : undefined}
               style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: F.md }}
             >
               ✕
@@ -559,7 +581,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
         <div
           style={{ padding: `${SP.lg}px ${SP.xl}px`, borderTop: `1px solid ${C.border}`, display: "flex", gap: SP.md, flexWrap: "wrap", alignItems: "center" }}
         >
-          <Btn small onClick={addRandomTopic}>
+          <Btn small onClick={addRandomTopic} disabled={!canEditContent} title={canEditContent ? undefined : "Conductor or manager only"}>
             🎲 RANDOM TOPIC
           </Btn>
           <select value={bankPick} onChange={(e) => setBankPick(e.target.value)} style={{ ...inputStyle, width: "auto", flex: "1 1 180px", marginBottom: 0 }}>
@@ -573,7 +595,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
                 </option>
               ))}
           </select>
-          <Btn small variant="ghost" onClick={addBankTopic} disabled={!bankPick}>
+          <Btn small variant="ghost" onClick={addBankTopic} disabled={!bankPick || !canEditContent}>
             ADD
           </Btn>
         </div>
@@ -584,7 +606,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
             onChange={(e) => setFreeTopic(e.target.value)}
             style={{ ...inputStyle, width: "auto", flex: "1 1 220px", marginBottom: 0 }}
           />
-          <Btn small variant="ghost" onClick={addFreeTopic} disabled={!freeTopic.trim()}>
+          <Btn small variant="ghost" onClick={addFreeTopic} disabled={!freeTopic.trim() || !canEditContent}>
             ADD TOPIC
           </Btn>
         </div>
@@ -594,9 +616,11 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
       <Section
         title="POLICY QUESTIONS (Q&A)"
         right={
-          <Btn small onClick={pullQuestions}>
-            PULL 3 QUESTIONS
-          </Btn>
+          canEditContent ? (
+            <Btn small onClick={pullQuestions}>
+              PULL 3 QUESTIONS
+            </Btn>
+          ) : null
         }
       >
         {pulled.length === 0 && meeting.questions.length === 0 && (
@@ -882,6 +906,29 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
         </div>
       </Section>
 
+      {/* CHANGE LOG (v28.396 — Reggie: additions and changes "must be
+          readably entailed within this page") */}
+      {(meeting.change_log || []).length > 0 && (
+        <Section title={`CHANGE LOG (${meeting.change_log.length})`}>
+          {meeting.change_log.map((c, i) => (
+            <div key={i} style={{ display: "flex", gap: SP.md, padding: `${SP.sm}px ${SP.xl}px`, borderTop: `1px solid ${C.border}22`, flexWrap: "wrap" }}>
+              <span style={{ fontSize: F.label, color: C.muted, whiteSpace: "nowrap" }}>{new Date(c.created_at).toLocaleString()}</span>
+              <span style={{ fontSize: F.label, fontWeight: 700, color: C.text }}>{String(c.action || "").replace(/_/g, " ")}</span>
+              <span style={{ fontSize: F.label, color: C.muted }}>
+                {c.performed_by_name || c.performed_by || ""}
+                {c.details && typeof c.details === "object" && Object.keys(c.details).length > 0
+                  ? " — " +
+                    Object.entries(c.details)
+                      .slice(0, 3)
+                      .map(([k, v]) => `${k}: ${typeof v === "object" ? "…" : String(v).slice(0, 60)}`)
+                      .join(" · ")
+                  : ""}
+              </span>
+            </div>
+          ))}
+        </Section>
+      )}
+
       {/* NOTES */}
       <Section
         title="NOTES"
@@ -896,12 +943,14 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
         <div style={{ padding: SP.xl }}>
           <textarea
             value={notes}
+            readOnly={!canEditContent}
             onChange={(e) => {
+              if (!canEditContent) return;
               setNotes(e.target.value);
               setNotesDirty(true);
             }}
             rows={4}
-            placeholder="Anything discussed that isn't a topic-bank item…"
+            placeholder={canEditContent ? "Anything discussed that isn't a topic-bank item…" : "Notes are entered by the conductor or a manager."}
             style={{ ...inputStyle, resize: "vertical", marginBottom: 0 }}
           />
         </div>
