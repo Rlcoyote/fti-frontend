@@ -150,7 +150,8 @@ function ActivityLogPage() {
 
   // v28.398 — details render through the shared auditDetails home (Entry 7;
   // same renderer as the meeting change log).
-  const renderDetails = (d) => renderAuditDetails(d) || "—";
+  const resolveUuid = (id) => (users || []).find((u) => u.id === id)?.name || null;
+  const renderDetails = (d) => renderAuditDetails(d, resolveUuid) || "—";
 
   if (!isAdmin) {
     return (

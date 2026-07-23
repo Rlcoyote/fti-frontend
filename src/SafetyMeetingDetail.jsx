@@ -299,6 +299,8 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
   // meeting or the safety_meeting_edit permission. Gated controls render only
   // for holders; the backend enforces regardless.
   const canEditContent = meeting.can_edit_content !== false;
+  // v28.399 — uuid → name resolver for the change log (userIdByName inverted).
+  const resolveUuid = (id) => Object.keys(userIdByName || {}).find((n) => userIdByName[n] === id) || null;
   const pullQuestions = async () => {
     setActionErr("");
     try {
@@ -922,7 +924,7 @@ function SafetyMeetingDetail({ meetingId, onBack }) {
               <span style={{ fontSize: F.label, color: C.muted }}>
                 {c.performed_by_name || c.performed_by || ""}
                 {(() => {
-                  const d = renderAuditDetails(c.details);
+                  const d = renderAuditDetails(c.details, resolveUuid);
                   return d ? ` — ${d}` : "";
                 })()}
               </span>

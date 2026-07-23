@@ -2,13 +2,33 @@
 // as human-readable text (Reggie: "the log should say what happened, when and
 // by whom" — not "changes: …"). Consumed by the meeting CHANGE LOG and the
 // Activity Log (Entry 7).
-const short = (v) => {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// v28.399 (Reggie: "uuid → uuid doesn't actually tell the user anything") —
+// values normalize at RENDER time, so even historical audit rows read as
+// names and clean dates:
+//   uuid            → the person's name (via the resolver the caller passes)
+//   2026-07-21T00:00:00.000Z → 2026-07-21
+//   11:00:00        → 11:00
+const normalize = (v, resolve) => {
+  const str = String(v);
+  if (UUID_RE.test(str) && resolve) {
+    const name = resolve(str);
+    if (name) return name;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T00:00:00/.test(str)) return str.slice(0, 10);
+  if (/^\d{2}:\d{2}:\d{2}$/.test(str)) return str.slice(0, 5);
+  return str.slice(0, 80);
+};
+
+const makeShort = (resolve) => (v) => {
   if (v === null || v === undefined || v === "") return "—";
-  if (typeof v !== "object") return String(v).slice(0, 80);
+  if (typeof v !== "object") return normalize(v, resolve);
   return null; // caller recurses
 };
 
-export function renderAuditDetails(details) {
+export function renderAuditDetails(details, resolve) {
+  const short = makeShort(resolve);
   if (!details) return "";
   let obj = details;
   if (typeof details === "string") {

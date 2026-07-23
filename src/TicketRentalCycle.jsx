@@ -42,6 +42,40 @@ export function RentalCountdown({ ticket }) {
   );
 }
 
+// v28.399 — the cycle windows made EXPLICIT (Reggie: "every 28 days is
+// currently ambiguous"). Anniversary-based, ratified 260723: cycle N runs
+// start + (N-1)·cycleDays through start + N·cycleDays − 1. Calendar months
+// and weekdays are deliberately irrelevant — 13 equal periods a year, the
+// start day IS the anniversary, no snapping to Mondays ever.
+function currentCycleWindow(startDate, cycleDays) {
+  if (!startDate) return null;
+  const start = new Date(String(startDate).slice(0, 10) + "T00:00:00");
+  if (isNaN(start.getTime())) return null;
+  const days = Math.max(1, Number(cycleDays) || 28);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const elapsed = Math.floor((today - start) / 86400000);
+  const n = Math.max(1, Math.floor(elapsed / days) + 1);
+  const iso = (d) => d.toLocaleDateString("en-CA");
+  return {
+    n,
+    winStart: iso(new Date(start.getTime() + (n - 1) * days * 86400000)),
+    winEnd: iso(new Date(start.getTime() + (n * days - 1) * 86400000)),
+    nextBill: iso(new Date(start.getTime() + n * days * 86400000)),
+  };
+}
+
+function CycleWindowLine({ startDate, cycleDays, recurring }) {
+  const w = currentCycleWindow(startDate, cycleDays);
+  if (!w) return null;
+  return (
+    <span style={{ fontSize: 11, color: TINT.grayText, fontWeight: 700 }}>
+      CYCLE {w.n}: {formatDate(w.winStart)} → {formatDate(w.winEnd)}
+      {recurring ? ` · next cycle starts ${formatDate(w.nextBill)}` : ""}
+    </span>
+  );
+}
+
 // ─── TicketRentalCycle (v27.79) ─────────────────────────────────────────────
 // Extracted from TicketDetail.jsx. Rental-only band showing start/end/cycle
 // days + recurring toggle, with RentalCountdown pill inline. Renders nothing
@@ -135,6 +169,7 @@ function TicketRentalCycle({ ticket, readOnly, values, onChange }) {
             </span>
           )}
           <RentalCountdown ticket={ctx} />
+          <CycleWindowLine startDate={startDate} cycleDays={cycleDays} recurring={recurring} />
         </div>
       </div>
     );
@@ -164,6 +199,7 @@ function TicketRentalCycle({ ticket, readOnly, values, onChange }) {
           <span style={{ color: recurring ? C.green : C.muted }}>{recurring ? "● Recurring" : "○ Not recurring"}</span>
         </label>
         <RentalCountdown ticket={ctx} />
+        <CycleWindowLine startDate={startDate} cycleDays={cycleDays} recurring={recurring} />
       </div>
     </div>
   );
