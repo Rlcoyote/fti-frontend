@@ -33,7 +33,7 @@ function EditWorkOrderPinResolver({ googlePin, setGooglePin, pinLat, setPinLat, 
     setPinLng(lng);
     try {
       // Geocode to state/county
-      const geoR = await fetch(`${API_URL}/jobs/geocode`, {
+      const geoR = await fetch(`${API_URL}/work-orders/geocode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lat, lng }),

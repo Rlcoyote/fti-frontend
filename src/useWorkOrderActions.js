@@ -106,7 +106,7 @@ export function useWorkOrderActions({
       equipment: newJob.equipment || [],
     };
     try {
-      const saved = await api.post("/jobs", payload);
+      const saved = await api.post("/work-orders", payload);
       const mappedJob = {
         ...newJob,
         id: saved.id,
@@ -162,7 +162,7 @@ export function useWorkOrderActions({
     if (!can("delete_jobs")) return;
     const job = jobs.find((j) => j.id === workOrderId);
     try {
-      await api.put(`/jobs/${workOrderId}`, { status: "Deleted" });
+      await api.put(`/work-orders/${workOrderId}`, { status: "Deleted" });
       await logAudit(
         "job_delete",
         "job",
@@ -184,7 +184,7 @@ export function useWorkOrderActions({
 
   const handleRestoreJob = async (workOrderId) => {
     try {
-      await api.put(`/jobs/${workOrderId}`, { status: "Scheduled" });
+      await api.put(`/work-orders/${workOrderId}`, { status: "Scheduled" });
       await logAudit(
         "job_restore",
         "job",
@@ -275,7 +275,7 @@ export function useWorkOrderActions({
   const handleFlagCancel = async (workOrderId) => {
     const job = jobs.find((j) => j.id === workOrderId);
     try {
-      await api.put(`/jobs/${workOrderId}`, { status: "flaggedCancel" });
+      await api.put(`/work-orders/${workOrderId}`, { status: "flaggedCancel" });
       await logAudit(
         "job_flag_cancel",
         "job",
@@ -323,7 +323,7 @@ export function useWorkOrderActions({
         payload.wells = updates.wells.map((w) => (typeof w === "string" ? { well_name: w } : w));
       }
       if (updates.crew) payload.crew = updates.crew.map((c) => ({ name: c.name, role: c.role, user_id: userIdByName[c.name] || null }));
-      await api.put(`/jobs/${id}`, payload);
+      await api.put(`/work-orders/${id}`, payload);
       await logAudit("job_edit", "job", id, { customer: oldJob?.customer, status: oldJob?.status }, updates, `Work Order #${id} edited by ${currentUser.name}`);
 
       // v28.54 — record SMS consents for any newly-captured phones. Posted

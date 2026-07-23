@@ -120,7 +120,7 @@ export default function useTicketState(ticket, job) {
     const lng = ticketPinLng || job?.pinLng || job?.pin_lng;
     if (!lat || !lng) return;
     setDriveLoading(true);
-    fetch(`${API_URL}/jobs/drive-distance`, {
+    fetch(`${API_URL}/work-orders/drive-distance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ destLat: lat, destLng: lng, yard_index: yardLocationIndex }),

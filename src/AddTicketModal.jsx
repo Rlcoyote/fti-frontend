@@ -177,7 +177,7 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
       return;
     }
     setDriveLoading(true);
-    fetch(`${API_URL}/jobs/drive-distance`, {
+    fetch(`${API_URL}/work-orders/drive-distance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ destLat: lat, destLng: lng, yard_index: yardLocationIndex }),
@@ -329,7 +329,7 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
         // Fresh drive calc when we don't have one but now have coords.
         if (driveMin == null && effPinLat && effPinLng) {
           try {
-            const dr = await fetch(`${API_URL}/jobs/drive-distance`, {
+            const dr = await fetch(`${API_URL}/work-orders/drive-distance`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ destLat: effPinLat, destLng: effPinLng, yard_index: yardLocationIndex }),

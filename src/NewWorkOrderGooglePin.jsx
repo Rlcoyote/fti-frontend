@@ -47,7 +47,7 @@ export default function NewWorkOrderGooglePin({ googlePin, setGooglePin, pinLat,
     setPinLng(res.lng);
     try {
       // Step 2: geocode coordinates → state + county
-      const geoR = await fetch(`${API_URL}/jobs/geocode`, {
+      const geoR = await fetch(`${API_URL}/work-orders/geocode`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ lat: res.lat, lng: res.lng }),

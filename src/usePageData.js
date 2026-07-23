@@ -33,7 +33,7 @@ export function usePageData() {
     const load = async () => {
       try {
         const [jobsR, ticketsR, todosR, invR, delTicketsR] = await Promise.all([
-          api.get("/jobs"),
+          api.get("/work-orders"),
           api.get("/tickets?include_voided=true"),
           api.get("/todos"),
           // GET /api/inventory is permission-gated (view_inventory). A 403 must

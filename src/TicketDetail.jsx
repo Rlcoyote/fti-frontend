@@ -634,7 +634,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             if (!s.ticketPinLat || !s.ticketPinLng) return;
             s.setDriveLoading(true);
             try {
-              const r = await fetch(`${API_URL}/jobs/drive-distance`, {
+              const r = await fetch(`${API_URL}/work-orders/drive-distance`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ destLat: s.ticketPinLat, destLng: s.ticketPinLng, yard_index: s.yardLocationIndex }),

@@ -13,7 +13,7 @@ export async function resolveMapPin(url) {
   const clean = String(url || "").trim();
   if (!clean) return { ok: false, error: "No pin URL provided." };
   try {
-    const r = await fetch(`${API_URL}/jobs/resolve-map-pin`, {
+    const r = await fetch(`${API_URL}/work-orders/resolve-map-pin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ url: clean }),
