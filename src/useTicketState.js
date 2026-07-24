@@ -249,7 +249,13 @@ export default function useTicketState(ticket, job) {
           pinLng: ticketPinLng || null,
         }
       : {}),
-    ...(!["Rental", "JSA"].includes(ticketType)
+    // v28.415 — Rental no longer excluded here: a rigged-down Rental (RENTAL
+    // & RIG DOWN) enters time & mileage + GPS on this ticket, and the old
+    // exclusion silently DROPPED those fields from the save. A plain Rental
+    // sending its untouched (empty) time state writes null over null —
+    // harmless — so the gate lives in the UI (TicketDetail hides the
+    // sections), not in the payload.
+    ...(!["JSA"].includes(ticketType)
       ? {
           lvYard,
           arrivalTime,

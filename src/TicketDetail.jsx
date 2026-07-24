@@ -88,6 +88,36 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
   // ── Derived values ──────────────────────────────────────────────────────
   const tcfg = TICKET_TYPES[ticket.type] || { color: C.muted, label: ticket.type || "Unknown" };
+  // ── RENTAL & RIG DOWN (v28.415, Reggie 260723) ──────────────────────────
+  // One button changes the NAME the customer sees ("this rental equipment has
+  // been rigged down and it's off my books") and unlocks the time-tracking
+  // stack — clock-in readiness, GPS, Time & Mileage — so the rig-down crew's
+  // labor and travel go ON this ticket. Type stays "Rental": same row, same
+  // line items, no data movement. Signed/approved refuses (BE enforces too);
+  // toggling ON sets the rental END date to today if it was blank (rig-down
+  // stops the billing clock).
+  const [riggedDown, setRiggedDown] = useState(!!ticket.riggedDownAt);
+  const [rigDownAsk, setRigDownAsk] = useState(false);
+  const rentalRD = ticket.type === "Rental" && riggedDown;
+  const canRigDown = ticket.type === "Rental" && !!ticket.id && !ticket.voidedAt && !["signed", "approved", "sentToQB", "qbVerified"].includes(s.status);
+  const toggleRigDown = async () => {
+    try {
+      const resp = await api.post(`/tickets/${ticket.id}/rig-down`, { on: !riggedDown });
+      const nowOn = !riggedDown;
+      setRiggedDown(nowOn);
+      setRigDownAsk(false);
+      if (nowOn && resp.end_date && !s.rentalEndDate) s.setRentalEndDate(String(resp.end_date).slice(0, 10));
+      if (onUpdate) onUpdate(ticket.id, { riggedDownAt: resp.rigged_down_at, rigged_down_at: resp.rigged_down_at });
+      showNotice(
+        nowOn ? "RENTAL & RIG DOWN" : "Back to RENTAL",
+        nowOn
+          ? "The ticket now reads RENTAL & RIG DOWN everywhere the customer sees it. Time & Mileage and crew clock-in are open below — enter the rig-down labor on this ticket."
+          : "Rig-down cleared. The ticket reads RENTAL again and the time sections are hidden.",
+      );
+    } catch (err) {
+      showNotice("Could not update", err.message || "Server error", "error");
+    }
+  };
   const total = s.lineItems.reduce((sum, li) => sum + calcLineTotal(li), 0);
   const isLocked = !s.isEditing && ["signed", "sigNotReq", "approved", "sentToQB", "qbVerified", "voided"].includes(s.status);
   const isFullyLocked = s.status === "qbVerified" || s.status === "sentToQB";
@@ -413,7 +443,9 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         <div style={{ background: tcfg.color, padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>
+                {rentalRD ? "RENTAL & RIG DOWN" : tcfg.label || ticket.type?.toUpperCase()}
+              </div>
               {editable && (
                 <select
                   value={ticket.type}
@@ -444,6 +476,31 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                     </option>
                   ))}
                 </select>
+              )}
+              {canRigDown && (
+                <button
+                  className="fti-btn"
+                  type="button"
+                  onClick={() => setRigDownAsk(true)}
+                  title={
+                    riggedDown
+                      ? "Pressed by mistake? Clears the rig-down mark (allowed until the ticket is signed)."
+                      : "Equipment rigged down? Renames this ticket RENTAL & RIG DOWN for the customer and opens time & mileage + crew time entry."
+                  }
+                  style={{
+                    background: riggedDown ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.15)",
+                    border: "1px solid rgba(255,255,255,0.5)",
+                    borderRadius: 4,
+                    color: riggedDown ? tcfg.color : C.white,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: "0.06em",
+                    padding: "4px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  {riggedDown ? "✓ RIGGED DOWN" : "RIGGED DOWN?"}
+                </button>
               )}
             </div>
             <div style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em" }}>TICKET DETAIL</div>
@@ -501,7 +558,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             prerequisites (Location Time + Yard above, Pin below) and whether
             the crew can clock into the job yet. Job tickets only (Rental
             doesn't track time). */}
-        {!["Rental"].includes(ticket.type) && (
+        {(ticket.type !== "Rental" || riggedDown) && (
           <TicketClockInReadiness
             dueOnLoc={s.dueOnLoc}
             yardName={yardsList[(s.yardLocationIndex || 1) - 1]?.name}
@@ -547,7 +604,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             and the legacy manual fields below act as a fallback for crews
             on non-GPS vehicles. Hidden for Rental tickets (which don't track
             time at all). */}
-        {!["Rental"].includes(ticket.type) && ticket?.id && (
+        {(ticket.type !== "Rental" || riggedDown) && ticket?.id && (
           <TicketGpsTracking
             ticket={ticket}
             editable={editable}
@@ -567,7 +624,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         )}
 
         {/* Time & Mileage — extracted to TicketTimeAndMileage (v27.78) */}
-        {!["Rental"].includes(ticket.type) && (
+        {(ticket.type !== "Rental" || riggedDown) && (
           <TicketTimeAndMileage
             ticketType={ticket.type}
             editable={editable}
@@ -864,6 +921,20 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         {showVoidConfirm && <TicketVoidModal ticket={ticket} onClose={() => setShowVoidConfirm(false)} onRevise={onRevise} />}
 
         {/* JSA Modal — save handler lives in useTicketJSA (v27.88) */}
+        {rigDownAsk && (
+          <ConfirmModal
+            title={riggedDown ? "Clear the rig-down mark?" : "Mark this rental RIGGED DOWN?"}
+            message={
+              riggedDown
+                ? "The ticket goes back to reading RENTAL and the time & mileage sections hide again. Anything already entered is kept."
+                : "The ticket renames to RENTAL & RIG DOWN everywhere the customer sees it — their signal that the equipment is off their books. Time & Mileage and crew clock-in open up for the rig-down work, and if the rental has no end date it is set to today."
+            }
+            yesLabel={riggedDown ? "CLEAR IT" : "RIG IT DOWN"}
+            accent={tcfg.color}
+            onYes={toggleRigDown}
+            onCancel={() => setRigDownAsk(false)}
+          />
+        )}
         {varianceAsk && (
           <ConfirmModal
             title="Time difference — approve anyway?"

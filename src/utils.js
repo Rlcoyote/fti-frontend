@@ -102,6 +102,7 @@ export const mapTicketFromApi = (t) => {
     missingPieces: t.missing_pieces,
     locked: t.locked,
     ticketNumber: t.ticket_number || null,
+    riggedDownAt: t.rigged_down_at || null, // v28.415 — RENTAL & RIG DOWN flag
     startDate: t.start_date || null,
     endDate: t.end_date || null,
     weekStart: t.week_start || null, // v28.267 — log-family Mon anchor

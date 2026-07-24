@@ -44,3 +44,14 @@ const TYPE_CAPS = {
   Pumper: { jsaInCreate: true, jsaOptional: false, gps: true, times: true, window: false, cycle: false },
 };
 export const typeCaps = (type) => TYPE_CAPS[type] || { jsaInCreate: false, jsaOptional: true, gps: false, times: false, window: false, cycle: false };
+
+// ─── RENTAL & RIG DOWN (v28.415) ─────────────────────────────────────────────
+// One button on a Rental marks the equipment rigged down. The ticket stays
+// type "Rental" (same row, same data, same billing lines) — only the NAME
+// changes, because that's all the customer needs: "this rental equipment has
+// been rigged down and it's off my books" (Reggie, 260723). Rigged down also
+// unlocks the time-tracking stack (clock-in, GPS, Time & Mileage) so the
+// rig-down crew's labor and travel go ON this ticket. One home for the flag
+// check and the label — every surface that prints a type name reads these.
+export const isRiggedDownRental = (t) => t?.type === "Rental" && !!(t.riggedDownAt || t.rigged_down_at);
+export const ticketTypeLabel = (t, fallback) => (isRiggedDownRental(t) ? "Rental & Rig Down" : (fallback ?? t?.type));

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useIsMobile from "./useIsMobile.js";
+import { isRiggedDownRental, ticketTypeLabel } from "./ticketFamilies.js";
 import { C, API_URL } from "./config.js";
 import { formatDate, updateTicketApi } from "./utils.js";
 import { TicketTypeBadge, TICKET_TYPES, TICKET_STATUSES } from "./SharedUI.jsx";
@@ -168,7 +169,8 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
       {sorted.length === 0 && <div style={{ textAlign: "center", padding: "60px 0", color: C.muted, fontSize: 14 }}>No tickets match your filters.</div>}
       {sorted.map((t, idx) => {
         const job = jobs.find((j) => j.id === t.workOrderId);
-        const tcfg = TICKET_TYPES[t.type] || { color: C.muted, label: t.type };
+        const base = TICKET_TYPES[t.type] || { color: C.muted, label: t.type };
+        const tcfg = isRiggedDownRental(t) ? { ...base, label: ticketTypeLabel(t) } : base; // v28.415
         const scfg = TICKET_STATUSES[t.status] || { color: C.muted, bg: C.steel, label: t.status };
         const total = (t.lineItems || []).reduce((s, li) => s + (li.rate || 0) * (li.qty || 0) * (li.days || 1), 0);
         const isDragging = dragIdx === idx;
