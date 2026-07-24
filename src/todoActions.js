@@ -26,8 +26,22 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError, onComp
     };
     try {
       const saved = await api.post("/todos", payload);
+      // v28.424 — carry the IDs the MINE scope filters on: the optimistic
+      // append lacked assignedToId/createdById, so a fresh task was invisible
+      // in MY TASKS until a full reload re-fetched the mapped row (Reggie
+      // caught it minutes after v28.422 went live).
       setTodos((prev) => [
-        { id: saved.id, ...form, createdBy: getCurrentUser(), assignedTo: form.assignedTo, completed: false, completedBy: null, completedAt: null },
+        {
+          id: saved.id,
+          ...form,
+          createdBy: getCurrentUser(),
+          createdById: payload.created_by,
+          assignedTo: form.assignedTo,
+          assignedToId: payload.assigned_to,
+          completed: false,
+          completedBy: null,
+          completedAt: null,
+        },
         ...prev,
       ]);
       return true;
@@ -49,7 +63,9 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError, onComp
     };
     try {
       await api.put(`/todos/${id}`, payload);
-      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, ...form } : t)));
+      // v28.424 — same ID-carry on edit: a reassignment must update the ID
+      // the scope filter reads, not just the display name.
+      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, ...form, assignedToId: payload.assigned_to } : t)));
       return true;
     } catch (err) {
       fail("update", err);

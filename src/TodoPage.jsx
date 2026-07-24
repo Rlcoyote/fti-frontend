@@ -31,7 +31,10 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
   const { currentUser, can } = useApp();
   const [scope, setScope] = useState("mine");
   const canAudit = can("audit_action_items");
-  const isMine = (t) => t.assignedToId === currentUser?.id || t.createdById === currentUser?.id;
+  // Name fallback = belt-and-suspenders: if any code path ever lands a todo
+  // without the mapped IDs again, the task still shows on its owner's plate.
+  const isMine = (t) =>
+    t.assignedToId === currentUser?.id || t.createdById === currentUser?.id || t.assignedTo === currentUser?.name || t.createdBy === currentUser?.name;
   const myTodos = scope === "mine" ? todos.filter(isMine) : todos;
 
   const filtered = myTodos.filter((t) => {

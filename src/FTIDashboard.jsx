@@ -250,7 +250,11 @@ function FTIDashboard() {
   // v28.325 — shared board: badges count ALL active action items.
   // v28.422 — the Tasks badge counts MY open items (assigned to me or created
   // by me), not the whole board — the board lives one tap away in ALL.
-  const myActiveTodos = todos.filter((t) => !t.completed && (t.assignedToId === currentUser?.id || t.createdById === currentUser?.id));
+  const myActiveTodos = todos.filter(
+    (t) =>
+      !t.completed &&
+      (t.assignedToId === currentUser?.id || t.createdById === currentUser?.id || t.assignedTo === currentUser?.name || t.createdBy === currentUser?.name),
+  );
 
   // v28.188 — Final Review badge. A ticket lands on the Final Review page once
   // a lead approves it (status='approved'); it leaves once an owner sends it
