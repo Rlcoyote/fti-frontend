@@ -102,6 +102,8 @@ export function usePageData() {
           // v28.336 — Safety Meeting spec §2.12-13
           category: t.category || "todo",
           completionNotes: t.completion_notes,
+          notifyAt: t.notify_at,
+          notifySentAt: t.notify_sent_at,
           createdAt: t.created_at,
         }));
         // Transform inventory

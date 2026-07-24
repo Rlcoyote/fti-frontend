@@ -47,6 +47,8 @@ test("MINE shows my task and EDIT opens the editor there", async ({ page }) => {
   await expect(page.getByText("Someone elses task")).not.toBeVisible();
   await page.getByRole("button", { name: "EDIT" }).first().click();
   await expect(page.getByRole("button", { name: /SAVE/ })).toBeVisible();
+  // v28.429 — the scheduled-text field rides on every editor.
+  await expect(page.getByText("TEXT ASSIGNEE AT")).toBeVisible();
   // v28.428 (Reggie: notes BEFORE the checkmark) — the editor shows the
   // COMPLETION NOTES field up front; MARK DONE stays disabled until a
   // reason is written, then completes directly.

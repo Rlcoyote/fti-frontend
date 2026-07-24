@@ -3,6 +3,14 @@ import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
 import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
 
+// v28.429 — ISO (UTC) → the local "YYYY-MM-DDTHH:MM" a datetime-local wants.
+function toLocalDateTimeInput(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames = [], initial = null, onReactivate = null, onMarkDone = null }) {
   // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
   const [form, setForm] = useState({
@@ -15,6 +23,9 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
     // item (paper towels). Default TO-DO (ratified 2026-07-16).
     category: initial?.category || "todo",
     dueDate: (initial?.dueDate || "").slice(0, 10), // date input needs YYYY-MM-DD
+    // v28.429 — when the assignment TEXT should fire. datetime-local wants
+    // "YYYY-MM-DDTHH:MM" in the user's own clock; blank = text right now.
+    notifyAt: initial?.notifyAt ? toLocalDateTimeInput(initial.notifyAt) : "",
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   // v28.428 (Reggie: "The completion notes section should already be visible.
@@ -102,6 +113,22 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
         <div>
           <label style={labelStyle}>DUE DATE</label>
           <input type="date" style={inputStyle} value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
+        </div>
+        <div>
+          {/* v28.429 (Reggie, 12:39am: "I don't want them to get the text
+              tonight") — schedule the assignment SMS. Blank = text now.
+              A scheduled text sends even to yourself — that's the morning
+              reminder. */}
+          <label style={labelStyle} title="When the assignment text should send. Leave blank to text immediately.">
+            TEXT ASSIGNEE AT
+          </label>
+          <input
+            type="datetime-local"
+            style={inputStyle}
+            value={form.notifyAt}
+            onChange={(e) => set("notifyAt", e.target.value)}
+            title="Leave blank to text immediately. Set a time and the text waits — even a text to yourself (a morning reminder)."
+          />
         </div>
       </div>
       {onMarkDone && (
@@ -277,6 +304,11 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
             FOR {todo.assignedTo === meName ? "YOU" : todo.assignedTo}
           </span>
           <span style={{ fontSize: 11, color: C.muted }}>by {todo.createdBy}</span>
+          {!todo.completed && todo.notifyAt && !todo.notifySentAt && new Date(todo.notifyAt) > new Date() && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: C.blue, border: `1px solid ${C.blue}44`, borderRadius: 3, padding: "2px 7px" }}>
+              📱 TEXTS {new Date(todo.notifyAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}
+            </span>
+          )}
           {todo.completed && todo.completedBy && (
             <span style={{ fontSize: 11, color: C.green }}>
               ✓ {todo.completedBy} · {todo.completedAt?.slice(0, 10)}

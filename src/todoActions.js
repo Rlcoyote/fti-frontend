@@ -21,6 +21,7 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError, onComp
       priority: form.priority,
       due_date: form.dueDate,
       category: form.category || "todo",
+      notify_at: form.notifyAt ? new Date(form.notifyAt).toISOString() : null,
       created_by: userIdByName[getCurrentUser()],
       assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
     };
@@ -41,6 +42,8 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError, onComp
           completed: false,
           completedBy: null,
           completedAt: null,
+          notifyAt: payload.notify_at,
+          notifySentAt: null,
         },
         ...prev,
       ]);
@@ -59,13 +62,14 @@ export function makeTodoActions({ todos, setTodos, userIdByName, onError, onComp
       priority: form.priority,
       due_date: form.dueDate,
       category: form.category || "todo",
+      notify_at: form.notifyAt ? new Date(form.notifyAt).toISOString() : null,
       assigned_to: userIdByName[form.assignedTo] || userIdByName[getCurrentUser()],
     };
     try {
       await api.put(`/todos/${id}`, payload);
       // v28.424 — same ID-carry on edit: a reassignment must update the ID
       // the scope filter reads, not just the display name.
-      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, ...form, assignedToId: payload.assigned_to } : t)));
+      setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, ...form, assignedToId: payload.assigned_to, notifyAt: payload.notify_at } : t)));
       return true;
     } catch (err) {
       fail("update", err);

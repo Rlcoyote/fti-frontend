@@ -276,7 +276,7 @@ export const TUTORIAL_MODULES = [
         steps: [
           "ACTION ITEMS in the nav (or ☐ My Tasks on the Dashboard) opens YOUR tasks — assigned to you or created by you. Flip SHOW to ALL for the whole board; nothing is hidden, your work just comes first.",
           "Every card says FOR who and by who on its face — FOR YOU lights up blue. Overdue dates go red.",
-          "Assigned a task? The assignee's phone gets a text the moment it lands (if they've opted in to SMS).",
+          "Assigned a task? The assignee's phone gets a text the moment it lands (if they've opted in to SMS). Assigning at midnight? Set TEXT ASSIGNEE AT and the text waits for the time you pick — including a text to yourself as a morning reminder.",
           "Closing a task is notes-first: open it, write COMPLETION NOTES — what closed it out — then press MARK DONE (the button waits until the reason is written). The DONE box on the row is the quick path and asks for the same notes.",
           "Tasks are editable after creation, and safety-meeting action items land in this same pool automatically.",
           "Managers see a third view — BY PERSON: every employee's open, overdue, and completed-this-week at a glance, completion notes readable. Assigned work is audited work.",
