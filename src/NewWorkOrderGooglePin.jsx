@@ -18,7 +18,7 @@ import { inputStyle, labelStyle } from "./SharedUI.jsx";
 //   create payload reads them) — passed back via setters.
 //
 // Two-step async preserved verbatim:
-//   1. POST /jobs/resolve-map-pin { url } → { lat, lng }
+//   1. POST /work-orders/resolve-map-pin { url } → { lat, lng }
 //   2. POST /jobs/geocode { lat, lng } → { state, county }
 //
 // Step 2 failure is non-fatal — the pin still resolves to coordinates;

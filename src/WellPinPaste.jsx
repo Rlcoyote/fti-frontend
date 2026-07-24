@@ -12,7 +12,7 @@ import { inputStyle, labelStyle } from "./SharedUI.jsx";
 // is sized for the WO-level LOCATION block — full width, separate label,
 // resolves state + county too. A per-well override only needs lat/lng (state
 // + county are owned by the parent WO), and the row needs a compact UI that
-// fits inside a well-row card. Same /api/jobs/resolve-map-pin call; smaller
+// fits inside a well-row card. Same /api/work-orders/resolve-map-pin call; smaller
 // surface.
 //
 // Crews paste a Google Maps share link → RESOLVE → pinLat / pinLng populate.

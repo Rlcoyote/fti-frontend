@@ -11,7 +11,7 @@ import { inputStyle, TINT } from "./SharedUI.jsx";
 // This component owns only its transient resolving flag + resolve error.
 //
 // Displays:
-// - Pin input with "RESOLVE" button (POSTs to /jobs/resolve-map-pin)
+// - Pin input with "RESOLVE" button (POSTs to /work-orders/resolve-map-pin)
 // - ALT PIN warning when ticket pin differs from the WO pin
 // - Resolved coordinates + "View on Google Maps" link
 // - "CALC DRIVE" button → fires onCalcDrive callback; parent owns the fetch

@@ -12,7 +12,7 @@ import { inputStyle, TINT } from "./SharedUI.jsx";
 // WO's pin for this specific ticket.
 //
 // Per CAM XXV: receives ticketPin + setters + resolved lat/lng + the
-// jobGooglePin for mismatch detection. The fetch to /jobs/resolve-map-pin
+// jobGooglePin for mismatch detection. The fetch to /work-orders/resolve-map-pin
 // stays here because no other site uses it.
 
 export default function AddTicketGooglePin({
