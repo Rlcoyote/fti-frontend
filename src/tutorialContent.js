@@ -13,6 +13,14 @@
 // WHITE-LABEL: content speaks the app's own vocabulary (Work Order, ticket,
 // JSA, DVIR) — nothing FTI-specific beyond the module set itself, and gated
 // modules vanish for tenants whose roles never see those surfaces.
+//
+// ── THE STANDING RULE (Reggie, ratified 260723: "No rotting.") ──────────────
+// Any version that ships a teachable feature updates its lesson HERE, in the
+// SAME version. scripts/check-tutorial.mjs enforces the structural half in
+// CI (nav coverage, tour anchors, gate keys) and fails the build on drift;
+// the judgment half — "does this change deserve a lesson?" — is on whoever
+// ships the change. If you're adding a surface and wondering whether to
+// teach it: yes.
 
 export const TUTORIAL_MODULES = [
   {
@@ -37,6 +45,8 @@ export const TUTORIAL_MODULES = [
           "Grouped pills (TIME, SAFETY, HISTORY) open on hover or tap and hold their related pages.",
           "The 🔍 button in the header searches EVERYTHING you can see — WO numbers, ticket numbers like 300178-1, people, customers, documents, vehicles.",
           "The sun/moon button flips light and dark mode. Every screen honors it.",
+          "ALL TICKETS is every ticket across every job in one filterable list — when you know the ticket but not the job.",
+          "Under HISTORY: Work Order History is every past job, Archive holds completed ones, and Deleted is the recoverable trash — nothing hard-deletes from the glass.",
         ],
       },
       {
@@ -185,6 +195,10 @@ export const TUTORIAL_MODULES = [
         ],
       },
       {
+        title: "Certifications",
+        steps: ["SAFETY → Training holds your certifications and their expiries — what you're carded for and when it lapses."],
+      },
+      {
         title: "What a JSA signature means",
         steps: [
           "Signing a JSA attests you were there and briefed — attendance, not authorship.",
@@ -229,6 +243,23 @@ export const TUTORIAL_MODULES = [
         steps: [
           "TIME → Clock. CLOCK IN when you start, CLOCK OUT when you stop. The ticket's clock-in readiness strip shows when the job is set up enough to clock into.",
           "TIME → My Hours shows your own record. Something wrong? Submit a correction — it routes to a reviewer, nothing gets silently edited.",
+        ],
+      },
+    ],
+  },
+  {
+    key: "fleet",
+    icon: "📦",
+    title: "FLEET & INVENTORY",
+    gate: { perm: "view_inventory" },
+    blurb: "Equipment, trucks, and where everything is.",
+    lessons: [
+      {
+        title: "The four surfaces",
+        steps: [
+          "INVENTORY tracks equipment out against Work Orders — what's on which location and what's home.",
+          "ASSETS is the registry of owned equipment; VEHICLES is the fleet with its DVIR standing and red-tag status.",
+          "YARDS defines the bases trucks roll from — drive-time math and the LV YARD / RET YARD stamps key off them.",
         ],
       },
     ],
