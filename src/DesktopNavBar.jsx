@@ -163,6 +163,7 @@ function HeaderSearch({ navigate }) {
           padding: "4px 12px",
           minWidth: 170,
         }}
+        data-tut="search"
       >
         <span style={{ fontSize: 12 }}>🔍</span>
         <input
@@ -363,6 +364,7 @@ function DesktopNavBar({
       {/* CENTER — the nav, real buttons, center-justified (v28.356; was
           right-strewn spans — Reggie: "just a bunch of words scattered") */}
       <div
+        data-tut="nav"
         className="fti-desktop-nav"
         style={{ display: "flex", flex: 1, gap: 6, alignItems: "center", justifyContent: "center", flexWrap: "wrap", padding: "6px 12px" }}
       >
@@ -463,6 +465,7 @@ function DesktopNavBar({
             currentUser.role === "owner") && (
             <div style={{ position: "relative" }}>
               <span
+                data-tut="gear"
                 onClick={() => setShowSettingsMenu((v) => !v)}
                 style={{ fontSize: 18, color: showSettingsMenu ? C.headerText : C.headerMuted, cursor: "pointer", lineHeight: 1, userSelect: "none" }}
                 title="Settings"

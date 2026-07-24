@@ -29,6 +29,7 @@ const NAV = [
   ["Safety", "safety", "/safety"],
   ["Safety Meetings", "safetyMeetings", "/safety-meetings"],
   ["Training", "training", "/training"],
+  ["Tutorial", "tutorial", "/tutorial"], // v28.419 — THE tutorial (everyone)
   ["Final Review", "finalReview", "/final-review"],
   ["Reports", "reports", "/reports"],
   ["Deleted", "deleted", "/deleted"],

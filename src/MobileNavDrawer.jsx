@@ -61,6 +61,7 @@ const NAV_ICONS = {
   Safety: "🛡",
   "Safety Meetings": "🦺",
   Training: "🎓",
+  Tutorial: "📖",
   "Final Review": "✅",
   Reports: "📊",
   Deleted: "🗑",

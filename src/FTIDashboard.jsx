@@ -25,6 +25,9 @@ import PeoplePage from "./PeoplePage.jsx";
 import EmergencyContactsModal from "./EmergencyContactsModal.jsx";
 import CompanyLibraryModal from "./CompanyLibraryModal.jsx";
 import GlobalSearch from "./GlobalSearch.jsx";
+import TutorialPage, { DASHBOARD_TOUR_EVENT } from "./TutorialPage.jsx";
+import SpotlightTour from "./SpotlightTour.jsx";
+import { DASHBOARD_TOUR_STEPS } from "./tutorialContent.js";
 import AboutModal from "./AboutModal.jsx";
 import JobTitlesPage from "./JobTitlesPage.jsx";
 import ArchivePage from "./ArchivePage.jsx";
@@ -112,6 +115,17 @@ function FTIDashboard() {
 
   // ── URL-driven page string for nav highlighting ──
   const navigate = useNavigate();
+  // v28.419 — dashboard tour: navigate home first (the anchors live there).
+  const [tourOpen, setTourOpen] = useState(false);
+  useEffect(() => {
+    const start = () => {
+      navigate("/");
+      setTimeout(() => setTourOpen(true), 150);
+    };
+    window.addEventListener(DASHBOARD_TOUR_EVENT, start);
+    return () => window.removeEventListener(DASHBOARD_TOUR_EVENT, start);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const location = useLocation();
   // v28.253 — derived from the ONE nav map (src/navMap.js). The old inline
   // if-chain was a third copy of the nav routing knowledge and had drifted
@@ -314,6 +328,7 @@ function FTIDashboard() {
     "Safety",
     "Safety Meetings",
     "Training",
+    "Tutorial",
     "Final Review",
     "Reports",
     "Deleted",
@@ -482,6 +497,8 @@ function FTIDashboard() {
         {["owner", "admin"].includes(userRole) && <Route path="/error-log" element={<ErrorLogPage />} />}
         <Route path="/clock" element={<ClockPage />} />
         <Route path="/training" element={<TrainingPage />} />
+        {/* v28.419 — THE tutorial: everyone; content self-filters by role. */}
+        <Route path="/tutorial" element={<TutorialPage />} />
         <Route path="/my-hours" element={<MyHoursPage />} />
         {(userRole === "owner" || userRole === "admin") && <Route path="/labor-time-rules" element={<LaborTimeRulesPage />} />}
         {can("approve_time_corrections") && <Route path="/time-review" element={<TimeReviewPage />} />}
@@ -542,6 +559,10 @@ function FTIDashboard() {
       {showFieldResources && <CompanyLibraryModal onClose={() => setShowFieldResources(false)} />}
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       {showSearch && <GlobalSearch onClose={() => setShowSearch(false)} />}
+      {/* v28.419 — dashboard tour host. The tour's anchors live on the
+          dashboard, so the dashboard owns the overlay; TutorialPage and the
+          first-run nudge fire the event from wherever they are. */}
+      {tourOpen && <SpotlightTour steps={DASHBOARD_TOUR_STEPS} onClose={() => setTourOpen(false)} />}
       {/* v28.288 (theme arc) — was a hand-rolled copy of ConfirmModal */}
       {showLogoutConfirm && (
         <ConfirmModal
