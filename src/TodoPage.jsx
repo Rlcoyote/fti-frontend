@@ -134,21 +134,46 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
                 )}
                 <span style={{ fontSize: 11, color: C.green, fontWeight: 700, marginLeft: "auto" }}>✓ {b.doneWeek.length} done this week</span>
               </div>
-              {[...b.open, ...b.doneWeek].map((t) => (
-                <TodoRow
-                  key={t.id}
-                  todo={t}
-                  meName={currentUser?.name}
-                  onToggle={toggleTodo}
-                  onEdit={(todo) => {
-                    setShowForm(false);
-                    setEditing(todo);
-                  }}
-                  onDelete={setConfirmDelete}
-                  onNavigateJob={onNavigateJob}
-                  jobs={jobs}
-                />
-              ))}
+              {[...b.open, ...b.doneWeek].map((t) =>
+                // v28.424 — EDIT works HERE too: this branch set `editing` but
+                // never rendered the form (Reggie: "the edit button doesn't
+                // work in 'by person'"). Same in-place swap as the main list.
+                editing?.id === t.id ? (
+                  <TodoForm
+                    key={t.id}
+                    initial={editing}
+                    onSave={async (form) => {
+                      await updateTodo(editing.id, form);
+                      setEditing(null);
+                    }}
+                    onReactivate={
+                      editing.completed
+                        ? async () => {
+                            await toggleTodo(editing.id);
+                            setEditing(null);
+                          }
+                        : null
+                    }
+                    onCancel={() => setEditing(null)}
+                    jobs={jobs}
+                    userNames={userNames}
+                  />
+                ) : (
+                  <TodoRow
+                    key={t.id}
+                    todo={t}
+                    meName={currentUser?.name}
+                    onToggle={toggleTodo}
+                    onEdit={(todo) => {
+                      setShowForm(false);
+                      setEditing(todo);
+                    }}
+                    onDelete={setConfirmDelete}
+                    onNavigateJob={onNavigateJob}
+                    jobs={jobs}
+                  />
+                ),
+              )}
               {b.open.length === 0 && b.doneWeek.length === 0 && (
                 <div style={{ padding: "10px 14px", fontSize: 12, color: C.muted, fontStyle: "italic" }}>Nothing open, nothing recent.</div>
               )}
