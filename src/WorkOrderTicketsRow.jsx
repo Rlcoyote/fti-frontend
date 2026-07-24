@@ -1,7 +1,7 @@
 import { C } from "./config.js";
-import { typeCaps, isRiggedDownRental, ticketTypeLabel } from "./ticketFamilies.js";
+import { typeCaps } from "./ticketFamilies.js";
 import { formatDate, calcTicketTotal } from "./utils.js";
-import { TicketTypeBadge, TICKET_TYPES } from "./SharedUI.jsx";
+import { TicketTypeBadge, TICKET_TYPES, ticketDisplayCfg } from "./SharedUI.jsx";
 import { RentalCountdown } from "./TicketRentalCycle.jsx";
 import { useApp } from "./AppContext.jsx";
 
@@ -63,9 +63,7 @@ const BTN_BASE = {
 
 export default function WorkOrderTicketsRow({ ticket: t, custEmail, isMobile, isActiveTicket, actions }) {
   const { can } = useApp();
-  const base = TICKET_TYPES[t.type] || { color: C.muted, label: t.type || "Unknown" };
-  // v28.415 — rigged-down Rental renames (color/abbr stay Rental's)
-  const tcfg = isRiggedDownRental(t) ? { ...base, label: ticketTypeLabel(t) } : base;
+  const tcfg = ticketDisplayCfg(t); // v28.416 — rigged-down Rental = RD black + RENTAL & RIG DOWN
   const total = calcTicketTotal(t);
   const isSigned = ["signed", "sigNotReq", "emailed", "approved", "sentToQB", "qbVerified"].includes(t.status);
   const isApproved = t.status === "approved" || t.status === "sentToQB" || t.status === "qbVerified";

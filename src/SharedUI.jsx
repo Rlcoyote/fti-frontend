@@ -4,6 +4,7 @@
    The warning is HMR-only (a full reload instead of hot refresh in dev);
    fragmenting the one-home to satisfy it would trade architecture for
    dev-loop sugar. Documented, not silenced blindly. */
+import { isRiggedDownRental } from "./ticketFamilies.js";
 import { C, E, F, SP, R } from "./config.js";
 import useBodyScrollLock from "./useBodyScrollLock.js";
 import useIsMobile from "./useIsMobile.js";
@@ -92,6 +93,18 @@ export const TICKET_TYPES = {
   Tester: { color: TINT.greenText, bg: TINT.greenBg, label: "TESTER", abbr: "TST" },
   Pumper: { color: TINT.blueText, bg: TINT.blueBg, label: "PUMPER", abbr: "PMP" },
   Rental: { color: TINT.yellowText, bg: TINT.yellowBg, label: "RENTAL", abbr: "RNT" },
+};
+
+// v28.416 — THE ticket-type display config (one home). A rigged-down Rental
+// WEARS RIG DOWN's black — the customer's second visual indicator that the
+// RD happened (Reggie 260723) — with the RENTAL & RIG DOWN name. Everything
+// that colors or labels a ticket by type reads THIS, not TICKET_TYPES raw.
+// `riggedDownOverride` lets TicketDetail restyle live mid-toggle before the
+// ticket prop refreshes.
+export const ticketDisplayCfg = (t, riggedDownOverride) => {
+  const base = TICKET_TYPES[t?.type] || { color: C.muted, label: t?.type || "Unknown" };
+  const rd = riggedDownOverride !== undefined ? riggedDownOverride && t?.type === "Rental" : isRiggedDownRental(t);
+  return rd ? { ...TICKET_TYPES["Rig Down"], label: "RENTAL & RIG DOWN" } : base;
 };
 
 // v28.40 — inField removed. Functionally identical to incomplete (both meant

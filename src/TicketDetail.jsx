@@ -22,7 +22,7 @@ import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import TicketWorkOrderInfo from "./TicketWorkOrderInfo.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
-import { inputStyle, TICKET_TYPES, PANEL_TEXT, PANEL_MUTED, ConfirmModal, Z_INDEX } from "./SharedUI.jsx";
+import { inputStyle, TICKET_TYPES, ticketDisplayCfg, PANEL_TEXT, PANEL_MUTED, ConfirmModal, Z_INDEX } from "./SharedUI.jsx";
 import { toMinutes } from "./ticketTimeValidation.js";
 import useEditLock from "./useEditLock.js";
 import useTicketState from "./useTicketState.js";
@@ -31,7 +31,7 @@ import useTicketDvir from "./useTicketDvir.js";
 import useSignaturePolling from "./useSignaturePolling.js";
 import { PhotoStrip } from "./PhotoStrip.jsx";
 import LineItemEditor from "./LineItemEditor.jsx";
-import { windowDaysInclusive, TICKET_FAMILY, isLogType } from "./ticketFamilies.js";
+import { windowDaysInclusive, isLogType } from "./ticketFamilies.js";
 import TicketWeekDays from "./TicketWeekDays.jsx";
 import WellLogTab from "./WellLogTab.jsx";
 import TicketEquipmentSection from "./TicketEquipmentSection.jsx";
@@ -87,7 +87,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [showVoidConfirm, setShowVoidConfirm] = useState(false);
 
   // ── Derived values ──────────────────────────────────────────────────────
-  const tcfg = TICKET_TYPES[ticket.type] || { color: C.muted, label: ticket.type || "Unknown" };
   // ── RENTAL & RIG DOWN (v28.415, Reggie 260723) ──────────────────────────
   // One button changes the NAME the customer sees ("this rental equipment has
   // been rigged down and it's off my books") and unlocks the time-tracking
@@ -99,6 +98,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   const [riggedDown, setRiggedDown] = useState(!!ticket.riggedDownAt);
   const [rigDownAsk, setRigDownAsk] = useState(false);
   const rentalRD = ticket.type === "Rental" && riggedDown;
+  // v28.416 — rigged-down Rental wears RIG DOWN's BLACK (one home:
+  // ticketDisplayCfg); the live riggedDown state overrides so the panel
+  // recolors the instant the button lands.
+  const tcfg = ticketDisplayCfg(ticket, rentalRD);
   const canRigDown = ticket.type === "Rental" && !!ticket.id && !ticket.voidedAt && !["signed", "approved", "sentToQB", "qbVerified"].includes(s.status);
   const toggleRigDown = async () => {
     try {
@@ -312,18 +315,6 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     onClose();
   };
 
-  // v28.262 — same-family type switch on an existing ticket (Reggie: "the
-  // ability to switch back to another ticket if the situation arises"). Saves
-  // immediately through the normal save path; a signed ticket's signature
-  // wipes (the document changed) exactly as any other billing edit. Cross-
-  // family options are disabled in the dropdown AND refused by BE v28.260.
-  const handleTypeSwitch = (next) => {
-    if (!next || next === ticket.type) return;
-    const wasSigned = !!s.signedBy;
-    handleSigWipe();
-    save({ type: next, ...(wasSigned ? { signedBy: null, signedAt: null, signatureImage: null, status: "incomplete" } : {}) });
-  };
-
   const handleSave = () => {
     if (s.sigWiped) {
       // v28.40 — wipe lands at incomplete (was inField).
@@ -443,40 +434,13 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
         <div style={{ background: tcfg.color, padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>
-                {rentalRD ? "RENTAL & RIG DOWN" : tcfg.label || ticket.type?.toUpperCase()}
-              </div>
-              {editable && (
-                <select
-                  value={ticket.type}
-                  onChange={(e) => handleTypeSwitch(e.target.value)}
-                  title="Switch ticket type (same family). The form recolors; a signed ticket's signature clears."
-                  style={{
-                    background: "rgba(255,255,255,0.15)",
-                    border: "1px solid rgba(255,255,255,0.4)",
-                    borderRadius: 4,
-                    color: C.white,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: "3px 6px",
-                    cursor: "pointer",
-                  }}
-                >
-                  {Object.keys(TICKET_TYPES).map((t) => (
-                    <option
-                      key={t}
-                      value={t}
-                      style={{
-                        color:
-                          "#222" /* native <option> renders on white in most browsers regardless of theme — fixed dark text is the workaround, not drift */,
-                      }}
-                      disabled={TICKET_FAMILY[t] !== TICKET_FAMILY[ticket.type]}
-                    >
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <div style={{ fontSize: 16, fontWeight: 800, color: C.white, letterSpacing: "0.1em" }}>{tcfg.label || ticket.type?.toUpperCase()}</div>
+              {/* v28.416 — the same-family type-switch dropdown RETIRED
+                  (Reggie 260723): it existed for exactly one scenario —
+                  rental becomes a rig-down — and the RIGGED DOWN button IS
+                  that scenario, solved. BE still accepts a type change for
+                  data repair via API. */}
+
               {canRigDown && (
                 <button
                   className="fti-btn"
