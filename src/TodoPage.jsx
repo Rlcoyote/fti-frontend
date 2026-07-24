@@ -50,7 +50,12 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
   const byPerson = {};
   if (scope === "byPerson") {
-    for (const t of todos) {
+    // v28.426 — TYPE scopes the rollup too (Reggie: "the status and type
+    // buttons do not work" there). STATUS is hidden in this view instead:
+    // each person card already splits open vs done-this-week — an
+    // ACTIVE/COMPLETED switch has no honest meaning against that shape.
+    const typed = todos.filter((t) => (typeFilter === "job" ? t.workOrderId : typeFilter === "general" ? !t.workOrderId : true));
+    for (const t of typed) {
       const key = t.assignedTo || "Unassigned";
       const b = (byPerson[key] = byPerson[key] || { open: [], overdue: 0, doneWeek: [] });
       if (!t.completed) {
@@ -98,15 +103,19 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
       <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginRight: 4 }}>SHOW:</span>
         <SegmentedBtns value={scope} onChange={setScope} options={[["mine", "MINE"], ["all", "ALL"], ...(canAudit ? [["byPerson", "BY PERSON"]] : [])]} />
-        <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginLeft: 12, marginRight: 4 }}>STATUS:</span>
-        <SegmentedBtns
-          value={filter}
-          onChange={setFilter}
-          options={[
-            ["active", "ACTIVE"],
-            ["completed", "COMPLETED"],
-          ]}
-        />
+        {scope !== "byPerson" && (
+          <>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginLeft: 12, marginRight: 4 }}>STATUS:</span>
+            <SegmentedBtns
+              value={filter}
+              onChange={setFilter}
+              options={[
+                ["active", "ACTIVE"],
+                ["completed", "COMPLETED"],
+              ]}
+            />
+          </>
+        )}
         <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, marginLeft: 12, marginRight: 4 }}>TYPE:</span>
         <SegmentedBtns
           value={typeFilter}

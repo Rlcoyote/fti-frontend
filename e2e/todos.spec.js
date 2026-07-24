@@ -61,6 +61,12 @@ test("BY PERSON groups by assignee and EDIT opens the editor there", async ({ pa
   await openTodos(page);
   await page.getByRole("button", { name: "BY PERSON" }).click();
   await expect(page.getByText("Other Guy", { exact: true })).toBeVisible();
+  // v28.426 — STATUS hides here (the cards already split open/done); TYPE applies.
+  await expect(page.getByText("STATUS:")).not.toBeVisible();
+  await page.getByRole("button", { name: "JOB-LINKED" }).click();
+  await expect(page.getByText("Mine task")).not.toBeVisible(); // general-only fixture rows filter out
+  await page.getByRole("button", { name: "GENERAL" }).click();
+  await expect(page.getByText("Mine task")).toBeVisible();
   await page.getByRole("button", { name: "EDIT" }).first().click();
   await expect(page.getByRole("button", { name: /SAVE/ })).toBeVisible();
 });
