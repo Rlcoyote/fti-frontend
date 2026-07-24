@@ -70,22 +70,37 @@ export default function WorkOrderTicketsHeader({ ticketCount, approvedCount, onA
               overflow: "hidden",
             }}
           >
+            {/* v28.418 — real <button>s, not click-divs: keyboard/screen-reader
+                reachable, and the E2E all-five-types fence targets button
+                roles (it rightly refused the div version). */}
             {typeKeys.map((key) => {
               const t = TICKET_TYPES[key];
               return (
-                <div
+                <button
                   key={key}
+                  type="button"
+                  className="fti-btn"
                   onClick={() => {
                     setPickerOpen(false);
                     onAdd(key);
                   }}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer" }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    padding: "10px 14px",
+                    cursor: "pointer",
+                    width: "100%",
+                    background: "transparent",
+                    border: "none",
+                    textAlign: "left",
+                  }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = C.steel)}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                 >
                   <span style={{ width: 10, height: 10, borderRadius: "50%", background: t.color, display: "inline-block" }} />
                   <span style={{ fontSize: 13, fontWeight: 800, color: C.text, letterSpacing: "0.04em" }}>{t.label}</span>
-                </div>
+                </button>
               );
             })}
           </div>

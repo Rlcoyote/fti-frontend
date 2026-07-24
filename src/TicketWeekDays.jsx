@@ -133,7 +133,7 @@ function TimeCell({ value, onChange, disabled, accent, isOut }) {
   );
 }
 
-function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated, showNotice, onOpenJsa, jsaBump = 0 }) {
+function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated, showNotice, onOpenJsa, onJsaGaps, jsaBump = 0 }) {
   // v28.273 — per-day JSA chips: one JSA per day (jsas UNIQUE(ticket_id,
   // date), live since Phase 1). jsaBump increments when the parent's JSA
   // modal closes so the chips refresh.
@@ -178,6 +178,21 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
       .catch((e) => setBanner({ kind: "error", text: e.message }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket.id]);
+
+  // v28.418 — lift the sign-gate gap list (worked days lacking a COMPLETED
+  // JSA) so TicketDetail can block the sign actions with the same truth the
+  // red strips show. Computed from raw state (runs before the early return —
+  // rules of hooks). Recomputed on every day edit and every JSA change.
+  const jsaGapsKey = Object.entries(days)
+    .filter(([, r]) => r.in1 || r.out1 || r.in2 || r.out2)
+    .map(([d]) => d)
+    .filter((d) => !jsaIndex[d]?.complete)
+    .sort()
+    .join(",");
+  useEffect(() => {
+    onJsaGaps?.(jsaGapsKey ? jsaGapsKey.split(",") : []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jsaGapsKey]);
 
   if (!weekStart) return <div style={{ fontSize: 12, color: C.red, marginBottom: 10 }}>This ticket has no week anchor — re-create it with a date.</div>;
 
@@ -276,6 +291,13 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
         const r = rowFor(date);
         const t = totals[i];
         const has = t.hours !== null && t.hours !== undefined && !t.err;
+        // v28.418 — sign-gate-per-day (Reggie: "Require it at the beginning of
+        // the day. When time is logged or entered, a reminder flashes"): any
+        // time on the row without a COMPLETED JSA for that date = standing red
+        // strip. It appears the moment the first stamp is typed and clears
+        // itself when the JSA completes. The strip is the reminder; the WALL
+        // is at sign time (FE guard + BE 422 on emailed/signed/sigNotReq).
+        const needsJsa = !!(r.in1 || r.out1 || r.in2 || r.out2) && !jsaIndex[date]?.complete;
         return (
           <div
             key={date}
@@ -393,6 +415,46 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
               onChange={(e) => setField(date, "note", e.target.value)}
               disabled={readOnly}
             />
+            {needsJsa && (
+              <div
+                style={{
+                  flexBasis: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "5px 8px",
+                  borderRadius: 6,
+                  background: `${C.red}14`,
+                  border: `1px solid ${C.red}55`,
+                }}
+              >
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.red, letterSpacing: "0.04em" }}>
+                  ⚠ JSA MUST BE COMPLETED for this day — the week cannot be signed without it.
+                </span>
+                {onOpenJsa && !readOnly && (
+                  <button
+                    className="fti-btn"
+                    type="button"
+                    onClick={() => onOpenJsa(date)}
+                    style={{
+                      marginLeft: "auto",
+                      background: C.red,
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 4,
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: "0.06em",
+                      padding: "4px 10px",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {jsaIndex[date] ? "FINISH JSA" : "START JSA"}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

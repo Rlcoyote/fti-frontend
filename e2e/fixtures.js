@@ -120,7 +120,7 @@ export const REQUIRED_SIGNERS = {
 const BASE_GETS = {
   "/api/settings": {},
   "/api/users": [{ id: TEST_USER.id, name: TEST_USER.name, role: "admin", is_active: true }],
-  "/api/jobs": [TEST_JOB],
+  "/api/work-orders": [TEST_JOB], // v28.418 — congruency: the app speaks work-orders since v28.404
   "/api/customers": [{ id: 1, name: "E2E OIL CO" }],
   "/api/inventory": [],
   "/api/qb-items": [],

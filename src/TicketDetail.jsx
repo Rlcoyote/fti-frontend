@@ -171,6 +171,10 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
   // mirrors the saved week total for log tickets; varianceAsk holds the
   // numbers while the approver decides.
   const [logHours, setLogHours] = useState(null);
+  // v28.418 — sign-gate-per-day: TicketWeekDays lifts the list of worked days
+  // lacking a COMPLETED JSA (same truth as its red strips); the sign guards
+  // below refuse while it's non-empty. BE enforces identically (422).
+  const [logJsaGaps, setLogJsaGaps] = useState([]);
   const [varianceAsk, setVarianceAsk] = useState(null);
   const [jsaBump, setJsaBump] = useState(0);
   const openDayJsa = async (jsaDate) => {
@@ -295,9 +299,22 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     return true;
   };
 
+  // v28.418 — sign-gate-per-day (Reggie 260723): every worked day on a
+  // Tester/Pumper week needs its own COMPLETED JSA before the week signs.
+  const blockIfJsaDaysIncomplete = (whichAction) => {
+    if (!isLogType(ticket.type) || logJsaGaps.length === 0) return false;
+    showNotice(
+      "JSA required for every worked day",
+      `These days have hours but no completed JSA: ${logJsaGaps.map((d) => d.slice(5)).join(", ")}. Complete each day's JSA before ${whichAction}.`,
+      "error",
+    );
+    return true;
+  };
+
   const handleSign = ({ name, date, imageData }) => {
     if (blockIfFutureDated("collecting a signature")) return;
     if (blockIfDvirNotReady("collecting a signature")) return;
+    if (blockIfJsaDaysIncomplete("collecting a signature")) return;
     s.setSignedBy(name);
     s.setSignedAt(date);
     s.setSignatureImage(imageData);
@@ -333,6 +350,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
     if (s.signedBy) return; // Don't allow if already signed
     if (blockIfFutureDated("marking signature not required")) return;
     if (blockIfDvirNotReady("marking signature not required")) return;
+    if (blockIfJsaDaysIncomplete("marking signature not required")) return;
     s.setStatus("sigNotReq");
     setShowSigOptions(false);
     save({ status: "sigNotReq", sigNotReqReason: s.sigNotReqReason, sigNotReqNote: s.sigNotReqNote, signedBy: null, signedAt: null, signatureImage: null });
@@ -749,6 +767,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                   showNotice={showNotice}
                   onOpenJsa={openDayJsa}
                   jsaBump={jsaBump}
+                  onJsaGaps={setLogJsaGaps}
                   onTotalHours={(total, meta) => {
                     setLogHours(total || null);
                     if (meta?.daysWorked !== undefined) setLogDaysWorked(meta.daysWorked);

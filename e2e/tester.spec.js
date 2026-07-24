@@ -33,6 +33,16 @@ test("CREATE TICKET on a Tester posts the ticket", async ({ page }) => {
   expect(sel.body).toBe("none");
   expect(sel.modal).toBe("text");
 
+  // v28.418 — wells are confirmed on EVERY ticket since v28.412 (Reggie:
+  // single-well WOs never asked). Log types don't preselect, so pick the
+  // fixture's one well, confirm, then the form proper renders.
+  await page
+    .locator(".fti-modal-selectable")
+    .locator("span")
+    .filter({ hasText: /^TEST WELL 1H$/ })
+    .click();
+  await page.getByRole("button", { name: /CONFIRM — 1 WELL/ }).click();
+
   await page.getByRole("button", { name: "CREATE TICKET" }).click();
 
   await expect.poll(() => posts.length, { timeout: 8000 }).toBeGreaterThan(0);
