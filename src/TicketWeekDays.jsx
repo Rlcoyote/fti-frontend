@@ -142,6 +142,7 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [banner, setBanner] = useState(null);
+  const [splitOpen, setSplitOpen] = useState({}); // v28.414 — per-day split-pair reveal
 
   const weekStart = ticket.weekStart ? String(ticket.weekStart).slice(0, 10) : null;
   const dates = weekStart ? DAY_NAMES.map((_, i) => addDays(weekStart, i)) : [];
@@ -295,17 +296,52 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
               <div style={{ fontSize: 12, fontWeight: 800, color: has ? accent : C.text, letterSpacing: "0.05em" }}>{DAY_NAMES[i]}</div>
               <div style={{ fontSize: 11, opacity: 0.6 }}>{fmtMD(date)}</div>
             </div>
-            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>IN</span>
-            <TimeCell value={r.in1} onChange={(v) => setField(date, "in1", v)} disabled={readOnly} accent={accent} />
-            <span style={{ opacity: 0.4, fontSize: 11 }}>to</span>
-            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>OUT</span>
-            <TimeCell value={r.out1} onChange={(v) => setField(date, "out1", v)} disabled={readOnly} accent={accent} isOut />
-            <span style={{ opacity: 0.35, fontSize: 10, fontWeight: 800, letterSpacing: "0.04em" }}>SPLIT DAY?</span>
-            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>IN</span>
-            <TimeCell value={r.in2} onChange={(v) => setField(date, "in2", v)} disabled={readOnly} accent={accent} />
-            <span style={{ opacity: 0.4, fontSize: 11 }}>to</span>
-            <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>OUT</span>
-            <TimeCell value={r.out2} onChange={(v) => setField(date, "out2", v)} disabled={readOnly} accent={accent} isOut />
+            {/* v28.414 (Reggie: split days are the EXCEPTION — "it will not be
+                a regular scenario") — one aligned pair by default; the second
+                pair lives behind + SPLIT DAY and auto-shows when it has data. */}
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em", width: 22 }}>IN</span>
+              <TimeCell value={r.in1} onChange={(v) => setField(date, "in1", v)} disabled={readOnly} accent={accent} />
+              <span style={{ opacity: 0.4, fontSize: 11 }}>to</span>
+              <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em", width: 26 }}>OUT</span>
+              <TimeCell value={r.out1} onChange={(v) => setField(date, "out1", v)} disabled={readOnly} accent={accent} isOut />
+            </span>
+            {splitOpen[date] || r.in2 || r.out2 ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                <span style={{ fontSize: 9, fontWeight: 800, color: accent, letterSpacing: "0.06em" }}>SPLIT · IN</span>
+                <TimeCell value={r.in2} onChange={(v) => setField(date, "in2", v)} disabled={readOnly} accent={accent} />
+                <span style={{ opacity: 0.4, fontSize: 11 }}>to</span>
+                <span style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}>OUT</span>
+                <TimeCell value={r.out2} onChange={(v) => setField(date, "out2", v)} disabled={readOnly} accent={accent} isOut />
+                {!readOnly && !r.in2 && !r.out2 && (
+                  <span
+                    onClick={() => setSplitOpen((p) => ({ ...p, [date]: false }))}
+                    style={{ fontSize: 10, color: C.muted, cursor: "pointer", fontWeight: 700 }}
+                  >
+                    ✕
+                  </span>
+                )}
+              </span>
+            ) : (
+              !readOnly && (
+                <span
+                  onClick={() => setSplitOpen((p) => ({ ...p, [date]: true }))}
+                  title="Off location and back on the same day? Add a second in/out pair."
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: C.muted,
+                    border: `1px dashed ${C.border}`,
+                    borderRadius: 4,
+                    padding: "3px 8px",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  + SPLIT DAY
+                </span>
+              )
+            )}
             {onOpenJsa && (
               <span
                 onClick={() => !readOnly && onOpenJsa(date)}
