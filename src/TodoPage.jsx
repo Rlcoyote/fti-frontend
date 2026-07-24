@@ -164,6 +164,14 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
                         : null
                     }
                     onCancel={() => setEditing(null)}
+                    onMarkDone={
+                      editing.completed
+                        ? null
+                        : () => {
+                            setCompleting(editing);
+                            setEditing(null);
+                          }
+                    }
                     jobs={jobs}
                     userNames={userNames}
                   />
@@ -213,6 +221,14 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
                   : null
               }
               onCancel={() => setEditing(null)}
+              onMarkDone={
+                editing.completed
+                  ? null
+                  : () => {
+                      setCompleting(editing);
+                      setEditing(null);
+                    }
+              }
               jobs={jobs}
               userNames={userNames}
             />
@@ -347,6 +363,14 @@ function JobTodoTab({ workOrderId, todos, setTodos, jobs, userNames, userIdByNam
                 : null
             }
             onCancel={() => setEditing(null)}
+            onMarkDone={
+              editing.completed
+                ? null
+                : () => {
+                    setCompleting(editing);
+                    setEditing(null);
+                  }
+            }
             jobs={jobs}
             userNames={userNames}
           />

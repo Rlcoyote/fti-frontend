@@ -3,7 +3,7 @@ import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
 import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
 
-function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames = [], initial = null, onReactivate = null }) {
+function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames = [], initial = null, onReactivate = null, onMarkDone = null }) {
   // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
   const [form, setForm] = useState({
     title: initial?.title || "",
@@ -101,6 +101,15 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <Btn onClick={handleSave}>{initial ? "SAVE CHANGES" : "SAVE TASK"}</Btn>
+        {/* v28.427 — finish the task FROM the task (Reggie went into the
+            editor looking for the completion-notes spot and found no way to
+            close it; the DONE box on the row was the only door). Routes
+            through the same required-notes modal. */}
+        {onMarkDone && (
+          <Btn variant="blue" onClick={onMarkDone}>
+            ✓ MARK DONE
+          </Btn>
+        )}
         <Btn onClick={onCancel} variant="ghost">
           CANCEL
         </Btn>
