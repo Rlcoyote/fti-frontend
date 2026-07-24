@@ -47,10 +47,13 @@ test("MINE shows my task and EDIT opens the editor there", async ({ page }) => {
   await expect(page.getByText("Someone elses task")).not.toBeVisible();
   await page.getByRole("button", { name: "EDIT" }).first().click();
   await expect(page.getByRole("button", { name: /SAVE/ })).toBeVisible();
-  // v28.427 — the task can be finished FROM the editor: MARK DONE routes
-  // through the required completion-notes modal.
-  await page.getByRole("button", { name: "✓ MARK DONE" }).click();
-  await expect(page.getByText(/completion notes/i).first()).toBeVisible();
+  // v28.428 (Reggie: notes BEFORE the checkmark) — the editor shows the
+  // COMPLETION NOTES field up front; MARK DONE stays disabled until a
+  // reason is written, then completes directly.
+  await expect(page.getByText(/COMPLETION NOTES/i).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "✓ MARK DONE" })).toBeDisabled();
+  await page.getByPlaceholder(/Done because/).fill("Handled it on location");
+  await expect(page.getByRole("button", { name: "✓ MARK DONE" })).toBeEnabled();
 });
 
 test("ALL shows everything and EDIT opens the editor there", async ({ page }) => {

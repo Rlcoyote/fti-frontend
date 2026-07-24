@@ -167,8 +167,8 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
                     onMarkDone={
                       editing.completed
                         ? null
-                        : () => {
-                            setCompleting(editing);
+                        : async (notes) => {
+                            await completeTodo(editing.id, notes);
                             setEditing(null);
                           }
                     }
@@ -224,8 +224,8 @@ function TodoPage({ todos, setTodos, jobs, onNavigateJob, userNames, userIdByNam
               onMarkDone={
                 editing.completed
                   ? null
-                  : () => {
-                      setCompleting(editing);
+                  : async (notes) => {
+                      await completeTodo(editing.id, notes);
                       setEditing(null);
                     }
               }
@@ -366,8 +366,8 @@ function JobTodoTab({ workOrderId, todos, setTodos, jobs, userNames, userIdByNam
             onMarkDone={
               editing.completed
                 ? null
-                : () => {
-                    setCompleting(editing);
+                : async (notes) => {
+                    await completeTodo(editing.id, notes);
                     setEditing(null);
                   }
             }

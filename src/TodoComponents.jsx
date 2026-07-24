@@ -17,6 +17,11 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
     dueDate: (initial?.dueDate || "").slice(0, 10), // date input needs YYYY-MM-DD
   });
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  // v28.428 (Reggie: "The completion notes section should already be visible.
+  // Then check 'done'.") — the reason comes BEFORE the checkmark. Visible
+  // notes field on every open task's editor; MARK DONE stays disabled until
+  // a reason is written. Replaces the check-first-then-modal order here.
+  const [completionNotes, setCompletionNotes] = useState("");
 
   const handleSave = () => {
     if (!form.title.trim()) return;
@@ -99,14 +104,28 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
           <input type="date" style={inputStyle} value={form.dueDate} onChange={(e) => set("dueDate", e.target.value)} />
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      {onMarkDone && (
+        <div style={{ marginTop: 12 }}>
+          <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.06em", display: "block", marginBottom: 4 }}>
+            COMPLETION NOTES — what closed this out
+          </label>
+          <textarea
+            style={{ ...inputStyle, width: "100%", minHeight: 54, resize: "vertical" }}
+            placeholder="Done because… (required to MARK DONE)"
+            value={completionNotes}
+            onChange={(e) => setCompletionNotes(e.target.value)}
+          />
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <Btn onClick={handleSave}>{initial ? "SAVE CHANGES" : "SAVE TASK"}</Btn>
-        {/* v28.427 — finish the task FROM the task (Reggie went into the
-            editor looking for the completion-notes spot and found no way to
-            close it; the DONE box on the row was the only door). Routes
-            through the same required-notes modal. */}
         {onMarkDone && (
-          <Btn variant="blue" onClick={onMarkDone}>
+          <Btn
+            variant="blue"
+            disabled={!completionNotes.trim()}
+            title={completionNotes.trim() ? "Complete this task with the notes above" : "Write the completion notes first — that's the closure record"}
+            onClick={() => onMarkDone(completionNotes.trim())}
+          >
             ✓ MARK DONE
           </Btn>
         )}
