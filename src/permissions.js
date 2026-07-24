@@ -84,6 +84,8 @@ export const PERMISSION_CATEGORIES = [
   { key: "safety_meeting_edit", label: "Edit Meeting Content", group: "Safety Meetings" },
   { key: "safety_meeting_delete", label: "Delete Safety Meetings", group: "Safety Meetings" },
   { key: "manage_safety_topics", label: "Manage Safety Topic Bank", group: "Safety Meetings" },
+  // v28.422 — Action Items dummy-proofing (ratified 260723)
+  { key: "audit_action_items", label: "Action Items — By-Person Audit", group: "Action Items" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -151,6 +153,7 @@ export const DEFAULT_PERMS = {
     safety_meeting_edit: false,
     safety_meeting_delete: false,
     manage_safety_topics: false,
+    audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
   },
   salesman: {
     view_jobs: true,
@@ -183,6 +186,7 @@ export const DEFAULT_PERMS = {
     safety_meeting_edit: false,
     safety_meeting_delete: false,
     manage_safety_topics: false,
+    audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
   },
   field: {
     view_jobs: true,
@@ -215,6 +219,7 @@ export const DEFAULT_PERMS = {
     safety_meeting_edit: false,
     safety_meeting_delete: false,
     manage_safety_topics: false,
+    audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
   },
   // hse — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Cross-existing: view_jobs + view_reports + view_activity_log ON, other
@@ -250,6 +255,7 @@ export const DEFAULT_PERMS = {
     safety_meeting_edit: false,
     safety_meeting_delete: false,
     manage_safety_topics: false,
+    audit_action_items: true, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
   },
   // mechanic — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Tight boundary: every one of the 17 existing keys OFF. Only DVIR-side:
@@ -285,6 +291,7 @@ export const DEFAULT_PERMS = {
     safety_meeting_edit: false,
     safety_meeting_delete: false,
     manage_safety_topics: false,
+    audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
   },
   // dispatch — added v28.177. Operations / fleet dispatcher role. Defaults to
   // GPS-relevant permissions ON; DVIR keys OFF (dispatch isn't the inspection /
@@ -320,6 +327,7 @@ export const DEFAULT_PERMS = {
     safety_meeting_edit: false,
     safety_meeting_delete: false,
     manage_safety_topics: false,
+    audit_action_items: true, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
   },
 };
 

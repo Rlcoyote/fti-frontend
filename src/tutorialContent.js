@@ -269,14 +269,17 @@ export const TUTORIAL_MODULES = [
     icon: "✓",
     title: "ACTION ITEMS",
     gate: null,
-    blurb: "One shared pool of tasks, ordered by date entered — every user sees the whole board.",
+    blurb: "Your tasks first, the whole board one tap away, and a by-person view for managers.",
     lessons: [
       {
         title: "Working the list",
         steps: [
-          "ACTION ITEMS in the nav (or ☐ Tasks on the Dashboard) opens the pool. Everyone sees every task; the → name on a row is who it's assigned to.",
-          "Checking the box asks before it completes — no accidental one-tap deletes.",
+          "ACTION ITEMS in the nav (or ☐ My Tasks on the Dashboard) opens YOUR tasks — assigned to you or created by you. Flip SHOW to ALL for the whole board; nothing is hidden, your work just comes first.",
+          "Every card says FOR who and by who on its face — FOR YOU lights up blue. Overdue dates go red.",
+          "Assigned a task? The assignee's phone gets a text the moment it lands (if they've opted in to SMS).",
+          "Checking the box asks before it completes and requires completion notes — that's the closure record a manager reviews.",
           "Tasks are editable after creation, and safety-meeting action items land in this same pool automatically.",
+          "Managers see a third view — BY PERSON: every employee's open, overdue, and completed-this-week at a glance, completion notes readable. Assigned work is audited work.",
         ],
       },
     ],

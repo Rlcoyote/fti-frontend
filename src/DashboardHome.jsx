@@ -125,7 +125,7 @@ function DashboardHome({
         <div style={{ display: "flex", gap: 10 }}>
           <span data-tut="tasks" style={{ display: "inline-flex" }}>
             <Btn onClick={() => navigateToPage("/todos")} variant="ghost">
-              ☐ Tasks {myActiveTodos.length > 0 ? `(${myActiveTodos.length})` : ""}
+              ☐ My Tasks {myActiveTodos.length > 0 ? `(${myActiveTodos.length})` : ""}
             </Btn>
           </span>
           <span data-tut="new-wo" style={{ display: "inline-flex" }}>

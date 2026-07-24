@@ -110,7 +110,7 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
 }
 
 // ─── TODO ROW ─────────────────────────────────────────────────────────────────
-function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
+function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
   // v28.393 (field report via the board, 260722): the DONE box completed the
   // task instantly and the row vanished from the default view — read as
   // "deleted my task without warning." Completing now confirms and says
@@ -230,8 +230,25 @@ function TodoRow({ todo, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
             </span>
           )}
           {!job && <span style={{ fontSize: 11, color: C.muted }}>General Task</span>}
-          {todo.dueDate && <span style={{ fontSize: 11, color: overdue ? C.overdue : C.muted }}>Due: {todo.dueDate}</span>}
-          <span style={{ fontSize: 11, color: C.muted }}>→ {todo.assignedTo}</span>
+          {todo.dueDate && <span style={{ fontSize: 11, color: overdue ? C.overdue : C.muted, fontWeight: overdue ? 800 : 400 }}>Due: {todo.dueDate}</span>}
+          {/* v28.422 — assignment on the FACE of the card (Reggie: "do not
+              really specify until you click into the task itself"): FOR chip
+              loud, highlighted when it's YOURS; BY names the creator. */}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.05em",
+              color: todo.assignedTo === meName ? C.blue : C.text,
+              background: todo.assignedTo === meName ? `${C.blue}18` : C.steel,
+              border: `1px solid ${todo.assignedTo === meName ? C.blue + "55" : C.border}`,
+              borderRadius: 3,
+              padding: "2px 8px",
+            }}
+          >
+            FOR {todo.assignedTo === meName ? "YOU" : todo.assignedTo}
+          </span>
+          <span style={{ fontSize: 11, color: C.muted }}>by {todo.createdBy}</span>
           {todo.completed && todo.completedBy && (
             <span style={{ fontSize: 11, color: C.green }}>
               ✓ {todo.completedBy} · {todo.completedAt?.slice(0, 10)}
