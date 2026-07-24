@@ -269,12 +269,12 @@ export const TUTORIAL_MODULES = [
     icon: "✓",
     title: "ACTION ITEMS",
     gate: null,
-    blurb: "One pool of tasks, ordered by date entered — yours show up under Tasks on the Dashboard.",
+    blurb: "One shared pool of tasks, ordered by date entered — every user sees the whole board.",
     lessons: [
       {
         title: "Working the list",
         steps: [
-          "ACTION ITEMS in the nav (or ☐ Tasks on the Dashboard) opens the pool.",
+          "ACTION ITEMS in the nav (or ☐ Tasks on the Dashboard) opens the pool. Everyone sees every task; the → name on a row is who it's assigned to.",
           "Checking the box asks before it completes — no accidental one-tap deletes.",
           "Tasks are editable after creation, and safety-meeting action items land in this same pool automatically.",
         ],
@@ -352,7 +352,11 @@ export const DASHBOARD_TOUR_STEPS = [
     title: "Search everything",
     body: "WO numbers, ticket numbers like 300178-1, people, customers, documents, vehicles — one box, scoped to what you're allowed to see.",
   },
-  { tut: "tasks", title: "Your tasks", body: "Action items assigned to you — including the ones safety meetings create automatically." },
+  {
+    tut: "tasks",
+    title: "Tasks",
+    body: "The action-item pool — every open task, including the ones safety meetings create automatically. The → name on each row is who it's for.",
+  },
   { tut: "new-wo", title: "Start here", body: "A Work Order is the container: one customer, one location, its wells. Every ticket is written against one." },
   {
     tut: "wo-card",
