@@ -79,3 +79,18 @@ test("BY PERSON groups by assignee and EDIT opens the editor there", async ({ pa
   await page.getByRole("button", { name: "EDIT" }).first().click();
   await expect(page.getByRole("button", { name: /SAVE/ })).toBeVisible();
 });
+
+test("row DONE box: warning + notes land in ONE modal that completes", async ({ page }) => {
+  await openTodos(page);
+  await expect(page.getByText("Mine task")).toBeVisible();
+  // the checkbox column carries the 'Mark task done' tooltip
+  await page.locator('[title="Mark task done"]').first().click();
+  // ONE modal: the not-deleted warning AND the notes field together
+  await expect(page.getByText(/NOT deleted/i)).toBeVisible();
+  const done = page.getByRole("button", { name: "MARK DONE", exact: true });
+  await expect(done).toBeDisabled();
+  await page.getByPlaceholder(/what closed|Done because/i).fill("Wrapped on location");
+  await expect(done).toBeEnabled();
+  await done.click();
+  await expect(page.getByText(/NOT deleted/i)).not.toBeVisible();
+});

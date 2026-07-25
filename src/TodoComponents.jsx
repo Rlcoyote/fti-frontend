@@ -166,11 +166,10 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
 
 // ─── TODO ROW ─────────────────────────────────────────────────────────────────
 function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs }) {
-  // v28.393 (field report via the board, 260722): the DONE box completed the
-  // task instantly and the row vanished from the default view — read as
-  // "deleted my task without warning." Completing now confirms and says
-  // exactly what happens. Un-marking stays one click (it's the undo).
-  const [confirmComplete, setConfirmComplete] = useState(false);
+  // v28.393: the DONE box must SAY what happens (completed ≠ deleted).
+  // v28.431: that message now lives INSIDE the completion-notes modal — one
+  // box carries the warning AND the notes (Reggie's ruling), which also
+  // removed the modal-handoff race that ate the notes modal.
   const overdue = isOverdue(todo);
   const job = jobs.find((j) => j.id === todo.workOrderId);
 
@@ -195,8 +194,9 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
       <div
         onClick={(e) => {
           e.stopPropagation(); // the box completes; it must not open the editor
-          if (todo.completed) onToggle(todo.id);
-          else setConfirmComplete(true);
+          // v28.431 — straight to the ONE completion modal (warning + notes
+          // together, Reggie's ruling); the intermediate confirm is retired.
+          onToggle(todo.id);
         }}
         title={todo.completed ? "Mark as not done" : "Mark task done"}
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0, cursor: "pointer" }}
@@ -367,19 +367,6 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
           DELETE
         </Btn>
       )}
-      {confirmComplete && (
-        <ConfirmModal
-          title="Mark Task Done?"
-          message={`"${todo.title}" will be marked COMPLETED and move off the active list — it is NOT deleted. Find it anytime with SHOW COMPLETED, and reopen it from there.`}
-          yesLabel="MARK DONE"
-          accent={C.green}
-          onYes={() => {
-            setConfirmComplete(false);
-            onToggle(todo.id);
-          }}
-          onCancel={() => setConfirmComplete(false)}
-        />
-      )}
     </div>
   );
 }
@@ -393,8 +380,28 @@ function CompletionNotesModal({ todo, onComplete, onCancel }) {
   const [busy, setBusy] = useState(false);
   return (
     <ModalWrap title="Close Out This Task" onClose={onCancel} width={440}>
-      <div style={{ fontSize: 13, color: C.text, marginBottom: 12, lineHeight: 1.5 }}>
+      {/* v28.431 (Reggie's ruling: warning + notes in ONE box) — merging also
+          killed the bug he found: the old warning modal closed while this one
+          opened, and the back-button contract's cleanup raced the handoff —
+          the notes modal died the same frame it was born ("I click 'Mark
+          Done' and nothing happens"). One modal, no handoff, no race. */}
+      <div style={{ fontSize: 13, color: C.text, marginBottom: 10, lineHeight: 1.5 }}>
         Marking <strong>{todo.title}</strong> DONE. What closed it out?
+      </div>
+      <div
+        style={{
+          fontSize: 12,
+          color: C.muted,
+          background: C.steel,
+          border: `1px solid ${C.border}`,
+          borderRadius: 4,
+          padding: "7px 10px",
+          marginBottom: 12,
+          lineHeight: 1.45,
+        }}
+      >
+        The task moves off the active list — it is <strong>NOT deleted</strong>. Find it anytime under COMPLETED (or SHOW COMPLETED on a Work Order), and reopen
+        it from there.
       </div>
       <label style={labelStyle}>COMPLETION NOTES *</label>
       <textarea
