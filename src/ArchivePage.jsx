@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { formatDate } from "./utils.js";
+import { fmtStamp, formatDate } from "./utils.js";
 import { TICKET_TYPES } from "./SharedUI.jsx";
 
 function ArchivePage() {
@@ -113,12 +113,45 @@ function ArchivePage() {
               <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 3, background: C.yellowB, color: C.yellow }}>
                 {(item.archive_reason || "").toUpperCase()}
               </span>
-              <span style={{ fontSize: 10, color: C.muted, marginLeft: "auto" }}>{new Date(item.archived_at).toLocaleDateString("en-US")}</span>
+              {/* v28.433 (Reggie's gaps #1+#2, "Killem all"): the face says
+                  WHO closed it and WHEN — date AND time. */}
+              <span style={{ fontSize: 10, color: C.muted, marginLeft: "auto" }}>
+                CLOSED {fmtStamp(item.archived_at)}
+                {item.archived_by_name ? ` by ${item.archived_by_name}` : ""}
+              </span>
               <span style={{ fontSize: 12, color: C.muted }}>{isExp ? "▲" : "▼"}</span>
             </div>
 
             {isExp && (
               <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${C.border}` }} onClick={(e) => e.stopPropagation()}>
+                {/* v28.433 (gaps #3+#4) — the LIFECYCLE STRIP: same structure
+                    as the task closure record. Every closed thing answers the
+                    same questions the same way: who started it, who ended it,
+                    and when — to the minute. */}
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: "4px 18px",
+                    marginTop: 10,
+                    padding: "7px 10px",
+                    background: C.steel,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 4,
+                    fontSize: 11,
+                  }}
+                >
+                  <span>
+                    <span style={{ color: C.muted, fontWeight: 700 }}>CREATED </span>
+                    {fmtStamp(snap.created_at) || "—"}
+                    {item.snapshot_created_by_name ? ` by ${item.snapshot_created_by_name}` : ""}
+                  </span>
+                  <span>
+                    <span style={{ color: C.muted, fontWeight: 700 }}>{(item.archive_reason || "") === "job_closed" ? "CLOSED " : "ARCHIVED "}</span>
+                    {fmtStamp(item.archived_at) || "—"}
+                    {item.archived_by_name ? ` by ${item.archived_by_name}` : ""}
+                  </span>
+                </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 20px", marginTop: 10, fontSize: 12 }}>
                   {snap.date && (
                     <div>

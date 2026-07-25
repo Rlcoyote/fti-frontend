@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { C, getCurrentUser } from "./config.js";
-import { isOverdue } from "./utils.js";
+import { isOverdue, fmtStamp } from "./utils.js";
 import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
-
-// v28.432 — one date+time formatter for the task closure record ("7/24, 1:42 AM").
-const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }) : null);
 
 // v28.429 — ISO (UTC) → the local "YYYY-MM-DDTHH:MM" a datetime-local wants.
 function toLocalDateTimeInput(iso) {

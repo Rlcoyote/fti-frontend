@@ -46,7 +46,7 @@ export const TUTORIAL_MODULES = [
           "The 🔍 button in the header searches EVERYTHING you can see — WO numbers, ticket numbers like 300178-1, people, customers, documents, vehicles.",
           "The sun/moon button flips light and dark mode. Every screen honors it.",
           "ALL TICKETS is every ticket across every job in one filterable list — when you know the ticket but not the job.",
-          "Under HISTORY: Work Order History is every past job, Archive holds completed ones, and Deleted is the recoverable trash — nothing hard-deletes from the glass.",
+          "Under HISTORY: Work Order History is every past job, Archive holds completed ones, and Deleted is the recoverable trash — nothing hard-deletes from the glass. Every archived record answers who created it and who closed it — with times.",
         ],
       },
       {

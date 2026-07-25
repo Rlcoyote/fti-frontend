@@ -425,3 +425,7 @@ export function fmtTicketDate(d) {
   );
   return "—";
 }
+
+// v28.433 — ONE date+time stamp formatter ("7/24, 1:42 AM") for lifecycle
+// records (task closure record v28.432, archive lifecycle strip v28.433).
+export const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }) : null);
