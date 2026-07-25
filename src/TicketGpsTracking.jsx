@@ -216,7 +216,14 @@ export default function TicketGpsTracking({
     if (pulling) return;
     setPulling(true);
     try {
-      const r = await fetch(`${API_URL}/tickets/${ticket.id}/gps-pull`, { method: "POST" });
+      // v28.434 — send the ON-SCREEN vehicle selection with the pull; the BE
+      // persists it first. Kills the picked-vs-saved trap (field report:
+      // "it tells me to put in a GPS vehicle with a GPS vehicle in it").
+      const r = await fetch(`${API_URL}/tickets/${ticket.id}/gps-pull`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gps_vehicle_id: gpsVehicleId || null }),
+      });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) {
         showNotice("GPS pull failed", body.error || `HTTP ${r.status}`, "error");
