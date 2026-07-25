@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C, getCurrentUser } from "./config.js";
+import { api } from "./api.js";
 import { isOverdue, fmtStamp } from "./utils.js";
 import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
 
@@ -33,6 +34,7 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
   // notes field on every open task's editor; MARK DONE stays disabled until
   // a reason is written. Replaces the check-first-then-modal order here.
   const [completionNotes, setCompletionNotes] = useState("");
+  const [justDone, setJustDone] = useState(false); // v28.435 — "sometimes it just needs 'done'"
 
   const handleSave = () => {
     if (!form.title.trim()) return;
@@ -131,17 +133,26 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
           />
         </div>
       </div>
+      {initial?.id && <TodoComments todoId={initial.id} />}
       {onMarkDone && (
         <div style={{ marginTop: 12 }}>
           <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.06em", display: "block", marginBottom: 4 }}>
             COMPLETION NOTES — what closed this out
           </label>
           <textarea
-            style={{ ...inputStyle, width: "100%", minHeight: 54, resize: "vertical" }}
-            placeholder="Done because… (required to MARK DONE)"
+            style={{ ...inputStyle, width: "100%", minHeight: 54, resize: "vertical", opacity: justDone ? 0.45 : 1 }}
+            placeholder="Done because… (or check the box below)"
             value={completionNotes}
+            disabled={justDone}
             onChange={(e) => setCompletionNotes(e.target.value)}
           />
+          {/* v28.435 (Reggie: "Sometimes it just needs 'done'") — the
+              low-friction attestation. Still an affirmative act, still a
+              record — the requirement stands, the floor came down. */}
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6, cursor: "pointer", fontSize: 12, color: C.text }}>
+            <input type="checkbox" checked={justDone} onChange={(e) => setJustDone(e.target.checked)} />
+            Just DONE — no notes needed
+          </label>
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
@@ -149,9 +160,9 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
         {onMarkDone && (
           <Btn
             variant="blue"
-            disabled={!completionNotes.trim()}
-            title={completionNotes.trim() ? "Complete this task with the notes above" : "Write the completion notes first — that's the closure record"}
-            onClick={() => onMarkDone(completionNotes.trim())}
+            disabled={!justDone && !completionNotes.trim()}
+            title={justDone || completionNotes.trim() ? "Complete this task" : "Write the completion notes — or check 'Just DONE' below the notes box"}
+            onClick={() => onMarkDone(justDone ? "Done." : completionNotes.trim())}
           >
             ✓ MARK DONE
           </Btn>
@@ -305,6 +316,28 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
             FOR {todo.assignedTo === meName ? "YOU" : todo.assignedTo}
           </span>
           <span style={{ fontSize: 11, color: C.muted }}>by {todo.createdBy}</span>
+          {todo.commentCount > 0 && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, border: `1px solid ${C.border}`, borderRadius: 3, padding: "2px 7px" }}>
+              💬 {todo.commentCount}
+              {todo.lastCommentName ? ` · ${todo.lastCommentName.split(" ")[0]} ${fmtStamp(todo.lastCommentAt)}` : ""}
+            </span>
+          )}
+          {todo.needsResponseOpen && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.05em",
+                color: C.orange,
+                background: C.orangeB,
+                border: `1px solid ${C.orange}55`,
+                borderRadius: 3,
+                padding: "2px 7px",
+              }}
+            >
+              ⚑ RESPONSE NEEDED
+            </span>
+          )}
           {!todo.completed && todo.notifyAt && !todo.notifySentAt && new Date(todo.notifyAt) > new Date() && (
             <span style={{ fontSize: 10, fontWeight: 700, color: C.blue, border: `1px solid ${C.blue}44`, borderRadius: 3, padding: "2px 7px" }}>
               📱 TEXTS {new Date(todo.notifyAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}
@@ -425,6 +458,7 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
 function CompletionNotesModal({ todo, onComplete, onCancel }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [justDone, setJustDone] = useState(false); // v28.435 — low-friction attestation
   return (
     <ModalWrap title="Close Out This Task" onClose={onCancel} width={440}>
       {/* v28.431 (Reggie's ruling: warning + notes in ONE box) — merging also
@@ -453,19 +487,24 @@ function CompletionNotesModal({ todo, onComplete, onCancel }) {
       <label style={labelStyle}>COMPLETION NOTES *</label>
       <textarea
         autoFocus
-        style={{ ...inputStyle, resize: "vertical", minHeight: 72, marginBottom: 14 }}
+        style={{ ...inputStyle, resize: "vertical", minHeight: 72, marginBottom: 8, opacity: justDone ? 0.45 : 1 }}
         value={notes}
+        disabled={justDone}
         onChange={(e) => setNotes(e.target.value)}
         placeholder="e.g. Ordered from Odessa Supply, delivered to the Wickett yard 7/16"
       />
+      <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, cursor: "pointer", fontSize: 12, color: C.text }}>
+        <input type="checkbox" checked={justDone} onChange={(e) => setJustDone(e.target.checked)} />
+        Just DONE — no notes needed
+      </label>
       <div style={{ display: "flex", gap: 8 }}>
         <Btn
           onClick={async () => {
-            if (!notes.trim()) return;
+            if (!justDone && !notes.trim()) return;
             setBusy(true);
-            await onComplete(notes.trim());
+            await onComplete(justDone ? "Done." : notes.trim());
           }}
-          disabled={!notes.trim() || busy}
+          disabled={(!justDone && !notes.trim()) || busy}
         >
           {busy ? "SAVING…" : "MARK DONE"}
         </Btn>
@@ -477,4 +516,82 @@ function CompletionNotesModal({ todo, onComplete, onCancel }) {
   );
 }
 
-export { TodoForm, TodoRow, CompletionNotesModal };
+// ─── COMMENT THREAD (v28.435) ────────────────────────────────────────────────
+// The argument in the middle of a task, kept ON the task. Permanent entries
+// (no edit/delete — it's the resolution trail). NEEDS RESPONSE flags the
+// task orange until the creator or assignee replies (ruled: people "need to
+// be forced into a workflow they would normally completely skip"). Posting
+// texts the conversation circle server-side.
+function TodoComments({ todoId }) {
+  const [comments, setComments] = useState(null);
+  const [draft, setDraft] = useState("");
+  const [needsResponse, setNeedsResponse] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [err, setErr] = useState("");
+
+  const load = () => {
+    api
+      .get(`/todos/${todoId}/comments`)
+      .then((rows) => setComments(rows || []))
+      .catch(() => setComments([]));
+  };
+  useEffect(() => {
+    if (todoId) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [todoId]);
+
+  const post = async () => {
+    if (!draft.trim() || posting) return;
+    setPosting(true);
+    setErr("");
+    try {
+      await api.post(`/todos/${todoId}/comments`, { body: draft.trim(), needs_response: needsResponse });
+      setDraft("");
+      setNeedsResponse(false);
+      load();
+    } catch (e) {
+      setErr(e.message || "Could not post the comment.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.06em", marginBottom: 6 }}>
+        COMMENTS {comments ? `(${comments.length})` : ""}
+      </div>
+      {comments === null && <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic" }}>Loading…</div>}
+      {comments?.length === 0 && <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", marginBottom: 8 }}>No comments yet.</div>}
+      {(comments || []).map((c) => (
+        <div key={c.id} style={{ marginBottom: 8, padding: "7px 10px", background: C.steel, borderRadius: 4, border: `1px solid ${C.border}` }}>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>
+            <strong style={{ color: C.text }}>{c.user_name}</strong> · {fmtStamp(c.created_at)}
+            {c.needs_response && (
+              <span style={{ marginLeft: 8, fontSize: 9, fontWeight: 800, color: C.orange, letterSpacing: "0.05em" }}>⚑ RESPONSE NEEDED</span>
+            )}
+          </div>
+          <div style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap" }}>{c.body}</div>
+        </div>
+      ))}
+      <textarea
+        style={{ ...inputStyle, width: "100%", minHeight: 48, resize: "vertical" }}
+        placeholder="Question, concern, or what got missed…"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+      />
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6, flexWrap: "wrap" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", fontSize: 12, color: C.text }}>
+          <input type="checkbox" checked={needsResponse} onChange={(e) => setNeedsResponse(e.target.checked)} />⚑ Needs a response
+        </label>
+        <Btn small disabled={!draft.trim() || posting} onClick={post}>
+          {posting ? "POSTING…" : "POST COMMENT"}
+        </Btn>
+        {err && <span style={{ fontSize: 12, color: C.red, fontWeight: 700 }}>{err}</span>}
+      </div>
+      <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>Posting texts the task's creator, assignee, and everyone who has commented.</div>
+    </div>
+  );
+}
+
+export { TodoForm, TodoRow, CompletionNotesModal, TodoComments };

@@ -123,3 +123,43 @@ test("completed task carries the full closure record", async ({ page }) => {
   await expect(page.getByText("LATE", { exact: true })).toBeVisible();
   await expect(page.getByText(/Handled after the rig moved/)).toBeVisible();
 });
+
+test("comment thread: post lands, chip renders, NEEDS RESPONSE flags", async ({ page }) => {
+  let posted = null;
+  await seedSession(page);
+  await mockApi(page, {
+    gets: {
+      "/api/todos": RAW_TODOS.map((t) =>
+        t.id === 1 ? { ...t, comment_count: 2, last_comment_at: "2026-07-24T04:00:00Z", last_comment_name: "Kyle Hand", needs_response_open: true } : t,
+      ),
+      "/api/todos/1/comments": [
+        { id: 1, body: "Which yard is the spare in?", needs_response: true, created_at: "2026-07-24T04:00:00Z", user_id: "x", user_name: "Kyle Hand" },
+      ],
+    },
+    posts: {
+      "/api/todos/1/comments": (req) => {
+        posted = JSON.parse(req.postData());
+        return { status: 201, json: { id: 2, body: posted.body, needs_response: posted.needs_response, created_at: "2026-07-24T05:00:00Z" } };
+      },
+    },
+  });
+  await page.goto("/todos");
+  await expect(page.getByText("💬 2", { exact: false })).toBeVisible();
+  await expect(page.getByText("⚑ RESPONSE NEEDED").first()).toBeVisible();
+  await page.getByRole("button", { name: "EDIT" }).first().click();
+  await expect(page.getByText("Which yard is the spare in?")).toBeVisible();
+  await page.getByPlaceholder(/Question, concern/).fill("Wickett yard, rack 3");
+  await page.getByRole("button", { name: "POST COMMENT" }).click();
+  await expect.poll(() => posted?.body).toBe("Wickett yard, rack 3");
+});
+
+test("Just DONE checkbox completes without typed notes", async ({ page }) => {
+  await openTodos(page);
+  await page.locator('[title="Mark task done"]').first().click();
+  const done = page.getByRole("button", { name: "MARK DONE", exact: true });
+  await expect(done).toBeDisabled();
+  await page.getByText("Just DONE — no notes needed").click();
+  await expect(done).toBeEnabled();
+  await done.click();
+  await expect(page.getByText(/NOT deleted/i)).not.toBeVisible();
+});

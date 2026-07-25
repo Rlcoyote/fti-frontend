@@ -104,6 +104,10 @@ export function usePageData() {
           completionNotes: t.completion_notes,
           notifyAt: t.notify_at,
           notifySentAt: t.notify_sent_at,
+          commentCount: t.comment_count || 0,
+          lastCommentAt: t.last_comment_at || null,
+          lastCommentName: t.last_comment_name || null,
+          needsResponseOpen: !!t.needs_response_open,
           createdAt: t.created_at,
         }));
         // Transform inventory
