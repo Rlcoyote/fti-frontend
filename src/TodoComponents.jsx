@@ -3,6 +3,9 @@ import { C, getCurrentUser } from "./config.js";
 import { isOverdue } from "./utils.js";
 import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
 
+// v28.432 — one date+time formatter for the task closure record ("7/24, 1:42 AM").
+const fmtStamp = (iso) => (iso ? new Date(iso).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }) : null);
+
 // v28.429 — ISO (UTC) → the local "YYYY-MM-DDTHH:MM" a datetime-local wants.
 function toLocalDateTimeInput(iso) {
   const d = new Date(iso);
@@ -285,6 +288,7 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
             </span>
           )}
           {!job && <span style={{ fontSize: 11, color: C.muted }}>General Task</span>}
+          {todo.createdAt && <span style={{ fontSize: 11, color: C.muted }}>Created {fmtStamp(todo.createdAt)}</span>}
           {todo.dueDate && <span style={{ fontSize: 11, color: overdue ? C.overdue : C.muted, fontWeight: overdue ? 800 : 400 }}>Due: {todo.dueDate}</span>}
           {/* v28.422 — assignment on the FACE of the card (Reggie: "do not
               really specify until you click into the task itself"): FOR chip
@@ -309,15 +313,61 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
               📱 TEXTS {new Date(todo.notifyAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}
             </span>
           )}
-          {todo.completed && todo.completedBy && (
-            <span style={{ fontSize: 11, color: C.green }}>
-              ✓ {todo.completedBy} · {todo.completedAt?.slice(0, 10)}
-            </span>
-          )}
         </div>
         {/* v28.336 — the closure record rides the row (spec §2.12) */}
-        {todo.completed && todo.completionNotes && (
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 3, fontStyle: "italic" }}>Closed: {todo.completionNotes}</div>
+        {/* v28.432 (Reggie: a closed task "states who created it. No date,
+            time. and no indication of whether or not there's a time due") —
+            the CLOSURE RECORD, structured like the archive/closed-WO card:
+            labeled fields, full lifecycle, on-time honesty. */}
+        {todo.completed && (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "4px 18px",
+              marginTop: 6,
+              padding: "7px 10px",
+              background: C.steel,
+              border: `1px solid ${C.border}`,
+              borderRadius: 4,
+              fontSize: 11,
+            }}
+          >
+            <span>
+              <span style={{ color: C.muted, fontWeight: 700 }}>CREATED </span>
+              {fmtStamp(todo.createdAt) || "—"} by {todo.createdBy || "—"}
+            </span>
+            <span>
+              <span style={{ color: C.muted, fontWeight: 700 }}>DUE </span>
+              {todo.dueDate ? String(todo.dueDate).slice(0, 10) : "no due date"}
+            </span>
+            <span>
+              <span style={{ color: C.muted, fontWeight: 700 }}>COMPLETED </span>
+              {fmtStamp(todo.completedAt) || "—"} by {todo.completedBy || "—"}
+              {todo.dueDate && todo.completedAt && (
+                <span
+                  style={{
+                    marginLeft: 6,
+                    fontSize: 9,
+                    fontWeight: 800,
+                    letterSpacing: "0.05em",
+                    padding: "1px 6px",
+                    borderRadius: 3,
+                    color: String(todo.completedAt).slice(0, 10) > String(todo.dueDate).slice(0, 10) ? C.overdue : C.green,
+                    background: String(todo.completedAt).slice(0, 10) > String(todo.dueDate).slice(0, 10) ? C.overdueB : C.greenB,
+                  }}
+                >
+                  {String(todo.completedAt).slice(0, 10) > String(todo.dueDate).slice(0, 10) ? "LATE" : "ON TIME"}
+                </span>
+              )}
+            </span>
+            {todo.completionNotes && (
+              <span style={{ flexBasis: "100%" }}>
+                <span style={{ color: C.muted, fontWeight: 700 }}>CLOSED OUT </span>
+                {todo.completionNotes}
+              </span>
+            )}
+          </div>
         )}
       </div>
       {/* v28.284 — completed rows carry the way back, spelled out */}

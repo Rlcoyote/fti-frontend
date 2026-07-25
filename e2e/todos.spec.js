@@ -8,6 +8,24 @@ import { mockApi, seedSession, TEST_USER } from "./fixtures.js";
 
 const RAW_TODOS = [
   {
+    id: 3,
+    title: "Finished late task",
+    description: "",
+    job_id: null,
+    priority: "normal",
+    due_date: "2026-07-20",
+    created_by: TEST_USER.id,
+    created_by_name: "E2E Tester",
+    assigned_to: TEST_USER.id,
+    assigned_to_name: "E2E Tester",
+    completed: true,
+    completed_by: TEST_USER.id,
+    completed_by_name: "E2E Tester",
+    completed_at: "2026-07-23T15:04:00Z",
+    completion_notes: "Handled after the rig moved",
+    created_at: "2026-07-18T09:30:00Z",
+  },
+  {
     id: 1,
     title: "Mine task",
     description: "",
@@ -93,4 +111,15 @@ test("row DONE box: warning + notes land in ONE modal that completes", async ({ 
   await expect(done).toBeEnabled();
   await done.click();
   await expect(page.getByText(/NOT deleted/i)).not.toBeVisible();
+});
+
+test("completed task carries the full closure record", async ({ page }) => {
+  await openTodos(page);
+  await page.getByRole("button", { name: "COMPLETED" }).click();
+  await expect(page.getByText("Finished late task")).toBeVisible();
+  await expect(page.getByText("CREATED", { exact: true })).toBeVisible();
+  await expect(page.getByText("DUE", { exact: true })).toBeVisible();
+  await expect(page.getByText("COMPLETED", { exact: true }).nth(0)).toBeVisible();
+  await expect(page.getByText("LATE", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Handled after the rig moved/)).toBeVisible();
 });
