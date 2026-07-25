@@ -89,7 +89,7 @@ test("row DONE box: warning + notes land in ONE modal that completes", async ({ 
   await expect(page.getByText(/NOT deleted/i)).toBeVisible();
   const done = page.getByRole("button", { name: "MARK DONE", exact: true });
   await expect(done).toBeDisabled();
-  await page.getByPlaceholder(/what closed|Done because/i).fill("Wrapped on location");
+  await page.locator(".fti-modal-selectable textarea").fill("Wrapped on location");
   await expect(done).toBeEnabled();
   await done.click();
   await expect(page.getByText(/NOT deleted/i)).not.toBeVisible();
