@@ -567,6 +567,7 @@ function TodoComments({ todoId }) {
         <div key={c.id} style={{ marginBottom: 8, padding: "7px 10px", background: C.steel, borderRadius: 4, border: `1px solid ${C.border}` }}>
           <div style={{ fontSize: 11, color: C.muted, marginBottom: 2 }}>
             <strong style={{ color: C.text }}>{c.user_name}</strong> · {fmtStamp(c.created_at)}
+            {c.via === "sms" && <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, color: C.blue }}>· BY TEXT</span>}
             {c.needs_response && (
               <span style={{ marginLeft: 8, fontSize: 9, fontWeight: 800, color: C.orange, letterSpacing: "0.05em" }}>⚑ RESPONSE NEEDED</span>
             )}
@@ -589,7 +590,9 @@ function TodoComments({ todoId }) {
         </Btn>
         {err && <span style={{ fontSize: 12, color: C.red, fontWeight: 700 }}>{err}</span>}
       </div>
-      <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>Posting texts the task's creator, assignee, and everyone who has commented.</div>
+      <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>
+        Posting texts the creator, assignee, and everyone who has commented — and they can REPLY straight to the text; it lands right here.
+      </div>
     </div>
   );
 }

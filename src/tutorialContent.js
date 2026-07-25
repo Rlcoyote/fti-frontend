@@ -280,6 +280,7 @@ export const TUTORIAL_MODULES = [
           'Closing a task is notes-first: open it, write COMPLETION NOTES — what closed it out — then press MARK DONE. Nothing to say beyond done? Check "Just DONE — no notes needed" and go. The DONE box on the row is the quick path with the same choices.',
           "A completed task keeps its whole story on the card: CREATED when and by who, the DUE date, COMPLETED when and by who — with an ON TIME or LATE call — and the closure note.",
           "Questions or concerns about a task? Open it and COMMENT — the thread lives ON the task, and posting texts the creator, assignee, and everyone who has commented. Flag ⚑ Needs a response and the task wears an orange chip until the creator or assignee answers.",
+          "Got a task text on your phone? Just REPLY to it — no login, no app hunt. Your reply lands in the task's thread automatically, marked BY TEXT, and the circle gets notified.",
           "Tasks are editable after creation, and safety-meeting action items land in this same pool automatically.",
           "Managers see a third view — BY PERSON: every employee's open, overdue, and completed-this-week at a glance, completion notes readable. Assigned work is audited work.",
           "And the audit comes to you: any morning something is OVERDUE, managers get a 6:30 AM digest text with the standing by person. A clean board sends nothing.",

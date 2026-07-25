@@ -133,7 +133,15 @@ test("comment thread: post lands, chip renders, NEEDS RESPONSE flags", async ({ 
         t.id === 1 ? { ...t, comment_count: 2, last_comment_at: "2026-07-24T04:00:00Z", last_comment_name: "Kyle Hand", needs_response_open: true } : t,
       ),
       "/api/todos/1/comments": [
-        { id: 1, body: "Which yard is the spare in?", needs_response: true, created_at: "2026-07-24T04:00:00Z", user_id: "x", user_name: "Kyle Hand" },
+        {
+          id: 1,
+          body: "Which yard is the spare in?",
+          needs_response: true,
+          created_at: "2026-07-24T04:00:00Z",
+          user_id: "x",
+          user_name: "Kyle Hand",
+          via: "sms",
+        },
       ],
     },
     posts: {
@@ -148,6 +156,7 @@ test("comment thread: post lands, chip renders, NEEDS RESPONSE flags", async ({ 
   await expect(page.getByText("⚑ RESPONSE NEEDED").first()).toBeVisible();
   await page.getByRole("button", { name: "EDIT" }).first().click();
   await expect(page.getByText("Which yard is the spare in?")).toBeVisible();
+  await expect(page.getByText("· BY TEXT")).toBeVisible();
   await page.getByPlaceholder(/Question, concern/).fill("Wickett yard, rack 3");
   await page.getByRole("button", { name: "POST COMMENT" }).click();
   await expect.poll(() => posted?.body).toBe("Wickett yard, rack 3");
