@@ -1,7 +1,7 @@
 import { TZ_OPTIONS } from "./utils.js";
 import { C } from "./config.js";
 import { typeCaps, isLogType } from "./ticketFamilies.js";
-import { inputStyle, labelStyle, PANEL_TEXT, TINT } from "./SharedUI.jsx";
+import { inputStyle, labelStyle, TINT } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 
 // ─── AddTicketDateTimeFields (v28.66 — extracted from AddTicketModal) ─────────
@@ -59,10 +59,10 @@ export default function AddTicketDateTimeFields({
           </div>
           <div>
             <label style={labelStyle}>END DATE</label>
-            <input type="date" style={{ ...inputStyle, width: 160, background: TINT.grayBg, color: PANEL_TEXT }} value={endDate} readOnly />
+            <input type="date" style={{ ...inputStyle, width: 160, background: C.steel, color: C.text }} value={endDate} readOnly />
           </div>
         </div>
-        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: PANEL_TEXT, cursor: "pointer" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: C.text, cursor: "pointer" }}>
           <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} style={{ width: 16, height: 16 }} />
           Recurring (auto-create next cycle ticket)
         </label>
@@ -73,7 +73,7 @@ export default function AddTicketDateTimeFields({
   return (
     <div style={{ marginBottom: 14 }}>
       {isLogType(type) && (
-        <div style={{ fontSize: 11.5, fontWeight: 600, color: PANEL_TEXT, opacity: 0.75, marginBottom: 6 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 600, color: C.text, opacity: 0.75, marginBottom: 6 }}>
           Tester/Pumper tickets run Monday–Sunday. Pick your first working day — the ticket anchors to that week, and you'll fill each day's hours on the ticket
           itself.
         </div>

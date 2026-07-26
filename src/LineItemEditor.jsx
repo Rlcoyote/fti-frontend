@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { calcLineTotal } from "./utils.js";
-import { Btn, ConfirmModal, inputStyle, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
+import { Btn, ConfirmModal, inputStyle, TINT } from "./SharedUI.jsx";
 import { isVisitType } from "./ticketFamilies.js";
 import { useApp } from "./AppContext.jsx";
 import CopyLineItemsModal from "./CopyLineItemsModal.jsx";
@@ -251,11 +251,11 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, workOr
           })}
           {/* v28.44 — TOTAL row sits directly on the pastel tcfg.bg panel
               (the per-card mobile rows are on C.cardBg, but this row is
-              outside them). PANEL_MUTED/PANEL_TEXT stay readable on the
+              outside them). C.muted/C.text stay readable on the
               always-light pastel regardless of theme. See SharedUI rule. */}
           <div style={{ display: "flex", justifyContent: "flex-end", padding: "8px 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.1em", marginRight: 8 }}>TOTAL</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: PANEL_TEXT }}>
+            <span style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em", marginRight: 8 }}>TOTAL</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
               ${total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -275,7 +275,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, workOr
               }}
             >
               {headers.map((h) => (
-                <div key={h} style={{ fontSize: 9, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.1em" }}>
+                <div key={h} style={{ fontSize: 9, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>
                   {h}
                 </div>
               ))}
@@ -292,7 +292,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, workOr
                   alignItems: "center",
                 }}
               >
-                <div style={{ fontSize: 11, color: PANEL_MUTED, textAlign: "center" }}>
+                <div style={{ fontSize: 11, color: C.muted, textAlign: "center" }}>
                   {idx + 1}
                   {isRigDown && allowedCodes && allowedCodes.size > 0 && li.qbCode && !allowedCodes.has(li.qbCode) && (
                     // v27.69: inline warning text instead of title= tooltip (which
@@ -345,7 +345,7 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, workOr
                     }}
                   />
                 )}
-                <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: PANEL_TEXT }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textAlign: "right", color: C.text }}>
                   {"$"}
                   {calcLineTotal(li).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
@@ -381,8 +381,8 @@ function LineItemEditor({ lineItems, setLineItems, ticketType, onSigWipe, workOr
                 marginTop: 4,
               }}
             >
-              <div style={{ fontSize: 10, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.1em" }}>TOTAL</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: PANEL_TEXT }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, letterSpacing: "0.1em" }}>TOTAL</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
                 {"$"}
                 {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>

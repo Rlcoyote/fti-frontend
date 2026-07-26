@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { C, API_URL } from "./config.js";
-import { PANEL_MUTED, TINT } from "./SharedUI.jsx";
+import { TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── PHOTO UTILITIES ──────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ function PhotoStrip({ ticketId, isLocked }) {
               <div
                 style={{
                   fontSize: 9,
-                  color: PANEL_MUTED,
+                  color: C.muted,
                   padding: "2px 4px",
                   overflow: "hidden",
                   textOverflow: "ellipsis",

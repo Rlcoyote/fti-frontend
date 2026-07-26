@@ -128,14 +128,18 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
       {!loading && comments.length === 0 && <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>No comments yet.</div>}
       {comments.map((c, i) => {
         const who = c.author_type === "fti" ? `Flo-Test (${c.author})` : `${c.author} (Site)`;
-        const bg = c.author_type === "fti" ? TINT.blueBg : TINT.noteYellow;
+        // v28.438 — theme-aware bubbles (were always-light TINT fills that
+        // read as pale patches with invisible text in dark mode). The
+        // fti-vs-site distinction survives as a tinted WASH of theme colors.
+        const bg = c.author_type === "fti" ? `${C.blue}1c` : `${C.yellow}1c`;
+        const edge = c.author_type === "fti" ? `${C.blue}44` : `${C.yellow}44`;
         const time = new Date(c.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
         return (
-          <div key={i} style={{ background: bg, borderRadius: 6, padding: "8px 12px", marginBottom: 6 }}>
+          <div key={i} style={{ background: bg, border: `1px solid ${edge}`, borderRadius: 6, padding: "8px 12px", marginBottom: 6 }}>
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 3 }}>
               <strong>{who}</strong> · {time}
             </div>
-            <div style={{ fontSize: 13, whiteSpace: "pre-wrap" }}>{c.message}</div>
+            <div style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap" }}>{c.message}</div>
           </div>
         );
       })}

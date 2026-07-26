@@ -35,6 +35,7 @@ jobs:
       - run: npm ci
       - run: npx eslint . --quiet
       - run: node scripts/check-tutorial.mjs
+      - run: node scripts/check-theme.mjs
       - run: npx vitest run
       - run: npx playwright install chromium --with-deps
       - run: npx playwright test

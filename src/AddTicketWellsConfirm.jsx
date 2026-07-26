@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { Btn, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED } from "./SharedUI.jsx";
+import { Btn, TicketTypeBadge } from "./SharedUI.jsx";
 
 // ─── AddTicketWellsConfirm (v28.67 — extracted from AddTicketModal) ───────────
 // Multi-well assignment screen. Renders when type is selected but the
@@ -21,14 +21,14 @@ export default function AddTicketWellsConfirm({ type, workOrderWells, assignedWe
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <TicketTypeBadge type={type} />
         {/* v28.44 — heading + ancillary text on the always-light pastel
-            tcfg.bg panel use PANEL_TEXT/MUTED constants per the
+            tcfg.bg panel use C.text/MUTED constants per the
             SharedUI rule. */}
-        <span style={{ fontSize: 16, fontWeight: 700, color: PANEL_TEXT }}>Assign Wells — New {type} Ticket</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>Assign Wells — New {type} Ticket</span>
       </div>
-      <div style={{ fontSize: 12, color: PANEL_MUTED, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
+      <div style={{ fontSize: 12, color: C.muted, marginBottom: 14 }}>Select which wells apply to this ticket.</div>
       <div style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <label style={{ fontSize: 11, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
+          <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em" }}>WELLS ON THIS WORK ORDER</label>
           <button
             className="fti-btn"
             type="button"
@@ -40,7 +40,7 @@ export default function AddTicketWellsConfirm({ type, workOrderWells, assignedWe
               padding: "2px 10px",
               fontSize: 11,
               fontWeight: 700,
-              color: PANEL_TEXT,
+              color: C.text,
               cursor: "pointer",
             }}
           >

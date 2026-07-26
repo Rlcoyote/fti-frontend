@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { C } from "./config.js";
-import { inputStyle, labelStyle, PANEL_MUTED, TINT } from "./SharedUI.jsx";
+import { inputStyle, labelStyle, TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 // ─── AddTicketGpsVehicle (v28.183) ──────────────────────────────────────────
@@ -90,7 +90,7 @@ export default function AddTicketGpsVehicle({ trailerId, setTrailerId, gpsVehicl
           ))}
         </select>
       </div>
-      <div style={{ fontSize: 11, color: PANEL_MUTED, marginTop: 4 }}>
+      <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
         Auto-fills to the lead crew member&rsquo;s assigned vehicle when a lead is selected. Override anytime.
       </div>
       {gpsVehicleId && !(vehicles || []).find((v) => v.id === gpsVehicleId && v.gps_vehicle_id) && (

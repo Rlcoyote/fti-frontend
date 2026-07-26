@@ -98,7 +98,7 @@ function TicketSiteManager({ editable, values, onChange, job: _job, knownContact
               fontWeight: 700,
               padding: "2px 8px",
               borderRadius: 3,
-              background: TINT.greenBg,
+              background: `${C.green}18`, // v28.438 — theme wash (was always-light TINT on the now-theme-aware body)
               border: `1px solid ${C.green}44`,
             }}
           >

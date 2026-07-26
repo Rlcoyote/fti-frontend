@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "check:tutorial": "node scripts/check-tutorial.mjs",
+    "check:theme": "node scripts/check-theme.mjs",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{js,jsx,json}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,json}\"",
