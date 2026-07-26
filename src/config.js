@@ -34,6 +34,11 @@ const LIGHT = {
   red: "#B01020",
   white: "#FFFFFF",
   blue: "#002868",
+  // v28.439 — ACTION: the button/CTA fill. Split from `blue` because the
+  // text-accent blue must be LIGHT in dark mode (readable on dark bg) while
+  // a button fill must be DEEP in dark mode (contrast under white text) —
+  // one token can't serve both masters. Light theme: same navy as blue.
+  action: "#002868",
   darkBlue: "#002060",
   // navy — SURFACE token: the deep-navy band (table headers, splash). Distinct
   // from darkBlue, which is a TEXT/accent token and flips BRIGHT in dark mode
@@ -97,6 +102,7 @@ const DARK = {
   red: "#ff4d5a",
   white: "#FFFFFF",
   blue: "#5b9bf2",
+  action: "#2456a8", // v28.439 — deep CTA fill; white text pops (was baby-blue #5b9bf2 doing double duty)
   darkBlue: "#4a8be2",
   // navy — SURFACE token (see LIGHT palette note): stays deep navy here, in
   // step with the navy world (headerBg family), never the bright text blue.

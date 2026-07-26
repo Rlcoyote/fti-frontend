@@ -109,17 +109,17 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
               display: "inline-flex",
               alignItems: "center",
               gap: 4,
-              background: TINT.redBg,
-              color: TINT.redText,
+              background: `${C.red}1c`,
+              color: C.red,
               borderRadius: 4,
               padding: "2px 8px",
               fontSize: 10,
               fontWeight: 800,
               letterSpacing: "0.04em",
-              border: `1px solid ${TINT.redText}44`,
+              border: `1px solid ${C.red}44`,
             }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: TINT.redText, display: "inline-block" }} />
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.red, display: "inline-block" }} />
             COMMENT PENDING
           </span>
         )}
@@ -154,6 +154,11 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
             minHeight: 50,
             resize: "vertical",
             boxSizing: "border-box",
+            // v28.439 (Reggie: the grey box) — a bare textarea renders the
+            // browser's UA-default surface, not ours. Every control reads
+            // the palette; none freeload on the engine.
+            background: C.steel,
+            color: C.text,
           }}
           value={reply}
           onChange={(e) => setReply(e.target.value)}
@@ -163,8 +168,8 @@ function TicketCommentThread({ ticket, onPendingCleared }) {
           className="fti-btn"
           type="button"
           style={{
-            background: C.blue,
-            color: "#fff",
+            background: C.action,
+            color: C.white,
             border: "none",
             borderRadius: 6,
             padding: "8px 16px",

@@ -55,7 +55,7 @@ export default function UpdateBanner() {
         left: 0,
         right: 0,
         zIndex: Z_INDEX.global + 1,
-        background: C.blue,
+        background: C.action, // v28.439 — CTA fill, not text-accent
         color: C.white,
         padding: "10px 14px",
         textAlign: "center",

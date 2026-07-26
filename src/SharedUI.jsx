@@ -256,7 +256,7 @@ export function Btn({ onClick, children, variant = "primary", small, disabled, s
       border: `1px solid ${C.border}`,
       boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 1px 3px rgba(0, 0, 0, 0.28)",
     },
-    blue: dimensional(C.blue),
+    blue: dimensional(C.action), // v28.439 — CTA fill token (contrast under white text in BOTH themes)
     // v27.98 — danger variant for destructive confirmations (disable 2FA, etc.)
     danger: dimensional("#8b1010"),
   };
