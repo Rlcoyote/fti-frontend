@@ -22,7 +22,7 @@ import TicketStatusBanners from "./TicketStatusBanners.jsx";
 import TicketWorkOrderInfo from "./TicketWorkOrderInfo.jsx";
 import CrewSelectionManager from "./CrewSelectionManager.jsx";
 import TicketRigDownMissing from "./TicketRigDownMissing.jsx";
-import { inputStyle, TICKET_TYPES, ticketDisplayCfg, PANEL_TEXT, PANEL_MUTED, ConfirmModal, Z_INDEX } from "./SharedUI.jsx";
+import { inputStyle, TICKET_TYPES, ticketDisplayCfg, ConfirmModal, Z_INDEX } from "./SharedUI.jsx";
 import { toMinutes } from "./ticketTimeValidation.js";
 import useEditLock from "./useEditLock.js";
 import useTicketState from "./useTicketState.js";
@@ -425,7 +425,12 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
       className="fti-modal-selectable"
       style={
         isPageMode
-          ? { background: tcfg.bg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100vh" }
+          ? // v28.437 (Reggie: "call on a centralized theme... leave the header
+            // its appropriate color") — the ticket BODY follows the theme; the
+            // type identity lives in the header band + top border. Supersedes
+            // the v28.292 always-light pastel-panel doctrine, which rendered
+            // as a half-dark quilt in the field.
+            { background: C.bg, borderTop: `4px solid ${tcfg.color}`, minHeight: "100vh" }
           : { position: "fixed", inset: 0, background: C.scrim, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100 }
       }
       onClick={isPageMode ? undefined : handleClose}
@@ -435,7 +440,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
           isPageMode
             ? { maxWidth: 820, margin: "0 auto" }
             : {
-                background: tcfg.bg,
+                background: C.cardBg, // v28.437 — theme-aware body (was pastel tcfg.bg)
                 border: `1px solid ${C.border}`,
                 borderTop: `4px solid ${tcfg.color}`,
                 borderRadius: 8,
@@ -718,7 +723,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                       cursor: "pointer",
                       border: `2px solid ${logTab === key ? tcfg.color : C.border}`,
                       background: logTab === key ? `${tcfg.color}22` : "transparent",
-                      color: logTab === key ? tcfg.color : PANEL_MUTED,
+                      color: logTab === key ? tcfg.color : C.muted,
                       transition: "all 0.15s",
                     }}
                   >
@@ -807,7 +812,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
             onSigWipe={handleSigWipe}
           />
 
-          <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
           {!isLocked ? (
             <LineItemEditor
               lineItems={s.lineItems}
@@ -823,7 +828,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
 
           {/* Notes — v28.44: header + read-only display use PANEL_*. */}
           <div style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>NOTES</div>
             {!isFullyLocked ? (
               <textarea
                 style={{ ...inputStyle, width: "100%", minHeight: 60, resize: "vertical", boxSizing: "border-box" }}
@@ -832,7 +837,7 @@ function TicketDetail({ ticket, onUpdate, onClose, onDelete, onDuplicate, onRevi
                 placeholder="Notes..."
               />
             ) : (
-              <div style={{ fontSize: 12, color: PANEL_TEXT, padding: "8px 0" }}>{s.notes || "—"}</div>
+              <div style={{ fontSize: 12, color: C.text, padding: "8px 0" }}>{s.notes || "—"}</div>
             )}
           </div>
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { C, API_URL } from "./config.js";
-import { Btn, inputStyle, labelStyle, PANEL_TEXT, PANEL_MUTED, TINT } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, TINT } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 import WellPinPaste from "./WellPinPaste.jsx";
 
@@ -94,7 +94,7 @@ function StatusBadge({ status, pulledAt }) {
 function TimeRow({ label, value, onChange, editable, source }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 90px", gap: 10, alignItems: "center", marginBottom: 6 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.04em" }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.04em" }}>{label}</span>
       <input
         type="datetime-local"
         style={{ ...inputStyle, padding: "5px 8px" }}
@@ -284,7 +284,7 @@ export default function TicketGpsTracking({
   return (
     <div style={{ padding: "12px 24px", borderTop: `1px solid ${C.border}33` }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em" }}>GPS TIME TRACKING</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em" }}>GPS TIME TRACKING</span>
         <StatusBadge status={gpsStatus} pulledAt={gpsPulledAt} />
       </div>
 
@@ -324,7 +324,7 @@ export default function TicketGpsTracking({
         <Btn onClick={handlePull} disabled={!editable || !gpsVehicleId || pulling}>
           {pulling ? "PULLING…" : "PULL FROM GPS"}
         </Btn>
-        <span style={{ fontSize: 11, color: PANEL_MUTED }}>
+        <span style={{ fontSize: 11, color: C.muted }}>
           Pulls the vehicle&rsquo;s location history for the ticket&rsquo;s day and computes geofence enter/exit times.
         </span>
       </div>
@@ -344,13 +344,13 @@ export default function TicketGpsTracking({
       {/* Stops */}
       {stops.length > 0 && (
         <div style={{ marginTop: 14, marginBottom: 8 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 6 }}>STOPS</div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.08em", marginBottom: 6 }}>STOPS</div>
           {stops.map((s, idx) => {
             const heading = s.ad_hoc_label ? `Stop ${idx + 1} — Manual: ${s.ad_hoc_label}` : `Stop ${idx + 1} — ${s.job_well_name || "Work order location"}`;
             return (
               <div key={s.id || `new-${idx}`} style={{ padding: 10, background: C.steel, border: `1px solid ${C.border}`, borderRadius: 4, marginBottom: 8 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: PANEL_TEXT }}>{heading}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{heading}</span>
                   {editable && s.source !== "gps" && (
                     <button
                       className="fti-btn"
@@ -366,7 +366,7 @@ export default function TicketGpsTracking({
                 <TimeRow label="ARRIVED" value={s.arrived_at} onChange={(v) => updateStop(idx, "arrived_at", v)} editable={editable} source={s.source} />
                 <TimeRow label="LEFT" value={s.left_at} onChange={(v) => updateStop(idx, "left_at", v)} editable={editable} source={s.source} />
                 <div style={{ display: "grid", gridTemplateColumns: "150px 1fr 90px", gap: 10, alignItems: "center" }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.04em" }}>ENGINE IDLE (min)</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, letterSpacing: "0.04em" }}>ENGINE IDLE (min)</span>
                   <input
                     type="number"
                     min={0}
@@ -398,7 +398,7 @@ export default function TicketGpsTracking({
                 padding: "4px 12px",
                 fontSize: 11,
                 fontWeight: 700,
-                color: PANEL_TEXT,
+                color: C.text,
                 cursor: "pointer",
               }}
             >

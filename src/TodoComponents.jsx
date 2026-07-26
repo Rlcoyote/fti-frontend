@@ -12,23 +12,59 @@ function toLocalDateTimeInput(iso) {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// v28.437 (Reggie: "I was mid input of a new task, clicked the header...
+// and it was gone") — a NEW task draft survives navigation: every keystroke
+// mirrors to sessionStorage; coming back restores it; SAVE or CANCEL clears
+// it. Edit mode doesn't draft (the saved task IS the draft).
+const DRAFT_KEY = "fti_new_task_draft";
+const readDraft = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || "null");
+  } catch {
+    return null;
+  }
+};
+
 function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames = [], initial = null, onReactivate = null, onMarkDone = null }) {
   // v28.282 — `initial` puts the form in EDIT mode, prefilled from the task.
-  const [form, setForm] = useState({
-    title: initial?.title || "",
-    description: initial?.description || "",
-    workOrderId: initial ? initial.workOrderId : defaultWorkOrderId,
-    assignedTo: initial?.assignedTo || getCurrentUser(),
-    priority: initial?.priority || "normal",
-    // v28.336 — REQUIRED = a must-do future action; TO-DO = convenience/supply
-    // item (paper towels). Default TO-DO (ratified 2026-07-16).
-    category: initial?.category || "todo",
-    dueDate: (initial?.dueDate || "").slice(0, 10), // date input needs YYYY-MM-DD
-    // v28.429 — when the assignment TEXT should fire. datetime-local wants
-    // "YYYY-MM-DDTHH:MM" in the user's own clock; blank = text right now.
-    notifyAt: initial?.notifyAt ? toLocalDateTimeInput(initial.notifyAt) : "",
-  });
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const draft = !initial ? readDraft() : null;
+  const [form, setForm] = useState(
+    () =>
+      draft || {
+        title: initial?.title || "",
+        description: initial?.description || "",
+        workOrderId: initial ? initial.workOrderId : defaultWorkOrderId,
+        assignedTo: initial?.assignedTo || getCurrentUser(),
+        priority: initial?.priority || "normal",
+        // v28.336 — REQUIRED = a must-do future action; TO-DO = convenience/supply
+        // item (paper towels). Default TO-DO (ratified 2026-07-16).
+        category: initial?.category || "todo",
+        dueDate: (initial?.dueDate || "").slice(0, 10), // date input needs YYYY-MM-DD
+        // v28.429 — when the assignment TEXT should fire. datetime-local wants
+        // "YYYY-MM-DDTHH:MM" in the user's own clock; blank = text right now.
+        notifyAt: initial?.notifyAt ? toLocalDateTimeInput(initial.notifyAt) : "",
+      },
+  );
+  const set = (k, v) =>
+    setForm((f) => {
+      const next = { ...f, [k]: v };
+      // NEW-task drafts mirror to sessionStorage on every change (v28.437).
+      if (!initial) {
+        try {
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify(next));
+        } catch {
+          /* storage full/blocked — draft just won't survive */
+        }
+      }
+      return next;
+    });
+  const clearDraft = () => {
+    try {
+      sessionStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
   // v28.428 (Reggie: "The completion notes section should already be visible.
   // Then check 'done'.") — the reason comes BEFORE the checkmark. Visible
   // notes field on every open task's editor; MARK DONE stays disabled until
@@ -38,7 +74,12 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
 
   const handleSave = () => {
     if (!form.title.trim()) return;
+    clearDraft();
     onSave({ ...form, workOrderId: form.workOrderId ? Number(form.workOrderId) : null, dueDate: form.dueDate || null });
+  };
+  const handleCancel = () => {
+    clearDraft();
+    onCancel();
   };
 
   return (
@@ -167,7 +208,7 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
             ✓ MARK DONE
           </Btn>
         )}
-        <Btn onClick={onCancel} variant="ghost">
+        <Btn onClick={handleCancel} variant="ghost">
           CANCEL
         </Btn>
       </div>

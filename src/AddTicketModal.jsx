@@ -3,7 +3,7 @@ import { resolveMapPin } from "./mapPin.js";
 import useIsMobile from "./useIsMobile.js";
 import { C, API_URL } from "./config.js";
 import { today } from "./utils.js";
-import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, PANEL_TEXT, PANEL_MUTED, Z_INDEX, TINT } from "./SharedUI.jsx";
+import { Btn, inputStyle, labelStyle, TICKET_TYPES, TicketTypeBadge, Z_INDEX, TINT } from "./SharedUI.jsx";
 import TimePicker from "./TimePicker.jsx";
 import { validateTicketTimes, driveMinutesFromInfo } from "./ticketTimeValidation.js";
 import LineItemEditor from "./LineItemEditor.jsx";
@@ -478,7 +478,7 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
           ? {
               position: "fixed",
               inset: 0,
-              background: (type && TICKET_TYPES[type]?.bg) || C.cardBg,
+              background: C.cardBg, // v28.437 — theme-aware body; type color = top border
               zIndex: Z_INDEX.modal,
               overflowY: "auto",
               overscrollBehavior: "contain",
@@ -492,13 +492,13 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
         style={
           isMobile
             ? {
-                background: (type && TICKET_TYPES[type]?.bg) || C.cardBg,
+                background: C.cardBg, // v28.437 — theme-aware body
                 borderTop: `3px solid ${(type && TICKET_TYPES[type]?.color) || C.red}`,
                 minHeight: "100%",
                 padding: "0 0 40px",
               }
             : {
-                background: (type && TICKET_TYPES[type]?.bg) || C.cardBg,
+                background: C.cardBg, // v28.437 — theme-aware body
                 border: `1px solid ${C.border}`,
                 borderTop: `3px solid ${(type && TICKET_TYPES[type]?.color) || C.red}`,
                 borderRadius: 8,
@@ -657,7 +657,7 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
                     a type switch and could land on a non-Rental ticket).
                     Type recovery now flows through: close the modal
                     (wipes state) and re-open with the right type. */}
-                <span style={{ fontSize: 16, fontWeight: 700, color: PANEL_TEXT }}>New {type} Ticket</span>
+                <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>New {type} Ticket</span>
               </div>
 
               <AddTicketDateTimeFields
@@ -783,7 +783,7 @@ function AddTicketModal({ workOrderId, job, onSave, onClose, workOrderWells = []
                 </>
               )}
 
-              <div style={{ fontSize: 12, fontWeight: 700, color: PANEL_MUTED, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: "0.08em", marginBottom: 8 }}>LINE ITEMS</div>
               <TicketEquipmentSection rows={equipment} setRows={setEquipment} ticketType={type} workOrderId={workOrderId} readOnly={false} />
               <LineItemEditor lineItems={lineItems} setLineItems={setLineItems} ticketType={type} qbItems={qbItems} workOrderId={workOrderId} />
               <div style={{ marginTop: 16, marginBottom: 16 }}>

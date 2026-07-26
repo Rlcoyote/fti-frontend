@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { TicketTypeBadge, TicketStatusBadge, PANEL_TEXT, PANEL_MUTED, PANEL_FAINT, TINT } from "./SharedUI.jsx";
+import { TicketTypeBadge, TicketStatusBadge, TINT } from "./SharedUI.jsx";
 import { formatDate, formatShortStamp, shortName } from "./utils.js";
 import TimePicker from "./TimePicker.jsx";
 
@@ -51,7 +51,7 @@ function TicketHeaderRow({
   const lockPillLabel = isFullyLocked ? "QB VERIFIED" : "LOCKED";
 
   // v28.39 — TicketDetail panel sits on a light pastel tcfg.bg (always
-  // light, regardless of theme). v28.44 — PANEL_TEXT / MUTED / FAINT are
+  // light, regardless of theme). v28.44 — C.text / MUTED / FAINT are
   // now exported from SharedUI as the single source of truth; this file
   // imports them. Inputs (date, yard select) keep their own theme since
   // they have their own dark C.cardBg backgrounds.
@@ -61,7 +61,7 @@ function TicketHeaderRow({
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
         <TicketTypeBadge type={ticket.type} />
         <TicketStatusBadge status={status} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: PANEL_TEXT }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
           #{ticket.workOrderId}
           {ticket.ticketNumber ? `-${ticket.ticketNumber}` : ""}
         </span>
@@ -74,19 +74,19 @@ function TicketHeaderRow({
 
       {/* Row 2: dollar total + created-by stamp */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: PANEL_TEXT }}>
+        <div style={{ fontSize: isPageMode ? 18 : 20, fontWeight: 800, color: C.text }}>
           {"$"}
           {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         {ticket.createdBy && (
-          <span style={{ fontSize: 9, color: PANEL_FAINT }}>
+          <span style={{ fontSize: 9, color: C.faint }}>
             {shortName(ticket.createdBy)} · {formatShortStamp(ticket.createdAt)}
           </span>
         )}
       </div>
 
       {/* Row 3: customer + editable date */}
-      <div style={{ fontSize: 12, color: PANEL_MUTED, marginBottom: 6 }}>
+      <div style={{ fontSize: 12, color: C.muted, marginBottom: 6 }}>
         <span>
           {job?.customer || "Unknown"} ·{" "}
           {isLocked ? (
@@ -104,7 +104,7 @@ function TicketHeaderRow({
 
       {/* Row 4: Location Time + Time Zone + Yard (non-Rental only) */}
       {ticket.type !== "Rental" && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12, color: PANEL_MUTED }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: 12, color: C.muted }}>
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.06em" }}>LOCATION TIME:</span>
             {editable ? (
@@ -128,7 +128,7 @@ function TicketHeaderRow({
                       cursor: "pointer",
                       fontSize: 12,
                       fontWeight: 700,
-                      color: timeZone === tz ? C.red : PANEL_MUTED,
+                      color: timeZone === tz ? C.red : C.muted,
                     }}
                   >
                     <span

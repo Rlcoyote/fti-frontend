@@ -38,7 +38,6 @@ input, textarea, select, button {
    the dark variant inverts the icon. The light variant keeps the default. */
 body[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
 body[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) brightness(1.6);
   cursor: pointer;
   opacity: 0.85;
 }
@@ -126,9 +125,19 @@ body.fti-modal-open .fti-modal-selectable * {
   .fti-card:hover { transform: none; }
 }
 
-/* v28.398 — dark-mode native date/time picker icons (Reggie: invisible). */
-[data-fti-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
-[data-fti-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) opacity(0.85);
-  cursor: pointer;
+/* v28.437 (Reggie: the DUE DATE month picker ignored dark mode while TEXT
+   ASSIGNEE AT followed) — color-scheme per element is THE mechanism: it
+   themes the popup calendar AND the indicator glyph for EVERY native widget
+   (date, time, datetime-local, select) in one rule. The old invert() icon
+   hacks are retired — with color-scheme:dark the engine renders light
+   glyphs natively, and inverting them would flip them BACK to dark. */
+[data-fti-theme="dark"] input,
+[data-fti-theme="dark"] select,
+[data-fti-theme="dark"] textarea {
+  color-scheme: dark;
+}
+[data-fti-theme="light"] input,
+[data-fti-theme="light"] select,
+[data-fti-theme="light"] textarea {
+  color-scheme: light;
 }
