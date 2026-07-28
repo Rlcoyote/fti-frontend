@@ -7,8 +7,22 @@ import { C } from "./config.js";
 // separate pass (harden utils first), per Article XXIV's Compression clause.
 
 export const JOB_STATUS_REPORT = [
-  { value: "Scheduled", label: "ACTIVE", color: "#1a5fa8" },
-  { value: "Completed", label: "COMPLETED", color: "#1a7a3c" },
+  // v28.440 — getters, not values (the SharedUI idiom): eager reads would
+  // freeze the load-time theme into the report chips.
+  {
+    value: "Scheduled",
+    label: "ACTIVE",
+    get color() {
+      return C.blue;
+    },
+  },
+  {
+    value: "Completed",
+    label: "COMPLETED",
+    get color() {
+      return C.green;
+    },
+  },
 ];
 
 export const REPORT_TABS = [

@@ -96,7 +96,7 @@ function JSALocationPin({ lat, setLat, lng, setLng }) {
         </div>
       )}
       {nearbyHospitals.length > 0 && (
-        <div style={{ marginTop: 8, background: "#fdf0f0", border: `1px solid ${C.red}22`, borderRadius: 4, padding: "6px 10px" }}>
+        <div style={{ marginTop: 8, background: `${C.red}14`, border: `1px solid ${C.red}22`, borderRadius: 4, padding: "6px 10px" }}>
           {/* v28.52 — bg #fdf0f0 is always-light pink. Hospital name
               + phone used C.text / C.muted which flip light in dark
               mode and become invisible on pink. Force PANEL_TEXT /

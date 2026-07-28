@@ -150,7 +150,7 @@ function DeletedWorkOrdersPage({ deletedWorkOrders, deletedTickets = [], jobs, h
                 fontWeight: 800,
                 letterSpacing: "0.06em",
                 color: tcfg.color,
-                background: tcfg.bg || "#fff",
+                background: tcfg.bg || C.cardBg,
                 border: `1px solid ${tcfg.color}44`,
                 borderRadius: 3,
                 padding: "2px 7px",

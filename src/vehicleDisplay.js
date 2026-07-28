@@ -1,3 +1,4 @@
+import { TINT } from "./SharedUI.jsx";
 import { C } from "./config.js";
 
 // ─── Vehicle display helpers (extracted from VehiclesPage v28.235) ───────────
@@ -60,7 +61,7 @@ export function regStatus(regExpires) {
 }
 
 export const REG_FILL = {
-  expired: "#fdecea",
+  expired: TINT.redBg, // v28.440 — the TINT token this always WAS
   due: "#fff2cc",
   due_soon: "#fff8e1",
   ok: "transparent",
@@ -69,7 +70,7 @@ export const REG_FILL = {
 // Getters, not values (SharedUI idiom) — eager C reads at module level freeze
 // the load-time theme. The two amber hexes are theme-static by design.
 export const REG_LABEL_COLOR = {
-  due: "#8a6500",
+  due: TINT.yellowText, // v28.440 — exact TINT match
   due_soon: "#9a7400",
   get expired() {
     return C.red;

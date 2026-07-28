@@ -288,12 +288,12 @@ export default function WorkOrderTicketsRow({ ticket: t, custEmail, isMobile, is
                   e.stopPropagation();
                   actions.requestDelete();
                 }}
-                style={{ fontSize: 14, color: "#ccc", cursor: "pointer", padding: "2px 4px" }}
+                style={{ fontSize: 14, color: C.muted, cursor: "pointer", padding: "2px 4px" }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = C.red;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#ccc";
+                  e.currentTarget.style.color = C.muted;
                 }}
               >
                 🗑
@@ -529,12 +529,12 @@ export default function WorkOrderTicketsRow({ ticket: t, custEmail, isMobile, is
                   e.stopPropagation();
                   actions.requestDelete();
                 }}
-                style={{ fontSize: 14, color: "#ccc", cursor: "pointer", marginLeft: 4, padding: "2px 4px" }}
+                style={{ fontSize: 14, color: C.muted, cursor: "pointer", marginLeft: 4, padding: "2px 4px" }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = C.red;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#ccc";
+                  e.currentTarget.style.color = C.muted;
                 }}
               >
                 🗑

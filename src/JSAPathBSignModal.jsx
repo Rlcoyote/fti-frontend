@@ -326,7 +326,7 @@ function JSAPathBSignModal({ jsaId, target, onClose, onSigned, onFallbackToOverr
               position: "relative",
               width: "100%",
               aspectRatio: "4 / 3",
-              background: "#000",
+              background: "#000", // camera viewport backdrop — universal black, theme-agnostic by nature
               borderRadius: 4,
               overflow: "hidden",
               marginBottom: 12,

@@ -439,7 +439,7 @@ function TicketWeekDays({ ticket, accent, readOnly, onTotalHours, onWeekCreated,
                     style={{
                       marginLeft: "auto",
                       background: C.red,
-                      color: "#fff",
+                      color: C.white,
                       border: "none",
                       borderRadius: 4,
                       fontSize: 10,

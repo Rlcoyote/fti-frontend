@@ -228,7 +228,7 @@ function WellLogTab({ ticket, accent, readOnly, showNotice, onSummary }) {
                   cursor: "pointer",
                   border: `1px solid ${active ? accent : C.border}`,
                   background: active ? accent : "transparent",
-                  color: active ? "#fff" : C.text,
+                  color: active ? C.white : C.text,
                   transition: "background 0.15s, border-color 0.15s",
                 }}
               >

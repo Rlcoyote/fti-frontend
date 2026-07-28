@@ -198,7 +198,7 @@ function AllTicketsPage({ tickets, setTickets, jobs }) {
                 onClick={() => (isMobileNav ? navigate(`/ticket/${t.id}`, { state: { ticket: t } }) : setViewTicket(t))}
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", flexWrap: "wrap" }}
               >
-                <span style={{ fontSize: 15, color: "#bbb", cursor: "grab" }}>⠿</span>
+                <span style={{ fontSize: 15, color: C.muted, cursor: "grab" }}>⠿</span>
                 <TicketTypeBadge type={t.type} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
                   #{t.workOrderId}

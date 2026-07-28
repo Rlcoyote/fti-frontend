@@ -3,10 +3,6 @@
     "hex": 1,
     "panel": 0
   },
-  "AllTicketsPage.jsx": {
-    "hex": 1,
-    "panel": 0
-  },
   "CopyCrewModal.jsx": {
     "hex": 0,
     "panel": 4
@@ -14,10 +10,6 @@
   "CrewSelectionView.jsx": {
     "hex": 0,
     "panel": 4
-  },
-  "DeletedWorkOrdersPage.jsx": {
-    "hex": 1,
-    "panel": 0
   },
   "DesktopNavBar.jsx": {
     "hex": 3,
@@ -28,7 +20,7 @@
     "panel": 5
   },
   "JSALocationPin.jsx": {
-    "hex": 1,
+    "hex": 0,
     "panel": 4
   },
   "JSAPathBSignModal.jsx": {
@@ -39,40 +31,16 @@
     "hex": 2,
     "panel": 0
   },
-  "PinSetupPage.jsx": {
-    "hex": 1,
-    "panel": 3
-  },
-  "SafetyMeetingPrintView.jsx": {
-    "hex": 4,
-    "panel": 0
-  },
   "SmsConsentCheckbox.jsx": {
     "hex": 0,
     "panel": 4
   },
-  "TicketWeekDays.jsx": {
-    "hex": 1,
-    "panel": 0
-  },
-  "TrainingPage.jsx": {
-    "hex": 4,
-    "panel": 0
-  },
   "WellLogTab.jsx": {
-    "hex": 4,
-    "panel": 0
-  },
-  "WorkOrderTicketsRow.jsx": {
-    "hex": 4,
-    "panel": 0
-  },
-  "reportHelpers.js": {
-    "hex": 2,
+    "hex": 3,
     "panel": 0
   },
   "vehicleDisplay.js": {
-    "hex": 5,
+    "hex": 3,
     "panel": 0
   }
 }

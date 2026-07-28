@@ -29,7 +29,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = join(root, "src");
 const baselinePath = join(root, "scripts", "theme-baseline.json");
 
-const EXEMPT = new Set(["config.js", "SharedUI.jsx", "PublicSignPage.jsx", "BrandedSplash.jsx"]);
+const EXEMPT = new Set([
+  "config.js", // IS the palette
+  "SharedUI.jsx", // defines TINT/PANEL tokens
+  "PublicSignPage.jsx", // customer-facing, raw-hex-intentional (ruled v28.29x)
+  "BrandedSplash.jsx", // the brand mark is the brand mark
+  "SafetyMeetingPrintView.jsx", // @media print — paper is white, ink is black, always
+  "TrainingPage.jsx", // print CSS only (same paper truth)
+  "PinSetupPage.jsx", // pre-login brand-fixed dark page (login-family surface)
+]);
 
 const HEX = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b(?![0-9a-fA-F])/g;
 const PANEL = /\bPANEL_(TEXT|MUTED|FAINT)\b/g;
