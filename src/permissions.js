@@ -86,6 +86,9 @@ export const PERMISSION_CATEGORIES = [
   { key: "manage_safety_topics", label: "Manage Safety Topic Bank", group: "Safety Meetings" },
   // v28.422 — Action Items dummy-proofing (ratified 260723)
   { key: "audit_action_items", label: "Action Items — By-Person Audit", group: "Action Items" },
+  // v28.441 — Competency Certifications (paired test + practical sign-off):
+  { key: "sign_off_competency", label: "Sign Off Competency (Evaluator)", group: "Certifications" },
+  { key: "view_all_competency", label: "View All Certifications", group: "Certifications" },
 ];
 
 // Default permissions by role. Used as the fallback when a user's permissions
@@ -154,6 +157,8 @@ export const DEFAULT_PERMS = {
     safety_meeting_delete: false,
     manage_safety_topics: false,
     audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
+    sign_off_competency: false, // v28.441 — evaluator gate; crew lead OFF (owner/admin can toggle per user)
+    view_all_competency: false,
   },
   salesman: {
     view_jobs: true,
@@ -187,6 +192,8 @@ export const DEFAULT_PERMS = {
     safety_meeting_delete: false,
     manage_safety_topics: false,
     audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
+    sign_off_competency: false, // v28.441
+    view_all_competency: false,
   },
   field: {
     view_jobs: true,
@@ -220,6 +227,8 @@ export const DEFAULT_PERMS = {
     safety_meeting_delete: false,
     manage_safety_topics: false,
     audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
+    sign_off_competency: false, // v28.441 — field CANNOT sign off competency (Reggie 260806)
+    view_all_competency: false,
   },
   // hse — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Cross-existing: view_jobs + view_reports + view_activity_log ON, other
@@ -256,6 +265,8 @@ export const DEFAULT_PERMS = {
     safety_meeting_delete: false,
     manage_safety_topics: false,
     audit_action_items: true, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
+    sign_off_competency: true, // v28.441 — HSE is a natural evaluator
+    view_all_competency: true, // v28.441 — HSE oversees certifications
   },
   // mechanic — added v28.170 (allFalse placeholder); ratified grid in v28.186.
   // Tight boundary: every one of the 17 existing keys OFF. Only DVIR-side:
@@ -292,6 +303,8 @@ export const DEFAULT_PERMS = {
     safety_meeting_delete: false,
     manage_safety_topics: false,
     audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
+    sign_off_competency: false, // v28.441 — mechanic tight boundary
+    view_all_competency: false,
   },
   // dispatch — added v28.177. Operations / fleet dispatcher role. Defaults to
   // GPS-relevant permissions ON; DVIR keys OFF (dispatch isn't the inspection /
@@ -328,6 +341,8 @@ export const DEFAULT_PERMS = {
     safety_meeting_delete: false,
     manage_safety_topics: false,
     audit_action_items: true, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
+    sign_off_competency: false, // v28.441 — dispatch tune-on if they evaluate
+    view_all_competency: false,
   },
 };
 

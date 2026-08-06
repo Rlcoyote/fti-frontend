@@ -68,7 +68,10 @@ function StatusChip({ passed, score, when }) {
 }
 
 // ─── Take-test view ──────────────────────────────────────────────────────────
-function TakeTest({ testId, onDone, onCancel }) {
+// Exported so the Certifications flow (CompetencyPage) reuses the SAME
+// take-test surface — one home for taking a test, awareness or certification
+// (v28.441). Do not duplicate this into the cert page.
+export function TakeTest({ testId, onDone, onCancel }) {
   const [test, setTest] = useState(null);
   const [answers, setAnswers] = useState({});
   const [busy, setBusy] = useState(false);
@@ -113,7 +116,6 @@ function TakeTest({ testId, onDone, onCancel }) {
         className="fti-btn"
         key={String(value)}
         onClick={() => setAnswers((a) => ({ ...a, [q.n]: value }))}
-        className="fti-btn"
         style={{
           display: "block",
           width: "100%",
@@ -388,7 +390,7 @@ function TrainingPage() {
     <div style={{ maxWidth: 860, margin: "0 auto", padding: "18px 14px 60px" }}>
       {view.mode === "list" && (
         <>
-          <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>TRAINING</h1>
+          <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>COMPETENCY</h1>
           <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 14 }}>
             Policy knowledge tests from the Flo-Test Policies &amp; Procedures Manual. Passing score is 80%.
           </div>
@@ -401,7 +403,7 @@ function TrainingPage() {
                   setView({ mode: "list" });
                 }}
                 options={[
-                  ["mine", "MY TRAINING"],
+                  ["mine", "MY COMPETENCY"],
                   ["all", "ALL EMPLOYEES"],
                 ]}
               />
@@ -438,47 +440,52 @@ function TrainingPage() {
         <>
           {err && <div style={{ color: C.red, marginBottom: 10 }}>{err}</div>}
           {!tests && !err && <div style={{ opacity: 0.7 }}>Loading tests…</div>}
+          {/* Awareness training only. Certification knowledge tests (kind ===
+              "certification") are surfaced under Certifications, not here — a
+              certification is a separate class from awareness (v28.441). */}
           {tests &&
-            tests.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  background: C.cardBg,
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 10,
-                  padding: "12px 14px",
-                  marginBottom: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div style={{ flex: "1 1 240px" }}>
-                  <div style={{ fontWeight: 800, fontSize: 15 }}>{t.title}</div>
-                  <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
-                    {t.question_count} questions{t.attempts > 0 ? ` · ${t.attempts} attempt${t.attempts === 1 ? "" : "s"}` : ""}
+            tests
+              .filter((t) => t.kind !== "certification")
+              .map((t) => (
+                <div
+                  key={t.id}
+                  style={{
+                    background: C.cardBg,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    padding: "12px 14px",
+                    marginBottom: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ flex: "1 1 240px" }}>
+                    <div style={{ fontWeight: 800, fontSize: 15 }}>{t.title}</div>
+                    <div style={{ fontSize: 12, opacity: 0.6, marginTop: 2 }}>
+                      {t.question_count} questions{t.attempts > 0 ? ` · ${t.attempts} attempt${t.attempts === 1 ? "" : "s"}` : ""}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <StatusChip passed={t.last_passed} score={t.last_score_pct} when={t.last_completed_at} />
+                    {t.last_attempt_id && (
+                      <Btn
+                        small
+                        variant="ghost"
+                        onClick={() => setView({ mode: "review", attemptId: t.last_attempt_id })}
+                        style={{ color: C.blue, borderColor: C.blue }}
+                      >
+                        VIEW
+                      </Btn>
+                    )}
+                    <Btn small onClick={() => setView({ mode: "take", testId: t.id })}>
+                      {t.last_attempt_id ? "RETAKE" : "TAKE TEST"}
+                    </Btn>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <StatusChip passed={t.last_passed} score={t.last_score_pct} when={t.last_completed_at} />
-                  {t.last_attempt_id && (
-                    <Btn
-                      small
-                      variant="ghost"
-                      onClick={() => setView({ mode: "review", attemptId: t.last_attempt_id })}
-                      style={{ color: C.blue, borderColor: C.blue }}
-                    >
-                      VIEW
-                    </Btn>
-                  )}
-                  <Btn small onClick={() => setView({ mode: "take", testId: t.id })}>
-                    {t.last_attempt_id ? "RETAKE" : "TAKE TEST"}
-                  </Btn>
-                </div>
-              </div>
-            ))}
+              ))}
         </>
       )}
     </div>

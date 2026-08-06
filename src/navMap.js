@@ -29,6 +29,7 @@ const NAV = [
   ["Safety", "safety", "/safety"],
   ["Safety Meetings", "safetyMeetings", "/safety-meetings"],
   ["Training", "training", "/training"],
+  ["Operator Certs", "competency", "/competency"], // v28.441 — equipment operator certification program (test + practical)
   ["Tutorial", "tutorial", "/tutorial"], // v28.419 — THE tutorial (everyone)
   ["Final Review", "finalReview", "/final-review"],
   ["Reports", "reports", "/reports"],
@@ -77,7 +78,7 @@ export function pageFromPath(pathname) {
 // blur the umbrella (Safety → Certifications under SAFETY).
 export const NAV_GROUPS = [
   { label: "TIME", items: ["Clock", "My Hours"] },
-  { label: "SAFETY", items: ["Safety", "Safety Meetings", "Training"] },
+  { label: "SAFETY", items: ["Safety", "Safety Meetings", "Training", "Operator Certs"] },
   { label: "HISTORY", items: ["Work Order History", "Deleted", "Archive"] },
 ];
-export const NAV_DISPLAY = { Safety: "Certifications", "Work Order History": "Work Orders" };
+export const NAV_DISPLAY = { Safety: "Certifications", Training: "Competency", "Work Order History": "Work Orders" };

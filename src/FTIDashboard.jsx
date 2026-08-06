@@ -44,6 +44,7 @@ import OnboardingPage from "./OnboardingPage.jsx";
 import ErrorLogPage from "./ErrorLogPage.jsx";
 import ClockPage from "./ClockPage.jsx";
 import TrainingPage from "./TrainingPage.jsx";
+import CompetencyPage from "./CompetencyPage.jsx";
 import { pageFromPath } from "./navMap.js";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
@@ -503,6 +504,7 @@ function FTIDashboard() {
         {["owner", "admin"].includes(userRole) && <Route path="/error-log" element={<ErrorLogPage />} />}
         <Route path="/clock" element={<ClockPage />} />
         <Route path="/training" element={<TrainingPage />} />
+        <Route path="/competency" element={<CompetencyPage />} />
         {/* v28.419 — THE tutorial: everyone; content self-filters by role. */}
         <Route path="/tutorial" element={<TutorialPage />} />
         <Route path="/my-hours" element={<MyHoursPage />} />
