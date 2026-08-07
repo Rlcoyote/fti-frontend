@@ -195,8 +195,22 @@ export const TUTORIAL_MODULES = [
         ],
       },
       {
-        title: "Certifications",
-        steps: ["SAFETY → Training holds your certifications and their expiries — what you're carded for and when it lapses."],
+        title: "Certifications & competency",
+        steps: [
+          "Under SAFETY: Certifications is the registry — what you're carded for and when it lapses. Competency (the old Training tab) holds the written knowledge tests.",
+          "Operator Certs is the equipment program — see the next lesson; a cert you earn there lands in the same Certifications registry with its expiration.",
+        ],
+      },
+      {
+        title: "Operator certifications (man lift / MEWP)",
+        steps: [
+          "SAFETY → Operator Certs lists the equipment you can get certified to operate — first up: the aerial / articulating boom man lift (the man basket).",
+          "Step one is the WRITTEN TEST — pass it (80%) right on your phone under Competency; the Operator Certs card shows when you have.",
+          "Step two is the PRACTICAL: an evaluator watches you run the equipment through the checklist — inspection, controls, safe operation.",
+          "Both of you sign it on the spot: your PIN plus the evaluator's biometric — the same two-party ceremony as a witnessed JSA.",
+          "The earned certification lands on the CERTIFICATIONS page with its expiration (36 months for the man lift) and shows up in expiring-cert warnings like every other card.",
+        ],
+        tip: "No PIN set yet? The sign-off will refuse you with directions — set your PIN first so the practical can be signed the day you pass.",
       },
       {
         title: "What a JSA signature means",
