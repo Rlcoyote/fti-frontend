@@ -192,7 +192,7 @@ export const DEFAULT_PERMS = {
     safety_meeting_delete: false,
     manage_safety_topics: false,
     audit_action_items: false, // v28.422 — mgr-rank+: mgr/admin/owner auto, hse+dispatch ON, crew OFF
-    sign_off_competency: false, // v28.441
+    sign_off_competency: true, // v28.443 (Reggie 260807): "for now, salesman evaluates"
     view_all_competency: false,
   },
   field: {
@@ -370,10 +370,17 @@ export function getRoleTemplates(settings) {
 // the app, consumed by AppContext. Mirrors the backend requirePermission:
 // owner is all-true, no role is all-false, every other role is its
 // DEFAULT_PERMS template overlaid with the user's stored per-user permissions.
+// v28.443 — STRUCTURAL DENY (Article XVII): keys a role can NEVER hold, even
+// via per-user grants or a hand-edited template. Reggie 260807: the field
+// role cannot be selected to evaluate — greyed on the matrix AND refused
+// here, so the grey-out is decoration over a wall, not the wall itself.
+// MUST mirror fti-backend/src/permissions.js STRUCTURAL_DENY (parity-checked).
+export const STRUCTURAL_DENY = { field: ["sign_off_competency"] };
+
 export function makeCan(user) {
   const role = user?.role;
   if (!role) return () => false;
   if (role === "owner") return () => true;
   const perms = { ...(DEFAULT_PERMS[role] || {}), ...(user.permissions || {}) };
-  return (key) => !!perms[key];
+  return (key) => !(STRUCTURAL_DENY[role] || []).includes(key) && !!perms[key];
 }

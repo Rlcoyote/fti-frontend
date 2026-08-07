@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
-import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS, ROLE_OPTIONS, getRoleTemplates } from "./permissions.js";
+import { canModifyUser, PERMISSION_CATEGORIES, DEFAULT_PERMS, ROLE_OPTIONS, getRoleTemplates, STRUCTURAL_DENY } from "./permissions.js";
 import { useApp } from "./AppContext.jsx";
 
 // ─── PermissionsMatrixView (v28.17, extracted from PermissionsModal v27.x) ─
@@ -263,16 +263,25 @@ function PermissionsMatrixView() {
                       >
                         {r.label}
                       </td>
-                      {PERMISSION_CATEGORIES.map((p) => (
-                        <td key={p.key} style={{ padding: "8px 4px", textAlign: "center" }}>
-                          <input
-                            type="checkbox"
-                            checked={!!editTemplates[r.value]?.[p.key]}
-                            onChange={() => toggleTemplatePerm(r.value, p.key)}
-                            style={{ width: 16, height: 16, cursor: "pointer", accentColor: C.blue }}
-                          />
-                        </td>
-                      ))}
+                      {PERMISSION_CATEGORIES.map((p) => {
+                        // v28.443 — structurally denied role×key cells are
+                        // GREYED (Reggie: "greyed out for a field role"). The
+                        // real wall lives in makeCan/resolvePermissions; this
+                        // just tells the truth about it.
+                        const barred = (STRUCTURAL_DENY[r.value] || []).includes(p.key);
+                        return (
+                          <td key={p.key} style={{ padding: "8px 4px", textAlign: "center", opacity: barred ? 0.35 : 1 }}>
+                            <input
+                              type="checkbox"
+                              checked={!barred && !!editTemplates[r.value]?.[p.key]}
+                              disabled={barred}
+                              title={barred ? "This role can never hold this permission — enforced in code, not just unchecked" : undefined}
+                              onChange={() => toggleTemplatePerm(r.value, p.key)}
+                              style={{ width: 16, height: 16, cursor: barred ? "not-allowed" : "pointer", accentColor: C.blue }}
+                            />
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
@@ -375,14 +384,16 @@ function PermissionsMatrixView() {
                       {customized && <div style={{ fontSize: 9, color: C.yellow, fontWeight: 700, marginTop: 3, letterSpacing: "0.04em" }}>● CUSTOMIZED</div>}
                     </td>
                     {PERMISSION_CATEGORIES.map((p) => {
-                      const checked = u.permissions?.[p.key] ?? false;
-                      const disabled = !canModify;
+                      const barred = (STRUCTURAL_DENY[u.role] || []).includes(p.key); // v28.443
+                      const checked = !barred && (u.permissions?.[p.key] ?? false);
+                      const disabled = !canModify || barred;
                       return (
-                        <td key={p.key} style={{ padding: "8px 4px", textAlign: "center" }}>
+                        <td key={p.key} style={{ padding: "8px 4px", textAlign: "center", opacity: barred ? 0.35 : 1 }}>
                           <input
                             type="checkbox"
                             checked={checked}
                             disabled={disabled}
+                            title={barred ? "This role can never hold this permission — enforced in code" : undefined}
                             onChange={() => togglePerm(u.id, p.key)}
                             style={{ width: 16, height: 16, cursor: disabled ? "not-allowed" : "pointer", accentColor: C.blue }}
                           />

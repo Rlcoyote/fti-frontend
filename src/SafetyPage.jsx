@@ -1,9 +1,30 @@
 import { useState, useEffect, useMemo } from "react";
 import { C, API_URL } from "./config.js";
+import { api } from "./api.js";
 import { Btn, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
 
 const CERT_TYPES = ["H2S", "Forklift", "Manlift", "Confined Space", "First Aid / CPR", "Fall Protection", "Hazmat", "CDL", "Site Specific", "Other"];
+
+// v28.443 (Reggie 260807: "It cannot be that a user simply writes in their
+// cert. This has to be from a drop down list of what is available.") — the
+// NAME comes from a list: curated common names per type, plus FTI in-house
+// certs shown but UNSELECTABLE (they are EARNED via Operator Certs — the
+// backend refuses a hand-typed match too, so the grey is truth, not the
+// wall). "Other" reveals a text field for the odd external card.
+const CERT_NAME_OPTIONS = {
+  H2S: ["H2S Alive", "H2S Clear", "H2S Awareness"],
+  Forklift: ["Forklift Operator"],
+  Manlift: [],
+  "Confined Space": ["Confined Space Entry", "Confined Space Attendant"],
+  "First Aid / CPR": ["First Aid / CPR / AED", "BLS Provider"],
+  "Fall Protection": ["Fall Protection Authorized User", "Fall Protection Competent Person"],
+  Hazmat: ["Hazmat Awareness", "DOT Hazmat"],
+  CDL: ["CDL Class A", "CDL Class B"],
+  "Site Specific": ["SafeLand Basic", "PEC Core Compliance", "TWIC"],
+  Other: [],
+};
+const OTHER_NAME = "__other__";
 
 function SafetyPage() {
   const { users, can } = useApp();
@@ -19,6 +40,8 @@ function SafetyPage() {
   const [formUserId, setFormUserId] = useState("");
   const [formType, setFormType] = useState("");
   const [formName, setFormName] = useState("");
+  const [nameChoice, setNameChoice] = useState(""); // v28.443 — dropdown selection; OTHER_NAME reveals free text
+  const [inhouseCerts, setInhouseCerts] = useState([]); // v28.443 — earned-only titles (unselectable)
   const [formIssuer, setFormIssuer] = useState("");
   const [formIssueDate, setFormIssueDate] = useState("");
   const [formExpDate, setFormExpDate] = useState("");
@@ -71,10 +94,18 @@ function SafetyPage() {
     return certs.filter((c) => c.expiration_date && new Date(c.expiration_date) < now);
   }, [certs]);
 
+  useEffect(() => {
+    api
+      .get("/competency/certs")
+      .then((d) => setInhouseCerts((d?.certs || []).map((x) => x.title)))
+      .catch(() => setInhouseCerts([]));
+  }, []);
+
   const resetForm = () => {
     setFormUserId("");
     setFormType("");
     setFormName("");
+    setNameChoice("");
     setFormIssuer("");
     setFormIssueDate("");
     setFormExpDate("");
@@ -123,6 +154,7 @@ function SafetyPage() {
     setFormUserId(c.user_id);
     setFormType(c.cert_type);
     setFormName(c.cert_name);
+    setNameChoice((CERT_NAME_OPTIONS[c.cert_type] || []).includes(c.cert_name) ? c.cert_name : OTHER_NAME);
     setFormIssuer(c.issuer || "");
     setFormIssueDate((c.issue_date || "").slice(0, 10));
     setFormExpDate((c.expiration_date || "").slice(0, 10));
@@ -407,7 +439,8 @@ function SafetyPage() {
                 value={formType}
                 onChange={(e) => {
                   setFormType(e.target.value);
-                  if (!formName) setFormName(e.target.value);
+                  setNameChoice("");
+                  setFormName("");
                 }}
               >
                 <option value="">Select type...</option>
@@ -421,7 +454,41 @@ function SafetyPage() {
           </div>
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>CERTIFICATION NAME *</label>
-            <input style={inputStyle} value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="H2S Alive, OSHA 30-Hour, etc." />
+            <select
+              style={inputStyle}
+              value={nameChoice}
+              disabled={!formType}
+              onChange={(e) => {
+                const v = e.target.value;
+                setNameChoice(v);
+                setFormName(v === OTHER_NAME ? "" : v);
+              }}
+            >
+              <option value="">{formType ? "Select the certification..." : "Pick a type first..."}</option>
+              {(CERT_NAME_OPTIONS[formType] || []).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+              {inhouseCerts.length > 0 && (
+                <optgroup label="FTI in-house — earned via Operator Certs, not entered here">
+                  {inhouseCerts.map((n) => (
+                    <option key={n} value={n} disabled>
+                      {n}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              <option value={OTHER_NAME}>Other — type it in</option>
+            </select>
+            {nameChoice === OTHER_NAME && (
+              <input
+                style={{ ...inputStyle, marginTop: 6 }}
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                placeholder="Exact name as printed on the card"
+              />
+            )}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
             <div>
