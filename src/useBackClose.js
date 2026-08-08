@@ -18,6 +18,12 @@ import { useEffect, useRef } from "react";
 
 const stack = [];
 let seq = 0;
+// v28.444 — synthetic pops in flight. A cleanup's history.back() fires a
+// popstate identical to a user BACK press; without this marker the NEXT modal
+// down the stack answers it and closes (or, with a dirty-guard, REOPENS the
+// guard the user just dismissed — the KEEP-EDITING blink bug). Counted, not
+// boolean: nested modals can unmount in the same tick.
+let syntheticPops = 0;
 
 export default function useBackClose(isOpen, onClose) {
   const idRef = useRef(null);
@@ -34,6 +40,12 @@ export default function useBackClose(isOpen, onClose) {
     let poppedByButton = false;
     window.history.pushState({ ftiBackClose: id }, "");
     const onPop = () => {
+      // A pop we caused ourselves (entry consumption below) is not a user
+      // BACK press — swallow it, exactly once (v28.444).
+      if (syntheticPops > 0) {
+        syntheticPops--;
+        return;
+      }
       // Only the top of the stack answers a BACK press.
       if (stack[stack.length - 1] !== id) return;
       poppedByButton = true;
@@ -51,7 +63,10 @@ export default function useBackClose(isOpen, onClose) {
       // search result click pushed a new route), history.back() here would
       // undo THAT navigation — the v28.390 bug: search results closed the
       // modal and instantly bounced back off the destination page.
-      if (!poppedByButton && window.history.state?.ftiBackClose === id) window.history.back();
+      if (!poppedByButton && window.history.state?.ftiBackClose === id) {
+        syntheticPops++;
+        window.history.back();
+      }
     };
     // Deliberate deps: open/close lifecycle only; onClose rides the ref.
   }, [isOpen]);

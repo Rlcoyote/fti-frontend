@@ -39,7 +39,9 @@ const allSrc = srcFiles.map((f) => readFileSync(join(srcDir, f), "utf8")).join("
 const errors = [];
 
 // ── 1. NAV coverage ──────────────────────────────────────────────────────────
-const navLabels = [...navSource.matchAll(/^\s*\["([^"]+)",\s*"[^"]+",\s*"[^"]+"\]/gm)].map((m) => m[1]);
+// v28.444 — NAV rows are objects now ({ label, page, path, strip?, perm? });
+// parse the label field instead of the old tuple shape.
+const navLabels = [...navSource.matchAll(/^\s*\{\s*label:\s*"([^"]+)"/gm)].map((m) => m[1]);
 if (navLabels.length < 10) errors.push(`navMap parse looks wrong — only ${navLabels.length} labels found`);
 const contentHay = JSON.stringify(TUTORIAL_MODULES).toLowerCase();
 for (const label of navLabels) {
@@ -69,4 +71,6 @@ if (errors.length) {
   for (const e of errors) console.error(`  - ${e}`);
   process.exit(1);
 }
-console.log(`✓ tutorial parity — ${navLabels.length} nav pages covered, ${DASHBOARD_TOUR_STEPS.length} tour anchors present, ${TUTORIAL_MODULES.length} module gates valid.`);
+console.log(
+  `✓ tutorial parity — ${navLabels.length} nav pages covered, ${DASHBOARD_TOUR_STEPS.length} tour anchors present, ${TUTORIAL_MODULES.length} module gates valid.`,
+);

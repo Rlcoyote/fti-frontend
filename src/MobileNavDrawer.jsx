@@ -1,5 +1,5 @@
 import { C } from "./config.js";
-import { PAGE_MAP, ROUTE_MAP } from "./navMap.js";
+import { PAGE_MAP, ROUTE_MAP, NAV_DISPLAY } from "./navMap.js";
 import { useApp } from "./AppContext.jsx";
 
 // v28.25 — theme toggle row for the mobile drawer. Mirrors the desktop
@@ -57,10 +57,12 @@ const NAV_ICONS = {
   Vehicles: "🛻",
   Yards: "🏭",
   Clock: "🕐",
+  "My Hours": "⏱",
   Crew: "👷",
   Safety: "🛡",
   "Safety Meetings": "🦺",
   Training: "🎓",
+  "Operator Certs": "🏗",
   Tutorial: "📖",
   "Final Review": "✅",
   Reports: "📊",
@@ -223,7 +225,10 @@ function MobileNavDrawer({
             <DrawerItem
               key={item}
               icon={NAV_ICONS[item]}
-              label={item}
+              // v28.444 — same display names as desktop (NAV_DISPLAY was
+              // desktop-only; mobile said "Safety" where desktop said
+              // "Certifications" — Article XV, both platforms equal).
+              label={NAV_DISPLAY[item] || item}
               active={active}
               onClick={() => {
                 navigate(ROUTE_MAP[item]);

@@ -13,32 +13,46 @@
 // it has non-nav sub-routes). Icons stay in MobileNavDrawer — presentation,
 // not routing knowledge.
 
+// v28.444 — rows carry STRIP membership + the permission gate. Before this,
+// FTIDashboard held its own ALL_NAV_ITEMS copy of "what's in the top strip"
+// and Operator Certs (added here in v28.441) silently never rendered — the
+// exact Entry 7 drift this file exists to kill, one shelf lower. Now: a page
+// is in the strip iff its row says so (strip = render order; gaps of 10 for
+// future inserts), gated by `perm` if present. No second list anywhere.
 const NAV = [
-  // [label, pageKey, path]
-  ["Dashboard", "dashboard", "/"],
-  ["All Tickets", "allTickets", "/all-tickets"],
-  ["Work Order History", "workOrderHistory", "/job-history"],
-  ["Action Items", "todos", "/todos"],
-  ["Inventory", "inventory", "/inventory"],
-  ["Assets", "assets", "/assets"],
-  ["Vehicles", "vehicles", "/vehicles"],
-  ["Yards", "yards", "/yards"],
-  ["Clock", "clock", "/clock"],
-  ["My Hours", "myHours", "/my-hours"],
-  ["Crew", "crew", "/crew"],
-  ["Safety", "safety", "/safety"],
-  ["Safety Meetings", "safetyMeetings", "/safety-meetings"],
-  ["Training", "training", "/training"],
-  ["Operator Certs", "competency", "/competency"], // v28.441 — equipment operator certification program (test + practical)
-  ["Tutorial", "tutorial", "/tutorial"], // v28.419 — THE tutorial (everyone)
-  ["Final Review", "finalReview", "/final-review"],
-  ["Reports", "reports", "/reports"],
-  ["Deleted", "deleted", "/deleted"],
-  ["Archive", "archive", "/archive"],
+  // { label, page, path, strip?, perm? }
+  { label: "Dashboard", page: "dashboard", path: "/" },
+  { label: "All Tickets", page: "allTickets", path: "/all-tickets", strip: 30 },
+  { label: "Work Order History", page: "workOrderHistory", path: "/job-history", strip: 40, perm: "view_jobs" },
+  { label: "Action Items", page: "todos", path: "/todos", strip: 50 },
+  { label: "Inventory", page: "inventory", path: "/inventory", strip: 60, perm: "view_inventory" },
+  { label: "Assets", page: "assets", path: "/assets" },
+  { label: "Vehicles", page: "vehicles", path: "/vehicles" },
+  { label: "Yards", page: "yards", path: "/yards" },
+  { label: "Clock", page: "clock", path: "/clock", strip: 10 },
+  { label: "My Hours", page: "myHours", path: "/my-hours", strip: 20 },
+  { label: "Crew", page: "crew", path: "/crew", strip: 70 },
+  { label: "Safety", page: "safety", path: "/safety", strip: 80 },
+  { label: "Safety Meetings", page: "safetyMeetings", path: "/safety-meetings", strip: 90 },
+  { label: "Training", page: "training", path: "/training", strip: 100 },
+  { label: "Operator Certs", page: "competency", path: "/competency", strip: 105 }, // v28.441 — equipment operator certification program (test + practical)
+  { label: "Tutorial", page: "tutorial", path: "/tutorial", strip: 110 }, // v28.419 — THE tutorial (everyone)
+  { label: "Final Review", page: "finalReview", path: "/final-review", strip: 120, perm: "approve_tickets" },
+  { label: "Reports", page: "reports", path: "/reports", strip: 130, perm: "view_reports" },
+  { label: "Deleted", page: "deleted", path: "/deleted", strip: 140, perm: "delete_jobs" },
+  { label: "Archive", page: "archive", path: "/archive", strip: 150, perm: "view_archive" },
 ];
 
-export const PAGE_MAP = Object.fromEntries(NAV.map(([label, page]) => [label, page]));
-export const ROUTE_MAP = Object.fromEntries(NAV.map(([label, , path]) => [label, path]));
+export const PAGE_MAP = Object.fromEntries(NAV.map(({ label, page }) => [label, page]));
+export const ROUTE_MAP = Object.fromEntries(NAV.map(({ label, path }) => [label, path]));
+
+// The top-strip labels the signed-in user can see, in render order. THE one
+// derivation both nav bars consume (via FTIDashboard) — v28.444.
+export function stripNavItems(can) {
+  return NAV.filter((r) => r.strip && (!r.perm || can(r.perm)))
+    .sort((a, b) => a.strip - b.strip)
+    .map((r) => r.label);
+}
 
 // Pages that live outside the top-nav strip but still carry a page identity
 // (gear-menu pages, sub-flows, legacy aliases). Longest prefix wins.
@@ -60,7 +74,7 @@ const EXTRA_PAGE_ROUTES = [
 // All prefix routes (nav minus "/", plus extras), longest first so
 // /inspection/new wins over /inspections and any future nesting stays safe.
 const PREFIX_ROUTES = [
-  ...NAV.filter(([, , path]) => path !== "/").map(([, page, path]) => [path, page]),
+  ...NAV.filter(({ path }) => path !== "/").map(({ page, path }) => [path, page]),
   ...EXTRA_PAGE_ROUTES.map(([path, page]) => [path, page]),
 ].sort((a, b) => b[0].length - a[0].length);
 
@@ -81,4 +95,8 @@ export const NAV_GROUPS = [
   { label: "SAFETY", items: ["Safety", "Safety Meetings", "Training", "Operator Certs"] },
   { label: "HISTORY", items: ["Work Order History", "Deleted", "Archive"] },
 ];
-export const NAV_DISPLAY = { Safety: "Certifications", Training: "Competency", "Work Order History": "Work Orders" };
+// v28.444 — Training displays as TRAINING again (the v28.441 "Competency"
+// rename sat beside "Operator Certs" reading as two near-synonyms; Reggie:
+// "We need 'training'"). Awareness courses = Training; the equipment
+// certification program = Operator Certs.
+export const NAV_DISPLAY = { Safety: "Certifications", "Work Order History": "Work Orders" };

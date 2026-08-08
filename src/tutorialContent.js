@@ -195,17 +195,18 @@ export const TUTORIAL_MODULES = [
         ],
       },
       {
-        title: "Certifications & competency",
+        title: "Certifications, training & operator certs",
         steps: [
-          "Under SAFETY: Certifications is the registry — what you're carded for and when it lapses. Adding a card is pick-from-the-list, not typed — and FTI in-house certs can't be entered by hand at all: they're EARNED through Operator Certs. Competency (the old Training tab) holds the written knowledge tests.",
-          "Operator Certs is the equipment program — see the next lesson; a cert you earn there lands in the same Certifications registry with its expiration.",
+          "Under SAFETY: Certifications is the registry — what you're carded for and when it lapses. Adding a card is pick-from-the-list, not typed; 'Other' covers the odd external card.",
+          "Certs earned inside the app can't be entered by hand — picking one in the ADD CERTIFICATION list takes you straight to OPERATOR CERTS, where they're actually earned. If you'd already picked the employee, they arrive preselected.",
+          "TRAINING holds the awareness courses and their tests. OPERATOR CERTS is the equipment certification program — see the next lesson; a cert you earn there lands in the same Certifications registry with its expiration.",
         ],
       },
       {
         title: "Operator certifications (man lift / MEWP)",
         steps: [
           "SAFETY → Operator Certs lists the equipment you can get certified to operate — first up: Man Basket / Aerial Boom Lift (MEWP — Mobile Elevating Work Platform, the ANSI/OSHA term).",
-          "Step one is the WRITTEN TEST — pass it (80%) right on your phone under Competency; the Operator Certs card shows when you have.",
+          "Step one is the WRITTEN TEST — pass it (80%) right on your phone from the TAKE TEST button on the cert's card; the card shows when you have.",
           "Step two is the PRACTICAL: an evaluator watches you run the equipment through the checklist — inspection, controls, safe operation.",
           "Both of you sign it on the spot: your PIN plus the evaluator's biometric — the same two-party ceremony as a witnessed JSA.",
           "The earned certification lands on the CERTIFICATIONS page with its expiration (36 months for the man lift) and shows up in expiring-cert warnings like every other card.",

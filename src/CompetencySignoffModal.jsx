@@ -16,12 +16,15 @@ import { Btn, ModalWrap, inputStyle, labelStyle } from "./SharedUI.jsx";
 
 const PIN_LENGTH = 4;
 
-function CompetencySignoffModal({ cert, onClose, onSigned }) {
+function CompetencySignoffModal({ cert, onClose, onSigned, initialTraineeId }) {
   const [detail, setDetail] = useState(null); // full cert (checklist + attestations)
   const [candidates, setCandidates] = useState(null);
   const [loadErr, setLoadErr] = useState("");
 
-  const [traineeId, setTraineeId] = useState("");
+  // v28.444 — the door can arrive with the trainee already picked (the
+  // employee chosen in the Certifications add flow). Preselect, still
+  // changeable — and every gate (test passed, PIN set) judges as usual.
+  const [traineeId, setTraineeId] = useState(initialTraineeId || "");
   const [makeModel, setMakeModel] = useState("");
   const [serial, setSerial] = useState("");
   const [results, setResults] = useState({}); // { [n]: 'pass' | 'na' }

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { C } from "./config.js";
 import { api } from "./api.js";
 import { useApp } from "./AppContext.jsx";
@@ -46,9 +47,31 @@ function Chip({ ok, label, tone }) {
 
 function CompetencyPage() {
   const { can } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [data, setData] = useState(null); // { certs, can_sign_off }
   const [err, setErr] = useState(null);
   const [view, setView] = useState({ mode: "list" }); // list | take | signoff
+  // v28.444 — THE DOOR's landing side: ?cert=<id> (+ optional &trainee=<user>)
+  // arrives from the Certifications add flow. The cert's card lights up and
+  // scrolls into view; an evaluator arriving with a trainee lands straight in
+  // the sign-off ceremony, trainee preselected. Params are consumed
+  // (replaced away) so refresh/BACK don't replay — same contract as
+  // useQueryPrefill, read together here because they arrive as a pair.
+  const [focusCertId, setFocusCertId] = useState(null);
+  const [doorTrainee, setDoorTrainee] = useState("");
+  const focusRef = useRef(null);
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const cert = sp.get("cert");
+    if (cert) {
+      setFocusCertId(String(cert));
+      setDoorTrainee(sp.get("trainee") || "");
+      navigate(location.pathname, { replace: true });
+    }
+    // Deliberate deps: consume once per URL change (useQueryPrefill idiom).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const refresh = useCallback(() => {
     api
@@ -60,6 +83,22 @@ function CompetencyPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Once the list is up and a door target is set: scroll the card into view;
+  // an evaluator with a trainee in hand goes straight to the ceremony.
+  useEffect(() => {
+    if (!data || !focusCertId) return;
+    const cert = data.certs.find((c) => String(c.id) === focusCertId);
+    if (!cert) return;
+    if (doorTrainee && data.can_sign_off && can("sign_off_competency")) {
+      setView({ mode: "signoff", cert, traineeId: doorTrainee });
+      setDoorTrainee("");
+    } else {
+      focusRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    // Deliberate deps: fires when the list lands or the target changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, focusCertId]);
 
   if (view.mode === "take") {
     return (
@@ -83,7 +122,7 @@ function CompetencyPage() {
       <h1 style={{ fontSize: 22, margin: "0 0 4px" }}>OPERATOR CERTIFICATIONS</h1>
       <div style={{ fontSize: 13, opacity: 0.7, marginBottom: 14 }}>
         Get certified to operate equipment — pass the written test <strong>and</strong> a hands-on practical evaluation. Earned certifications appear on the
-        <strong> Certifications</strong> page with their expiration. The written knowledge tests live under <strong>Competency</strong>.
+        <strong> Certifications</strong> page with their expiration. Awareness courses and their tests live under <strong>Training</strong>.
       </div>
 
       {err && <div style={{ color: C.red, marginBottom: 10 }}>{err}</div>}
@@ -93,12 +132,14 @@ function CompetencyPage() {
         data.certs.map((cert) => {
           const testReady = cert.test_passed;
           const certified = cert.certified;
+          const focused = String(cert.id) === focusCertId; // v28.444 — the door's landing highlight
           return (
             <div
               key={cert.id}
+              ref={focused ? focusRef : undefined}
               style={{
                 background: C.cardBg,
-                border: `1px solid ${C.border}`,
+                border: focused ? `2px solid ${C.blue}` : `1px solid ${C.border}`,
                 borderRadius: 10,
                 padding: "14px 16px",
                 marginBottom: 12,
@@ -151,6 +192,7 @@ function CompetencyPage() {
       {view.mode === "signoff" && (
         <CompetencySignoffModal
           cert={view.cert}
+          initialTraineeId={view.traineeId}
           onClose={() => setView({ mode: "list" })}
           onSigned={() => {
             setView({ mode: "list" });

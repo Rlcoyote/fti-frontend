@@ -1,17 +1,24 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { C, API_URL } from "./config.js";
 import { api } from "./api.js";
 import { Btn, inputStyle, labelStyle, ModalWrap } from "./SharedUI.jsx";
 import { useApp } from "./AppContext.jsx";
+import UnsavedChangesModal from "./UnsavedChangesModal.jsx";
 
 const CERT_TYPES = ["H2S", "Forklift", "Manlift", "Confined Space", "First Aid / CPR", "Fall Protection", "Hazmat", "CDL", "Site Specific", "Other"];
 
 // v28.443 (Reggie 260807: "It cannot be that a user simply writes in their
 // cert. This has to be from a drop down list of what is available.") — the
-// NAME comes from a list: curated common names per type, plus FTI in-house
-// certs shown but UNSELECTABLE (they are EARNED via Operator Certs — the
-// backend refuses a hand-typed match too, so the grey is truth, not the
-// wall). "Other" reveals a text field for the odd external card.
+// NAME comes from a list: curated common names per type. "Other" reveals a
+// text field for the odd external card.
+// v28.444 (Reggie 260807: "why would you go to the location I described
+// above to 'add them' if you cannot add them from this location? NO
+// redundancies") — earned-in-app certs are no longer greyed signage: picking
+// one IS the door. It closes this modal and lands on OPERATOR CERTS with the
+// cert (and the employee, if one was picked) preselected. The backend still
+// refuses a hand-typed match ("Other" path) — the write path stays the
+// ceremony, structurally.
 const CERT_NAME_OPTIONS = {
   H2S: ["H2S Alive", "H2S Clear", "H2S Awareness"],
   Forklift: ["Forklift Operator"],
@@ -25,9 +32,11 @@ const CERT_NAME_OPTIONS = {
   Other: [],
 };
 const OTHER_NAME = "__other__";
+const INHOUSE_PREFIX = "__inhouse__:"; // v28.444 — dropdown value marking "open Operator Certs for this cert id"
 
 function SafetyPage() {
   const { users, can } = useApp();
+  const navigate = useNavigate();
   const isAdmin = can("manage_settings");
   const [certs, setCerts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +50,8 @@ function SafetyPage() {
   const [formType, setFormType] = useState("");
   const [formName, setFormName] = useState("");
   const [nameChoice, setNameChoice] = useState(""); // v28.443 — dropdown selection; OTHER_NAME reveals free text
-  const [inhouseCerts, setInhouseCerts] = useState([]); // v28.443 — earned-only titles (unselectable)
+  const [inhouseCerts, setInhouseCerts] = useState([]); // v28.444 — {id, title} of earned-in-app certs; picking one opens Operator Certs
+  const [showUnsaved, setShowUnsaved] = useState(false); // v28.444 — dirty-close gate
   const [formIssuer, setFormIssuer] = useState("");
   const [formIssueDate, setFormIssueDate] = useState("");
   const [formExpDate, setFormExpDate] = useState("");
@@ -97,7 +107,7 @@ function SafetyPage() {
   useEffect(() => {
     api
       .get("/competency/certs")
-      .then((d) => setInhouseCerts((d?.certs || []).map((x) => x.title)))
+      .then((d) => setInhouseCerts((d?.certs || []).map((x) => ({ id: x.id, title: x.title }))))
       .catch(() => setInhouseCerts([]));
   }, []);
 
@@ -142,6 +152,42 @@ function SafetyPage() {
       img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
+  };
+
+  // v28.444 — the dirty-close gate (Reggie: "if you click off, it disappears
+  // ... It needs a gate before closing"). Snapshot the form the moment the
+  // modal opens (effect runs after the open-path state lands); any divergence
+  // = dirty; closing dirty routes through UnsavedChangesModal like every
+  // other input modal in the app.
+  const formValues = () =>
+    JSON.stringify([formUserId, formType, formName, nameChoice, formIssuer, formIssueDate, formExpDate, formCertNum, formNotes, formPhoto]);
+  const [openSnapshot, setOpenSnapshot] = useState("");
+  useEffect(() => {
+    if (showAdd) setOpenSnapshot(formValues());
+    // Deliberate deps: snapshot ONCE per open — tracking formValues would
+    // re-baseline on every keystroke and the gate would never see dirt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showAdd]);
+  const dirty = showAdd && formValues() !== openSnapshot;
+  const closeModal = () => {
+    setShowAdd(false);
+    resetForm();
+    setEditCert(null);
+    setShowUnsaved(false);
+  };
+  const requestClose = () => {
+    if (dirty) setShowUnsaved(true);
+    else closeModal();
+  };
+
+  // v28.444 — THE DOOR: picking an earned-in-app cert in the NAME dropdown
+  // closes this modal and lands on Operator Certs, cert preselected, employee
+  // (if picked) carried as the trainee. Deliberate navigation = no unsaved
+  // guard on this path.
+  const openOperatorCerts = (certId) => {
+    const trainee = formUserId ? `&trainee=${formUserId}` : "";
+    closeModal();
+    navigate(`/competency?cert=${certId}${trainee}`);
   };
 
   const openAdd = () => {
@@ -193,9 +239,7 @@ function SafetyPage() {
         return;
       }
       await fetchCerts();
-      setShowAdd(false);
-      resetForm();
-      setEditCert(null);
+      closeModal();
       setMsg(editCert ? "Updated." : "Certification added.");
       setTimeout(() => setMsg(""), 3000);
     } catch {
@@ -411,15 +455,7 @@ function SafetyPage() {
 
       {/* Add/Edit modal */}
       {showAdd && (
-        <ModalWrap
-          title={editCert ? "EDIT CERTIFICATION" : "ADD CERTIFICATION"}
-          onClose={() => {
-            setShowAdd(false);
-            resetForm();
-            setEditCert(null);
-          }}
-          width={520}
-        >
+        <ModalWrap title={editCert ? "EDIT CERTIFICATION" : "ADD CERTIFICATION"} onClose={requestClose} width={520}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
             <div>
               <label style={labelStyle}>EMPLOYEE *</label>
@@ -460,6 +496,12 @@ function SafetyPage() {
               disabled={!formType}
               onChange={(e) => {
                 const v = e.target.value;
+                if (v.startsWith(INHOUSE_PREFIX)) {
+                  // v28.444 — the door, not a grey wall: this cert is earned
+                  // through the Operator Certs ceremony, so go THERE.
+                  openOperatorCerts(v.slice(INHOUSE_PREFIX.length));
+                  return;
+                }
                 setNameChoice(v);
                 setFormName(v === OTHER_NAME ? "" : v);
               }}
@@ -471,10 +513,10 @@ function SafetyPage() {
                 </option>
               ))}
               {inhouseCerts.length > 0 && (
-                <optgroup label="FTI in-house — earned via Operator Certs, not entered here">
-                  {inhouseCerts.map((n) => (
-                    <option key={n} value={n} disabled>
-                      {n}
+                <optgroup label="Earned via OPERATOR CERTS — select to open">
+                  {inhouseCerts.map((c) => (
+                    <option key={c.id} value={`${INHOUSE_PREFIX}${c.id}`}>
+                      {c.title} →
                     </option>
                   ))}
                 </optgroup>
@@ -557,18 +599,20 @@ function SafetyPage() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Btn onClick={handleSave}>{editCert ? "SAVE CHANGES" : "ADD CERTIFICATION"}</Btn>
-            <Btn
-              variant="ghost"
-              onClick={() => {
-                setShowAdd(false);
-                resetForm();
-                setEditCert(null);
-              }}
-            >
+            <Btn variant="ghost" onClick={requestClose}>
               CANCEL
             </Btn>
           </div>
         </ModalWrap>
+      )}
+
+      {/* v28.444 — dirty-close gate for the add/edit modal */}
+      {showUnsaved && (
+        <UnsavedChangesModal
+          message="This certification hasn't been saved. Discard what you've entered?"
+          onDiscard={closeModal}
+          onClose={() => setShowUnsaved(false)}
+        />
       )}
 
       {/* Import from Excel modal */}

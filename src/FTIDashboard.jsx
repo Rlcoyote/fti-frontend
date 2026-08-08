@@ -45,7 +45,7 @@ import ErrorLogPage from "./ErrorLogPage.jsx";
 import ClockPage from "./ClockPage.jsx";
 import TrainingPage from "./TrainingPage.jsx";
 import CompetencyPage from "./CompetencyPage.jsx";
-import { pageFromPath } from "./navMap.js";
+import { pageFromPath, stripNavItems } from "./navMap.js";
 import ActivityLogPage from "./ActivityLogPage.jsx";
 import ContactsPage from "./ContactsPage.jsx";
 import TicketPage from "./TicketPage.jsx";
@@ -324,32 +324,11 @@ function FTIDashboard() {
   // surfaces. The pages still exist at /vehicles, /yards, /assets — routes
   // unchanged. Gear menu access broadened in DesktopNavBar so non-admins with
   // view_inventory still reach them.
-  const ALL_NAV_ITEMS = [
-    "Clock",
-    "My Hours",
-    "All Tickets",
-    "Work Order History",
-    "Action Items",
-    "Inventory",
-    "Crew",
-    "Safety",
-    "Safety Meetings",
-    "Training",
-    "Tutorial",
-    "Final Review",
-    "Reports",
-    "Deleted",
-    "Archive",
-  ];
-  const NAV_ITEMS = ALL_NAV_ITEMS.filter((i) => {
-    if (i === "Inventory" && !can("view_inventory")) return false;
-    if (i === "Work Order History" && !can("view_jobs")) return false;
-    if (i === "Deleted" && !can("delete_jobs")) return false;
-    if (i === "Archive" && !can("view_archive")) return false;
-    if (i === "Final Review" && !can("approve_tickets")) return false;
-    if (i === "Reports" && !can("view_reports")) return false;
-    return true;
-  });
+  // v28.444 — the strip list + its permission gates live IN navMap rows now.
+  // This file used to hold its own ALL_NAV_ITEMS copy, and "Operator Certs"
+  // (added to navMap in v28.441) silently never rendered because the copy was
+  // never updated — Entry 7 drift. One home, derived here, cannot disagree.
+  const NAV_ITEMS = stripNavItems(can);
 
   if (loading) return <BrandedSplash />;
 
