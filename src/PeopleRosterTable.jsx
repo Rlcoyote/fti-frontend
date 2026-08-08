@@ -19,6 +19,40 @@ const formatPhoneDisplay = (raw) => {
   return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
 };
 
+// v28.445 — SMS consent standing beside every phone (Reggie: "how would I
+// know if the phones that show in the list are confirmed or not?"). CONFIRMED
+// = the double-opt-in YES is on file and operational texts (task assignments,
+// circle comments, reminders) actually send; anything else = they silently
+// skip for this person.
+function SmsConsentChip({ status }) {
+  if (!status) return null;
+  const cfg = {
+    confirmed: { label: "SMS ✓ CONFIRMED", color: C.green, bg: C.greenB },
+    pending: { label: "SMS: AWAITING YES", color: C.orange, bg: C.orangeB },
+    none: { label: "SMS: NO CONSENT", color: C.red, bg: C.redB },
+    no_phone: { label: "NO PHONE", color: C.muted, bg: C.steel },
+  }[status];
+  if (!cfg) return null;
+  return (
+    <span
+      title="Operational texts (task assignments, comment threads, reminders) send ONLY to confirmed numbers. Confirmation = the person replied YES to the opt-in text."
+      style={{
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: "0.05em",
+        color: cfg.color,
+        background: cfg.bg,
+        border: `1px solid ${cfg.color}55`,
+        borderRadius: 3,
+        padding: "1px 6px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {cfg.label}
+    </span>
+  );
+}
+
 const roleBg = (r) =>
   r === "owner" ? C.redB : r === "admin" ? C.blueB : r === "manager" ? C.greenB : r === "lead" ? C.yellowB : r === "salesman" ? C.purpleB : C.steel;
 const roleColor = (r) =>
@@ -69,7 +103,7 @@ function PeopleRosterTable({ loading, filtered, people, isMobile, renderActions 
                   {p.first_name} {p.last_name}
                 </div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                  {p.email} · {formatPhoneDisplay(p.phone)}
+                  {p.email} · {formatPhoneDisplay(p.phone)} <SmsConsentChip status={p.sms_consent} />
                 </div>
               </div>
               <span
@@ -123,7 +157,12 @@ function PeopleRosterTable({ loading, filtered, people, isMobile, renderActions 
                 </strong>
               </td>
               <td style={tdStyle}>{p.email}</td>
-              <td style={tdStyle}>{formatPhoneDisplay(p.phone)}</td>
+              <td style={tdStyle}>
+                {formatPhoneDisplay(p.phone)}
+                <div style={{ marginTop: 3 }}>
+                  <SmsConsentChip status={p.sms_consent} />
+                </div>
+              </td>
               <td style={tdStyle}>
                 <span
                   style={{

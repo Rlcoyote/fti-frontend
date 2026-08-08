@@ -172,3 +172,60 @@ test("Just DONE checkbox completes without typed notes", async ({ page }) => {
   await done.click();
   await expect(page.getByText(/NOT deleted/i)).not.toBeVisible();
 });
+
+// ─── v28.445 fences — the glass answers the SMS/answered/audit questions ─────
+test("ANSWERED chip, comment SMS outcomes, and CHANGE LOG render", async ({ page }) => {
+  await seedSession(page);
+  await mockApi(page, {
+    gets: {
+      "/api/users": [
+        { id: TEST_USER.id, name: "E2E Tester", role: "admin", is_active: true },
+        { id: "e2e00000-0000-0000-0000-000000000002", name: "Other Guy", role: "field", is_active: true },
+      ],
+      "/api/todos": [
+        {
+          ...RAW_TODOS[1],
+          comment_count: 2,
+          needs_response_open: false,
+          response_answered_by: "Kyle Hand",
+          response_answered_at: "2026-08-08T15:10:00Z",
+          assign_sms: { at: "2026-08-08T14:00:00Z", to_name: "Kyle Hand", status: "no_consent" },
+        },
+      ],
+      "/api/todos/1/comments": [
+        {
+          id: 1,
+          body: "Cert for the basket itself, or the operator?",
+          needs_response: true,
+          created_at: "2026-08-08T14:05:00Z",
+          user_id: TEST_USER.id,
+          user_name: "E2E Tester",
+          via: "app",
+          sms_outcomes: [
+            { name: "Kyle Hand", status: "sent" },
+            { name: "Bo Duke", status: "no_consent" },
+          ],
+        },
+      ],
+      "/api/todos/1/audit": [
+        {
+          action: "todo_edited",
+          details: { changes: { assigned_to: { from: "e2e00000-0000-0000-0000-000000000002", to: "e2e00000-0000-0000-0000-000000000001" } } },
+          performed_by: "x",
+          performed_by_name: "Kyle Hand",
+          created_at: "2026-08-08T14:01:00Z",
+        },
+        { action: "todo_created", details: { title: "Mine task" }, performed_by: "x", performed_by_name: "Kyle Hand", created_at: "2026-08-08T14:00:00Z" },
+      ],
+    },
+  });
+  await page.goto("/todos");
+  await expect(page.getByText(/⚑ ANSWERED · Kyle/)).toBeVisible();
+  await page.getByRole("button", { name: "EDIT" }).first().click();
+  await expect(page.getByText(/NOT texted: Kyle Hand — no SMS consent/)).toBeVisible();
+  await expect(page.getByText(/📱 Texted Kyle Hand/)).toBeVisible();
+  await expect(page.getByText(/⚠ Not texted: Bo Duke — no SMS consent/)).toBeVisible();
+  await page.getByRole("button", { name: /CHANGE LOG/ }).click();
+  await expect(page.getByText(/Kyle Hand.*created the task/)).toBeVisible();
+  await expect(page.getByText(/assigned to.*Other Guy.*→.*E2E Tester/)).toBeVisible();
+});

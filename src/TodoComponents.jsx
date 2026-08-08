@@ -3,6 +3,8 @@ import { C, getCurrentUser } from "./config.js";
 import { api } from "./api.js";
 import { isOverdue, fmtStamp } from "./utils.js";
 import { Btn, PriorityBadge, ModalWrap, ConfirmModal, inputStyle, labelStyle } from "./SharedUI.jsx";
+import { useApp } from "./AppContext.jsx";
+import { renderAuditDetails } from "./auditDetails.js";
 
 // v28.429 — ISO (UTC) → the local "YYYY-MM-DDTHH:MM" a datetime-local wants.
 function toLocalDateTimeInput(iso) {
@@ -174,7 +176,13 @@ function TodoForm({ onSave, onCancel, defaultWorkOrderId = null, jobs, userNames
           />
         </div>
       </div>
+      {/* v28.445 — the assignment-text truth on the glass (Reggie: "how do I
+          personally know if the user is going to get a text?") */}
+      {initial?.id && <AssignSmsStamp stamp={initial.assignSms} />}
       {initial?.id && <TodoComments todoId={initial.id} />}
+      {/* v28.445 — the task's own change log (Reggie: "who assigned this task
+          to me or vice versa. Same audit trail as everything else"). */}
+      {initial?.id && <TodoChangeLog todoId={initial.id} />}
       {onMarkDone && (
         <div style={{ marginTop: 12 }}>
           <label style={{ fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.06em", display: "block", marginBottom: 4 }}>
@@ -379,6 +387,25 @@ function TodoRow({ todo, meName, onToggle, onEdit, onDelete, onNavigateJob, jobs
               ⚑ RESPONSE NEEDED
             </span>
           )}
+          {/* v28.445 — the answered state is as loud as the waiting state
+              (Reggie: "How does the user know if a response is returned?").
+              Same SQL that defines unanswered; no read-tracking. */}
+          {!todo.needsResponseOpen && todo.responseAnsweredBy && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.05em",
+                color: C.green,
+                background: C.greenB,
+                border: `1px solid ${C.green}55`,
+                borderRadius: 3,
+                padding: "2px 7px",
+              }}
+            >
+              ⚑ ANSWERED · {todo.responseAnsweredBy.split(" ")[0]} {fmtStamp(todo.responseAnsweredAt)}
+            </span>
+          )}
           {!todo.completed && todo.notifyAt && !todo.notifySentAt && new Date(todo.notifyAt) > new Date() && (
             <span style={{ fontSize: 10, fontWeight: 700, color: C.blue, border: `1px solid ${C.blue}44`, borderRadius: 3, padding: "2px 7px" }}>
               📱 TEXTS {new Date(todo.notifyAt).toLocaleString([], { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })}
@@ -557,6 +584,85 @@ function CompletionNotesModal({ todo, onComplete, onCancel }) {
   );
 }
 
+// ─── ASSIGN-SMS STAMP (v28.445) ─────────────────────────────────────────────
+// What actually happened to the assignment text — sent, skipped (and WHY),
+// scheduled, or failed. The v28.423 skip reasons finally reach the reader
+// who needs them instead of living in Railway logs (Article XXXIII).
+function AssignSmsStamp({ stamp }) {
+  let s = stamp;
+  if (typeof s === "string") {
+    try {
+      s = JSON.parse(s);
+    } catch {
+      return null;
+    }
+  }
+  if (!s || !s.status) return null;
+  const WHY = {
+    sent: { icon: "📱", color: C.green, text: `Assignment text SENT to ${s.to_name || "assignee"}` },
+    scheduled: { icon: "📱", color: C.blue, text: `Assignment text scheduled${s.scheduled_for ? ` for ${fmtStamp(s.scheduled_for)}` : ""}` },
+    self_assignment: { icon: "—", color: C.muted, text: "No assignment text — self-assigned (you don't text yourself; scheduled reminders do)" },
+    no_consent: { icon: "⚠", color: C.orange, text: `NOT texted: ${s.to_name || "assignee"} — no SMS consent (needs the YES reply)` },
+    no_phone: { icon: "⚠", color: C.orange, text: `NOT texted: ${s.to_name || "assignee"} — no phone on file` },
+    failed: { icon: "⚠", color: C.red, text: "Assignment text FAILED to send" },
+  };
+  const w = WHY[s.status] || { icon: "📱", color: C.muted, text: s.status };
+  return (
+    <div style={{ fontSize: 11, marginTop: 8, color: w.color, fontWeight: 600 }}>
+      {w.icon} {w.text}
+      {s.at && <span style={{ color: C.muted, fontWeight: 400 }}> · {fmtStamp(s.at)}</span>}
+    </div>
+  );
+}
+
+// ─── TASK CHANGE LOG (v28.445) — the meeting CHANGE-LOG pattern on tasks ────
+// Who created it, who assigned it to whom (from → to, names not uuids), every
+// edit, completion and reactivation. Rendered through auditDetails — the ONE
+// audit-rendering home (v28.398).
+const AUDIT_VERB = {
+  todo_created: "created the task",
+  todo_edited: "edited",
+  todo_completed: "marked it DONE",
+  todo_reactivated: "reactivated it",
+  todo_comment: "commented",
+};
+function TodoChangeLog({ todoId }) {
+  const { users } = useApp();
+  const [rows, setRows] = useState(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!todoId || !open) return;
+    api
+      .get(`/todos/${todoId}/audit`)
+      .then((r) => setRows(r || []))
+      .catch(() => setRows([]));
+  }, [todoId, open]);
+  const resolve = (uuid) => (users || []).find((u) => u.id === uuid)?.name || null;
+  return (
+    <div style={{ marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, fontWeight: 800, color: C.muted, letterSpacing: "0.06em" }}
+      >
+        {open ? "▾" : "▸"} CHANGE LOG
+      </button>
+      {open && rows === null && <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", marginTop: 6 }}>Loading…</div>}
+      {open && rows?.length === 0 && (
+        <div style={{ fontSize: 12, color: C.muted, fontStyle: "italic", marginTop: 6 }}>No recorded changes (task predates the change log).</div>
+      )}
+      {open &&
+        (rows || []).map((r, i) => (
+          <div key={i} style={{ fontSize: 11, color: C.text, marginTop: 5 }}>
+            <span style={{ color: C.muted }}>{fmtStamp(r.created_at)}</span> — <strong>{r.performed_by_name || "System"}</strong>{" "}
+            {AUDIT_VERB[r.action] || r.action.replace(/^todo_/, "").replace(/_/g, " ")}
+            {r.details && <span style={{ color: C.muted }}> {renderAuditDetails(r.details, resolve)}</span>}
+          </div>
+        ))}
+    </div>
+  );
+}
+
 // ─── COMMENT THREAD (v28.435) ────────────────────────────────────────────────
 // The argument in the middle of a task, kept ON the task. Permanent entries
 // (no edit/delete — it's the resolution trail). NEEDS RESPONSE flags the
@@ -590,11 +696,43 @@ function TodoComments({ todoId }) {
       setDraft("");
       setNeedsResponse(false);
       load();
+      // v28.445 — the circle texts fan out AFTER the post returns; re-load
+      // shortly so the who-got-texted stamps appear without a manual refresh.
+      setTimeout(load, 3000);
     } catch (e) {
       setErr(e.message || "Could not post the comment.");
     } finally {
       setPosting(false);
     }
+  };
+
+  // v28.445 — the sender sees what the machine did (Reggie: "how do I
+  // personally know if the user is going to get a text?"). Outcomes are
+  // stamped on the comment row by the fan-out; null = pre-stamp comment.
+  const SKIP_WHY = { no_consent: "no SMS consent (needs the YES reply)", no_phone: "no phone on file", failed: "send failed" };
+  const renderOutcomes = (raw) => {
+    let list = raw;
+    if (typeof raw === "string") {
+      try {
+        list = JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+    if (!Array.isArray(list)) return null;
+    if (!list.length) return <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>📱 No one else on this task to text.</div>;
+    const sent = list.filter((o) => o.status === "sent").map((o) => o.name);
+    const skipped = list.filter((o) => o.status !== "sent");
+    return (
+      <div style={{ fontSize: 10, marginTop: 4 }}>
+        {sent.length > 0 && <span style={{ color: C.muted }}>📱 Texted {sent.join(", ")}</span>}
+        {skipped.map((o) => (
+          <span key={o.name} style={{ color: C.orange, fontWeight: 700, marginLeft: sent.length ? 8 : 0 }}>
+            ⚠ Not texted: {o.name} — {SKIP_WHY[o.status] || o.status}
+          </span>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -614,6 +752,7 @@ function TodoComments({ todoId }) {
             )}
           </div>
           <div style={{ fontSize: 13, color: C.text, whiteSpace: "pre-wrap" }}>{c.body}</div>
+          {renderOutcomes(c.sms_outcomes)}
         </div>
       ))}
       <textarea

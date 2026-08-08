@@ -108,6 +108,10 @@ export function usePageData() {
           lastCommentAt: t.last_comment_at || null,
           lastCommentName: t.last_comment_name || null,
           needsResponseOpen: !!t.needs_response_open,
+          // v28.445 — answered state + assignment-text outcome stamp
+          responseAnsweredBy: t.response_answered_by || null,
+          responseAnsweredAt: t.response_answered_at || null,
+          assignSms: t.assign_sms || null,
           createdAt: t.created_at,
         }));
         // Transform inventory
